@@ -31,7 +31,8 @@ export function createPopover(
         }
 
         const triggerRect = trigger.getBoundingClientRect()
-        const popoverWidth = Math.max(popover.offsetWidth, triggerRect.width)
+        const maxWidth = Math.max(0, window.innerWidth - 2 * viewportGap)
+        const popoverWidth = Math.min(Math.max(popover.offsetWidth, triggerRect.width), maxWidth)
         const popoverHeight = popover.offsetHeight
         const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportGap
         const spaceAbove = triggerRect.top - gap - viewportGap
@@ -43,6 +44,7 @@ export function createPopover(
         }
 
         popover.style.minWidth = `${popoverWidth}px`
+        popover.style.maxWidth = `${maxWidth}px`
         popover.style.position = 'fixed'
 
         let top: number

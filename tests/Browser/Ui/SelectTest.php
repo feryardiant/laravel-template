@@ -277,6 +277,20 @@ it('falls back to a generic accessible name when all name sources are missing', 
         ->assertScript("document.querySelector('[data-ui-demo=select-no-name] [role=combobox]').getAttribute('aria-label') === 'Pilih'");
 });
 
+it('keeps a wide popover inside the mobile viewport', function () {
+    $page = visit('/ui/select')->on()->mobile();
+
+    $page->click('[data-ui-demo="select-wide"] [role="combobox"]')
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const trigger = document.querySelector('[data-ui-demo=select-wide] [role=combobox]');
+            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const rect = popover.getBoundingClientRect();
+
+            return rect.left >= 8 && rect.right <= window.innerWidth - 8;
+        })()");
+});
+
 it('renders disabled and invalid states', function () {
     $page = visit('/ui/select')->on()->desktop();
 

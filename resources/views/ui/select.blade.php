@@ -127,4 +127,12 @@
             <x-ui.select.option value="two">Second option</x-ui.select.option>
         </x-ui.select>
     </section>
+
+    <section data-ui-demo="select-wide" class="space-y-2">
+        <x-ui.select label="Wide options" placeholder="Choose..." options:class="w-[40rem]">
+            <x-ui.select.option value="long">
+                VeryLongOptionLabelWithoutAnySpacesThatWouldOverflowTheViewportOnMobile
+            </x-ui.select.option>
+        </x-ui.select>
+    </section>
 </div>
