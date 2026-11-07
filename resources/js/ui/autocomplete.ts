@@ -37,6 +37,7 @@ export interface AutocompleteData {
     fetchRemote: () => Promise<void>
     focusTrigger: () => void
     write: () => void
+    dispatch: (name: string) => void
 }
 
 function normalizeRemote(data: unknown): RemoteItem[] {
@@ -105,12 +106,14 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                 focusTarget: triggerElement,
                 onOpen: () => {
                     this.open = true
+                    this.dispatch('open')
                 },
                 onClose: () => {
                     suppressFocus = true
                     this.open = false
                     this.activeIndex = -1
                     this.activeId = ''
+                    this.dispatch('close')
 
                     setTimeout(() => {
                         suppressFocus = false
@@ -224,9 +227,11 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             }
 
             if (event.key === 'Home' || event.key === 'End') {
-                if (this.open && visible.length > 0) {
+                const enabled = visible.filter((option) => !option.disabled)
+
+                if (this.open && enabled.length > 0) {
                     event.preventDefault()
-                    this.setActive(event.key === 'Home' ? 0 : visible.length - 1)
+                    this.setActive(visible.indexOf(event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]))
                 }
 
                 return
@@ -249,6 +254,10 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         selectFromEvent(event) {
+            if (this.disabled) {
+                return
+            }
+
             const target = event.target
 
             if (!(target instanceof Element)) {
@@ -269,6 +278,10 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         selectRemote(item) {
+            if (this.disabled) {
+                return
+            }
+
             const index = visible.findIndex((option) => option.label === item.label)
 
             if (index >= 0) {
@@ -282,7 +295,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         selectOption(option) {
-            if (option.disabled) {
+            if (this.disabled || option.disabled) {
                 return
             }
 
@@ -299,24 +312,61 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         clear() {
+            if (this.disabled) {
+                return
+            }
+
             this.query = ''
             this.results = []
             this.emptyVisible = false
             this.write()
+            this.dispatch('clear')
             this.closePopover()
             this.focusTrigger()
         },
 
         setActive(index) {
-            this.activeIndex = index
+            if (visible.length === 0) {
+                this.activeIndex = -1
+                this.activeId = ''
 
-            for (const [optionIndex, option] of visible.entries()) {
-                option.el.toggleAttribute('data-active', optionIndex === index)
+                for (const option of options) {
+                    option.el.removeAttribute('data-active')
+                }
+
+                return
             }
 
-            const active = visible[index] ?? null
+            let target = ((index % visible.length) + visible.length) % visible.length
 
-            this.activeId = active?.el.id ?? ''
+            for (let step = 0; step < visible.length; step++) {
+                if (!visible[target].disabled) {
+                    break
+                }
+
+                target = (target + 1) % visible.length
+            }
+
+            if (visible[target].disabled) {
+                this.activeIndex = -1
+                this.activeId = ''
+
+                for (const option of options) {
+                    option.el.removeAttribute('data-active')
+                }
+
+                return
+            }
+
+            this.activeIndex = target
+
+            for (const [optionIndex, option] of visible.entries()) {
+                option.el.toggleAttribute('data-active', optionIndex === target)
+            }
+
+            const active = visible[target] ?? null
+
+            this.activeId = this.open ? (active?.el.id ?? '') : ''
 
             if (this.open) {
                 active?.el.scrollIntoView({ block: 'nearest' })
@@ -324,14 +374,22 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         move(delta) {
-            if (visible.length === 0) {
+            const enabled = visible.filter((option) => !option.disabled)
+
+            if (enabled.length === 0) {
                 return
             }
 
-            const current = this.activeIndex < 0 ? (delta > 0 ? -1 : 0) : this.activeIndex
-            const next = (current + delta + visible.length) % visible.length
+            const current = visible[this.activeIndex]
+            const currentIndex = current ? enabled.indexOf(current) : -1
+            const next =
+                currentIndex < 0
+                    ? delta > 0
+                        ? 0
+                        : enabled.length - 1
+                    : (currentIndex + delta + enabled.length) % enabled.length
 
-            this.setActive(next)
+            this.setActive(visible.indexOf(enabled[next]))
         },
 
         scanLocal() {
@@ -358,14 +416,17 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                 clearTimeout(debounceTimer)
             }
 
-            if (this.query.length < config.minLength) {
-                abortController?.abort()
-                this.loading = false
-                this.results = []
-                this.emptyVisible = false
+            abortController?.abort()
+            requestId++
+            this.loading = false
+            this.results = []
+            this.emptyVisible = false
 
+            if (this.query.length < config.minLength) {
                 return
             }
+
+            this.loading = true
 
             debounceTimer = setTimeout(() => {
                 void this.fetchRemote()
@@ -434,6 +495,14 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
         write() {
             writeModel(wire, config.model, config.live, this.query, formInput())
+            this.dispatch('change')
+        },
+
+        dispatch(name) {
+            const element = trigger()
+            const detail = name === 'change' ? { value: this.query } : {}
+
+            element?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
         },
     }
 }

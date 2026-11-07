@@ -14,7 +14,7 @@
             icon="magnifying-glass"
             clearable
         >
-            <x-ui.autocomplete.item>Alabama</x-ui.autocomplete.item>
+            <x-ui.autocomplete.item disabled>Alabama</x-ui.autocomplete.item>
             <x-ui.autocomplete.item>Alaska</x-ui.autocomplete.item>
             <x-ui.autocomplete.item>Arkansas</x-ui.autocomplete.item>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
@@ -59,6 +59,13 @@
     <section data-ui-demo="autocomplete-invalid" class="space-y-2">
         <x-ui.autocomplete label="Invalid" placeholder="Start typing..." value="California" invalid>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
+        </x-ui.autocomplete>
+    </section>
+
+    <section data-ui-demo="autocomplete-unlabeled" class="space-y-2">
+        <x-ui.autocomplete placeholder="Choose a state" clearable>
+            <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
+            <x-ui.autocomplete.item>New York</x-ui.autocomplete.item>
         </x-ui.autocomplete>
     </section>
 </div>

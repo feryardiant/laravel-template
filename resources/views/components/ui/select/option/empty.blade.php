@@ -8,5 +8,9 @@
     role="status"
     class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400"
 >
-    {{ $slot->isEmpty() ? __('ui.select.no-results') : $slot }}
+    @if ($slot->isEmpty())
+        <span x-text="emptyText"></span>
+    @else
+        {{ $slot }}
+    @endif
 </div>

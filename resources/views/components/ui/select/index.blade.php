@@ -28,11 +28,15 @@
     $triggerId = 'ui-select-'.$key.'-trigger';
     $popoverId = 'ui-select-'.$key.'-popover';
     $listboxId = 'ui-select-'.$key.'-listbox';
-    $formInputId = $name !== null ? 'ui-select-'.$key.'-input' : null;
     $anchorId = $variant === 'pillbox' ? 'ui-select-'.$key.'-anchor' : $triggerId;
 
     $empty ??= __('ui.select.no-results');
     $selectedSuffix ??= __('ui.select.selected');
+    $optionsClass = $attributes->get('options:class');
+    $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder;
+    $isPlain = $model === null && $name !== null;
+    $isMultiple = (bool) $multiple || $variant === 'pillbox';
+    $formInputId = $isPlain && ! $isMultiple ? 'ui-select-'.$key.'-input' : null;
 
     $config = [
         'variant' => $variant,
@@ -50,7 +54,9 @@
         'formInputId' => $formInputId,
     ];
 
-    $rootAttributes = $attributes->filter(fn ($value, $key) => ! str_starts_with($key, 'wire:model'));
+    $rootAttributes = $attributes->filter(
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'options:class',
+    );
 @endphp
 
 <flux:with-field
@@ -72,7 +78,18 @@
         class="relative"
     >
         @if ($formInputId !== null)
-            <input type="hidden" id="{{ $formInputId }}" name="{{ $name }}" />
+            <input
+                type="hidden"
+                id="{{ $formInputId }}"
+                name="{{ $name }}"
+                value="{{ is_scalar($value) ? $value : '' }}"
+            />
+        @endif
+
+        @if ($isPlain && $isMultiple)
+            <template x-for="selected in selectedValues" :key="selected">
+                <input type="hidden" name="{{ $name }}[]" :value="selected" />
+            </template>
         @endif
 
         @if ($variant === 'pillbox')
@@ -80,7 +97,7 @@
                 id="{{ $anchorId }}"
                 x-on:click="focusSearch()"
                 @class([
-                    'flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white px-2 py-1.5 text-base shadow-xs sm:text-sm dark:border-white/10 dark:bg-white/10',
+                    'flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white px-2 py-1.5 text-base shadow-xs focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-accent-foreground sm:text-sm dark:border-white/10 dark:bg-white/10 [@media(hover:none)]:min-h-11',
                     'opacity-50' => $disabled,
                     'border-red-500 dark:border-red-500' => $invalid,
                 ])
@@ -95,7 +112,8 @@
                             type="button"
                             x-on:click.stop="removeValue(pill.value)"
                             x-bind:aria-label="{{ \Illuminate\Support\Js::from(__('ui.select.remove', ['label' => ':label'])) }}.replace(':label', pill.selectedLabel)"
-                            class="shrink-0 rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                            @disabled($disabled)
+                            class="shrink-0 rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                         >
                             <flux:icon name="x-mark" variant="micro" class="size-4" />
                         </button>
@@ -116,7 +134,7 @@
                     aria-autocomplete="list"
                     aria-haspopup="listbox"
                     aria-controls="{{ $popoverId }}"
-                    @if ($label) aria-label="{{ $label }}" @endif
+                    @if ($accessibleLabel) aria-label="{{ $accessibleLabel }}" @endif
                     @if ($invalid) aria-invalid="true" @endif
                     autocomplete="off"
                     @disabled($disabled)
@@ -126,11 +144,12 @@
                 @if ($clearable)
                     <button
                         type="button"
-                        x-show="selectedValues.length > 0"
+                        x-show="selectedValues.length > 0 && ! disabled"
                         x-cloak
                         x-on:click.stop="clear()"
+                        @disabled($disabled)
                         aria-label="{{ __('ui.select.clear') }}"
-                        class="shrink-0 rounded-sm p-1 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                        class="shrink-0 rounded-sm p-1 text-zinc-400 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                     >
                         <flux:icon name="x-mark" variant="micro" class="size-4" />
                     </button>
@@ -158,7 +177,7 @@
                     aria-controls="{{ $popoverId }}"
                     aria-haspopup="listbox"
                     aria-autocomplete="none"
-                    :aria-label="$label"
+                    :aria-label="$accessibleLabel"
                     autocomplete="off"
                     role="combobox"
                 />
@@ -167,11 +186,12 @@
                     @if ($clearable)
                         <button
                             type="button"
-                            x-show="selectedValues.length > 0"
+                            x-show="selectedValues.length > 0 && ! disabled"
                             x-cloak
                             x-on:click.stop="clear()"
+                            @disabled($disabled)
                             aria-label="{{ __('ui.select.clear') }}"
-                            class="pointer-events-auto rounded-sm p-1 hover:text-zinc-800 dark:hover:text-zinc-200"
+                            class="pointer-events-auto rounded-sm p-1 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                         >
                             <flux:icon name="x-mark" variant="micro" class="size-4" />
                         </button>
@@ -186,7 +206,7 @@
             id="{{ $popoverId }}"
             popover="manual"
             data-ui-popover
-            class="z-50 min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700"
+            class="z-50 min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $optionsClass }}"
         >
             <div
                 id="{{ $listboxId }}"

@@ -7,7 +7,7 @@
     </div>
 
     <section data-ui-demo="select-single" class="space-y-2">
-        <x-ui.select wire:model.live="industry" label="Industry" placeholder="Choose industry..." clearable>
+        <x-ui.select wire:model.live="industry" label="Industry" placeholder="Choose industry..." empty="No industries found" clearable>
             <x-ui.select.option value="photography" icon="camera">Photography</x-ui.select.option>
             <x-ui.select.option value="design" icon="paint-brush">Design services</x-ui.select.option>
 
@@ -66,7 +66,7 @@
     </section>
 
     <section data-ui-demo="select-disabled" class="space-y-2">
-        <x-ui.select label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="web" disabled>
+        <x-ui.select label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="web" clearable disabled>
             <x-ui.select.option value="web">Web development</x-ui.select.option>
             <x-ui.select.option value="design">Design services</x-ui.select.option>
         </x-ui.select>
@@ -77,5 +77,35 @@
             <x-ui.select.option value="web">Web development</x-ui.select.option>
             <x-ui.select.option value="design">Design services</x-ui.select.option>
         </x-ui.select>
+    </section>
+
+    <section data-ui-demo="select-unlabeled" class="space-y-2">
+        <x-ui.select placeholder="Choose something" clearable>
+            <x-ui.select.option value="one">First option</x-ui.select.option>
+            <x-ui.select.option value="two">Second option</x-ui.select.option>
+        </x-ui.select>
+    </section>
+
+    <section data-ui-demo="select-disabled-options" class="space-y-2">
+        <x-ui.select label="Disabled options" placeholder="Choose an option...">
+            <x-ui.select.option value="blocked" disabled>Blocked option</x-ui.select.option>
+            <x-ui.select.option value="available">Available option</x-ui.select.option>
+        </x-ui.select>
+    </section>
+
+    <section data-ui-demo="select-plain" class="space-y-3">
+        <form method="get" action="{{ route('ui.select') }}" class="space-y-3">
+            <x-ui.select name="plain_industry" value="design" label="Plain single" placeholder="Choose industry...">
+                <x-ui.select.option value="web">Web development</x-ui.select.option>
+                <x-ui.select.option value="design">Design services</x-ui.select.option>
+            </x-ui.select>
+
+            <x-ui.select name="plain_tags" :value="['design']" multiple label="Plain multiple" placeholder="Choose tags...">
+                <x-ui.select.option value="design">Design</x-ui.select.option>
+                <x-ui.select.option value="marketing">Marketing</x-ui.select.option>
+            </x-ui.select>
+
+            <flux:button type="submit" size="sm">Submit plain form</flux:button>
+        </form>
     </section>
 </div>

@@ -43,6 +43,7 @@ export interface SelectData {
     clear: () => void
     focusSearch: () => void
     commit: () => void
+    dispatch: (name: string) => void
     dispatchChange: () => void
     filterByTypeahead: () => void
     handleNavigation: (event: KeyboardEvent, typeaheadEnabled: boolean) => void
@@ -94,6 +95,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
                 focusTarget: trigger(),
                 onOpen: () => {
                     this.open = true
+                    this.dispatch('open')
                 },
                 onClose: () => {
                     suppressFocus = true
@@ -103,6 +105,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
                     this.activeIndex = -1
                     this.activeId = ''
                     this.renderTrigger()
+                    this.dispatch('close')
 
                     setTimeout(() => {
                         suppressFocus = false
@@ -201,13 +204,45 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         setActive(index) {
-            this.activeIndex = index
+            if (visible.length === 0) {
+                this.activeIndex = -1
+                this.activeId = ''
 
-            for (const [optionIndex, option] of visible.entries()) {
-                option.el.toggleAttribute('data-active', optionIndex === index)
+                for (const option of options) {
+                    option.el.removeAttribute('data-active')
+                }
+
+                return
             }
 
-            const active = visible[index] ?? null
+            let target = ((index % visible.length) + visible.length) % visible.length
+
+            for (let step = 0; step < visible.length; step++) {
+                if (!visible[target].disabled) {
+                    break
+                }
+
+                target = (target + 1) % visible.length
+            }
+
+            if (visible[target].disabled) {
+                this.activeIndex = -1
+                this.activeId = ''
+
+                for (const option of options) {
+                    option.el.removeAttribute('data-active')
+                }
+
+                return
+            }
+
+            this.activeIndex = target
+
+            for (const [optionIndex, option] of visible.entries()) {
+                option.el.toggleAttribute('data-active', optionIndex === target)
+            }
+
+            const active = visible[target] ?? null
 
             this.activeId = this.open ? (active?.el.id ?? '') : ''
 
@@ -217,14 +252,22 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         move(delta) {
-            if (visible.length === 0) {
+            const enabled = visible.filter((option) => !option.disabled)
+
+            if (enabled.length === 0) {
                 return
             }
 
-            const current = this.activeIndex < 0 ? (delta > 0 ? -1 : 0) : this.activeIndex
-            const next = (current + delta + visible.length) % visible.length
+            const current = visible[this.activeIndex]
+            const currentIndex = current ? enabled.indexOf(current) : -1
+            const next =
+                currentIndex < 0
+                    ? delta > 0
+                        ? 0
+                        : enabled.length - 1
+                    : (currentIndex + delta + enabled.length) % enabled.length
 
-            this.setActive(next)
+            this.setActive(visible.indexOf(enabled[next]))
         },
 
         openPopover() {
@@ -289,6 +332,10 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         onPillboxInput(event) {
+            if (this.disabled) {
+                return
+            }
+
             this.query = (event.target as HTMLInputElement).value
 
             if (!this.open) {
@@ -341,9 +388,11 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             }
 
             if (event.key === 'Home' || event.key === 'End') {
-                if (this.open && visible.length > 0) {
+                const enabled = visible.filter((option) => !option.disabled)
+
+                if (this.open && enabled.length > 0) {
                     event.preventDefault()
-                    this.setActive(event.key === 'Home' ? 0 : visible.length - 1)
+                    this.setActive(visible.indexOf(event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]))
                 }
 
                 return
@@ -401,6 +450,10 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         selectFromEvent(event) {
+            if (this.disabled) {
+                return
+            }
+
             const target = event.target
 
             if (!(target instanceof Element)) {
@@ -423,7 +476,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         choose(option) {
-            if (option.disabled) {
+            if (this.disabled || option.disabled) {
                 return
             }
 
@@ -464,6 +517,10 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         removeValue(value) {
+            if (this.disabled) {
+                return
+            }
+
             this.selectedValues = this.selectedValues.filter((selected) => selected !== value)
             this.commit()
             this.syncSelection()
@@ -474,7 +531,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         removeLast() {
-            if (this.selectedValues.length === 0) {
+            if (this.disabled || this.selectedValues.length === 0) {
                 return
             }
 
@@ -487,15 +544,24 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         clear() {
+            if (this.disabled) {
+                return
+            }
+
             this.selectedValues = []
             this.commit()
             this.syncSelection()
             this.renderTrigger()
             this.dispatchChange()
+            this.dispatch('clear')
             this.closePopover()
         },
 
         focusSearch() {
+            if (this.disabled) {
+                return
+            }
+
             const element = trigger()
 
             if (element instanceof HTMLInputElement) {
@@ -509,15 +575,18 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             writeModel(wire, config.model, config.live, value, formInput())
         },
 
-        dispatchChange() {
-            const element = trigger()
+        dispatch(name) {
+            const element = trigger() ?? anchor()
+            const detail =
+                name === 'change'
+                    ? { value: this.multiple ? [...this.selectedValues] : (this.selectedValues[0] ?? null) }
+                    : {}
 
-            element?.dispatchEvent(
-                new CustomEvent('change', {
-                    bubbles: true,
-                    detail: { value: this.multiple ? [...this.selectedValues] : (this.selectedValues[0] ?? null) },
-                }),
-            )
+            element?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
+        },
+
+        dispatchChange() {
+            this.dispatch('change')
         },
     }
 }
