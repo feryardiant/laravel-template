@@ -1,6 +1,6 @@
 <div class="space-y-8">
     <div class="space-y-2">
-        <h1 class="text-2xl font-semibold">Autocomplete</h1>
+        <h1 data-ui-outside class="text-2xl font-semibold">Autocomplete</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Text suggestions from local items or a remote endpoint.
         </p>

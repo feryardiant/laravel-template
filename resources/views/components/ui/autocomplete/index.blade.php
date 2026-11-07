@@ -127,13 +127,14 @@
             id="{{ $popoverId }}"
             popover="manual"
             data-ui-popover
-            class="z-50 min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $containerClass }}"
+            class="z-50 min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $containerClass }}"
         >
             <div
                 id="{{ $listboxId }}"
                 role="listbox"
+                x-show="! emptyVisible && ! loading"
                 x-on:click="selectFromEvent($event)"
-                class="max-h-60 overflow-y-auto p-1"
+                class="max-h-60 overflow-y-auto"
             >
                 @if ($searchUrl)
                     <template x-for="(item, index) in results" :key="item.label + index">

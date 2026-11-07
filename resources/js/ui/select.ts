@@ -53,6 +53,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
     let visible: ListboxOption[] = []
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
+    let suppressFocus = false
 
     const multiple = config.variant === 'pillbox' ? true : config.multiple
 
@@ -95,12 +96,17 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
                     this.open = true
                 },
                 onClose: () => {
+                    suppressFocus = true
                     this.open = false
                     this.query = ''
                     this.typeahead = ''
                     this.activeIndex = -1
                     this.activeId = ''
                     this.renderTrigger()
+
+                    setTimeout(() => {
+                        suppressFocus = false
+                    }, 0)
                 },
             })
 
@@ -116,10 +122,28 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         refresh() {
+            const activeValue = visible[this.activeIndex]?.value ?? null
+
             this.scan()
             this.applyQuery()
             this.syncSelection()
             this.renderTrigger()
+
+            if (activeValue !== null) {
+                const activeIndex = visible.findIndex((option) => option.value === activeValue)
+
+                if (activeIndex >= 0) {
+                    this.setActive(activeIndex)
+
+                    return
+                }
+            }
+
+            const selectedIndex = visible.findIndex((option) => this.selectedValues.includes(option.value))
+
+            if (selectedIndex >= 0) {
+                this.setActive(selectedIndex)
+            }
         },
 
         scan() {
@@ -245,12 +269,20 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         onTriggerFocus() {
+            if (suppressFocus) {
+                return
+            }
+
             if (!this.open) {
                 this.openPopover()
             }
         },
 
         onPillboxFocus() {
+            if (suppressFocus) {
+                return
+            }
+
             if (!this.open) {
                 this.openPopover()
             }
@@ -412,12 +444,21 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
                 this.query = ''
                 this.typeahead = ''
                 this.applyQuery()
-                this.setActive(0)
+
+                const index = visible.indexOf(option)
+
+                this.setActive(index >= 0 ? index : 0)
 
                 if (this.variant === 'pillbox') {
                     this.focusSearch()
                 }
             } else {
+                const index = visible.indexOf(option)
+
+                if (index >= 0) {
+                    this.setActive(index)
+                }
+
                 this.closePopover()
             }
         },

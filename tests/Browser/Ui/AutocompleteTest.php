@@ -23,7 +23,8 @@ it('filters local items and selects with the keyboard', function () {
         ->keys($trigger, 'Enter')
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').value === 'California'")
-        ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === 'California'");
+        ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === 'California'")
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [data-ui-option][data-value=California]').hasAttribute('data-active')");
 });
 
 it('reflects a server-side model update', function () {
@@ -47,7 +48,8 @@ it('loads remote suggestions and selects one', function () {
         ->keys($trigger, ['ArrowDown', 'Enter'])
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === 'New Jersey'")
-        ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'New Jersey'");
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'New Jersey'")
+        ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]')).find((option) => option.dataset.label === 'New Jersey')?.hasAttribute('data-active') === true");
 });
 
 it('shows the empty state for remote searches', function () {
@@ -57,6 +59,7 @@ it('shows the empty state for remote searches', function () {
     $page->click($trigger)
         ->type($trigger, 'zzz')
         ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('[data-ui-demo=autocomplete-remote] [role=listbox]')).display === 'none'")
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [role=status]')).some((element) => element.textContent.trim() === 'Tidak ada hasil' && getComputedStyle(element).display !== 'none')");
 });
 
@@ -94,6 +97,58 @@ it('clears the value with the clear button', function () {
         ->wait(0.5)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').value === ''")
         ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === ''");
+});
+
+it('closes on a mouse selection and on an outside click', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $trigger = '[data-ui-demo="autocomplete-local"] [role="combobox"]';
+
+    $page->click($trigger)
+        ->type($trigger, 'cal')
+        ->wait(0.3)
+        ->click('[data-ui-demo="autocomplete-local"] [data-ui-option][data-value="California"]')
+        ->wait(0.4)
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').getAttribute('aria-expanded') === 'false'")
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [data-ui-option][data-value=California]').hasAttribute('data-active')")
+        ->click($trigger)
+        ->wait(0.2)
+        ->click('[data-ui-outside]')
+        ->wait(0.3)
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').getAttribute('aria-expanded') === 'false'");
+});
+
+it('opens above the trigger and stays anchored while filtering', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $trigger = '[data-ui-demo="autocomplete-local"] [role="combobox"]';
+
+    $page->assertScript("(() => {
+        document.body.style.paddingTop = '900px';
+        const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+
+        window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
+
+        return true;
+    })()")
+        ->click($trigger)
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const triggerRect = trigger.getBoundingClientRect();
+            const popoverRect = popover.getBoundingClientRect();
+
+            return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
+        })()")
+        ->type($trigger, 'cal')
+        ->wait(0.5)
+        ->assertScript("(() => {
+            const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const triggerRect = trigger.getBoundingClientRect();
+            const popoverRect = popover.getBoundingClientRect();
+
+            return Math.abs(triggerRect.top - popoverRect.bottom) <= 6 && popoverRect.height < 100;
+        })()");
 });
 
 it('renders disabled and invalid states', function () {

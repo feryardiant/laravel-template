@@ -107,9 +107,14 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                     this.open = true
                 },
                 onClose: () => {
+                    suppressFocus = true
                     this.open = false
                     this.activeIndex = -1
                     this.activeId = ''
+
+                    setTimeout(() => {
+                        suppressFocus = false
+                    }, 0)
                 },
             })
 
@@ -264,6 +269,12 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         selectRemote(item) {
+            const index = visible.findIndex((option) => option.label === item.label)
+
+            if (index >= 0) {
+                this.setActive(index)
+            }
+
             this.query = item.label
             this.write()
             this.closePopover()
@@ -273,6 +284,12 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         selectOption(option) {
             if (option.disabled) {
                 return
+            }
+
+            const index = visible.indexOf(option)
+
+            if (index >= 0) {
+                this.setActive(index)
             }
 
             this.query = option.selectedLabel

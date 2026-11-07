@@ -19,6 +19,11 @@ export function createPopover(
     options: PopoverOptions = {},
 ): PopoverController {
     let open = false
+    let placement: 'bottom' | 'top' = 'bottom'
+    let resizeObserver: ResizeObserver | null = null
+
+    const gap = 4
+    const viewportGap = 8
 
     const reposition = (): void => {
         if (!open) {
@@ -28,19 +33,20 @@ export function createPopover(
         const triggerRect = trigger.getBoundingClientRect()
         const popoverWidth = Math.max(popover.offsetWidth, triggerRect.width)
         const popoverHeight = popover.offsetHeight
-        const gap = 4
-        const viewportGap = 8
 
         popover.style.minWidth = `${popoverWidth}px`
         popover.style.position = 'fixed'
 
-        let top = triggerRect.bottom + gap
+        let top: number
 
-        if (
-            top + popoverHeight > window.innerHeight - viewportGap &&
-            triggerRect.top - popoverHeight - gap >= viewportGap
-        ) {
-            top = triggerRect.top - popoverHeight - gap
+        if (placement === 'top') {
+            top = Math.max(viewportGap, triggerRect.top - popoverHeight - gap)
+        } else {
+            top = triggerRect.bottom + gap
+
+            if (top + popoverHeight > window.innerHeight - viewportGap) {
+                top = Math.max(viewportGap, window.innerHeight - viewportGap - popoverHeight)
+            }
         }
 
         let left = triggerRect.left
@@ -66,7 +72,7 @@ export function createPopover(
             return
         }
 
-        close()
+        closePopover()
     }
 
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -75,7 +81,7 @@ export function createPopover(
         }
 
         event.preventDefault()
-        close()
+        closePopover()
         const target = options.focusTarget ?? trigger
         target.focus()
     }
@@ -85,6 +91,11 @@ export function createPopover(
         window.addEventListener('scroll', reposition, true)
         document.addEventListener('pointerdown', onPointerDown)
         document.addEventListener('keydown', onKeyDown)
+
+        if (typeof ResizeObserver !== 'undefined') {
+            resizeObserver = new ResizeObserver(() => reposition())
+            resizeObserver.observe(popover)
+        }
     }
 
     const detach = (): void => {
@@ -92,6 +103,8 @@ export function createPopover(
         window.removeEventListener('scroll', reposition, true)
         document.removeEventListener('pointerdown', onPointerDown)
         document.removeEventListener('keydown', onKeyDown)
+        resizeObserver?.disconnect()
+        resizeObserver = null
     }
 
     const openPopover = (): void => {
@@ -106,6 +119,14 @@ export function createPopover(
         }
 
         open = true
+
+        const triggerRect = trigger.getBoundingClientRect()
+        const popoverHeight = popover.offsetHeight
+        const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportGap
+        const spaceAbove = triggerRect.top - gap - viewportGap
+
+        placement = popoverHeight > spaceBelow && spaceAbove > spaceBelow ? 'top' : 'bottom'
+
         attach()
         reposition()
         options.onOpen?.()
