@@ -55,3 +55,66 @@ export interface SelectedOption {
     label: string
     selectedLabel: string
 }
+
+export type CalendarMode = 'single' | 'multiple' | 'range'
+
+export interface CalendarLabels {
+    today: string
+    previousMonth: string
+    nextMonth: string
+    selected: string
+    unavailable: string
+    rangeTooShort: string
+    rangeTooLong: string
+    rangeUnavailable: string
+}
+
+export interface CalendarConfig {
+    mode: CalendarMode
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string
+    startDay: number | null
+    months: number
+    fixedWeeks: boolean
+    min: string | null
+    max: string | null
+    unavailable: string[]
+    minRange: number | null
+    maxRange: number | null
+    openTo: string | null
+    navigation: boolean
+    static: boolean
+    withToday: boolean
+    rootId: string
+    cellClass: string
+    formInputId: string | null
+    labels: CalendarLabels
+}
+
+export interface CalendarCell {
+    id: string
+    key: string
+    day: number
+    label: string
+    outside: boolean
+    today: boolean
+    disabled: boolean
+    unavailable: boolean
+    selected: boolean
+    inRange: boolean
+    rangeStart: boolean
+    rangeEnd: boolean
+    active: boolean
+    tabIndex: number
+}
+
+export interface CalendarMonth {
+    key: string
+    year: number
+    month: number
+    label: string
+    weekdays: string[]
+    weeks: CalendarCell[][]
+}

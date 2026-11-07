@@ -20,4 +20,15 @@ return [
         'loading' => 'Memuat...',
         'clear' => 'Kosongkan isian',
     ],
+
+    'calendar' => [
+        'today' => 'Hari ini',
+        'previous-month' => 'Bulan sebelumnya',
+        'next-month' => 'Bulan berikutnya',
+        'selected' => 'Dipilih',
+        'unavailable' => 'Tidak tersedia',
+        'range-too-short' => 'Pilih minimal :count hari',
+        'range-too-long' => 'Pilih maksimal :count hari',
+        'range-unavailable' => 'Rentang terpilih memuat tanggal yang tidak tersedia',
+    ],
 ];

@@ -20,4 +20,15 @@ return [
         'loading' => 'Loading...',
         'clear' => 'Clear input',
     ],
+
+    'calendar' => [
+        'today' => 'Today',
+        'previous-month' => 'Previous month',
+        'next-month' => 'Next month',
+        'selected' => 'Selected',
+        'unavailable' => 'Unavailable',
+        'range-too-short' => 'Select at least :count days',
+        'range-too-long' => 'Select at most :count days',
+        'range-unavailable' => 'The selected range contains unavailable dates',
+    ],
 ];

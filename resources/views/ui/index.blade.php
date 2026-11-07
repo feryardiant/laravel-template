@@ -24,5 +24,13 @@
             <div class="font-medium">Autocomplete</div>
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Local suggestions and remote search.</div>
         </a>
+
+        <a
+            href="{{ route('ui.calendar') }}"
+            class="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
+        >
+            <div class="font-medium">Calendar</div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">Single, multiple and range dates.</div>
+        </a>
     </div>
 @endsection
