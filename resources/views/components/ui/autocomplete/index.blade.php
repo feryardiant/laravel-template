@@ -31,7 +31,7 @@
     $name = $attributes->get('name');
     $invalid ??= $model !== null && $errors->has($model);
 
-    $key = $model !== null ? \Illuminate\Support\Str::slug($model) : \Illuminate\Support\Str::random(8);
+    $key = \Illuminate\Support\Str::random(12);
     $triggerId = 'ui-autocomplete-'.$key.'-trigger';
     $popoverId = 'ui-autocomplete-'.$key.'-popover';
     $listboxId = 'ui-autocomplete-'.$key.'-listbox';
@@ -40,7 +40,7 @@
 
     $empty ??= __('ui.autocomplete.no-results');
     $loading ??= __('ui.autocomplete.loading');
-    $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder;
+    $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder ?? __('ui.common.select');
 
     $config = [
         'value' => $value,

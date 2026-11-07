@@ -24,7 +24,7 @@
     $name = $attributes->get('name');
     $invalid ??= $model !== null && $errors->has($model);
 
-    $key = $model !== null ? \Illuminate\Support\Str::slug($model) : \Illuminate\Support\Str::random(8);
+    $key = \Illuminate\Support\Str::random(12);
     $triggerId = 'ui-select-'.$key.'-trigger';
     $popoverId = 'ui-select-'.$key.'-popover';
     $listboxId = 'ui-select-'.$key.'-listbox';
@@ -33,7 +33,7 @@
     $empty ??= __('ui.select.no-results');
     $selectedSuffix ??= __('ui.select.selected');
     $optionsClass = $attributes->get('options:class');
-    $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder;
+    $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder ?? __('ui.common.select');
     $isPlain = $model === null && $name !== null;
     $isMultiple = (bool) $multiple || $variant === 'pillbox';
     $formInputId = $isPlain && ! $isMultiple ? 'ui-select-'.$key.'-input' : null;

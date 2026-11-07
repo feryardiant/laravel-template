@@ -236,6 +236,38 @@ it('dispatches change and clear events', function () {
         ->assertScript("['open', 'close', 'change', 'clear'].every((name) => window.__uiEvents.includes(name))");
 });
 
+it('does not commit a stale suggestion while a new remote query is loading', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $trigger = '[data-ui-demo="autocomplete-remote"] [role="combobox"]';
+
+    $page->click($trigger)
+        ->type($trigger, 'new')
+        ->wait(0.8)
+        ->keys($trigger, ['ArrowDown', 'Enter'])
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'New Jersey'")
+        ->assertScript("(() => {
+            const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+
+            input.focus();
+            input.value = 'zzz';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+            return true;
+        })()")
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === 'zzz'")
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'zzz'");
+});
+
+it('falls back to a generic accessible name when all name sources are missing', function () {
+    visit('/ui/autocomplete')
+        ->on()
+        ->desktop()
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-no-name] [role=combobox]').getAttribute('aria-label') === 'Pilih'");
+});
+
 it('renders disabled and invalid states', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
 

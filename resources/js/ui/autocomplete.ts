@@ -238,6 +238,12 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             }
 
             if (event.key === 'Enter') {
+                if (this.loading) {
+                    event.preventDefault()
+
+                    return
+                }
+
                 const active = visible[this.activeIndex]
 
                 if (this.open && active !== undefined) {
@@ -421,6 +427,15 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             this.loading = false
             this.results = []
             this.emptyVisible = false
+            this.activeIndex = -1
+            this.activeId = ''
+
+            for (const option of options) {
+                option.el.removeAttribute('data-active')
+            }
+
+            options = []
+            visible = []
 
             if (this.query.length < config.minLength) {
                 return

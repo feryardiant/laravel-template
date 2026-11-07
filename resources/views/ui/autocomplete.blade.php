@@ -68,4 +68,11 @@
             <x-ui.autocomplete.item>New York</x-ui.autocomplete.item>
         </x-ui.autocomplete>
     </section>
+
+    <section data-ui-demo="autocomplete-no-name" class="space-y-2">
+        <x-ui.autocomplete>
+            <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
+            <x-ui.autocomplete.item>New York</x-ui.autocomplete.item>
+        </x-ui.autocomplete>
+    </section>
 </div>

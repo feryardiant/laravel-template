@@ -9,7 +9,7 @@ export interface PopoverController {
     close: () => void
     toggle: () => void
     isOpen: () => boolean
-    reposition: () => void
+    reposition: (allowFlip?: boolean) => void
     destroy: () => void
 }
 
@@ -25,7 +25,7 @@ export function createPopover(
     const gap = 4
     const viewportGap = 8
 
-    const reposition = (): void => {
+    const reposition = (allowFlip = false): void => {
         if (!open) {
             return
         }
@@ -36,7 +36,9 @@ export function createPopover(
         const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportGap
         const spaceAbove = triggerRect.top - gap - viewportGap
 
-        if (placement === 'bottom' && popoverHeight > spaceBelow && spaceAbove > spaceBelow) {
+        if (allowFlip) {
+            placement = popoverHeight > spaceBelow && spaceAbove > spaceBelow ? 'top' : 'bottom'
+        } else if (placement === 'bottom' && popoverHeight > spaceBelow && spaceAbove > spaceBelow) {
             placement = 'top'
         }
 
@@ -92,9 +94,13 @@ export function createPopover(
         target.focus()
     }
 
+    const onViewportChange = (): void => {
+        reposition(true)
+    }
+
     const attach = (): void => {
-        window.addEventListener('resize', reposition)
-        window.addEventListener('scroll', reposition, true)
+        window.addEventListener('resize', onViewportChange)
+        window.addEventListener('scroll', onViewportChange, true)
         document.addEventListener('pointerdown', onPointerDown)
         document.addEventListener('keydown', onKeyDown)
 
@@ -105,8 +111,8 @@ export function createPopover(
     }
 
     const detach = (): void => {
-        window.removeEventListener('resize', reposition)
-        window.removeEventListener('scroll', reposition, true)
+        window.removeEventListener('resize', onViewportChange)
+        window.removeEventListener('scroll', onViewportChange, true)
         document.removeEventListener('pointerdown', onPointerDown)
         document.removeEventListener('keydown', onKeyDown)
         resizeObserver?.disconnect()

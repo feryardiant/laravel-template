@@ -108,4 +108,23 @@
             <flux:button type="submit" size="sm">Submit plain form</flux:button>
         </form>
     </section>
+
+    <section data-ui-demo="select-duplicate-model" class="space-y-2">
+        <x-ui.select wire:model="industry" label="Duplicate A" placeholder="Choose industry...">
+            <x-ui.select.option value="web">Web development</x-ui.select.option>
+            <x-ui.select.option value="design">Design services</x-ui.select.option>
+        </x-ui.select>
+
+        <x-ui.select wire:model="industry" label="Duplicate B" placeholder="Choose industry...">
+            <x-ui.select.option value="web">Web development</x-ui.select.option>
+            <x-ui.select.option value="design">Design services</x-ui.select.option>
+        </x-ui.select>
+    </section>
+
+    <section data-ui-demo="select-no-name" class="space-y-2">
+        <x-ui.select>
+            <x-ui.select.option value="one">First option</x-ui.select.option>
+            <x-ui.select.option value="two">Second option</x-ui.select.option>
+        </x-ui.select>
+    </section>
 </div>

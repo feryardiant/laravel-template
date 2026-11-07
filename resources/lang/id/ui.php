@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'common' => [
         'search' => 'Cari...',
+        'select' => 'Pilih',
     ],
 
     'select' => [

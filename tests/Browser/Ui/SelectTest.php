@@ -155,6 +155,22 @@ it('opens above the trigger and stays anchored while filtering', function () {
             const popoverRect = popover.getBoundingClientRect();
 
             return Math.abs(triggerRect.top - popoverRect.bottom) <= 6 && popoverRect.height < 100;
+        })()")
+        ->assertScript("(() => {
+            document.body.style.paddingTop = '0';
+            window.scrollTo(0, 0);
+            window.dispatchEvent(new Event('resize'));
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
+            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const triggerRect = trigger.getBoundingClientRect();
+            const popoverRect = popover.getBoundingClientRect();
+
+            return popoverRect.top >= triggerRect.bottom - 1;
         })()");
 });
 
@@ -241,6 +257,24 @@ it('uses touch-sized option rows on mobile', function () {
     $page->click('[data-ui-demo="select-single"] [role="combobox"]')
         ->wait(0.3)
         ->assertScript("document.querySelector('[data-ui-demo=select-single] [data-ui-option]').getBoundingClientRect().height >= 44");
+});
+
+it('generates unique ids for duplicate models', function () {
+    visit('/ui/select')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const elements = document.querySelectorAll('[data-ui-demo=select-duplicate-model] [role=combobox]');
+
+            return elements.length === 2 && elements[0].id !== elements[1].id && elements[0].getAttribute('aria-controls') !== elements[1].getAttribute('aria-controls');
+        })()");
+});
+
+it('falls back to a generic accessible name when all name sources are missing', function () {
+    visit('/ui/select')
+        ->on()
+        ->desktop()
+        ->assertScript("document.querySelector('[data-ui-demo=select-no-name] [role=combobox]').getAttribute('aria-label') === 'Pilih'");
 });
 
 it('renders disabled and invalid states', function () {
