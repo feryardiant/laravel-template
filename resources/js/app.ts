@@ -1,5 +1,6 @@
 'use strict'
 
+import './ui'
 import { startNotificationPoller } from './notification-poller'
 
 startNotificationPoller()

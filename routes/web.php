@@ -44,3 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['password.confirm'])
         ->name('security.edit');
 });
+
+if (app()->environment(['local', 'testing']) && is_dir(base_path('routes/ui'))) {
+    Route::prefix('ui')->group(base_path('routes/ui/index.php'));
+}
