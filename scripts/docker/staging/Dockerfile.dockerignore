@@ -29,6 +29,7 @@ _ide_helper_models.php
 *.config.js
 *.config.ts
 AGENTS.md
+app/Livewire/Ui
 boost.json
 docker-compose.yaml
 docker-compose.*.yaml
@@ -42,8 +43,10 @@ pint.json
 package-lock.json
 pnpm-*.yaml
 jsconfig.json
-tsconfig.json
+resources/views/ui
+routes/ui
 tests
+tsconfig.json
 vendor
 
 # 3. Ignore common files/directories we don't need

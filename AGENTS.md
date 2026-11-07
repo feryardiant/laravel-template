@@ -53,7 +53,8 @@ Laravel 13 / PHP 8.4 app. UI is Blade + Livewire 4 + Flux UI 2 + Tailwind 4; aut
 
 - Locale defaults are `id` with `en` fallback (`APP_LOCALE`, `APP_FALLBACK_LOCALE`).
 - Write app strings in English with `__('English text')`; their exact text is the key in `resources/lang/id.json`. Update the matching key when changing the English text.
-- Framework groups (`auth`, `passwords`, `pagination`, `validation`) live in `resources/lang/id/*.php`. Do not add English translation files.
+- UI component strings live in `resources/lang/{id,en}/ui.php` and use `__('ui.{component}.{part}')` with kebab-case segments (for example `ui.select.no-results`). Keep component strings out of `id.json`.
+- Framework groups (`auth`, `passwords`, `pagination`, `validation`) live in `resources/lang/id/*.php`. Do not add other English translation files outside `resources/lang/en/ui.php`.
 - Preserve replacement placeholders such as `:name` and `:role` in translated values.
 - Use sentence case for multiword action labels and lowercase for inline fragments. Tests that assert translated output should use Indonesian values and set the locale explicitly when needed.
 

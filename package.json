@@ -20,6 +20,7 @@
         "@commitlint/config-conventional": "^21.2.4",
         "@laravel/passkeys": "^0.4.0",
         "@tailwindcss/vite": "^4.3.4",
+        "@types/alpinejs": "^3.17.0",
         "@types/node": "^24.19.2",
         "concurrently": "^10.0.6",
         "fontaine": "^0.8.2",

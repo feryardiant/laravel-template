@@ -12,6 +12,11 @@ AGENTS.md              export-ignore
 boost.json             export-ignore
 opencode.json          export-ignore
 
+# Dev-only UI gallery
+app/Livewire/Ui        export-ignore
+resources/views/ui     export-ignore
+routes/ui              export-ignore
+
 # Dev Toolchain
 .github                export-ignore
 .tool-versions         export-ignore
