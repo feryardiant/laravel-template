@@ -94,6 +94,33 @@
         />
     </section>
 
+    <section data-ui-demo="datetime-picker-invalid-time" class="max-w-sm space-y-3">
+        <x-ui.datetime-picker
+            label="Invalid time repair"
+            value="2026-02-15T10:30"
+            open-to="2026-02-01"
+            min-time="09:00"
+            max-time="17:00"
+            :unavailable="['2026-02-18T10:30']"
+        />
+    </section>
+
+    <section data-ui-demo="datetime-picker-range-invalid" class="max-w-md space-y-3">
+        <x-ui.datetime-picker
+            mode="range"
+            label="Range time repair"
+            value="2026-11-08T10:30/2026-11-10T17:00"
+            default-time="10:30/17:00"
+            min-time="09:00"
+            max-time="17:00"
+            :unavailable="['2026-11-12T10:30']"
+        />
+    </section>
+
+    <section data-ui-demo="datetime-picker-now" class="max-w-sm space-y-3">
+        <x-ui.datetime-picker label="From now" min="now" open-to="today" />
+    </section>
+
     <section data-ui-demo="datetime-picker-plain" class="max-w-md space-y-3">
         <form method="get" action="{{ route('ui.datetime-picker') }}" class="space-y-4">
             <x-ui.datetime-picker name="plain_at" value="2024-02-15T14:30" label="Plain datetime" />

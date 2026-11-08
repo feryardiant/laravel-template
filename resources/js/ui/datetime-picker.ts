@@ -5,6 +5,7 @@ import {
     compareDateTime,
     datePart,
     isUnavailable,
+    localNowDateTime,
     parseDateTime,
     parseUnavailable,
     timePart,
@@ -45,10 +46,15 @@ export interface DateTimePickerData {
     valueStartTime: string | null
     valueEndDate: string | null
     valueEndTime: string | null
+    min: string | null
+    max: string | null
+    openToDate: string | null
+    openToTime: string | null
     rangeError: string
     init: (el?: HTMLElement) => void
     destroy: () => void
     applyValue: (value: unknown) => void
+    refreshNow: () => void
     syncDrafts: () => void
     syncCalendar: () => void
     openPopover: () => void
@@ -70,6 +76,9 @@ export interface DateTimePickerData {
     dateFor: (endpoint: Endpoint) => string | null
     draftFor: (endpoint: Endpoint) => TimeDraftState
     draftTimeFor: (endpoint: Endpoint) => string | null
+    draftTimeValid: (endpoint: Endpoint) => boolean
+    firstValidTime: (endpoint: Endpoint) => string | null
+    revalidateTime: (endpoint: Endpoint) => void
     initialTime: (endpoint: Endpoint) => string
     buildTimes: (endpoint: Endpoint) => void
     hourOptions: (draft: TimeDraftState) => { value: number; label: string }[]
@@ -159,12 +168,16 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         valueStartTime: null,
         valueEndDate: null,
         valueEndTime: null,
+        min: config.min,
+        max: config.max,
+        openToDate: config.openToDate,
+        openToTime: config.openToTime,
         rangeError: '',
 
         init(el) {
             rootEl = el ?? null
             unavailable = parseUnavailable(config.unavailable)
-            this.nowTime = localNowKey()
+            this.refreshNow()
             this.applyValue(readModel(wire, config.model, config.value))
             this.syncDrafts()
 
@@ -177,6 +190,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     fullWidthOnTouch: true,
                     onOpen: () => {
                         this.open = true
+                        this.refreshNow()
                         this.syncDrafts()
                         this.syncCalendar()
                         this.focusFirst()
@@ -229,6 +243,26 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.renderDisplay()
         },
 
+        refreshNow() {
+            const now = localNowDateTime()
+            const today = datePart(now)
+
+            this.nowTime = timePart(now)
+            this.min = config.minSource === 'now' ? now : config.minSource === 'today' ? `${today}T00:00` : config.min
+            this.max = config.maxSource === 'now' ? now : config.maxSource === 'today' ? `${today}T23:59` : config.max
+
+            if (config.openToSource === 'now') {
+                this.openToDate = today
+                this.openToTime = timePart(now)
+            } else if (config.openToSource === 'today') {
+                this.openToDate = today
+                this.openToTime = null
+            } else {
+                this.openToDate = config.openToDate
+                this.openToTime = config.openToTime
+            }
+        },
+
         syncDrafts() {
             this.startDate = this.valueStartDate
             this.endDate = this.valueEndDate
@@ -246,8 +280,19 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            const data = globalThis.Alpine.$data(calendar) as { setValue: (value: unknown) => void } | undefined
+            const data = globalThis.Alpine.$data(calendar) as
+                | {
+                      setValue: (value: unknown) => void
+                      setBounds: (min: string | null, max: string | null) => void
+                      setOpenTo: (key: string | null) => void
+                  }
+                | undefined
 
+            data?.setOpenTo(this.openToDate)
+            data?.setBounds(
+                this.min === null ? null : datePart(this.min),
+                this.max === null ? null : datePart(this.max),
+            )
             data?.setValue(this.mode === 'range' ? { start: this.startDate, end: this.endDate } : this.startDate)
         },
 
@@ -256,7 +301,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            this.nowTime = localNowKey()
+            this.refreshNow()
             this.syncDrafts()
             this.syncCalendar()
             popover?.open()
@@ -313,7 +358,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             const date = this.startDate
             const time = this.draftTimeFor('start')
 
-            if (date === null || time === null) {
+            if (date === null || time === null || !this.draftTimeValid('start')) {
                 return
             }
 
@@ -343,13 +388,13 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return (
                     this.startDate !== null &&
                     this.endDate !== null &&
-                    this.draftTimeFor('start') !== null &&
-                    this.draftTimeFor('end') !== null &&
+                    this.draftTimeValid('start') &&
+                    this.draftTimeValid('end') &&
                     !this.rangeInvalid()
                 )
             }
 
-            return this.startDate !== null && this.draftTimeFor('start') !== null
+            return this.startDate !== null && this.draftTimeValid('start')
         },
 
         rangeInvalid() {
@@ -434,6 +479,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     this.setTimeDraft('end', this.initialTime('end'))
                 }
 
+                this.revalidateTime('start')
+                this.revalidateTime('end')
                 this.buildTimes('start')
                 this.buildTimes('end')
                 this.updateRangeError()
@@ -456,6 +503,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 this.setTimeDraft('start', this.initialTime('start'))
             }
 
+            this.revalidateTime('start')
             this.buildTimes('start')
             this.commitSingle()
         },
@@ -515,13 +563,50 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         },
 
         initialTime(endpoint) {
-            const start = config.defaultStartTime ?? config.openToTime ?? this.nowTime
+            const start = config.defaultStartTime ?? this.openToTime ?? this.nowTime
 
             if (endpoint === 'start') {
                 return start
             }
 
-            return config.defaultEndTime ?? config.openToTime ?? start
+            return config.defaultEndTime ?? this.openToTime ?? start
+        },
+
+        draftTimeValid(endpoint) {
+            const draft = this.draftFor(endpoint)
+
+            return (
+                this.dateFor(endpoint) !== null &&
+                draft.hour !== null &&
+                draft.minute !== null &&
+                !this.isTimeDisabled(endpoint, draft.hour, draft.minute)
+            )
+        },
+
+        firstValidTime(endpoint) {
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += interval) {
+                    if (!this.isTimeDisabled(endpoint, hour, minute)) {
+                        return timeFromMinutes(hour * 60 + minute)
+                    }
+                }
+            }
+
+            return null
+        },
+
+        revalidateTime(endpoint) {
+            if (this.dateFor(endpoint) === null) {
+                this.setTimeDraft(endpoint, null)
+
+                return
+            }
+
+            if (this.draftTimeValid(endpoint)) {
+                return
+            }
+
+            this.setTimeDraft(endpoint, this.firstValidTime(endpoint))
         },
 
         buildTimes(endpoint) {
@@ -604,11 +689,11 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             const time = timeFromMinutes(hour * 60 + minute)
             const candidate = combineDateTime(date, time)
 
-            if (config.min !== null && compareDateTime(candidate, config.min) < 0) {
+            if (this.min !== null && compareDateTime(candidate, this.min) < 0) {
                 return true
             }
 
-            if (config.max !== null && compareDateTime(candidate, config.max) > 0) {
+            if (this.max !== null && compareDateTime(candidate, this.max) > 0) {
                 return true
             }
 
@@ -671,7 +756,10 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.buildTimes(endpoint)
 
             if (this.mode === 'range') {
-                this.buildTimes(endpoint === 'start' ? 'end' : 'start')
+                const other = endpoint === 'start' ? 'end' : 'start'
+
+                this.revalidateTime(other)
+                this.buildTimes(other)
                 this.updateRangeError()
             }
 
@@ -704,8 +792,11 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
+            const other = endpoint === 'start' ? 'end' : 'start'
+
+            this.revalidateTime(other)
             this.buildTimes(endpoint)
-            this.buildTimes(endpoint === 'start' ? 'end' : 'start')
+            this.buildTimes(other)
             this.updateRangeError()
         },
 
@@ -728,7 +819,10 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.buildTimes(endpoint)
 
             if (this.mode === 'range') {
-                this.buildTimes(endpoint === 'start' ? 'end' : 'start')
+                const other = endpoint === 'start' ? 'end' : 'start'
+
+                this.revalidateTime(other)
+                this.buildTimes(other)
                 this.updateRangeError()
             }
 

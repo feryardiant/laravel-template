@@ -200,13 +200,16 @@ export interface DateTimePickerConfig {
     max: string | null
     minDate: string | null
     maxDate: string | null
+    minSource: 'now' | 'today' | null
+    maxSource: 'now' | 'today' | null
+    openToDate: string | null
+    openToTime: string | null
+    openToSource: 'now' | 'today' | null
     minTime: string | null
     maxTime: string | null
     unavailable: string[]
     defaultStartTime: string | null
     defaultEndTime: string | null
-    openToDate: string | null
-    openToTime: string | null
     placeholder: string | null
     withConfirmation: boolean
     clearable: boolean

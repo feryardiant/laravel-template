@@ -465,6 +465,131 @@ it('traps Tab focus inside the popover', function () {
         })()");
 });
 
+it('repairs a single time that becomes unavailable on a new date', function () {
+    visit('/ui/datetime-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-invalid-time] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-invalid-time]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-02-18\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.5)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-invalid-time]');
+            const picker = window.Alpine.\$data(root.querySelector('[data-ui-datetime-picker]'));
+
+            return picker.valueStartDate === '2026-02-18' &&
+                picker.valueStartTime === '09:00' &&
+                picker.display.includes('18 Feb 2026') &&
+                picker.display.includes('9.00');
+        })()");
+});
+
+it('repairs a range time that becomes unavailable on new dates', function () {
+    $page = visit('/ui/datetime-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        document.querySelector('[data-ui-demo=datetime-picker-range-invalid] [data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-invalid]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-12\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-invalid]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-14\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-invalid]');
+            [...root.querySelectorAll('[data-ui-popover] .border-t button')].find((button) => button.textContent.trim() === 'Pilih rentang').click();
+
+            return true;
+        })()")
+        ->wait(0.5)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-invalid]');
+            const picker = window.Alpine.\$data(root.querySelector('[data-ui-datetime-picker]'));
+
+            return picker.valueStartTime === '09:00' &&
+                picker.valueEndTime === '17:00' &&
+                picker.valueStartDate === '2026-11-12' &&
+                picker.valueEndDate === '2026-11-14';
+        })()");
+});
+
+it('resolves now bounds and open-to when the popover opens', function () {
+    visit('/ui/datetime-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            window.__RealDate = window.Date;
+            window.Date = class extends window.__RealDate {
+                constructor(...args) {
+                    super(...(args.length === 0 ? ['2030-05-06T10:15:00'] : args));
+                }
+
+                static now() {
+                    return new window.__RealDate('2030-05-06T10:15:00').getTime();
+                }
+            };
+
+            document.querySelector('[data-ui-demo=datetime-picker-now] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-now]');
+            const picker = window.Alpine.\$data(root.querySelector('[data-ui-datetime-picker]'));
+            const grid = root.querySelector('[data-ui-popover] [role=grid]');
+            const result = picker.min === '2030-05-06T10:15' &&
+                picker.openToDate === '2030-05-06' &&
+                grid.getAttribute('aria-label').includes('2030');
+
+            window.Date = window.__RealDate;
+
+            return result;
+        })()");
+});
+
+it('names range time listboxes per endpoint', function () {
+    visit('/ui/datetime-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+            const label = (endpoint, column) => root.querySelector('[data-ui-popover] [data-endpoint=' + endpoint + '] [data-column=' + column + ']').getAttribute('aria-label');
+
+            return label('start', 'hour') === 'Mulai Jam' &&
+                label('end', 'hour') === 'Selesai Jam' &&
+                label('start', 'minute') === 'Mulai Menit' &&
+                label('end', 'minute') === 'Selesai Menit';
+        })()");
+});
+
 it('writes plain-form hidden fields for single and range', function () {
     $page = visit('/ui/datetime-picker')->on()->desktop();
 

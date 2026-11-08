@@ -22,6 +22,8 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature', 'Browser', 'Unit');
 
+pest()->browser()->timeout(10_000);
+
 /**
  * Sign in through the real login form, optionally on a given viewport.
  */

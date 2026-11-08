@@ -106,6 +106,8 @@ export interface CalendarData {
     init: (el?: HTMLElement) => void
     destroy: () => void
     setValue: (value: unknown) => void
+    setBounds: (min: string | null, max: string | null) => void
+    setOpenTo: (key: string | null) => void
     refresh: (announce?: boolean) => void
     build: () => void
     previousMonth: () => void
@@ -129,6 +131,7 @@ export interface CalendarData {
 export function calendarData(config: CalendarConfig, wire: WireLike | null): CalendarData {
     let rootEl: HTMLElement | null = null
     let unwatch: (() => void) | null = null
+    let openToKey: string | null = config.openTo
     let minKey: string | null = null
     let maxKey: string | null = null
     let unavailable: string[] = []
@@ -147,7 +150,7 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
     }
 
     const currentKey = (target: CalendarData): string =>
-        target.rangeStart ?? target.selectedValues[0] ?? config.openTo ?? target.today
+        target.rangeStart ?? target.selectedValues[0] ?? openToKey ?? target.today
 
     return {
         mode: config.mode,
@@ -189,6 +192,17 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
 
         destroy() {
             unwatch?.()
+        },
+
+        setBounds(min, max) {
+            minKey = min === 'today' ? this.today : stringKey(min)
+            maxKey = max === 'today' ? this.today : stringKey(max)
+            this.previewKey = null
+            this.refresh(false)
+        },
+
+        setOpenTo(key) {
+            openToKey = key
         },
 
         setValue(value: unknown) {

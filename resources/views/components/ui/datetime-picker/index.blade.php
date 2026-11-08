@@ -61,6 +61,10 @@
         $resolvedMax = substr($resolvedMax, 0, 10).'T23:59';
     }
 
+    $minSource = in_array($min, ['now', 'today'], true) ? $min : null;
+    $maxSource = in_array($max, ['now', 'today'], true) ? $max : null;
+    $openToSource = in_array($openTo, ['now', 'today'], true) ? $openTo : null;
+
     $minDate = $resolvedMin === null ? null : substr($resolvedMin, 0, 10);
     $maxDate = $resolvedMax === null ? null : substr($resolvedMax, 0, 10);
     $resolvedMinTime = \App\View\Value::time($minTime);
@@ -142,6 +146,9 @@
         'max' => $resolvedMax,
         'minDate' => $minDate,
         'maxDate' => $maxDate,
+        'minSource' => $minSource,
+        'maxSource' => $maxSource,
+        'openToSource' => $openToSource,
         'minTime' => $resolvedMinTime,
         'maxTime' => $resolvedMaxTime,
         'unavailable' => $unavailableEntries,
@@ -304,7 +311,7 @@
                                         data-column="hour"
                                         role="listbox"
                                         tabindex="0"
-                                        aria-label="{{ $labels['hour'] }}"
+                                        aria-label="{{ $isRange ? $labels[$endpoint].' '.$labels['hour'] : $labels['hour'] }}"
                                         x-bind:aria-activedescendant="activeTimeId('{{ $endpoint }}', 'hour')"
                                         x-on:keydown="onTimeKeydown($event, '{{ $endpoint }}', 'hour')"
                                         class="max-h-40 overflow-y-auto scroll-py-2"
@@ -342,7 +349,7 @@
                                         data-column="minute"
                                         role="listbox"
                                         tabindex="0"
-                                        aria-label="{{ $labels['minute'] }}"
+                                        aria-label="{{ $isRange ? $labels[$endpoint].' '.$labels['minute'] : $labels['minute'] }}"
                                         x-bind:aria-activedescendant="activeTimeId('{{ $endpoint }}', 'minute')"
                                         x-on:keydown="onTimeKeydown($event, '{{ $endpoint }}', 'minute')"
                                         class="max-h-40 overflow-y-auto scroll-py-2"
