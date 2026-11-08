@@ -29,4 +29,14 @@ abstract class Entity extends Model
             $entity->uuid ??= (string) Str::uuid7();
         });
     }
+
+    /**
+     * @codeCoverageIgnore
+     *
+     * @return list<string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
 }

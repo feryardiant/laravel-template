@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\Organization;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -28,13 +30,26 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('has_one_addresses', function (Blueprint $table) {
-            $table->id();
-        });
+        // Kept from the package stub, but unused by this app.
+        // Schema::create('has_one_addresses', function (Blueprint $table) {
+        //     $table->id();
+        // });
 
-        Schema::create('has_many_addresses', function (Blueprint $table) {
-            $table->id();
-        });
+        // Schema::create('has_many_addresses', function (Blueprint $table) {
+        //     $table->id();
+        // });
+
+        // An organization has exactly one address; a person may have many.
+        // shortcut: only pgsql/sqlite support partial indexes, add an
+        // application-level check if another driver is ever supported.
+        $connection = DB::connection();
+
+        if (\in_array($connection->getDriverName(), ['pgsql', 'sqlite'], true)) {
+            $connection->statement(\sprintf(
+                "CREATE UNIQUE INDEX addresses_organization_unique ON addresses (addressable_id) WHERE addressable_type = '%s'",
+                Organization::class,
+            ));
+        }
     }
 
     /**

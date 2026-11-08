@@ -82,7 +82,7 @@ class OrganizationRelationship extends MorphPivot
      */
     public function isInternal(): Attribute
     {
-        return Attribute::get(fn () => $this->type->isInternal());
+        return Attribute::get(fn () => $this->type?->isInternal() ?? false);
     }
 
     /**
@@ -90,7 +90,7 @@ class OrganizationRelationship extends MorphPivot
      */
     public function isExternal(): Attribute
     {
-        return Attribute::get(fn () => $this->type->isExternal());
+        return Attribute::get(fn () => $this->type?->isExternal() ?? false);
     }
 
     /**

@@ -80,6 +80,26 @@ it('can be the primary contact for organizations', function () {
         ->and($person->primaryContactOrganizations->first()->is($organization))->toBeTrue();
 });
 
+it('resolves a primary contact after it is soft-deleted', function () {
+    $person = Person::factory()->create();
+    $organization = Organization::factory()->create(['contact_id' => $person->id]);
+
+    $person->delete();
+
+    expect($organization->fresh()->primaryContact->is($person))->toBeTrue();
+});
+
+it('gets a new uuid when replicated', function () {
+    $person = Person::factory()->withoutCredential()->create();
+
+    $replica = $person->replicate();
+    $replica->save();
+
+    expect($replica->uuid)
+        ->not->toBe($person->uuid)
+        ->and($replica->fresh()->uuid)->toBe($replica->uuid);
+});
+
 it('prevents deleting a primary contact while organizations reference them', function () {
     $person = Person::factory()->create();
     Organization::factory()->create(['contact_id' => $person->id]);

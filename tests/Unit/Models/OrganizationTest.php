@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Address;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Database\QueryException;
 
@@ -26,6 +27,48 @@ it('can only have one address', function () {
     $organization = Organization::factory()->withAddress()->create();
 
     expect($organization->address)->toBeInstanceOf(Address::class);
+
+    expect(fn () => $organization->address()->create(Address::factory()->raw()))
+        ->toThrow(QueryException::class);
+});
+
+it('reports a null relationship type as neither internal nor external', function () {
+    $relationship = new OrganizationRelationship(['type' => null]);
+
+    expect($relationship->is_internal)->toBeFalse()
+        ->and($relationship->is_external)->toBeFalse();
+});
+
+it('removes inbound relationships when an organization is force-deleted', function () {
+    $organization = Organization::factory()->create();
+    $counterparty = Organization::factory()->create();
+
+    $counterparty->organizationCounterparties()->attach($organization, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+
+    $organization->forceDelete();
+
+    expect(OrganizationRelationship::query()
+        ->where('stakeholder_type', Organization::class)
+        ->where('stakeholder_id', $organization->id)
+        ->exists())->toBeFalse();
+});
+
+it('keeps inbound relationships when an organization is soft-deleted', function () {
+    $organization = Organization::factory()->create();
+    $counterparty = Organization::factory()->create();
+
+    $counterparty->organizationCounterparties()->attach($organization, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+
+    $organization->delete();
+
+    expect(OrganizationRelationship::query()
+        ->where('stakeholder_type', Organization::class)
+        ->where('stakeholder_id', $organization->id)
+        ->exists())->toBeTrue();
 });
 
 it('can have members', function () {
@@ -39,6 +82,29 @@ it('can have members', function () {
     expect($member)
         ->is($person)->toBeTrue()
         ->member->type->toBe(OrganizationRelationshipType::Member);
+});
+
+it('does not duplicate a membership when added twice', function () {
+    $organization = Organization::factory()->create();
+    $person = Person::factory()->create();
+
+    $organization->addMember($person);
+    $organization->addMember($person);
+
+    expect($organization->members()->count())->toBe(1);
+});
+
+it('promotes an existing member without duplicating them', function () {
+    $organization = Organization::factory()->create();
+    $person = Person::factory()->create();
+
+    $organization->addMember($person);
+    $organization->addMember($person, isPrimary: true);
+
+    $members = $organization->members()->get();
+
+    expect($members)->toHaveCount(1)
+        ->and($members->first()->member->is_primary)->toBeTrue();
 });
 
 test('external counterparties can be organizations or people', function (OrganizationRelationshipType $type) {

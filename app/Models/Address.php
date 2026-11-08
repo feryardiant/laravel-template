@@ -28,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  *
  * @implements AddressContract<$this>
  */
-#[Fillable(['id', 'line', 'rt', 'rw', 'village_code', 'district_code', 'regency_code', 'province_code', 'postal_code'])]
+#[Fillable(['line', 'rt', 'rw', 'village_code', 'district_code', 'regency_code', 'province_code', 'postal_code'])]
 class Address extends Model implements AddressContract
 {
     /** @use HasFactory<AddressFactory> */

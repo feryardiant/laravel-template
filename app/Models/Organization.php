@@ -40,11 +40,26 @@ class Organization extends Entity implements HasAddress
     use WithAddress;
 
     /**
+     * {@inheritdoc}
+     */
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::forceDeleting(function (Organization $organization): void {
+            OrganizationRelationship::query()
+                ->where('stakeholder_type', $organization->getMorphClass())
+                ->where('stakeholder_id', $organization->getKey())
+                ->delete();
+        });
+    }
+
+    /**
      * @return BelongsTo<Person, $this>
      */
     public function primaryContact(): BelongsTo
     {
-        return $this->belongsTo(Person::class, 'contact_id');
+        return $this->belongsTo(Person::class, 'contact_id')->withTrashed();
     }
 
     /**
@@ -127,33 +142,26 @@ class Organization extends Entity implements HasAddress
         ?CarbonInterface $finishDate = null,
         ?CarbonInterface $startDate = null,
     ): void {
-        if (! $isPrimary) {
-            $this->members()->attach($member, [
-                'type' => OrganizationRelationshipType::Member,
-                'is_primary' => null,
-                'start_date' => $startDate,
-                'finish_date' => $finishDate,
-            ]);
+        $attributes = [
+            'type' => OrganizationRelationshipType::Member,
+            'is_primary' => $isPrimary ? true : null,
+            'start_date' => $startDate,
+            'finish_date' => $finishDate,
+        ];
 
-            return;
-        }
-
-        DB::transaction(function () use ($member, $finishDate, $startDate): void {
+        DB::transaction(function () use ($member, $isPrimary, $attributes): void {
             $member->newQuery()
                 ->whereKey($member->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $member->organizationRelationships()->newPivotQuery()
-                ->where('type', OrganizationRelationshipType::Member)
-                ->update(['is_primary' => null]);
+            if ($isPrimary) {
+                $member->organizationRelationships()->newPivotQuery()
+                    ->where('type', OrganizationRelationshipType::Member)
+                    ->update(['is_primary' => null]);
+            }
 
-            $this->members()->attach($member, [
-                'type' => OrganizationRelationshipType::Member,
-                'is_primary' => true,
-                'start_date' => $startDate,
-                'finish_date' => $finishDate,
-            ]);
+            $this->members()->syncWithoutDetaching([$member->getKey() => $attributes]);
         });
     }
 }
