@@ -105,7 +105,7 @@
         @if ($draft) data-draft @endif
         :data-start-day="startDay"
         @if ($invalid) data-invalid @endif
-        class="w-full space-y-2"
+        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500/60"
     >
         @if ($isPlain && $mode === 'single')
             <input
@@ -175,7 +175,12 @@
                 <div class="min-w-0 flex-1 space-y-2">
                     <div class="text-sm font-medium text-zinc-800 dark:text-white" x-text="month.label"></div>
 
-                    <table role="grid" :aria-label="month.label" class="w-full border-separate border-spacing-y-1">
+                    <table
+                        role="grid"
+                        :aria-label="month.label"
+                        @if ($invalid) aria-invalid="true" @endif
+                        class="w-full border-separate border-spacing-y-1"
+                    >
                         <thead>
                             <tr>
                                 <template x-for="weekday in month.weekdays" :key="weekday">

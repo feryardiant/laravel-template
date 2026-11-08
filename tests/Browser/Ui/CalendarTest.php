@@ -176,6 +176,17 @@ it('binds a Carbon single date', function () {
         ->assertScript("document.querySelector('[data-ui-demo=calendar-carbon] [data-ui-bound=carbon-date]').textContent.trim() === window.__carbonDate");
 });
 
+it('exposes the invalid state', function () {
+    visit('/ui/calendar')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=calendar-invalid] [data-ui-calendar]');
+
+            return root.hasAttribute('data-invalid') && root.querySelector('[role=grid]').getAttribute('aria-invalid') === 'true';
+        })()");
+});
+
 it('renders two months and disables duplicate outside days', function () {
     $page = visit('/ui/calendar')->on()->desktop();
 

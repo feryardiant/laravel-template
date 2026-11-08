@@ -45,10 +45,14 @@ it('keeps an open popover inside the viewport while scrolling', function () {
         ->wait(0.5)
         ->assertScript("(() => {
             const popover = document.querySelector('[data-ui-demo=popover-scroll] [data-ui-popover]');
+            const trigger = document.querySelector('[data-ui-demo=popover-scroll] [data-ui-trigger]');
             const rect = popover.getBoundingClientRect();
+            const triggerRect = trigger.getBoundingClientRect();
+            const gap = rect.top > triggerRect.bottom ? rect.top - triggerRect.bottom : triggerRect.top - rect.bottom;
             window.__popoverTop = Math.round(rect.top);
 
             return popover.matches(':popover-open') &&
+                Math.abs(gap - 4) <= 1 &&
                 rect.top >= 0 &&
                 rect.bottom <= window.innerHeight &&
                 rect.left >= 0 &&
@@ -62,10 +66,14 @@ it('keeps an open popover inside the viewport while scrolling', function () {
         ->wait(0.5)
         ->assertScript("(() => {
             const popover = document.querySelector('[data-ui-demo=popover-scroll] [data-ui-popover]');
+            const trigger = document.querySelector('[data-ui-demo=popover-scroll] [data-ui-trigger]');
             const rect = popover.getBoundingClientRect();
+            const triggerRect = trigger.getBoundingClientRect();
+            const gap = rect.top > triggerRect.bottom ? rect.top - triggerRect.bottom : triggerRect.top - rect.bottom;
 
             return popover.matches(':popover-open') &&
                 Math.round(rect.top) !== window.__popoverTop &&
+                Math.abs(gap - 4) <= 1 &&
                 rect.top >= 0 &&
                 rect.bottom <= window.innerHeight &&
                 rect.left >= 0 &&

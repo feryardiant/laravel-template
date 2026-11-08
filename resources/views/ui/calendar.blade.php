@@ -139,6 +139,10 @@
         />
     </section>
 
+    <section data-ui-demo="calendar-invalid" class="space-y-3">
+        <x-ui.calendar label="Invalid" :value="now()->format('Y-m-d')" invalid />
+    </section>
+
     <section data-ui-demo="calendar-bounds" class="space-y-3">
         <x-ui.calendar
             label="Bounds"

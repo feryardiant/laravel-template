@@ -55,8 +55,8 @@ final class Value
     }
 
     /**
-     * Normalize a DateRange, comma-separated string or iterable to unique
-     * `Y-m-d` keys.
+     * Normalize a DateRange, comma-separated string or array to unique `Y-m-d`
+     * keys.
      *
      * @return array<int, string>
      */
@@ -140,7 +140,7 @@ final class Value
     }
 
     /**
-     * Normalize a comma-separated string or iterable to unique `H:i` values.
+     * Normalize a comma-separated string or array to unique `H:i` values.
      *
      * @return array<int, string>
      */
