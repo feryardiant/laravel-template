@@ -21,6 +21,7 @@ import {
 } from './date'
 import type { CalendarCell, CalendarConfig, CalendarMonth, CalendarMode, WireLike } from './types'
 
+/** Normalized calendar value for the active mode. */
 interface NormalizedValue {
     values: string[]
     start: string | null
@@ -79,8 +80,18 @@ function normalizeValue(value: unknown, mode: CalendarMode): NormalizedValue {
     }
 }
 
+/**
+ * Alpine data for the dependency-free Gregorian calendar.
+ *
+ * Date values are `Y-m-d` keys. The calendar owns single/multiple/range state and
+ * dispatches a bubbling `change` event with the selected value. In `draft` mode it
+ * still updates visually but does not write the model, so pickers can manage
+ * their own commit/cancel lifecycle.
+ */
+
 export interface CalendarData {
     mode: CalendarMode
+    /** When true, `commit()` skips the model write but still dispatches `change`. */
     draft: boolean
     locale: string
     startDay: number
@@ -105,9 +116,13 @@ export interface CalendarData {
     announcement: string
     init: (el?: HTMLElement) => void
     destroy: () => void
+    /** Replace the visible value without writing the model; used by pickers. */
     setValue: (value: unknown) => void
+    /** Re-apply min/max after render, for time-sensitive bounds such as `now`. */
     setBounds: (min: string | null, max: string | null) => void
+    /** Update the month used when there is no selected value. */
     setOpenTo: (key: string | null) => void
+    /** Re-resolve the browser's local today across midnight. */
     refreshToday: () => void
     refresh: (announce?: boolean) => void
     build: () => void
@@ -126,9 +141,16 @@ export interface CalendarData {
     findEnabled: (key: string, direction: number) => string | null
     findCell: (key: string) => CalendarCell | null
     rangeCrossesUnavailable: (start: string, end: string) => boolean
+    /** Write the model (unless draft) and dispatch the bubbling `change` event. */
     commit: () => void
 }
 
+/**
+ * Create the Alpine data for a calendar.
+ *
+ * `wire`/`config.model` are optional; without them the calendar works as a plain
+ * form control using the hidden input referenced by `config.formInputId`.
+ */
 export function calendarData(config: CalendarConfig, wire: WireLike | null): CalendarData {
     let rootEl: HTMLElement | null = null
     let unwatch: (() => void) | null = null

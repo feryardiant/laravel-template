@@ -8,6 +8,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+/**
+ * Development page for local and remote autocomplete demos.
+ */
 #[Layout('ui.layout')]
 class Autocomplete extends Component
 {
@@ -15,6 +18,9 @@ class Autocomplete extends Component
 
     public string $remoteState = '';
 
+    /**
+     * Set the local demo value to "New York".
+     */
     public function setState(): void
     {
         $this->state = 'New York';

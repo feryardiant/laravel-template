@@ -3,6 +3,14 @@ import { applyFilter, assignOptionIds, scanOptions } from './listbox'
 import { createPopover, type PopoverController } from './popover'
 import type { AutocompleteConfig, ListboxOption, RemoteItem, WireLike } from './types'
 
+/**
+ * Alpine data for local and remote autocomplete.
+ *
+ * Local options are filtered from the DOM. Remote mode debounces and aborts
+ * requests, ignores stale responses and renders a normalized result list.
+ */
+
+/** State and actions exposed to the autocomplete Blade markup. */
 export interface AutocompleteData {
     query: string
     open: boolean
@@ -62,6 +70,13 @@ function normalizeRemote(data: unknown): RemoteItem[] {
     })
 }
 
+/**
+ * Create the Alpine data for an autocomplete.
+ *
+ * The query is the editable value. Local mode filters slot options; remote mode
+ * fetches `GET {searchUrl}?q=...` and accepts either `["Label"]` or
+ * `[{ label: "Label" }]`.
+ */
 export function autocompleteData(config: AutocompleteConfig, wire: WireLike | null): AutocompleteData {
     let options: ListboxOption[] = []
     let visible: ListboxOption[] = []
@@ -69,6 +84,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
     let unwatch: (() => void) | null = null
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
     let abortController: AbortController | null = null
+    // Monotonic request id: only the latest remote response may update the list.
     let requestId = 0
     let suppressFocus = false
 

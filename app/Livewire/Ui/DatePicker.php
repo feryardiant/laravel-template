@@ -8,6 +8,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+/**
+ * Development page for date picker modes, presets and constraints.
+ */
 #[Layout('ui.layout')]
 class DatePicker extends Component
 {
@@ -30,6 +33,9 @@ class DatePicker extends Component
         ];
     }
 
+    /**
+     * Move the single-date demo five days ahead of today.
+     */
     public function moveDate(): void
     {
         $this->date = now()->addDays(5)->format('Y-m-d');

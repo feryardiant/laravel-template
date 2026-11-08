@@ -15,10 +15,20 @@ import { createPopover, trapTabFocus, type PopoverController } from './popover'
 import { compareTime, formatTime, localNowKey, minutesOfDay, prefersHour12, timeFromMinutes } from './time'
 import type { DateTimePickerConfig, TimeOption, WireLike } from './types'
 
+/**
+ * Alpine data for the datetime picker.
+ *
+ * Combines one calendar with per-endpoint time drafts. Single mode writes on a
+ * date change and closes on a minute; range mode commits only from the footer.
+ * Times are revalidated against bounds, unavailable entries and end-after-start
+ * ordering whenever a date or time changes.
+ */
+
 type DateTimeMode = 'single' | 'range'
 type Endpoint = 'start' | 'end'
 type Column = 'hour' | 'minute'
 
+/** Time-column state for one endpoint. */
 interface TimeDraftState {
     hour: number | null
     minute: number | null
@@ -30,6 +40,7 @@ interface TimeDraftState {
     activeMinute: number | null
 }
 
+/** State and actions exposed to the datetime picker Blade markup. */
 export interface DateTimePickerData {
     mode: DateTimeMode
     open: boolean
@@ -102,6 +113,12 @@ export interface DateTimePickerData {
     dispatch: (name: string, value?: unknown) => void
 }
 
+/**
+ * Create the Alpine data for a datetime picker.
+ *
+ * Writes `Y-m-d\TH:i` for single mode and `{ start, end }` for range mode. The
+ * time panel height is synchronized with the calendar on desktop.
+ */
 export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike | null): DateTimePickerData {
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
@@ -264,6 +281,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.renderDisplay()
         },
 
+        /** Re-resolve `now`/`today` bounds and open-to on every open. */
         refreshNow() {
             const now = localNowDateTime()
             const today = datePart(now)
@@ -595,6 +613,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return config.defaultEndTime ?? this.openToTime ?? start
         },
 
+        /** Whether the endpoint has a date and a currently selectable time. */
         draftTimeValid(endpoint) {
             const draft = this.draftFor(endpoint)
 
@@ -606,6 +625,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             )
         },
 
+        /** First interval time that satisfies the endpoint constraints, if any. */
         firstValidTime(endpoint) {
             for (let hour = 0; hour < 24; hour++) {
                 for (let minute = 0; minute < 60; minute += interval) {
@@ -618,6 +638,12 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return null
         },
 
+        /**
+         * Repair an endpoint time that became invalid after a date change.
+         *
+         * Falls back to the first valid interval time, or clears the time when
+         * the endpoint has no valid option.
+         */
         revalidateTime(endpoint) {
             if (this.dateFor(endpoint) === null) {
                 this.setTimeDraft(endpoint, null)
@@ -702,6 +728,10 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return this.minuteCandidates(endpoint, hour).some((minute) => !this.isTimeDisabled(endpoint, hour, minute))
         },
 
+        /**
+         * Check datetime bounds, daily time windows, unavailable entries and
+         * end-after-start ordering for a candidate time.
+         */
         isTimeDisabled(endpoint, hour, minute) {
             const date = this.dateFor(endpoint)
 
@@ -945,6 +975,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             }, 0)
         },
 
+        /** Scroll one time column so its active option is visible. */
         scrollTimeColumn(endpoint, column) {
             const listbox = document.getElementById(this.timeListId(endpoint, column))
             const draft = this.draftFor(endpoint)
@@ -1058,6 +1089,11 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             }, 0)
         },
 
+        /**
+         * Match the time panel height to the calendar on desktop.
+         *
+         * The panel is left auto-sized on mobile, where the columns stack.
+         */
         sizeTimePanel() {
             const target = popoverElement()
             const calendar = target?.querySelector<HTMLElement>('[data-ui-calendar]')

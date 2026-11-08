@@ -8,6 +8,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+/**
+ * Development page for single, multiple and 12-hour time picking.
+ */
 #[Layout('ui.layout')]
 class TimePicker extends Component
 {
@@ -20,6 +23,9 @@ class TimePicker extends Component
      */
     public array $times = ['09:00', '11:30'];
 
+    /**
+     * Move the single-time demo to 15:30.
+     */
     public function moveTime(): void
     {
         $this->time = '15:30';

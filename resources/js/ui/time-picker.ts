@@ -14,11 +14,21 @@ import {
 } from './time'
 import type { TimeOption, TimePickerConfig, WireLike } from './types'
 
+/**
+ * Alpine data for the time picker popover.
+ *
+ * Values are wall-clock `H:i` strings. Single mode applies on minute selection;
+ * multiple mode appends to a removable list. 12-hour mode only changes the
+ * visible hour options and meridiem; the stored value stays 24-hour.
+ */
+
+/** Display hour for 12/24-hour mode; `value` is always the 24-hour hour. */
 interface HourOption {
     value: number
     label: string
 }
 
+/** State and actions exposed to the time picker Blade markup. */
 export interface TimePickerData {
     hour12: boolean
     multiple: boolean
@@ -86,6 +96,13 @@ export interface TimePickerData {
     dispatch: (name: string, value?: unknown) => void
 }
 
+/**
+ * Create the Alpine data for a time picker.
+ *
+ * Writes `H:i` for single mode and a sorted array for multiple mode. Off-step
+ * values are preserved only for their original hour so a new choice still
+ * follows the configured interval.
+ */
 export function timePickerData(config: TimePickerConfig, wire: WireLike | null): TimePickerData {
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
@@ -311,6 +328,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }, 0)
         },
 
+        /** Append the composed time to a multiple selection and keep the popover open. */
         add() {
             if (this.disabled || this.hour === null || this.minute === null) {
                 return
@@ -338,6 +356,9 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }, 0)
         },
 
+        /**
+         * Remove a selected time and move focus to the next option or the list.
+         */
         remove(value) {
             if (this.disabled) {
                 return
@@ -529,6 +550,12 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             return this.selected ?? (config.openTo === 'now' ? this.now : (toTime(config.openTo) ?? this.now))
         },
 
+        /**
+         * Seed the draft from a time.
+         *
+         * `preserve` keeps an off-step committed minute; otherwise it snaps down
+         * to the interval so new selections stay on the configured grid.
+         */
         setDraft(key, preserve = false) {
             const minutes = minutesOfDay(key ?? this.now) ?? 0
             const rawMinute = minutes % 60
@@ -598,6 +625,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }))
         },
 
+        /** Interval minutes plus the preserved off-step minute for its own hour. */
         minuteCandidates(hour): number[] {
             const values: number[] = []
 

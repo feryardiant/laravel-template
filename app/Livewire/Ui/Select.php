@@ -8,6 +8,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+/**
+ * Development page for the select listbox and pillbox demos.
+ */
 #[Layout('ui.layout')]
 class Select extends Component
 {
@@ -23,6 +26,9 @@ class Select extends Component
      */
     public array $tags = ['design'];
 
+    /**
+     * Swap the single selection for the "legal" demo option.
+     */
     public function resetIndustry(): void
     {
         $this->industry = 'legal';

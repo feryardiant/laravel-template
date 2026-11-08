@@ -8,8 +8,21 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Flux\DateRange;
 
+/**
+ * Presentation-only adapter for calendar, time and datetime values.
+ *
+ * It normalizes incoming PHP/Blade values into the string shapes consumed by the
+ * Alpine components. It never performs date math, timezone conversion or
+ * validation policy; date objects use the timezone they already carry.
+ */
 final class Value
 {
+    /**
+     * Normalize a value to a strict `Y-m-d` key.
+     *
+     * Date objects use their own timezone. Date-time strings and invalid dates
+     * return `null`.
+     */
     public static function date(mixed $value): ?string
     {
         if ($value instanceof DateTimeInterface) {
@@ -42,6 +55,9 @@ final class Value
     }
 
     /**
+     * Normalize a DateRange, comma-separated string or iterable to unique
+     * `Y-m-d` keys.
+     *
      * @return array<int, string>
      */
     public static function dates(mixed $value): array
@@ -67,6 +83,9 @@ final class Value
     }
 
     /**
+     * Normalize a DateRange, `start/end` string or array to nullable endpoint
+     * dates.
+     *
      * @return array{start: ?string, end: ?string}
      */
     public static function range(mixed $value): array
@@ -97,6 +116,12 @@ final class Value
         return ['start' => null, 'end' => null];
     }
 
+    /**
+     * Normalize a value to a strict `H:i` wall-clock time.
+     *
+     * Date objects use their own timezone; seconds are dropped. Invalid values
+     * return `null`.
+     */
     public static function time(mixed $value): ?string
     {
         if ($value instanceof DateTimeInterface) {
@@ -115,6 +140,8 @@ final class Value
     }
 
     /**
+     * Normalize a comma-separated string or iterable to unique `H:i` values.
+     *
      * @return array<int, string>
      */
     public static function times(mixed $value): array
@@ -133,6 +160,9 @@ final class Value
     }
 
     /**
+     * Normalize time and inclusive `H:i-H:i` range entries, dropping invalid
+     * values.
+     *
      * @return array<int, string>
      */
     public static function timeRanges(mixed $value): array
@@ -165,6 +195,12 @@ final class Value
         return array_values(array_unique($ranges));
     }
 
+    /**
+     * Normalize a value to `Y-m-d\TH:i`.
+     *
+     * Date-only values become midnight. Date objects use their own timezone;
+     * invalid values return `null`.
+     */
     public static function datetime(mixed $value): ?string
     {
         if ($value instanceof DateTimeInterface) {
@@ -189,6 +225,9 @@ final class Value
     }
 
     /**
+     * Normalize a DateRange, `start/end` string or array to nullable endpoint
+     * datetimes.
+     *
      * @return array{start: ?string, end: ?string}
      */
     public static function datetimeRange(mixed $value): array
@@ -220,6 +259,11 @@ final class Value
     }
 
     /**
+     * Normalize unavailable entries.
+     *
+     * Accepts dates, times, time ranges, datetimes and one-day datetime ranges;
+     * invalid entries are dropped.
+     *
      * @return array<int, string>
      */
     public static function datetimes(mixed $value): array
@@ -283,6 +327,12 @@ final class Value
         return array_values(array_unique($entries));
     }
 
+    /**
+     * Normalize a value to the shape expected by a calendar mode.
+     *
+     * `single` returns a date key, `multiple` a list of keys, and `range` a
+     * nullable endpoint array.
+     */
     public static function calendar(mixed $value, string $mode): mixed
     {
         return match ($mode) {

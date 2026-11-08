@@ -1,5 +1,14 @@
 import type { WireLike } from './types'
 
+/**
+ * Livewire and plain-form binding helpers shared by the UI Alpine factories.
+ *
+ * A bound component reads from the Livewire property when a model is present and
+ * from the Blade fallback otherwise. Writes go through `$wire.set()` or through a
+ * hidden input when the component is used outside Livewire.
+ */
+
+/** Coerce a scalar to the string used by DOM values. */
 export function stringValue(value: unknown): string {
     if (typeof value === 'string') {
         return value
@@ -12,6 +21,7 @@ export function stringValue(value: unknown): string {
     return ''
 }
 
+/** Normalize a scalar, comma-separated string or array to non-empty strings. */
 export function normalizeValues(value: unknown): string[] {
     if (Array.isArray(value)) {
         return value.map(stringValue).filter((item) => item !== '')
@@ -27,6 +37,11 @@ export function normalizeValues(value: unknown): string[] {
         .filter((item) => item !== '')
 }
 
+/**
+ * Read a Livewire property, falling back to the initial Blade value.
+ *
+ * The fallback is used for plain forms and whenever the property is missing.
+ */
 export function readModel(wire: WireLike | null, model: string | null, fallback: unknown): unknown {
     if (wire === null || model === null) {
         return fallback
@@ -41,6 +56,12 @@ export function readModel(wire: WireLike | null, model: string | null, fallback:
     }
 }
 
+/**
+ * Write a value through Livewire, or mirror it into a hidden form input.
+ *
+ * The hidden-input path dispatches `input` and `change` so plain forms and other
+ * listeners see the update.
+ */
 export function writeModel(
     wire: WireLike | null,
     model: string | null,
@@ -63,6 +84,7 @@ export function writeModel(
     formInput.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
+/** Subscribe to Livewire model changes; a no-op when there is no model. */
 export function watchModel(
     wire: WireLike | null,
     model: string | null,

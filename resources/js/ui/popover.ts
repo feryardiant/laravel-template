@@ -1,10 +1,27 @@
+/**
+ * Native popover controller shared by the select, autocomplete and picker
+ * components.
+ *
+ * The popover element must use `popover="manual"`. The controller owns the
+ * top-layer lifecycle, fixed positioning with viewport clamping and flip,
+ * outside-pointer/Escape close, focus restoration and optional full-width touch
+ * layout.
+ */
+
 export interface PopoverOptions {
+    /** Called after the popover enters the top layer. */
     onOpen?: () => void
+    /** Called before focus is restored on close. */
     onClose?: () => void
+    /** Element to focus on close; defaults to the trigger. */
     focusTarget?: HTMLElement | null
+    /** Use the viewport width (with insets) on touch devices. */
     fullWidthOnTouch?: boolean
 }
 
+/**
+ * Keep Tab and Shift+Tab inside a popover by wrapping at its edges.
+ */
 export function trapTabFocus(container: HTMLElement, event: KeyboardEvent): void {
     if (event.key !== 'Tab') {
         return
@@ -32,15 +49,24 @@ export function trapTabFocus(container: HTMLElement, event: KeyboardEvent): void
     }
 }
 
+/** Imperative handle returned by {@link createPopover}. */
 export interface PopoverController {
     open: () => void
     close: () => void
     toggle: () => void
     isOpen: () => boolean
+    /** Re-anchor after content or viewport changes; optionally allow a flip. */
     reposition: (allowFlip?: boolean) => void
     destroy: () => void
 }
 
+/**
+ * Attach a native popover to a trigger.
+ *
+ * Position is fixed and clamped to the viewport; the popover flips above when
+ * there is more room there. Closing restores focus only when focus was inside
+ * the popover, so an outside click can keep its own target.
+ */
 export function createPopover(
     trigger: HTMLElement,
     popover: HTMLElement,
@@ -181,6 +207,7 @@ export function createPopover(
             return
         }
 
+        // Capture this before hidePopover() blurs the active descendant.
         const restoreFocus = popover.contains(document.activeElement)
 
         open = false

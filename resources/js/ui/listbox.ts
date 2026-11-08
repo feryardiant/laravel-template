@@ -1,5 +1,12 @@
 import type { ListboxOption } from './types'
 
+/**
+ * DOM scanning and filtering for the select listbox.
+ *
+ * Options are marked with `data-ui-option`; groups with `role="group"`.
+ */
+
+/** Normalize search text for accent- and case-insensitive matching. */
 export function normalizeSearch(value: string): string {
     return value
         .toLocaleLowerCase()
@@ -8,6 +15,7 @@ export function normalizeSearch(value: string): string {
         .trim()
 }
 
+/** Read option metadata from the rendered DOM. */
 export function scanOptions(root: HTMLElement | null): ListboxOption[] {
     if (root === null) {
         return []
@@ -28,6 +36,7 @@ export function scanOptions(root: HTMLElement | null): ListboxOption[] {
     })
 }
 
+/** Match an option against its label and optional keywords. */
 export function optionMatches(option: ListboxOption, query: string): boolean {
     if (query === '') {
         return true
@@ -36,6 +45,9 @@ export function optionMatches(option: ListboxOption, query: string): boolean {
     return normalizeSearch(`${option.label} ${option.keywords}`).includes(normalizeSearch(query))
 }
 
+/**
+ * Toggle option visibility and hide groups whose options are all filtered out.
+ */
 export function applyFilter(root: HTMLElement | null, options: ListboxOption[], query: string): ListboxOption[] {
     const visible: ListboxOption[] = []
 
@@ -59,6 +71,7 @@ export function applyFilter(root: HTMLElement | null, options: ListboxOption[], 
     return visible
 }
 
+/** Give every option a stable id for `aria-activedescendant`. */
 export function assignOptionIds(options: ListboxOption[], prefix: string): void {
     options.forEach((option, index) => {
         option.el.id = `${prefix}-option-${index}`

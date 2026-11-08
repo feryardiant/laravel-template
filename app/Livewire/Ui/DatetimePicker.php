@@ -8,6 +8,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+/**
+ * Development page for datetime single and range modes.
+ */
 #[Layout('ui.layout')]
 class DatetimePicker extends Component
 {
@@ -25,6 +28,9 @@ class DatetimePicker extends Component
 
     public ?string $confirmedAt = '2026-11-08T10:30';
 
+    /**
+     * Move the single datetime demo to 10 Nov 2026 14:30.
+     */
     public function moveStartAt(): void
     {
         $this->startAt = '2026-11-10T14:30';

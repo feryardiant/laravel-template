@@ -1,17 +1,29 @@
 import type { WireLike } from './types'
 
+/**
+ * Alpine data for the file-upload wrapper.
+ *
+ * The wrapper owns drag/drop, picker activation and upload feedback. The real
+ * file input keeps Livewire's `wire:model`; upload events are read from the DOM
+ * and, for completion, from `$wire` because a morph can detach the input before
+ * the finish event bubbles.
+ */
+
 export interface FileUploadConfig {
     disabled: boolean
+    /** Bound Livewire property, used to filter upload lifecycle events. */
     property: string | null
     labels: {
         uploading: string
     }
 }
 
+/** Livewire surface plus the component-event subscription used for uploads. */
 type WireWithEvents = WireLike & {
     $on?: (event: string, callback: (detail: unknown) => void) => (() => void) | undefined
 }
 
+/** State and actions exposed to the file-upload Blade markup. */
 export interface FileUploadData {
     disabled: boolean
     dragging: boolean
@@ -19,6 +31,7 @@ export interface FileUploadData {
     progress: number
     announcement: string
     labels: FileUploadConfig['labels']
+    /** Counter used so child dragenter/dragleave pairs do not flicker. */
     dragDepth: number
     init: (el?: HTMLElement) => void
     destroy: () => void
@@ -34,6 +47,12 @@ export interface FileUploadData {
     progressStyle: () => string
 }
 
+/**
+ * Create the Alpine data for a file uploader.
+ *
+ * `wire` is used only to observe upload completion/error events; the actual
+ * upload remains the responsibility of the hidden file input.
+ */
 export function fileUploadData(config: FileUploadConfig, wire: WireLike | null): FileUploadData {
     let rootEl: HTMLElement | null = null
     const unsubscribes: (() => void)[] = []
@@ -66,6 +85,8 @@ export function fileUploadData(config: FileUploadConfig, wire: WireLike | null):
                 }
             }
 
+            // The finish DOM event can be lost when Livewire morphs the input
+            // before it bubbles, so also observe the component upload events.
             for (const event of ['upload:finished', 'upload:errored']) {
                 const unsubscribe = events.$on(event, finish)
 
@@ -146,6 +167,8 @@ export function fileUploadData(config: FileUploadConfig, wire: WireLike | null):
                 return
             }
 
+            // Hand the files to the real input so Livewire's own change
+            // listener performs the upload.
             target.files = files
             target.dispatchEvent(new Event('change', { bubbles: true }))
         },

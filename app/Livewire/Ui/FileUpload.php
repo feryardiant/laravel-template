@@ -10,6 +10,9 @@ use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
+/**
+ * Development page for Livewire file uploads and custom uploaders.
+ */
 #[Layout('ui.layout')]
 class FileUpload extends Component
 {
@@ -35,6 +38,9 @@ class FileUpload extends Component
      */
     public $customAvatar = null;
 
+    /**
+     * Remove a photo and reindex the remaining list.
+     */
     public function removePhoto(int $index): void
     {
         unset($this->photos[$index]);
@@ -42,6 +48,9 @@ class FileUpload extends Component
         $this->photos = array_values($this->photos);
     }
 
+    /**
+     * Remove a document and reindex the remaining list.
+     */
     public function removeDocument(int $index): void
     {
         unset($this->documents[$index]);
@@ -49,11 +58,17 @@ class FileUpload extends Component
         $this->documents = array_values($this->documents);
     }
 
+    /**
+     * Clear the single avatar upload.
+     */
     public function clearAvatar(): void
     {
         $this->avatar = null;
     }
 
+    /**
+     * Clear the custom avatar uploader.
+     */
     public function clearCustomAvatar(): void
     {
         $this->customAvatar = null;

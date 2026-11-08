@@ -3,6 +3,15 @@ import { applyFilter, assignOptionIds, scanOptions } from './listbox'
 import { createPopover, type PopoverController } from './popover'
 import type { ListboxOption, SelectConfig, SelectedOption, WireLike } from './types'
 
+/**
+ * Alpine data for the select listbox and pillbox.
+ *
+ * Pillbox implies multiple selection. The visible trigger is readonly; keyboard
+ * input drives typeahead filtering. Writes go through Livewire or the hidden
+ * plain-form input.
+ */
+
+/** State and actions exposed to the select Blade markup. */
 export interface SelectData {
     variant: 'listbox' | 'pillbox'
     multiple: boolean
@@ -49,6 +58,12 @@ export interface SelectData {
     handleNavigation: (event: KeyboardEvent, typeaheadEnabled: boolean) => void
 }
 
+/**
+ * Create the Alpine data for a select.
+ *
+ * `variant: 'pillbox'` forces multiple selection. The factory owns popover
+ * placement, active-option movement, selection and model writes.
+ */
 export function selectData(config: SelectConfig, wire: WireLike | null): SelectData {
     let options: ListboxOption[] = []
     let visible: ListboxOption[] = []

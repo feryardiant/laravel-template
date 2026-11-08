@@ -1,6 +1,13 @@
 import { isValidKey } from './date'
 import { isTimeUnavailable, minutesOfDay, timeFromMinutes, type TimeRange } from './time'
 
+/**
+ * Wall-clock datetime helpers for the datetime picker.
+ *
+ * Canonical values are `Y-m-d\TH:i`. No timezone conversion is performed.
+ */
+
+/** Normalized unavailable entries used by the datetime picker. */
 export interface DateTimeUnavailable {
     dates: Set<string>
     times: TimeRange[]
@@ -12,6 +19,11 @@ const DATETIME_PATTERN = /^(\d{4}-\d{2}-\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)$/
 const DATETIME_RANGE_PATTERN = /^(\d{4}-\d{2}-\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/
 const TIME_RANGE_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/
 
+/**
+ * Normalize `Y-m-d\TH:i`, `Y-m-d H:i` or a date-only value.
+ *
+ * Date-only values become midnight. Invalid values return `null`.
+ */
 export function parseDateTime(value: unknown): string | null {
     if (typeof value !== 'string') {
         return null
@@ -27,22 +39,32 @@ export function parseDateTime(value: unknown): string | null {
     return isValidKey(trimmed) ? `${trimmed}T00:00` : null
 }
 
+/** Date portion of a canonical datetime. */
 export function datePart(value: string): string {
     return value.slice(0, 10)
 }
 
+/** Time portion of a canonical datetime. */
 export function timePart(value: string): string {
     return value.slice(11, 16)
 }
 
+/** Combine a date key and an `H:i` time into the canonical datetime shape. */
 export function combineDateTime(date: string, time: string): string {
     return `${date}T${time}`
 }
 
+/** Lexicographic comparison for canonical datetimes. */
 export function compareDateTime(left: string, right: string): number {
     return left < right ? -1 : left > right ? 1 : 0
 }
 
+/**
+ * Parse datetime unavailable entries.
+ *
+ * Accepts dates, daily times, daily time ranges, datetime slots and one-day
+ * datetime ranges; invalid entries are dropped.
+ */
 export function parseUnavailable(entries: string[]): DateTimeUnavailable {
     const unavailable: DateTimeUnavailable = {
         dates: new Set<string>(),
@@ -106,6 +128,7 @@ export function parseUnavailable(entries: string[]): DateTimeUnavailable {
     return unavailable
 }
 
+/** Whether a date and time match any unavailable entry. */
 export function isUnavailable(date: string, time: string, unavailable: DateTimeUnavailable): boolean {
     if (unavailable.dates.has(date) || unavailable.datetimes.has(`${date}T${time}`)) {
         return true
@@ -126,6 +149,7 @@ export function isUnavailable(date: string, time: string, unavailable: DateTimeU
     )
 }
 
+/** The browser's current local datetime in canonical form. */
 export function localNowDateTime(): string {
     const now = new Date()
     const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`

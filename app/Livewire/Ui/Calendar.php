@@ -10,6 +10,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+/**
+ * Development page for single, multiple and range calendar bindings.
+ */
 #[Layout('ui.layout')]
 class Calendar extends Component
 {
@@ -41,6 +44,9 @@ class Calendar extends Component
         ];
     }
 
+    /**
+     * Move the single-date demo five days ahead of today.
+     */
     public function moveSingleDate(): void
     {
         $this->date = now()->addDays(5)->format('Y-m-d');

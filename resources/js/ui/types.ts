@@ -1,10 +1,21 @@
+/**
+ * Shared config and state shapes for the UI Alpine factories.
+ *
+ * `model` is the Livewire property name, `live` controls whether writes request
+ * an immediate round-trip, and `formInputId`/`formStartId`/`formEndId` point at
+ * hidden inputs used when the component is rendered outside Livewire.
+ */
+
+/** Minimal Livewire surface used by the factories. */
 export interface WireLike {
     get(name: string): unknown
     set(name: string, value: unknown, live?: boolean): void
     $watch(name: string, callback: (value: unknown) => void): () => void
 }
 
+/** Blade-to-Alpine config for a select. */
 export interface SelectConfig {
+    /** Pillbox always behaves as multiple. */
     variant: 'listbox' | 'pillbox'
     multiple: boolean
     value: unknown
@@ -20,12 +31,14 @@ export interface SelectConfig {
     formInputId: string | null
 }
 
+/** Blade-to-Alpine config for an autocomplete. */
 export interface AutocompleteConfig {
     value: string
     model: string | null
     live: boolean
     disabled: boolean
     readonly: boolean
+    /** When set, enables remote suggestions from `GET {searchUrl}?q=` */
     searchUrl: string | null
     minLength: number
     debounce: number
@@ -37,6 +50,16 @@ export interface AutocompleteConfig {
     formInputId: string | null
 }
 
+/** One hour or minute row in a time picker. */
+export interface TimeOption {
+    id: string
+    value: number
+    label: string
+    disabled: boolean
+    selected: boolean
+}
+
+/** Option metadata scanned from the rendered listbox. */
 export interface ListboxOption {
     el: HTMLElement
     value: string
@@ -46,10 +69,12 @@ export interface ListboxOption {
     disabled: boolean
 }
 
+/** Normalized remote autocomplete result. */
 export interface RemoteItem {
     label: string
 }
 
+/** Selected option rendered in the trigger or pill list. */
 export interface SelectedOption {
     value: string
     label: string
@@ -58,6 +83,7 @@ export interface SelectedOption {
 
 export type CalendarMode = 'single' | 'multiple' | 'range'
 
+/** Translated calendar strings. */
 export interface CalendarLabels {
     today: string
     previousMonth: string
@@ -69,8 +95,10 @@ export interface CalendarLabels {
     rangeUnavailable: string
 }
 
+/** Blade-to-Alpine config for a calendar. */
 export interface CalendarConfig {
     mode: CalendarMode
+    /** When true, selection updates the grid but does not write `model`. */
     draft: boolean
     value: unknown
     model: string | null
@@ -94,6 +122,7 @@ export interface CalendarConfig {
     labels: CalendarLabels
 }
 
+/** Rendered state for one day cell. */
 export interface CalendarCell {
     id: string
     key: string
@@ -104,6 +133,7 @@ export interface CalendarCell {
     disabled: boolean
     unavailable: boolean
     selected: boolean
+    /** Inside the committed range or the hover/focus preview. */
     inRange: boolean
     rangeStart: boolean
     rangeEnd: boolean
@@ -111,6 +141,7 @@ export interface CalendarCell {
     tabIndex: number
 }
 
+/** One rendered month in a one- or two-month calendar. */
 export interface CalendarMonth {
     key: string
     year: number
@@ -122,6 +153,7 @@ export interface CalendarMonth {
 
 export type TimeFormat = 'auto' | '12-hour' | '24-hour'
 
+/** Translated time-picker strings. */
 export interface TimePickerLabels {
     hour: string
     minute: string
@@ -135,7 +167,9 @@ export interface TimePickerLabels {
     placeholderMultiple: string
 }
 
+/** Blade-to-Alpine config for a time picker. */
 export interface TimePickerConfig {
+    /** Keep several times and render the removable selected list. */
     multiple: boolean
     value: unknown
     model: string | null
@@ -159,16 +193,9 @@ export interface TimePickerConfig {
     labels: TimePickerLabels
 }
 
-export interface TimeOption {
-    id: string
-    value: number
-    label: string
-    disabled: boolean
-    selected: boolean
-}
-
 export type DateTimeMode = 'single' | 'range'
 
+/** Translated datetime-picker strings. */
 export interface DateTimePickerLabels {
     label: string
     placeholder: string
@@ -187,6 +214,7 @@ export interface DateTimePickerLabels {
     pm: string
 }
 
+/** Blade-to-Alpine config for a datetime picker. */
 export interface DateTimePickerConfig {
     mode: DateTimeMode
     value: unknown
@@ -200,10 +228,12 @@ export interface DateTimePickerConfig {
     max: string | null
     minDate: string | null
     maxDate: string | null
+    /** Markers that make `min`/`max` re-resolve on every open. */
     minSource: 'now' | 'today' | null
     maxSource: 'now' | 'today' | null
     openToDate: string | null
     openToTime: string | null
+    /** Marker that makes `open-to` re-resolve on every open. */
     openToSource: 'now' | 'today' | null
     minTime: string | null
     maxTime: string | null
@@ -224,6 +254,7 @@ export interface DateTimePickerConfig {
 
 export type DatePickerMode = 'single' | 'range'
 
+/** Translated date-picker strings. */
 export interface DatePickerLabels {
     placeholder: string
     placeholderRange: string
@@ -235,6 +266,7 @@ export interface DatePickerLabels {
     presetLabels: Record<string, string>
 }
 
+/** Blade-to-Alpine config for a date picker. */
 export interface DatePickerConfig {
     mode: DatePickerMode
     value: unknown
@@ -247,6 +279,7 @@ export interface DatePickerConfig {
     unavailable: string[]
     minRange: number | null
     maxRange: number | null
+    /** Require the footer even in single mode. */
     withConfirmation: boolean
     withPresets: boolean
     presetKeys: string[]

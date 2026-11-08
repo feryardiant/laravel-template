@@ -18,11 +18,21 @@ import {
 import { createPopover, trapTabFocus, type PopoverController } from './popover'
 import type { DatePickerConfig, DatePickerMode, WireLike } from './types'
 
+/**
+ * Alpine data for the date picker popover.
+ *
+ * The picker keeps a committed value and a draft value. Opening resets the draft
+ * from the committed value; cancelling discards it. Single mode commits
+ * immediately, while range/confirmation mode waits for the footer. Presets use
+ * the browser's local date and are filtered against the active constraints.
+ */
+
 interface Bounds {
     start: string | null
     end: string | null
 }
 
+/** A preset range, filtered to the picker constraints. */
 interface DatePreset {
     key: string
     label: string
@@ -59,6 +69,7 @@ function normalize(value: unknown, mode: DatePickerMode): Bounds {
     return { start: toDateKey(value), end: null }
 }
 
+/** Compute a preset range from the browser's local today. */
 function presetBounds(
     key: string,
     today: string,
@@ -109,6 +120,7 @@ function presetBounds(
     return null
 }
 
+/** Clamp a preset to the picker bounds, dropping ranges that collapse. */
 function clampBounds(
     bounds: { start: string; end: string },
     min: string | null,
@@ -127,6 +139,7 @@ function clampBounds(
     return compareKeys(start, end) <= 0 ? { start, end } : null
 }
 
+/** Check a preset against unavailable dates and range-length rules. */
 function presetAllowed(
     bounds: { start: string; end: string },
     unavailable: string[],
@@ -150,6 +163,7 @@ function presetAllowed(
     return !unavailable.some((key) => compareKeys(key, from) >= 0 && compareKeys(key, to) <= 0)
 }
 
+/** State and actions exposed to the date picker Blade markup. */
 export interface DatePickerData {
     mode: DatePickerMode
     open: boolean
@@ -186,6 +200,13 @@ export interface DatePickerData {
     dispatch: (name: string, value?: unknown) => void
 }
 
+/**
+ * Create the Alpine data for a date picker.
+ *
+ * Writes a `Y-m-d` string for single mode and `{ start, end }` for range mode.
+ * The nested calendar is a separate Alpine component controlled through
+ * `syncCalendar()`.
+ */
 export function datePickerData(config: DatePickerConfig, wire: WireLike | null): DatePickerData {
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
