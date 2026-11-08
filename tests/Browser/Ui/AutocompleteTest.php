@@ -133,7 +133,7 @@ it('opens above the trigger and stays anchored while filtering', function () {
         ->wait(0.3)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
             const triggerRect = trigger.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
 
@@ -143,7 +143,7 @@ it('opens above the trigger and stays anchored while filtering', function () {
         ->wait(0.5)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
             const triggerRect = trigger.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
 
@@ -208,7 +208,7 @@ it('flips above when remote results expand near the bottom', function () {
         ->wait(0.8)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
             const triggerRect = trigger.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
 
@@ -273,4 +273,16 @@ it('renders disabled and invalid states', function () {
 
     $page->assertScript("document.querySelector('[data-ui-demo=autocomplete-disabled] [role=combobox]').disabled === true")
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-invalid] [role=combobox]').getAttribute('aria-invalid') === 'true'");
+});
+
+it('waits for a remote query before opening', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $trigger = '[data-ui-demo="autocomplete-remote"] [role="combobox"]';
+
+    $page->click($trigger)
+        ->wait(0.2)
+        ->assertScript("!document.querySelector('[data-ui-demo=autocomplete-remote] [data-ui-popover]').matches(':popover-open')")
+        ->type($trigger, 'n')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [data-ui-popover]').matches(':popover-open')");
 });

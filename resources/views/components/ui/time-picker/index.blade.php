@@ -135,7 +135,6 @@
                 x-on:click="onTriggerClick()"
                 x-on:focus="onTriggerFocus()"
                 x-on:keydown="onTriggerKeydown($event)"
-                x-bind:aria-expanded="open"
                 aria-controls="{{ $popoverId }}"
                 aria-haspopup="dialog"
                 aria-label="{{ $accessibleLabel }}"
@@ -164,18 +163,15 @@
             </div>
         </div>
 
-        <div
-            id="{{ $popoverId }}"
-            popover="manual"
-            data-ui-popover
+        <x-ui.popover
+            :id="$popoverId"
             role="dialog"
-            aria-modal="false"
-            aria-label="{{ $accessibleLabel }}"
+            :label="$accessibleLabel"
             x-on:keydown="onPopoverKeydown($event)"
-            class="z-50 rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
+            class="rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
         >
             <div class="flex gap-1">
-                <div class="w-16">
+                <div class="w-16 [@media(hover:none)]:flex-1">
                     <div data-ui-hour-label class="px-2 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
                         {{ $labels['hour'] }}
                     </div>
@@ -210,7 +206,7 @@
                     </div>
                 </div>
 
-                <div class="w-16">
+                <div class="w-16 [@media(hover:none)]:flex-1">
                     <div data-ui-minute-label class="px-2 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
                         {{ $labels['minute'] }}
                     </div>
@@ -245,7 +241,7 @@
                     </div>
                 </div>
 
-                <div x-show="hour12" class="flex flex-col gap-1 pt-6">
+                <div x-show="hour12" class="flex flex-col gap-1 pt-6 [@media(hover:none)]:flex-1">
                     <button
                         type="button"
                         x-on:click="setMeridiem('am')"
@@ -303,6 +299,6 @@
                     x-text="labels.add"
                 ></button>
             </div>
-        </div>
+        </x-ui.popover>
     </div>
 </flux:with-field>

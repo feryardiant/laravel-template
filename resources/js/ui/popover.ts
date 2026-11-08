@@ -3,20 +3,27 @@
  * components.
  *
  * The popover element must use `popover="manual"`. The controller owns the
- * top-layer lifecycle, fixed positioning with viewport clamping and flip,
- * outside-pointer/Escape close, focus restoration and optional full-width touch
- * layout.
+ * top-layer lifecycle, open state, trigger ARIA, fixed positioning with
+ * viewport clamping and flip, outside-pointer/Escape close, scroll locking,
+ * focus restoration and optional full-width touch layout. Callers own only the
+ * value and the reason for closing.
  */
 
 export interface PopoverOptions {
+    /** Element used for positioning; defaults to the trigger. */
+    anchor?: HTMLElement | null
     /** Called after the popover enters the top layer. */
     onOpen?: () => void
-    /** Called before focus is restored on close. */
+    /** Called after the popover leaves the top layer. */
     onClose?: () => void
     /** Element to focus on close; defaults to the trigger. */
     focusTarget?: HTMLElement | null
     /** Use the viewport width (with insets) on touch devices. */
     fullWidthOnTouch?: boolean
+    /** Never shrink below the trigger width; defaults to `true`. */
+    matchTriggerWidth?: boolean
+    /** Prevent document scrolling while open. Use for dialog-style popovers. */
+    scrollLock?: boolean
 }
 
 /**
@@ -60,6 +67,74 @@ export interface PopoverController {
     destroy: () => void
 }
 
+let scrollLocks = 0
+let previousStyles: {
+    overflow: string
+    position: string
+    top: string
+    width: string
+    paddingRight: string
+    scrollY: number
+} | null = null
+
+/**
+ * Lock document scroll and compensate for the disappearing scrollbar.
+ *
+ * `overflow: hidden` alone still allows programmatic scrolling, so the body is
+ * pinned to the current offset and restored when the last popover closes.
+ */
+function lockDocumentScroll(): void {
+    if (scrollLocks++ > 0) {
+        return
+    }
+
+    const root = document.documentElement
+    const body = document.body
+    const scrollbar = window.innerWidth - root.clientWidth
+
+    previousStyles = {
+        overflow: root.style.overflow,
+        position: body.style.position,
+        top: body.style.top,
+        width: body.style.width,
+        paddingRight: body.style.paddingRight,
+        scrollY: window.scrollY,
+    }
+
+    root.style.overflow = 'hidden'
+
+    // Another lock owner (e.g. a Flux modal) already pinned the body; leave its
+    // offset alone and let it restore on its own close.
+    if (getComputedStyle(body).position === 'fixed') {
+        return
+    }
+
+    body.style.position = 'fixed'
+    body.style.top = `-${previousStyles.scrollY}px`
+    body.style.width = '100%'
+
+    if (scrollbar > 0) {
+        body.style.paddingRight = `${scrollbar}px`
+    }
+}
+
+/** Release a document scroll lock, restoring the previous styles and offset. */
+function unlockDocumentScroll(): void {
+    if (scrollLocks === 0 || --scrollLocks > 0 || previousStyles === null) {
+        return
+    }
+
+    const styles = previousStyles
+    previousStyles = null
+
+    document.documentElement.style.overflow = styles.overflow
+    document.body.style.position = styles.position
+    document.body.style.top = styles.top
+    document.body.style.width = styles.width
+    document.body.style.paddingRight = styles.paddingRight
+    window.scrollTo(0, styles.scrollY)
+}
+
 /**
  * Attach a native popover to a trigger.
  *
@@ -76,6 +151,7 @@ export function createPopover(
     let placement: 'bottom' | 'top' = 'bottom'
     let resizeObserver: ResizeObserver | null = null
 
+    const anchor = options.anchor ?? trigger
     const gap = 4
     const viewportGap = 8
 
@@ -84,10 +160,13 @@ export function createPopover(
             return
         }
 
-        const triggerRect = trigger.getBoundingClientRect()
+        const triggerRect = anchor.getBoundingClientRect()
         const maxWidth = Math.max(0, window.innerWidth - 2 * viewportGap)
         const fullWidth = options.fullWidthOnTouch === true && window.matchMedia('(hover: none)').matches
-        const popoverWidth = fullWidth ? maxWidth : Math.min(Math.max(popover.offsetWidth, triggerRect.width), maxWidth)
+        const contentWidth = popover.offsetWidth
+        const minimumWidth =
+            options.matchTriggerWidth === false ? contentWidth : Math.max(contentWidth, triggerRect.width)
+        const popoverWidth = fullWidth ? maxWidth : Math.min(minimumWidth, maxWidth)
         const popoverHeight = popover.offsetHeight
         const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportGap
         const spaceAbove = triggerRect.top - gap - viewportGap
@@ -134,7 +213,7 @@ export function createPopover(
             return
         }
 
-        if (popover.contains(target) || trigger.contains(target)) {
+        if (popover.contains(target) || anchor.contains(target)) {
             return
         }
 
@@ -166,6 +245,10 @@ export function createPopover(
             resizeObserver = new ResizeObserver(() => reposition())
             resizeObserver.observe(popover)
         }
+
+        if (options.scrollLock === true) {
+            lockDocumentScroll()
+        }
     }
 
     const detach = (): void => {
@@ -189,8 +272,9 @@ export function createPopover(
         }
 
         open = true
+        trigger.setAttribute('aria-expanded', 'true')
 
-        const triggerRect = trigger.getBoundingClientRect()
+        const triggerRect = anchor.getBoundingClientRect()
         const popoverHeight = popover.offsetHeight
         const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportGap
         const spaceAbove = triggerRect.top - gap - viewportGap
@@ -210,19 +294,33 @@ export function createPopover(
         // Capture this before hidePopover() blurs the active descendant.
         const restoreFocus = popover.contains(document.activeElement)
 
-        open = false
-
         if (popover.matches(':popover-open')) {
             popover.hidePopover()
         }
 
-        detach()
-        options.onClose?.()
-
+        // Focus while `open` is still true so a trigger focus handler cannot
+        // immediately reopen the popover.
         if (restoreFocus) {
             ;(options.focusTarget ?? trigger).focus()
         }
+
+        open = false
+        trigger.setAttribute('aria-expanded', 'false')
+
+        // Drop the inline sizing so the next open measures fresh content.
+        popover.style.minWidth = ''
+        popover.style.maxWidth = ''
+        popover.style.width = ''
+
+        if (options.scrollLock === true) {
+            unlockDocumentScroll()
+        }
+
+        detach()
+        options.onClose?.()
     }
+
+    trigger.setAttribute('aria-expanded', 'false')
 
     return {
         open: openPopover,

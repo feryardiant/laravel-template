@@ -43,7 +43,6 @@ interface TimeDraftState {
 /** State and actions exposed to the datetime picker Blade markup. */
 export interface DateTimePickerData {
     mode: DateTimeMode
-    open: boolean
     disabled: boolean
     labels: DateTimePickerConfig['labels']
     display: string
@@ -68,6 +67,7 @@ export interface DateTimePickerData {
     refreshNow: () => void
     syncDrafts: () => void
     syncCalendar: () => void
+    isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
     confirm: () => void
@@ -100,7 +100,7 @@ export interface DateTimePickerData {
     selectHour: (endpoint: Endpoint, value: number) => void
     selectMinute: (endpoint: Endpoint, value: number) => void
     setMeridiem: (endpoint: Endpoint, period: 'am' | 'pm') => void
-    activeTimeId: (endpoint: Endpoint, column: Column) => string
+    activeTimeId: (endpoint: Endpoint, column: Column) => string | null
     timeListId: (endpoint: Endpoint, column: Column) => string
     timeOptionId: (endpoint: Endpoint, column: Column, value: number) => string
     onTimeKeydown: (event: KeyboardEvent, endpoint: Endpoint, column: Column) => void
@@ -123,7 +123,6 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
-    let suppressFocus = false
     let timeObserver: ResizeObserver | null = null
     let resizeListener: (() => void) | null = null
     let unavailable: DateTimeUnavailable = parseUnavailable([])
@@ -174,7 +173,6 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
 
     return {
         mode: config.mode,
-        open: false,
         disabled: config.disabled,
         labels: config.labels,
         display: '',
@@ -218,8 +216,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 popover = createPopover(trigger, target, {
                     focusTarget: trigger,
                     fullWidthOnTouch: true,
+                    scrollLock: true,
                     onOpen: () => {
-                        this.open = true
                         this.refreshNow()
                         this.syncDrafts()
                         this.syncCalendar()
@@ -227,14 +225,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                         dispatch(this, 'open')
                     },
                     onClose: () => {
-                        suppressFocus = true
-                        this.open = false
                         this.syncDrafts()
                         dispatch(this, 'close')
-
-                        setTimeout(() => {
-                            suppressFocus = false
-                        }, 0)
                     },
                 })
             }
@@ -242,7 +234,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             unwatch = watchModel(wire, config.model, (value) => {
                 this.applyValue(value)
 
-                if (this.open) {
+                if (this.isPopoverOpen()) {
                     this.syncDrafts()
                 }
             })
@@ -337,8 +329,12 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             data?.setValue(this.mode === 'range' ? { start: this.startDate, end: this.endDate } : this.startDate)
         },
 
+        isPopoverOpen() {
+            return popover?.isOpen() ?? false
+        },
+
         openPopover() {
-            if (this.disabled || this.open) {
+            if (this.disabled || this.isPopoverOpen()) {
                 return
             }
 
@@ -464,10 +460,6 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         },
 
         onTriggerFocus() {
-            if (suppressFocus) {
-                return
-            }
-
             this.openPopover()
         },
 
@@ -483,7 +475,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            if (event.key === 'Escape' && this.open) {
+            if (event.key === 'Escape' && this.isPopoverOpen()) {
                 event.preventDefault()
                 this.closePopover()
             }
@@ -889,7 +881,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             const draft = this.draftFor(endpoint)
             const value = column === 'hour' ? draft.activeHour : draft.activeMinute
 
-            return value === null ? '' : this.timeOptionId(endpoint, column, value)
+            return value === null ? null : this.timeOptionId(endpoint, column, value)
         },
 
         timeListId(endpoint, column) {

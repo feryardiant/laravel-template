@@ -126,14 +126,14 @@
                     x-on:input="onPillboxInput($event)"
                     x-on:keydown="onPillboxKeydown($event)"
                     x-on:focus="onPillboxFocus()"
-                    x-bind:aria-expanded="open"
-                    x-bind:aria-activedescendant="activeId"
+                    x-bind:aria-activedescendant="activeId || null"
                     x-bind:placeholder="selectedValues.length === 0 ? @js($placeholder ?? '') : ''"
                     type="text"
                     role="combobox"
+                    data-ui-trigger
                     aria-autocomplete="list"
                     aria-haspopup="listbox"
-                    aria-controls="{{ $popoverId }}"
+                    aria-controls="{{ $listboxId }}"
                     @if ($accessibleLabel) aria-label="{{ $accessibleLabel }}" @endif
                     @if ($invalid) aria-invalid="true" @endif
                     autocomplete="off"
@@ -168,18 +168,18 @@
                     :invalid="$invalid"
                     :disabled="$disabled"
                     class:input="{{ $clearable ? 'pe-16' : 'pe-10' }}"
-                    x-bind:value="display"
+                    x-bind:value="query || display"
                     x-on:click="onTriggerClick()"
                     x-on:focus="onTriggerFocus()"
                     x-on:keydown="onListboxKeydown($event)"
-                    x-bind:aria-expanded="open"
-                    x-bind:aria-activedescendant="activeId"
-                    aria-controls="{{ $popoverId }}"
+                    x-bind:aria-activedescendant="activeId || null"
+                    aria-controls="{{ $listboxId }}"
                     aria-haspopup="listbox"
-                    aria-autocomplete="none"
+                    aria-autocomplete="list"
                     :aria-label="$accessibleLabel"
                     autocomplete="off"
                     role="combobox"
+                    data-ui-trigger
                 />
 
                 <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1 text-zinc-400">
@@ -202,11 +202,9 @@
             </div>
         @endif
 
-        <div
-            id="{{ $popoverId }}"
-            popover="manual"
-            data-ui-popover
-            class="z-50 min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $optionsClass }}"
+        <x-ui.popover
+            :id="$popoverId"
+            class="min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $optionsClass }}"
         >
             <div
                 id="{{ $listboxId }}"
@@ -220,6 +218,6 @@
             </div>
 
             <x-ui.select.option.empty />
-        </div>
+        </x-ui.popover>
     </div>
 </flux:with-field>

@@ -614,3 +614,42 @@ it('keeps touch targets and the popover within the mobile viewport', function ()
                 rect.right <= window.innerWidth;
         })()");
 });
+
+it('fits the time popover to its content on desktop', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-single] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-single]');
+            const trigger = root.querySelector('[data-ui-trigger]').getBoundingClientRect();
+            const popover = root.querySelector('[data-ui-popover]').getBoundingClientRect();
+
+            return popover.width < trigger.width;
+        })()");
+});
+
+it('centers the time columns across the popover on mobile', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->mobile()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-single] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-single]');
+            const hours = root.querySelector('[data-ui-hours]');
+            const minutes = root.querySelector('[data-ui-minutes]');
+
+            return getComputedStyle(hours.parentElement).flexGrow === '1' &&
+                getComputedStyle(minutes.parentElement).flexGrow === '1';
+        })()");
+});

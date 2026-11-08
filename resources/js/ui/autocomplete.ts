@@ -13,7 +13,6 @@ import type { AutocompleteConfig, ListboxOption, RemoteItem, WireLike } from './
 /** State and actions exposed to the autocomplete Blade markup. */
 export interface AutocompleteData {
     query: string
-    open: boolean
     activeIndex: number
     activeId: string
     loading: boolean
@@ -25,6 +24,7 @@ export interface AutocompleteData {
     loadingText: string
     init: () => void
     destroy: () => void
+    isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
     refresh: () => void
@@ -95,7 +95,6 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
     return {
         query: '',
-        open: false,
         activeIndex: -1,
         activeId: '',
         loading: false,
@@ -121,19 +120,12 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             popover = createPopover(triggerElement, popoverElement, {
                 focusTarget: triggerElement,
                 onOpen: () => {
-                    this.open = true
                     this.dispatch('open')
                 },
                 onClose: () => {
-                    suppressFocus = true
-                    this.open = false
                     this.activeIndex = -1
                     this.activeId = ''
                     this.dispatch('close')
-
-                    setTimeout(() => {
-                        suppressFocus = false
-                    }, 0)
                 },
             })
 
@@ -141,7 +133,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                 this.query =
                     typeof value === 'string' ? value : value === null || value === undefined ? '' : stringValue(value)
 
-                if (this.open) {
+                if (this.isPopoverOpen()) {
                     this.refresh()
                 }
             })
@@ -157,8 +149,16 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             }
         },
 
+        isPopoverOpen() {
+            return popover?.isOpen() ?? false
+        },
+
         openPopover() {
             if (this.disabled) {
+                return
+            }
+
+            if (config.searchUrl !== null && this.query.length < config.minLength) {
                 return
             }
 
@@ -168,12 +168,8 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
         refresh() {
             if (config.searchUrl !== null) {
-                if (this.query.length >= config.minLength) {
-                    this.scheduleFetch()
-                } else {
-                    this.results = []
-                    this.emptyVisible = false
-                }
+                // scheduleFetch also aborts a stale request and resets below minLength.
+                this.scheduleFetch()
 
                 return
             }
@@ -194,7 +190,9 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             this.query = (event.target as HTMLInputElement).value
             this.write()
 
-            if (!this.open) {
+            if (config.searchUrl !== null && this.query.length < config.minLength) {
+                this.closePopover()
+            } else if (!this.isPopoverOpen()) {
                 popover?.open()
             }
 
@@ -206,7 +204,12 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                 return
             }
 
-            if (!this.open) {
+            // Remote search waits for a query long enough to fetch.
+            if (config.searchUrl !== null && this.query.length < config.minLength) {
+                return
+            }
+
+            if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
         },
@@ -222,7 +225,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             }
 
             if (event.key === 'Escape') {
-                if (this.open) {
+                if (this.isPopoverOpen()) {
                     event.preventDefault()
                     this.closePopover()
                 }
@@ -233,7 +236,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault()
 
-                if (!this.open) {
+                if (!this.isPopoverOpen()) {
                     this.openPopover()
                 } else {
                     this.move(event.key === 'ArrowDown' ? 1 : -1)
@@ -245,7 +248,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             if (event.key === 'Home' || event.key === 'End') {
                 const enabled = visible.filter((option) => !option.disabled)
 
-                if (this.open && enabled.length > 0) {
+                if (this.isPopoverOpen() && enabled.length > 0) {
                     event.preventDefault()
                     this.setActive(visible.indexOf(event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]))
                 }
@@ -262,7 +265,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
                 const active = visible[this.activeIndex]
 
-                if (this.open && active !== undefined) {
+                if (this.isPopoverOpen() && active !== undefined) {
                     event.preventDefault()
                     this.selectOption(active)
                 }
@@ -388,9 +391,9 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
             const active = visible[target] ?? null
 
-            this.activeId = this.open ? (active?.el.id ?? '') : ''
+            this.activeId = this.isPopoverOpen() ? (active?.el.id ?? '') : ''
 
-            if (this.open) {
+            if (this.isPopoverOpen()) {
                 active?.el.scrollIntoView({ block: 'nearest' })
             }
         },

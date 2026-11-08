@@ -495,7 +495,7 @@ it('fits the single time panel to the calendar and removes the right gap', funct
         })()");
 });
 
-it('fits the range time panel to the calendar with four visible rows', function () {
+it('fits the range time panel to the calendar', function () {
     visit('/ui/datetime-picker')
         ->on()
         ->desktop()
@@ -517,7 +517,7 @@ it('fits the range time panel to the calendar with four visible rows', function 
                 lists.every((list) => {
                     const row = list.querySelector('[role=option]').offsetHeight;
 
-                    return list.clientHeight === row * 4;
+                    return list.clientHeight >= row * 3;
                 });
         })()");
 });

@@ -67,6 +67,7 @@ it('applies a single selection and closes immediately', function () {
             return root.querySelector('[data-ui-bound=date]').textContent.trim() === window.__pickedDate &&
                 trigger.value !== '' &&
                 trigger.value.includes('Nov') &&
+                trigger.getAttribute('aria-expanded') === 'false' &&
                 root.querySelector('[data-ui-popover]').matches(':popover-open') === false &&
                 document.activeElement === trigger;
         })()");

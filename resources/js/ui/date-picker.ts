@@ -166,7 +166,6 @@ function presetAllowed(
 /** State and actions exposed to the date picker Blade markup. */
 export interface DatePickerData {
     mode: DatePickerMode
-    open: boolean
     disabled: boolean
     labels: DatePickerConfig['labels']
     display: string
@@ -179,6 +178,7 @@ export interface DatePickerData {
     init: (el?: HTMLElement) => void
     destroy: () => void
     applyValue: (value: unknown) => void
+    isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
     cancel: () => void
@@ -211,7 +211,6 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
-    let suppressFocus = false
 
     const root = (): HTMLElement | null => rootEl
     const popoverElement = (): HTMLElement | null => document.getElementById(config.popoverId)
@@ -233,7 +232,6 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
     return {
         mode: config.mode,
-        open: false,
         disabled: config.disabled,
         labels: config.labels,
         display: '',
@@ -283,8 +281,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 popover = createPopover(trigger, popoverTarget, {
                     focusTarget: trigger,
                     fullWidthOnTouch: true,
+                    scrollLock: true,
                     onOpen: () => {
-                        this.open = true
                         this.draftStart = this.start
                         this.draftEnd = this.end
                         this.syncCalendar()
@@ -292,15 +290,9 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                         dispatch(this, 'open')
                     },
                     onClose: () => {
-                        suppressFocus = true
-                        this.open = false
                         this.draftStart = this.start
                         this.draftEnd = this.end
                         dispatch(this, 'close')
-
-                        setTimeout(() => {
-                            suppressFocus = false
-                        }, 0)
                     },
                 })
             }
@@ -309,7 +301,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 this.applyValue(value)
                 this.renderDisplay()
 
-                if (this.open) {
+                if (this.isPopoverOpen()) {
                     this.draftStart = this.start
                     this.draftEnd = this.end
                     this.syncCalendar()
@@ -326,8 +318,12 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             applyValue(this, value)
         },
 
+        isPopoverOpen() {
+            return popover?.isOpen() ?? false
+        },
+
         openPopover() {
-            if (this.disabled || this.open) {
+            if (this.disabled || this.isPopoverOpen()) {
                 return
             }
 
@@ -361,7 +357,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             this.draftStart = null
             this.draftEnd = null
 
-            if (this.open) {
+            if (this.isPopoverOpen()) {
                 this.syncCalendar()
             }
 
@@ -398,10 +394,6 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         onTriggerFocus() {
-            if (suppressFocus) {
-                return
-            }
-
             this.openPopover()
         },
 
@@ -417,7 +409,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 return
             }
 
-            if (event.key === 'Escape' && this.open) {
+            if (event.key === 'Escape' && this.isPopoverOpen()) {
                 event.preventDefault()
                 this.closePopover()
             }
@@ -480,8 +472,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 return false
             }
 
-            const start = this.open ? this.draftStart : this.start
-            const end = this.open ? this.draftEnd : this.end
+            const start = this.isPopoverOpen() ? this.draftStart : this.start
+            const end = this.isPopoverOpen() ? this.draftEnd : this.end
 
             return start === preset.start && (this.mode === 'single' || end === preset.end)
         },

@@ -135,4 +135,17 @@
             </x-ui.select.option>
         </x-ui.select>
     </section>
+
+    <section data-ui-demo="select-field-nested" class="space-y-2">
+        <flux:field>
+            <flux:label>Nested field</flux:label>
+
+            <x-ui.select name="nested_industry" placeholder="Pick one">
+                <x-ui.select.option value="design">Design services</x-ui.select.option>
+                <x-ui.select.option value="web">Web development</x-ui.select.option>
+            </x-ui.select>
+
+            <flux:description>Outer field description</flux:description>
+        </flux:field>
+    </section>
 </div>

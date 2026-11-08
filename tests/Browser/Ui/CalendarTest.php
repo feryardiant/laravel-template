@@ -183,16 +183,27 @@ it('exposes the invalid state', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=calendar-invalid] [data-ui-calendar]');
             const shadow = getComputedStyle(root).boxShadow;
-            const color = [...shadow.matchAll(/rgba?\\(([^)]+)\\)/g)]
-                .map((match) => match[1].split(',').map(Number))
-                .find((values) => (values[3] ?? 1) > 0);
+            const colors = shadow.match(/(?:rgba?|oklch|oklab|hsla?|lab|lch|color)\\([^)]*\\)/g) ?? [];
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 1;
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            const background = getComputedStyle(document.body).backgroundColor;
+            const pixel = (paint) => {
+                context.clearRect(0, 0, 1, 1);
+                context.fillStyle = paint;
+                context.fillRect(0, 0, 1, 1);
 
-            if (color === undefined) {
-                return false;
-            }
+                return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+            };
+            const composite = (paint) => {
+                context.clearRect(0, 0, 1, 1);
+                context.fillStyle = background;
+                context.fillRect(0, 0, 1, 1);
+                context.fillStyle = paint;
+                context.fillRect(0, 0, 1, 1);
 
-            const channels = color;
-            const alpha = channels[3] ?? 1;
+                return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+            };
             const luminance = (values) => {
                 const [r, g, b] = values.map((channel) => {
                     const value = channel / 255;
@@ -202,14 +213,27 @@ it('exposes the invalid state', function () {
 
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b;
             };
-            const background = getComputedStyle(document.body).backgroundColor.match(/\\d+/g).map(Number).slice(0, 3);
-            const composited = channels.slice(0, 3).map((channel, index) => channel * alpha + background[index] * (1 - alpha));
-            const lighter = Math.max(luminance(composited), luminance(background));
-            const darker = Math.min(luminance(composited), luminance(background));
+            const contrast = (left, right) => {
+                const lighter = Math.max(luminance(left), luminance(right));
+                const darker = Math.min(luminance(left), luminance(right));
+
+                return (lighter + 0.05) / (darker + 0.05);
+            };
+            const base = pixel(background);
+            const best = colors
+                .map((color) => {
+                    const painted = composite(color);
+
+                    return { pixel: painted, ratio: contrast(painted, base) };
+                })
+                .sort((left, right) => right.ratio - left.ratio)[0];
 
             return root.hasAttribute('data-invalid') &&
                 root.querySelector('[role=grid]').getAttribute('aria-invalid') === 'true' &&
-                (lighter + 0.05) / (darker + 0.05) >= 3;
+                best !== undefined &&
+                best.ratio >= 3 &&
+                best.pixel[0] > best.pixel[1] &&
+                best.pixel[0] > best.pixel[2];
         })()");
 });
 
@@ -649,5 +673,19 @@ it('binds a typed Flux DateRange', function () {
             const bound = document.querySelector('[data-ui-demo=calendar-typed-range] [data-ui-bound=typed-range]').textContent.trim();
 
             return bound === window.__typedRange[0] + ' / ' + window.__typedRange[1];
+        })()");
+});
+
+it('renders one centered heading for a two-month calendar', function () {
+    visit('/ui/calendar')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=calendar-range] [data-ui-calendar]');
+            const headings = root.querySelectorAll('[data-ui-heading]');
+
+            return headings.length === 1 &&
+                headings[0].textContent.includes('–') &&
+                getComputedStyle(headings[0]).textAlign === 'center';
         })()");
 });

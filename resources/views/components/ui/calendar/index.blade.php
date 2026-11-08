@@ -104,8 +104,8 @@
         data-mode="{{ $mode }}"
         @if ($draft) data-draft @endif
         :data-start-day="startDay"
-        @if ($invalid) data-invalid style="box-shadow: 0 0 0 2px #fb2c36" @endif
-        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2"
+        @if ($invalid) data-invalid @endif
+        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500"
     >
         @if ($isPlain && $mode === 'single')
             <input
@@ -123,7 +123,7 @@
             <input type="hidden" name="{{ $name }}[end]" :value="rangeEnd || ''" />
         @endif
 
-        <div class="flex items-center justify-between gap-2">
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             <div class="flex items-center gap-1" x-show="navigation">
                 <flux:button
                     type="button"
@@ -146,17 +146,19 @@
                 />
             </div>
 
-            <div class="text-sm font-medium text-zinc-800 dark:text-white" x-text="heading"></div>
+            <div data-ui-heading class="text-center text-sm font-medium text-zinc-800 dark:text-white" x-text="heading"></div>
 
-            <flux:button
-                type="button"
-                variant="ghost"
-                size="sm"
-                x-show="withToday"
-                x-on:click="todayAction()"
-                x-bind:aria-label="labels.today"
-                class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-            >{{ $labels['today'] }}</flux:button>
+            <div class="flex justify-end">
+                <flux:button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    x-show="withToday"
+                    x-on:click="todayAction()"
+                    x-bind:aria-label="labels.today"
+                    class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
+                >{{ $labels['today'] }}</flux:button>
+            </div>
         </div>
 
         <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" x-text="announcement"></div>
@@ -173,8 +175,6 @@
         >
             <template x-for="month in monthsData" :key="month.key">
                 <div class="min-w-0 flex-1 space-y-2">
-                    <div class="text-sm font-medium text-zinc-800 dark:text-white" x-text="month.label"></div>
-
                     <table
                         role="grid"
                         :aria-label="month.label"
@@ -240,7 +240,7 @@
         <div
             x-show="rangeError !== ''"
             role="status"
-            class="text-sm text-red-600 dark:text-red-400"
+            class="text-sm text-red-600 select-text dark:text-red-400"
             x-text="rangeError"
         ></div>
     </div>

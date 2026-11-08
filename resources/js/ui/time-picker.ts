@@ -32,7 +32,6 @@ interface HourOption {
 export interface TimePickerData {
     hour12: boolean
     multiple: boolean
-    open: boolean
     disabled: boolean
     labels: TimePickerConfig['labels']
     display: string
@@ -51,6 +50,7 @@ export interface TimePickerData {
     init: (el?: HTMLElement) => void
     destroy: () => void
     applyValue: (value: unknown) => void
+    isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
     clear: () => void
@@ -69,9 +69,9 @@ export interface TimePickerData {
     canAdd: () => boolean
     hasValue: () => boolean
     isSelected: (value: string) => boolean
-    activeHourId: () => string
-    activeMinuteId: () => string
-    activeSelectedId: () => string
+    activeHourId: () => string | null
+    activeMinuteId: () => string | null
+    activeSelectedId: () => string | null
     selectedOptionId: (value: string) => string
     onSelectedKeydown: (event: KeyboardEvent) => void
     syncSelectedActive: () => void
@@ -107,7 +107,6 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
-    let suppressFocus = false
     let minKey: string | null = null
     let maxKey: string | null = null
     let unavailable: TimeRange[] = []
@@ -138,7 +137,6 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
     return {
         hour12: config.format === '12-hour' || (config.format === 'auto' && prefersHour12(config.locale)),
         multiple: config.multiple,
-        open: false,
         disabled: config.disabled,
         labels: config.labels,
         display: '',
@@ -169,19 +167,14 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 popover = createPopover(trigger, target, {
                     focusTarget: trigger,
                     fullWidthOnTouch: true,
+                    matchTriggerWidth: false,
+                    scrollLock: true,
                     onOpen: () => {
-                        this.open = true
                         this.focusFirst()
                         dispatch(this, 'open')
                     },
                     onClose: () => {
-                        suppressFocus = true
-                        this.open = false
                         dispatch(this, 'close')
-
-                        setTimeout(() => {
-                            suppressFocus = false
-                        }, 0)
                     },
                 })
             }
@@ -190,7 +183,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 this.applyValue(value)
                 this.renderDisplay()
 
-                if (this.open && !this.multiple) {
+                if (this.isPopoverOpen() && !this.multiple) {
                     this.setDraft(this.selected ?? this.now, this.selected !== null)
                     this.activeHour = null
                     this.activeMinute = null
@@ -215,8 +208,12 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             this.renderDisplay()
         },
 
+        isPopoverOpen() {
+            return popover?.isOpen() ?? false
+        },
+
         openPopover() {
-            if (this.disabled || this.open) {
+            if (this.disabled || this.isPopoverOpen()) {
                 return
             }
 
@@ -398,7 +395,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         activeSelectedId() {
-            return this.activeSelected === null ? '' : this.selectedOptionId(this.activeSelected)
+            return this.activeSelected === null ? null : this.selectedOptionId(this.activeSelected)
         },
 
         onSelectedKeydown(event) {
@@ -447,10 +444,6 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         onTriggerFocus() {
-            if (suppressFocus) {
-                return
-            }
-
             this.openPopover()
         },
 
@@ -466,7 +459,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
-            if (event.key === 'Escape' && this.open) {
+            if (event.key === 'Escape' && this.isPopoverOpen()) {
                 event.preventDefault()
                 this.closePopover()
             }
@@ -503,11 +496,11 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         activeHourId() {
-            return this.hours.find((option) => option.value === this.activeHour)?.id ?? ''
+            return this.hours.find((option) => option.value === this.activeHour)?.id ?? null
         },
 
         activeMinuteId() {
-            return this.minutes.find((option) => option.value === this.activeMinute)?.id ?? ''
+            return this.minutes.find((option) => option.value === this.activeMinute)?.id ?? null
         },
 
         placeholderText() {

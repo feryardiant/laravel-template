@@ -15,7 +15,6 @@ import type { ListboxOption, SelectConfig, SelectedOption, WireLike } from './ty
 export interface SelectData {
     variant: 'listbox' | 'pillbox'
     multiple: boolean
-    open: boolean
     query: string
     activeIndex: number
     activeId: string
@@ -36,6 +35,7 @@ export interface SelectData {
     renderTrigger: () => void
     setActive: (index: number) => void
     move: (delta: number) => void
+    isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
     togglePopover: () => void
@@ -69,7 +69,6 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
     let visible: ListboxOption[] = []
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
-    let suppressFocus = false
 
     const multiple = config.variant === 'pillbox' ? true : config.multiple
 
@@ -82,7 +81,6 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
     return {
         variant: config.variant,
         multiple,
-        open: false,
         query: '',
         activeIndex: -1,
         activeId: '',
@@ -106,25 +104,19 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             this.selectedValues = normalizeValues(readModel(wire, config.model, config.value))
             this.refresh()
 
-            popover = createPopover(anchorElement, popoverElement, {
+            popover = createPopover(trigger() ?? anchorElement, popoverElement, {
+                anchor: anchorElement,
                 focusTarget: trigger(),
                 onOpen: () => {
-                    this.open = true
                     this.dispatch('open')
                 },
                 onClose: () => {
-                    suppressFocus = true
-                    this.open = false
                     this.query = ''
                     this.typeahead = ''
                     this.activeIndex = -1
                     this.activeId = ''
                     this.renderTrigger()
                     this.dispatch('close')
-
-                    setTimeout(() => {
-                        suppressFocus = false
-                    }, 0)
                 },
             })
 
@@ -259,9 +251,9 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
 
             const active = visible[target] ?? null
 
-            this.activeId = this.open ? (active?.el.id ?? '') : ''
+            this.activeId = this.isPopoverOpen() ? (active?.el.id ?? '') : ''
 
-            if (this.open) {
+            if (this.isPopoverOpen()) {
                 active?.el.scrollIntoView({ block: 'nearest' })
             }
         },
@@ -283,6 +275,10 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
                     : (currentIndex + delta + enabled.length) % enabled.length
 
             this.setActive(visible.indexOf(enabled[next]))
+        },
+
+        isPopoverOpen() {
+            return popover?.isOpen() ?? false
         },
 
         openPopover() {
@@ -313,7 +309,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         togglePopover() {
-            if (this.open) {
+            if (this.isPopoverOpen()) {
                 this.closePopover()
             } else {
                 this.openPopover()
@@ -321,27 +317,19 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         onTriggerClick() {
-            if (!this.open) {
+            if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
         },
 
         onTriggerFocus() {
-            if (suppressFocus) {
-                return
-            }
-
-            if (!this.open) {
+            if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
         },
 
         onPillboxFocus() {
-            if (suppressFocus) {
-                return
-            }
-
-            if (!this.open) {
+            if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
         },
@@ -353,7 +341,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
 
             this.query = (event.target as HTMLInputElement).value
 
-            if (!this.open) {
+            if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
 
@@ -382,7 +370,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             }
 
             if (event.key === 'Escape') {
-                if (this.open) {
+                if (this.isPopoverOpen()) {
                     event.preventDefault()
                     this.closePopover()
                 }
@@ -393,7 +381,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault()
 
-                if (!this.open) {
+                if (!this.isPopoverOpen()) {
                     this.openPopover()
                 } else {
                     this.move(event.key === 'ArrowDown' ? 1 : -1)
@@ -405,7 +393,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             if (event.key === 'Home' || event.key === 'End') {
                 const enabled = visible.filter((option) => !option.disabled)
 
-                if (this.open && enabled.length > 0) {
+                if (this.isPopoverOpen() && enabled.length > 0) {
                     event.preventDefault()
                     this.setActive(visible.indexOf(event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]))
                 }
@@ -416,7 +404,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
             if (event.key === 'Enter') {
                 event.preventDefault()
 
-                if (!this.open) {
+                if (!this.isPopoverOpen()) {
                     this.openPopover()
                 } else {
                     const active = visible[this.activeIndex]
@@ -455,7 +443,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): SelectD
         },
 
         filterByTypeahead() {
-            if (!this.open) {
+            if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
 

@@ -101,9 +101,8 @@
                 x-on:input="onInput($event)"
                 x-on:focus="onFocus()"
                 x-on:keydown="onKeydown($event)"
-                x-bind:aria-expanded="open"
-                x-bind:aria-activedescendant="activeId"
-                aria-controls="{{ $popoverId }}"
+                x-bind:aria-activedescendant="activeId || null"
+                aria-controls="{{ $listboxId }}"
                 aria-autocomplete="list"
                 aria-haspopup="listbox"
                 :aria-label="$accessibleLabel"
@@ -126,11 +125,9 @@
             @endif
         </div>
 
-        <div
-            id="{{ $popoverId }}"
-            popover="manual"
-            data-ui-popover
-            class="z-50 min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $containerClass }}"
+        <x-ui.popover
+            :id="$popoverId"
+            class="min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $containerClass }}"
         >
             <div
                 id="{{ $listboxId }}"
@@ -162,7 +159,7 @@
                 x-show="loading"
                 x-cloak
                 role="status"
-                class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400"
+                class="px-3 py-2 text-sm text-zinc-500 select-text dark:text-zinc-400"
                 x-text="loadingText"
             ></div>
 
@@ -170,9 +167,9 @@
                 x-show="emptyVisible && ! loading"
                 x-cloak
                 role="status"
-                class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400"
+                class="px-3 py-2 text-sm text-zinc-500 select-text dark:text-zinc-400"
                 x-text="emptyText"
             ></div>
-        </div>
+        </x-ui.popover>
     </div>
 </flux:with-field>

@@ -229,7 +229,6 @@
                 x-on:click="onTriggerClick()"
                 x-on:focus="onTriggerFocus()"
                 x-on:keydown="onTriggerKeydown($event)"
-                x-bind:aria-expanded="open"
                 aria-controls="{{ $popoverId }}"
                 aria-haspopup="dialog"
                 aria-label="{{ $accessibleLabel }}"
@@ -258,16 +257,13 @@
             </div>
         </div>
 
-        <div
-            id="{{ $popoverId }}"
-            popover="manual"
-            data-ui-popover
+        <x-ui.popover
+            :id="$popoverId"
             role="dialog"
-            aria-modal="false"
-            aria-label="{{ $accessibleLabel }}"
+            :label="$accessibleLabel"
             x-on:keydown="onPopoverKeydown($event)"
             x-on:change="onCalendarChange($event)"
-            class="z-50 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
+            class="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
         >
             <div class="flex flex-col gap-4 lg:flex-row">
                 <div class="min-w-0 flex-1">
@@ -400,7 +396,7 @@
                 </div>
             </div>
 
-            <div x-show="rangeError !== ''" role="status" class="mt-2 text-sm text-red-600 dark:text-red-400" x-text="rangeError"></div>
+            <div x-show="rangeError !== ''" role="status" class="mt-2 text-sm text-red-600 select-text dark:text-red-400" x-text="rangeError"></div>
 
             @if ($withConfirmation || $isRange)
                 <div class="mt-3 flex justify-end gap-2 border-t border-zinc-200 pt-3 dark:border-white/10">
@@ -422,6 +418,6 @@
                     >{{ $isRange ? $labels['selectRange'] : $labels['select'] }}</flux:button>
                 </div>
             @endif
-        </div>
+        </x-ui.popover>
     </div>
 </flux:with-field>

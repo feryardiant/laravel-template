@@ -16,6 +16,7 @@ it('selects an option with the mouse and updates the model', function () {
 
     $page->click('[data-ui-demo="select-single"] [role="combobox"]')
         ->assertScript("document.querySelector('[data-ui-demo=select-single] [role=combobox]').getAttribute('aria-expanded') === 'true'")
+        ->assertScript("getComputedStyle(document.querySelector('[data-ui-demo=select-single] [data-ui-option]')).userSelect === 'none'")
         ->click('[data-ui-demo="select-single"] [data-ui-option][data-value="design"]')
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=select-single] [role=combobox]').value === 'Design services'")
@@ -32,6 +33,7 @@ it('filters with typeahead and selects with the keyboard', function () {
     $page->click($trigger)
         ->keys($trigger, ['d', 'e', 's'])
         ->wait(0.2)
+        ->assertScript("document.querySelector('[data-ui-demo=select-single] [role=combobox]').value === 'des'")
         ->assertScript("document.querySelectorAll('[data-ui-demo=select-single] [data-ui-option]:not([hidden])').length === 1")
         ->assertScript("document.querySelector('[data-ui-demo=select-single] [data-ui-option]:not([hidden])').dataset.value === 'design'")
         ->keys($trigger, 'Enter')
@@ -140,7 +142,7 @@ it('opens above the trigger and stays anchored while filtering', function () {
         ->wait(0.3)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
             const triggerRect = trigger.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
 
@@ -150,7 +152,7 @@ it('opens above the trigger and stays anchored while filtering', function () {
         ->wait(0.5)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
             const triggerRect = trigger.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
 
@@ -166,7 +168,7 @@ it('opens above the trigger and stays anchored while filtering', function () {
         ->wait(0.3)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
             const triggerRect = trigger.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
 
@@ -284,7 +286,7 @@ it('keeps a wide popover inside the mobile viewport', function () {
         ->wait(0.3)
         ->assertScript("(() => {
             const trigger = document.querySelector('[data-ui-demo=select-wide] [role=combobox]');
-            const popover = document.getElementById(trigger.getAttribute('aria-controls'));
+            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
             const rect = popover.getBoundingClientRect();
 
             return rect.left >= 8 && rect.right <= window.innerWidth - 8;
@@ -297,4 +299,16 @@ it('renders disabled and invalid states', function () {
     $page->assertScript("document.querySelector('[data-ui-demo=select-disabled] [role=combobox]').disabled === true")
         ->assertScript("document.querySelector('[data-ui-demo=select-invalid] [data-ui-select]').hasAttribute('data-invalid')")
         ->assertScript("document.querySelector('[data-ui-demo=select-invalid] [role=combobox]').getAttribute('aria-invalid') === 'true'");
+});
+
+it('can sit bare inside a flux field', function () {
+    visit('/ui/select')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const section = document.querySelector('[data-ui-demo=select-field-nested]');
+            const count = (text) => (section.textContent.match(new RegExp(text, 'g')) ?? []).length;
+
+            return count('Nested field') === 1 && count('Outer field description') === 1;
+        })()");
 });

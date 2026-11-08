@@ -66,17 +66,19 @@
 
     <section data-ui-demo="popover-scroll" class="space-y-4">
         <div class="max-w-sm">
-            <x-ui.date-picker
-                name="scroll_date"
-                label="Scroll target"
-                value="2026-11-08"
-                open-to="2026-11-01"
-                clearable
-            />
+            <x-ui.select name="scroll_industry" label="Scroll target" placeholder="Pick one">
+                <x-ui.select.option value="design">Design services</x-ui.select.option>
+                <x-ui.select.option value="web">Web development</x-ui.select.option>
+                <x-ui.select.option value="legal">Legal services</x-ui.select.option>
+            </x-ui.select>
+        </div>
+
+        <div class="max-w-sm">
+            <x-ui.date-picker name="scroll_date" label="Scroll lock" value="2026-11-08" />
         </div>
 
         <div class="flex h-[150vh] items-start justify-center rounded-xl border-2 border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
-            Scroll down to exercise popover repositioning. The picker above should stay inside the viewport.
+            Scroll down to exercise popover repositioning. The listbox above should stay inside the viewport.
         </div>
     </section>
 </div>
