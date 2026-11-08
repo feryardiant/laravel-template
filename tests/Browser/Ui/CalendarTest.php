@@ -182,8 +182,30 @@ it('exposes the invalid state', function () {
         ->desktop()
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=calendar-invalid] [data-ui-calendar]');
+            const shadow = getComputedStyle(root).boxShadow;
+            const color = shadow.match(/rgba?\\(([^)]+)\\)/);
 
-            return root.hasAttribute('data-invalid') && root.querySelector('[role=grid]').getAttribute('aria-invalid') === 'true';
+            if (color === null) {
+                return false;
+            }
+
+            const channels = color[1].split(',').map(Number);
+            const luminance = (values) => {
+                const [r, g, b] = values.map((channel) => {
+                    const value = channel / 255;
+
+                    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+                });
+
+                return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            };
+            const background = getComputedStyle(document.body).backgroundColor.match(/\\d+/g).map(Number).slice(0, 3);
+            const lighter = Math.max(luminance(channels), luminance(background));
+            const darker = Math.min(luminance(channels), luminance(background));
+
+            return root.hasAttribute('data-invalid') &&
+                root.querySelector('[role=grid]').getAttribute('aria-invalid') === 'true' &&
+                (lighter + 0.05) / (darker + 0.05) >= 3;
         })()");
 });
 

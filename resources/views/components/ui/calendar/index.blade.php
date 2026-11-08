@@ -105,7 +105,7 @@
         @if ($draft) data-draft @endif
         :data-start-day="startDay"
         @if ($invalid) data-invalid @endif
-        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500/60"
+        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500"
     >
         @if ($isPlain && $mode === 'single')
             <input
