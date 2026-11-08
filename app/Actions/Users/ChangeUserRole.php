@@ -22,7 +22,7 @@ class ChangeUserRole
 
     private function change(User $user, User $actor, Role $expected, Role $newRole): bool
     {
-        if ($user->is($actor) || ! $actor->role->canManageUsers() || $user->role !== $expected) {
+        if ($user->role !== $expected || $actor->cannot('changeRole', $user)) {
             return false;
         }
 

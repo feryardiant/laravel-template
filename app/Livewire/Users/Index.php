@@ -73,7 +73,9 @@ class Index extends Component
     {
         $actor = Auth::user();
 
-        abort_unless($actor instanceof User && $actor->role->canManageUsers(), 403);
+        abort_unless($actor instanceof User, 403);
+
+        $this->authorize('create', User::class);
 
         $this->email = Str::lower($this->email);
 
@@ -155,11 +157,9 @@ class Index extends Component
     {
         $user = User::findOrFail($userId);
 
-        $actor = Auth::user();
+        $this->authorize('update', $user);
 
-        abort_unless($actor instanceof User && $actor->role->canManageUsers(), 403);
         abort_if($user->hasVerifiedEmail(), 422);
-        abort_if($user->role->isOwner() && ! $actor->role->isOwner(), 403);
 
         $user->notify(new VerifyEmailForNewUser);
 
@@ -255,11 +255,7 @@ class Index extends Component
     {
         $user = User::findOrFail($userId);
 
-        $actor = Auth::user();
-
-        abort_unless($actor instanceof User && $actor->role->canManageUsers(), 403);
-        abort_if($user->is($actor), 403);
-        abort_if($user->role->isOwner() && ! $actor->role->isOwner(), 403);
+        $this->authorize('delete', $user);
 
         $user->delete();
         $this->resetPage();
@@ -345,9 +341,7 @@ class Index extends Component
      */
     public function deleteSelected(): void
     {
-        $actor = Auth::user();
-
-        abort_unless($actor instanceof User && $actor->role->canManageUsers(), 403);
+        $this->authorize('deleteAny', User::class);
 
         $pageIds = $this->users->pluck('id')->all();
         $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
@@ -355,10 +349,7 @@ class Index extends Component
         $users = User::query()->whereKey($selected)->get();
 
         foreach ($users as $user) {
-            abort_if(
-                $user->is($actor) || ($user->role->isOwner() && ! $actor->role->isOwner()),
-                403,
-            );
+            $this->authorize('delete', $user);
         }
 
         $deleted = false;
@@ -418,12 +409,12 @@ class Index extends Component
     {
         $actor = Auth::user();
 
-        if (! $actor instanceof User || ! $actor->role->canManageUsers()) {
+        if (! $actor instanceof User) {
             return [];
         }
 
         return $this->users
-            ->filter(fn (User $user): bool => ! $user->is($actor) && ($actor->role->isOwner() || ! $user->role->isOwner()))
+            ->filter(fn (User $user): bool => $actor->can('delete', $user))
             ->pluck('id')
             ->all();
     }
