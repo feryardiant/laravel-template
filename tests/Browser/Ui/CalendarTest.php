@@ -183,13 +183,16 @@ it('exposes the invalid state', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=calendar-invalid] [data-ui-calendar]');
             const shadow = getComputedStyle(root).boxShadow;
-            const color = shadow.match(/rgba?\\(([^)]+)\\)/);
+            const color = [...shadow.matchAll(/rgba?\\(([^)]+)\\)/g)]
+                .map((match) => match[1].split(',').map(Number))
+                .find((values) => (values[3] ?? 1) > 0);
 
-            if (color === null) {
+            if (color === undefined) {
                 return false;
             }
 
-            const channels = color[1].split(',').map(Number);
+            const channels = color;
+            const alpha = channels[3] ?? 1;
             const luminance = (values) => {
                 const [r, g, b] = values.map((channel) => {
                     const value = channel / 255;
@@ -200,8 +203,9 @@ it('exposes the invalid state', function () {
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b;
             };
             const background = getComputedStyle(document.body).backgroundColor.match(/\\d+/g).map(Number).slice(0, 3);
-            const lighter = Math.max(luminance(channels), luminance(background));
-            const darker = Math.min(luminance(channels), luminance(background));
+            const composited = channels.slice(0, 3).map((channel, index) => channel * alpha + background[index] * (1 - alpha));
+            const lighter = Math.max(luminance(composited), luminance(background));
+            const darker = Math.min(luminance(composited), luminance(background));
 
             return root.hasAttribute('data-invalid') &&
                 root.querySelector('[role=grid]').getAttribute('aria-invalid') === 'true' &&

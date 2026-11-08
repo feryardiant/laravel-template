@@ -104,8 +104,8 @@
         data-mode="{{ $mode }}"
         @if ($draft) data-draft @endif
         :data-start-day="startDay"
-        @if ($invalid) data-invalid @endif
-        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500"
+        @if ($invalid) data-invalid style="box-shadow: 0 0 0 2px #fb2c36" @endif
+        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2"
     >
         @if ($isPlain && $mode === 'single')
             <input
