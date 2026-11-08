@@ -155,9 +155,8 @@
                 x-show="withToday"
                 x-on:click="todayAction()"
                 x-bind:aria-label="labels.today"
-                x-text="labels.today"
                 class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-            />
+            >{{ $labels['today'] }}</flux:button>
         </div>
 
         <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" x-text="announcement"></div>

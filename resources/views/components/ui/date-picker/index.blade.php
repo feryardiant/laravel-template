@@ -228,10 +228,11 @@
                                 type="button"
                                 x-on:click="selectPreset(preset.key)"
                                 x-bind:aria-pressed="presetActive(preset.key) ? 'true' : 'false'"
+                                x-bind:title="preset.label"
                                 x-bind:class="presetActive(preset.key)
                                     ? 'bg-zinc-800/5 font-medium text-zinc-800 dark:bg-white/10 dark:text-white'
                                     : 'text-zinc-600 hover:bg-zinc-800/5 dark:text-zinc-300 dark:hover:bg-white/10'"
-                                class="whitespace-nowrap rounded-md px-2 py-1.5 text-start text-sm transition-colors [@media(hover:none)]:min-h-11"
+                                class="truncate rounded-md px-2 py-1.5 text-start text-sm transition-colors [@media(hover:none)]:min-h-11"
                                 x-text="preset.label"
                             ></button>
                         </template>
@@ -266,9 +267,8 @@
                         variant="ghost"
                         size="sm"
                         x-on:click="cancel()"
-                        x-text="labels.cancel"
                         class="[@media(hover:none)]:min-h-11"
-                    />
+                    >{{ $labels['cancel'] }}</flux:button>
 
                     <flux:button
                         type="button"
@@ -276,9 +276,8 @@
                         size="sm"
                         x-bind:disabled="!canConfirm()"
                         x-on:click="confirm()"
-                        x-text="{{ $isRange ? 'labels.selectRange' : 'labels.select' }}"
                         class="[@media(hover:none)]:min-h-11"
-                    />
+                    >{{ $isRange ? $labels['selectRange'] : $labels['select'] }}</flux:button>
                 </div>
             @endif
         </div>

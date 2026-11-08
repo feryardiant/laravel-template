@@ -492,6 +492,39 @@ it('keeps touch targets at least 44px on mobile', function () {
         })()");
 });
 
+it('uses padded text buttons and keeps presets inside their column', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=date-picker-single]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single]');
+            const today = [...root.querySelectorAll('[data-ui-calendar] button')].find((button) => button.textContent.trim() === 'Hari ini');
+
+            return today.getBoundingClientRect().width > 32;
+        })()");
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=date-picker-range]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            const group = root.querySelector('[data-ui-popover] [role=group]');
+            const select = [...root.querySelectorAll('[data-ui-popover] button')].find((button) => button.textContent.trim() === 'Pilih rentang');
+
+            return group.scrollWidth <= group.clientWidth && select.getBoundingClientRect().width > 32;
+        })()");
+});
+
 it('only offers single-day presets in single mode', function () {
     visit('/ui/date-picker')
         ->on()
