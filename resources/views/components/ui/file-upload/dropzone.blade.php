@@ -10,6 +10,7 @@
 @php
     $heading ??= $inline ? __('ui.file-upload.drop-inline') : __('ui.file-upload.drop');
     $textId = 'ui-file-upload-hint-'.Str::random(10);
+    $accessibleLabel = $attributes->get('aria-label') ?? $heading;
 @endphp
 
 <div
@@ -17,7 +18,7 @@
     role="button"
     x-bind:tabindex="disabled ? '-1' : '0'"
     x-bind:aria-disabled="disabled ? 'true' : null"
-    aria-label="{{ $heading }}"
+    aria-label="{{ $accessibleLabel }}"
     @if ($text !== null) aria-describedby="{{ $textId }}" @endif
     x-on:click="openPicker()"
     x-on:keydown.enter.prevent="openPicker()"
@@ -38,6 +39,10 @@
 >
     @if ($slot->isNotEmpty())
         {{ $slot }}
+
+        @if ($text !== null)
+            <span id="{{ $textId }}" class="sr-only">{{ $text }}</span>
+        @endif
     @else
         <div class="{{ $inline ? 'flex items-center gap-2' : 'flex flex-col items-center gap-2 text-center' }}">
             <flux:icon :name="$icon" variant="outline" class="{{ $inline ? 'size-5' : 'size-8' }} shrink-0 text-zinc-400" />

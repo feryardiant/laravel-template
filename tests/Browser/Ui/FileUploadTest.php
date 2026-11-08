@@ -96,7 +96,14 @@ it('supports a custom uploader through the dropzone slot', function () {
             dropzone.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
             dropzone.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));
 
-            return window.__customClicks === 2 && custom.querySelector('svg') !== null;
+            const describedBy = dropzone.getAttribute('aria-describedby');
+            const description = describedBy === null ? null : document.getElementById(describedBy);
+
+            return window.__customClicks === 2 &&
+                custom.querySelector('svg') !== null &&
+                dropzone.getAttribute('aria-label') === 'Upload a custom avatar' &&
+                description !== null &&
+                description.textContent.trim() === 'PNG or JPG up to 5 MB';
         })()")
         ->wait(0.2)
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]').getAttribute('data-dragging') === 'true'")
