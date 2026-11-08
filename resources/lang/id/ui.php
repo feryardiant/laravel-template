@@ -47,6 +47,14 @@ return [
         ],
     ],
 
+    'file-upload' => [
+        'drop' => 'Seret file ke sini atau klik untuk memilih',
+        'drop-inline' => 'Seret file atau klik untuk memilih',
+        'remove' => 'Hapus file',
+        'remove-named' => 'Hapus file: :name',
+        'uploading' => 'Mengunggah...',
+    ],
+
     'datetime-picker' => [
         'label' => 'Pemilih tanggal dan waktu',
         'placeholder' => 'Pilih tanggal dan waktu',

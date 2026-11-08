@@ -56,5 +56,13 @@
             <div class="font-medium">Date and time picker</div>
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Calendar and time columns for single dates and ranges.</div>
         </a>
+
+        <a
+            href="{{ route('ui.file-upload') }}"
+            class="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
+        >
+            <div class="font-medium">File upload</div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">Drag and drop, upload progress and file items.</div>
+        </a>
     </div>
 @endsection

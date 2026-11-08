@@ -47,6 +47,14 @@ return [
         ],
     ],
 
+    'file-upload' => [
+        'drop' => 'Drop files here or click to browse',
+        'drop-inline' => 'Drop files or click to browse',
+        'remove' => 'Remove file',
+        'remove-named' => 'Remove file: :name',
+        'uploading' => 'Uploading...',
+    ],
+
     'datetime-picker' => [
         'label' => 'Date and time picker',
         'placeholder' => 'Pick a date and time',
