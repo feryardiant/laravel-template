@@ -32,6 +32,7 @@ interface DatePreset {
 
 interface CalendarHandle {
     setValue: (value: unknown) => void
+    refreshToday: () => void
 }
 
 function normalize(value: unknown, mode: DatePickerMode): Bounds {
@@ -477,6 +478,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
             const data = globalThis.Alpine.$data(calendar) as CalendarHandle | undefined
 
+            data?.refreshToday()
             data?.setValue(this.mode === 'range' ? { start: this.draftStart, end: this.draftEnd } : this.draftStart)
         },
 

@@ -285,9 +285,11 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                       setValue: (value: unknown) => void
                       setBounds: (min: string | null, max: string | null) => void
                       setOpenTo: (key: string | null) => void
+                      refreshToday: () => void
                   }
                 | undefined
 
+            data?.refreshToday()
             data?.setOpenTo(this.openToDate)
             data?.setBounds(
                 this.min === null ? null : datePart(this.min),

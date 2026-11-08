@@ -118,7 +118,7 @@
     </section>
 
     <section data-ui-demo="datetime-picker-now" class="max-w-sm space-y-3">
-        <x-ui.datetime-picker label="From now" min="now" open-to="today" />
+        <x-ui.datetime-picker label="From now" min="now" open-to="today" with-today />
     </section>
 
     <section data-ui-demo="datetime-picker-plain" class="max-w-md space-y-3">

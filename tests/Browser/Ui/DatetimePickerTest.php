@@ -563,9 +563,29 @@ it('resolves now bounds and open-to when the popover opens', function () {
                 picker.openToDate === '2030-05-06' &&
                 grid.getAttribute('aria-label').includes('2030');
 
+            window.__today = {
+                value: window.Alpine.\$data(root.querySelector('[data-ui-calendar]')).today,
+                cell: root.querySelector('[data-ui-popover] td[data-date=\"2030-05-06\"]').hasAttribute('data-today'),
+            };
             window.Date = window.__RealDate;
 
             return result;
+        })()")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-now]');
+            [...root.querySelectorAll('[data-ui-popover] button')].find((button) => button.textContent.trim() === 'Hari ini').click();
+
+            return true;
+        })()")
+        ->wait(0.5)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-now]');
+            const picker = window.Alpine.\$data(root.querySelector('[data-ui-datetime-picker]'));
+
+            return window.__today.value === '2030-05-06' &&
+                window.__today.cell === true &&
+                picker.valueStartDate === '2030-05-06' &&
+                picker.valueStartTime === '10:15';
         })()");
 });
 

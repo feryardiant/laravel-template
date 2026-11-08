@@ -108,6 +108,7 @@ export interface CalendarData {
     setValue: (value: unknown) => void
     setBounds: (min: string | null, max: string | null) => void
     setOpenTo: (key: string | null) => void
+    refreshToday: () => void
     refresh: (announce?: boolean) => void
     build: () => void
     previousMonth: () => void
@@ -203,6 +204,18 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
 
         setOpenTo(key) {
             openToKey = key
+        },
+
+        refreshToday() {
+            this.today = localTodayKey()
+
+            if (config.min === 'today') {
+                minKey = this.today
+            }
+
+            if (config.max === 'today') {
+                maxKey = this.today
+            }
         },
 
         setValue(value: unknown) {
