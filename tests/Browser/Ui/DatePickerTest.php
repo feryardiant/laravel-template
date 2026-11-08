@@ -480,10 +480,15 @@ it('keeps touch targets at least 44px on mobile', function () {
             const day = popover.querySelector('td[data-date] button');
             const footer = [...popover.querySelectorAll('button')].find((candidate) => candidate.textContent.trim() === 'Pilih rentang');
 
+            const rect = popover.getBoundingClientRect();
+
             return trigger.getBoundingClientRect().height >= 44 &&
                 preset.getBoundingClientRect().height >= 44 &&
                 day.getBoundingClientRect().height >= 44 &&
-                footer.getBoundingClientRect().height >= 44;
+                footer.getBoundingClientRect().height >= 44 &&
+                Math.round(rect.left) === 8 &&
+                Math.round(rect.width) === window.innerWidth - 16 &&
+                rect.right <= window.innerWidth;
         })()");
 });
 
@@ -522,6 +527,84 @@ it('omits presets that violate range constraints', function () {
             const labels = [...root.querySelectorAll('[data-ui-popover] [role=group] button')].map((button) => button.textContent.trim());
 
             return labels.length === 2 && labels.includes('Hari ini') && labels.includes('Kemarin');
+        })()");
+});
+
+it('omits a preset that contains an unavailable date', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-preset-unavailable]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-preset-unavailable]');
+            const labels = [...root.querySelectorAll('[data-ui-popover] [role=group] button')].map((button) => button.textContent.trim());
+
+            return labels.length === 1 && labels[0] === 'Hari ini';
+        })()");
+});
+
+it('hides the preset sidebar when every preset is filtered out', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+
+    foreach (['date-picker-preset-empty', 'date-picker-preset-alltime'] as $demo) {
+        $page->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo={$demo}]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+            ->wait(0.3)
+            ->assertScript("(() => {
+                const root = document.querySelector('[data-ui-demo={$demo}]');
+                const group = root.querySelector('[data-ui-popover] [role=group]');
+
+                return group !== null && group.offsetParent === null && group.querySelectorAll('button').length === 0;
+            })()");
+
+        $page->assertScript("(() => {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+            return true;
+        })()")->wait(0.3);
+    }
+});
+
+it('exposes the active preset through aria-pressed', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=date-picker-range]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            [...root.querySelectorAll('[data-ui-popover] [role=group] button')].find((button) => button.textContent.trim() === 'Hari ini').click();
+
+            return true;
+        })()")
+        ->wait(0.6)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            const buttons = [...root.querySelectorAll('[data-ui-popover] [role=group] button')];
+
+            return buttons.find((button) => button.textContent.trim() === 'Hari ini').getAttribute('aria-pressed') === 'true' &&
+                buttons.filter((button) => button.textContent.trim() !== 'Hari ini').every((button) => button.getAttribute('aria-pressed') === 'false');
         })()");
 });
 

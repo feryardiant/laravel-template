@@ -52,6 +52,8 @@
             label="Single with presets"
             with-presets
             presets="today yesterday thisWeek last7Days"
+            min-range="2"
+            max-range="2"
         />
     </section>
 
@@ -62,6 +64,36 @@
             with-presets
             presets="today yesterday last7Days thisMonth"
             max-range="2"
+        />
+    </section>
+
+    <section data-ui-demo="date-picker-preset-unavailable" class="max-w-sm space-y-3">
+        <x-ui.date-picker
+            mode="range"
+            label="Unavailable preset"
+            with-presets
+            presets="today yesterday"
+            :unavailable="[now()->subDay()->format('Y-m-d')]"
+        />
+    </section>
+
+    <section data-ui-demo="date-picker-preset-empty" class="max-w-sm space-y-3">
+        <x-ui.date-picker
+            mode="range"
+            label="Empty presets"
+            with-presets
+            presets="today yesterday"
+            :unavailable="[now()->format('Y-m-d'), now()->subDay()->format('Y-m-d')]"
+        />
+    </section>
+
+    <section data-ui-demo="date-picker-preset-alltime" class="max-w-sm space-y-3">
+        <x-ui.date-picker
+            mode="range"
+            label="All time without min"
+            with-presets
+            presets="allTime today"
+            :unavailable="[now()->format('Y-m-d')]"
         />
     </section>
 

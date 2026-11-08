@@ -131,14 +131,15 @@ function presetAllowed(
     unavailable: string[],
     minRange: number | null,
     maxRange: number | null,
+    enforceRange: boolean,
 ): boolean {
     const length = daysBetweenInclusive(bounds.start, bounds.end)
 
-    if (minRange !== null && length < minRange) {
+    if (enforceRange && minRange !== null && length < minRange) {
         return false
     }
 
-    if (maxRange !== null && length > maxRange) {
+    if (enforceRange && maxRange !== null && length > maxRange) {
         return false
     }
 
@@ -234,11 +235,17 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 const bounds = presetBounds(key, today, startDay, min)
                 const clamped = bounds === null ? null : clampBounds(bounds, min, max)
 
-                if (clamped === null || (this.mode === 'single' && clamped.start !== clamped.end)) {
+                if (clamped === null) {
                     return []
                 }
 
-                if (!presetAllowed(clamped, config.unavailable, config.minRange, config.maxRange)) {
+                if (this.mode === 'single' && !['today', 'yesterday'].includes(key)) {
+                    return []
+                }
+
+                if (
+                    !presetAllowed(clamped, config.unavailable, config.minRange, config.maxRange, this.mode === 'range')
+                ) {
                     return []
                 }
 

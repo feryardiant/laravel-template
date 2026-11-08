@@ -217,6 +217,8 @@
             <div class="flex flex-col gap-3 sm:flex-row">
                 @if ($withPresets && count($presetKeys) > 0)
                     <div
+                        x-show="presets.length > 0"
+                        x-cloak
                         class="flex shrink-0 gap-1 overflow-x-auto sm:w-36 sm:flex-col"
                         role="group"
                         aria-label="{{ $labels['presets'] }}"
@@ -225,6 +227,7 @@
                             <button
                                 type="button"
                                 x-on:click="selectPreset(preset.key)"
+                                x-bind:aria-pressed="presetActive(preset.key) ? 'true' : 'false'"
                                 x-bind:class="presetActive(preset.key)
                                     ? 'bg-zinc-800/5 font-medium text-zinc-800 dark:bg-white/10 dark:text-white'
                                     : 'text-zinc-600 hover:bg-zinc-800/5 dark:text-zinc-300 dark:hover:bg-white/10'"
