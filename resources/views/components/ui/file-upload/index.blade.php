@@ -40,6 +40,7 @@
     :description:trailing="$descriptionTrailing"
     :badge="$badge"
     :error:message="$error"
+    error:class="text-red-700 dark:text-red-400"
 >
     <div
         x-data="uiFileUpload(@js($config), typeof $wire === 'undefined' ? null : $wire)"

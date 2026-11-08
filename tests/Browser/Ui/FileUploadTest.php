@@ -265,6 +265,22 @@ it('does not open a disabled upload', function () {
         })()");
 });
 
+it('renders the invalid upload error', function () {
+    visit('/ui/file-upload')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=file-upload-invalid]');
+            const uploader = root.querySelector('[data-ui-file-upload]');
+            const error = root.querySelector('[data-flux-error]');
+
+            return uploader.hasAttribute('data-invalid') &&
+                error !== null &&
+                getComputedStyle(error).display !== 'none' &&
+                error.textContent.includes('The file is too large');
+        })()");
+});
+
 it('formats item sizes and marks invalid items', function () {
     visit('/ui/file-upload')
         ->on()

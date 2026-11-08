@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Ui\Gallery;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'ui.index')->name('ui.index');
+Route::livewire('/', Gallery::class)->name('ui.index');
 
 require __DIR__.'/select.php';
 require __DIR__.'/autocomplete.php';

@@ -134,4 +134,8 @@
     <section data-ui-demo="date-picker-disabled" class="max-w-sm space-y-3">
         <x-ui.date-picker value="2026-02-15" disabled />
     </section>
+
+    <section data-ui-demo="date-picker-invalid" class="max-w-sm space-y-3">
+        <x-ui.date-picker label="Invalid date" value="2026-02-15" open-to="2026-02-01" invalid />
+    </section>
 </div>

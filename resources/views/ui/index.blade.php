@@ -1,6 +1,4 @@
-@extends('ui.layout')
-
-@section('content')
+<div class="space-y-8">
     <div class="space-y-2">
         <h1 class="text-2xl font-semibold">UI components</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
@@ -65,4 +63,20 @@
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Drag and drop, upload progress and file items.</div>
         </a>
     </div>
-@endsection
+
+    <section data-ui-demo="popover-scroll" class="space-y-4">
+        <div class="max-w-sm">
+            <x-ui.date-picker
+                name="scroll_date"
+                label="Scroll target"
+                value="2026-11-08"
+                open-to="2026-11-01"
+                clearable
+            />
+        </div>
+
+        <div class="flex h-[150vh] items-start justify-center rounded-xl border-2 border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+            Scroll down to exercise popover repositioning. The picker above should stay inside the viewport.
+        </div>
+    </section>
+</div>

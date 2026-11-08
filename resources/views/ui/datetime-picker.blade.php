@@ -136,4 +136,8 @@
     <section data-ui-demo="datetime-picker-disabled" class="max-w-sm space-y-3">
         <x-ui.datetime-picker value="2026-11-08T10:30" disabled />
     </section>
+
+    <section data-ui-demo="datetime-picker-invalid" class="max-w-sm space-y-3">
+        <x-ui.datetime-picker label="Invalid datetime" value="2026-11-08T10:30" invalid />
+    </section>
 </div>

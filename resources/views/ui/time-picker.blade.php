@@ -92,4 +92,8 @@
     <section data-ui-demo="time-picker-disabled" class="max-w-xs space-y-3">
         <x-ui.time-picker value="10:00" disabled />
     </section>
+
+    <section data-ui-demo="time-picker-invalid" class="max-w-xs space-y-3">
+        <x-ui.time-picker label="Invalid time" value="10:00" invalid />
+    </section>
 </div>

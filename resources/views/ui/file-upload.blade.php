@@ -160,6 +160,12 @@
         </x-ui.file-upload>
     </section>
 
+    <section data-ui-demo="file-upload-invalid" class="max-w-lg space-y-3">
+        <x-ui.file-upload name="invalid_files" label="Invalid upload" error="The file is too large">
+            <x-ui.file-upload.dropzone heading="Upload a smaller file" />
+        </x-ui.file-upload>
+    </section>
+
     <section data-ui-demo="file-upload-plain" class="max-w-lg space-y-3">
         <form
             method="post"
