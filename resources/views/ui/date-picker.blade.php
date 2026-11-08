@@ -47,6 +47,33 @@
         </p>
     </section>
 
+    <section data-ui-demo="date-picker-single-presets" class="max-w-sm space-y-3">
+        <x-ui.date-picker
+            label="Single with presets"
+            with-presets
+            presets="today yesterday thisWeek last7Days"
+        />
+    </section>
+
+    <section data-ui-demo="date-picker-preset-constraints" class="max-w-sm space-y-3">
+        <x-ui.date-picker
+            mode="range"
+            label="Constrained presets"
+            with-presets
+            presets="today yesterday last7Days thisMonth"
+            max-range="2"
+        />
+    </section>
+
+    <section data-ui-demo="date-picker-out-of-bounds" class="max-w-sm space-y-3">
+        <x-ui.date-picker
+            label="Out of bounds"
+            value="2026-01-01"
+            open-to="2026-01-01"
+            min="2026-02-10"
+        />
+    </section>
+
     <section data-ui-demo="date-picker-bounded" class="max-w-sm space-y-3">
         <x-ui.date-picker
             label="Bounded"

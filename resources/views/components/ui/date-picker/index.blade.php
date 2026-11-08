@@ -98,13 +98,15 @@
         'startDay' => $resolvedStartDay,
         'min' => $resolvedMin,
         'max' => $resolvedMax,
+        'unavailable' => $unavailableKeys,
+        'minRange' => $minRange === null ? null : (int) $minRange,
+        'maxRange' => $maxRange === null ? null : (int) $maxRange,
         'withConfirmation' => (bool) $withConfirmation,
         'withPresets' => (bool) $withPresets,
         'presetKeys' => $presetKeys,
         'placeholder' => $placeholder,
         'clearable' => (bool) $clearable,
         'disabled' => (bool) $disabled,
-        'rootId' => $rootId,
         'triggerId' => $triggerId,
         'popoverId' => $popoverId,
         'formInputId' => $formInputId,
@@ -128,7 +130,7 @@
 >
     <div
         x-data="uiDatePicker(@js($config), typeof $wire === 'undefined' ? null : $wire)"
-        x-init="init()"
+        x-init="init($el)"
         wire:ignore
         data-ui-date-picker
         data-mode="{{ $mode }}"
@@ -167,7 +169,7 @@
                 :size="$size"
                 :invalid="$invalid"
                 :disabled="$disabled"
-                class:input="{{ $clearable ? 'pe-16' : 'pe-10' }}"
+                class:input="{{ $clearable ? 'pe-16' : 'pe-10' }} [@media(hover:none)]:min-h-11"
                 x-bind:value="display"
                 x-on:click="onTriggerClick()"
                 x-on:focus="onTriggerFocus()"

@@ -142,13 +142,15 @@ export interface DatePickerConfig {
     startDay: number | null
     min: string | null
     max: string | null
+    unavailable: string[]
+    minRange: number | null
+    maxRange: number | null
     withConfirmation: boolean
     withPresets: boolean
     presetKeys: string[]
     placeholder: string | null
     clearable: boolean
     disabled: boolean
-    rootId: string
     triggerId: string
     popoverId: string
     formInputId: string | null

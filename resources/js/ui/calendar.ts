@@ -103,7 +103,7 @@ export interface CalendarData {
     previewKey: string | null
     rangeError: string
     announcement: string
-    init: () => void
+    init: (el?: HTMLElement) => void
     destroy: () => void
     setValue: (value: unknown) => void
     refresh: (announce?: boolean) => void
@@ -127,12 +127,13 @@ export interface CalendarData {
 }
 
 export function calendarData(config: CalendarConfig, wire: WireLike | null): CalendarData {
+    let rootEl: HTMLElement | null = null
     let unwatch: (() => void) | null = null
     let minKey: string | null = null
     let maxKey: string | null = null
     let unavailable: string[] = []
 
-    const root = (): HTMLElement | null => document.getElementById(config.rootId)
+    const root = (): HTMLElement | null => rootEl
     const formInput = (): HTMLInputElement | null =>
         config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
     const months = Math.min(2, Math.max(1, config.months))
@@ -173,20 +174,13 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         rangeError: '',
         announcement: '',
 
-        init() {
-            applyValue(this, readModel(wire, config.model, config.value))
-
+        init(el) {
+            rootEl = el ?? null
             minKey = config.min === 'today' ? this.today : stringKey(config.min)
             maxKey = config.max === 'today' ? this.today : stringKey(config.max)
             unavailable = config.unavailable.filter((key) => isValidKey(key))
 
-            const initial = currentKey(this)
-            const date = parseKey(initial) ?? parseKey(this.today)
-
-            this.activeKey = date === null ? this.today : dateKey(date)
-            this.viewYear = date?.getUTCFullYear() ?? 0
-            this.viewMonth = date?.getUTCMonth() ?? 0
-            this.refresh(false)
+            this.setValue(readModel(wire, config.model, config.value))
 
             unwatch = watchModel(wire, config.model, (value) => {
                 this.setValue(value)
@@ -200,7 +194,21 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         setValue(value: unknown) {
             applyValue(this, value)
 
-            const date = parseKey(currentKey(this))
+            let key = currentKey(this)
+
+            if (this.isDisabled(key, false)) {
+                if (minKey !== null && compareKeys(key, minKey) < 0) {
+                    key = minKey
+                } else if (maxKey !== null && compareKeys(key, maxKey) > 0) {
+                    key = maxKey
+                }
+
+                if (this.isDisabled(key, false)) {
+                    key = this.findEnabled(key, 1) ?? this.findEnabled(key, -1) ?? key
+                }
+            }
+
+            const date = parseKey(key)
 
             if (date !== null) {
                 this.viewYear = date.getUTCFullYear()

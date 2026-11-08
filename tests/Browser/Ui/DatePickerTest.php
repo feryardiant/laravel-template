@@ -475,12 +475,92 @@ it('keeps touch targets at least 44px on mobile', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=date-picker-range]');
             const popover = root.querySelector('[data-ui-popover]');
+            const trigger = root.querySelector('[data-ui-trigger]');
             const preset = popover.querySelector('[role=group] button');
             const day = popover.querySelector('td[data-date] button');
             const footer = [...popover.querySelectorAll('button')].find((candidate) => candidate.textContent.trim() === 'Pilih rentang');
 
-            return preset.getBoundingClientRect().height >= 44 &&
+            return trigger.getBoundingClientRect().height >= 44 &&
+                preset.getBoundingClientRect().height >= 44 &&
                 day.getBoundingClientRect().height >= 44 &&
                 footer.getBoundingClientRect().height >= 44;
         })()");
+});
+
+it('only offers single-day presets in single mode', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single-presets]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single-presets]');
+            const labels = [...root.querySelectorAll('[data-ui-popover] [role=group] button')].map((button) => button.textContent.trim());
+
+            return labels.length === 2 && labels[0] === 'Hari ini' && labels[1] === 'Kemarin';
+        })()");
+});
+
+it('omits presets that violate range constraints', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-preset-constraints]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-preset-constraints]');
+            const labels = [...root.querySelectorAll('[data-ui-popover] [role=group] button')].map((button) => button.textContent.trim());
+
+            return labels.length === 2 && labels.includes('Hari ini') && labels.includes('Kemarin');
+        })()");
+});
+
+it('opens to an enabled day when the value is out of bounds', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-out-of-bounds]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-out-of-bounds]');
+            const grid = root.querySelector('[data-ui-popover] [role=grid]');
+
+            return grid.getAttribute('aria-label') === 'Februari 2026' &&
+                document.activeElement.closest('td')?.dataset.date === '2026-02-10' &&
+                document.activeElement.disabled === false;
+        })()");
+});
+
+it('dispatches lifecycle events without a value detail', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-bounded]');
+
+            window.__openDetail = null;
+            root.addEventListener('open', (event) => {
+                window.__openDetail = { keys: Object.keys(event.detail), hasValue: 'value' in event.detail };
+            }, { once: true });
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript('window.__openDetail.hasValue === false && window.__openDetail.keys.length === 0');
 });

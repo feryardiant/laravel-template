@@ -3,6 +3,7 @@ import {
     addDays,
     addMonthsClamped,
     compareKeys,
+    daysBetweenInclusive,
     endOfMonth,
     endOfWeek,
     endOfYear,
@@ -125,6 +126,28 @@ function clampBounds(
     return compareKeys(start, end) <= 0 ? { start, end } : null
 }
 
+function presetAllowed(
+    bounds: { start: string; end: string },
+    unavailable: string[],
+    minRange: number | null,
+    maxRange: number | null,
+): boolean {
+    const length = daysBetweenInclusive(bounds.start, bounds.end)
+
+    if (minRange !== null && length < minRange) {
+        return false
+    }
+
+    if (maxRange !== null && length > maxRange) {
+        return false
+    }
+
+    const from = compareKeys(bounds.start, bounds.end) <= 0 ? bounds.start : bounds.end
+    const to = compareKeys(bounds.start, bounds.end) <= 0 ? bounds.end : bounds.start
+
+    return !unavailable.some((key) => compareKeys(key, from) >= 0 && compareKeys(key, to) <= 0)
+}
+
 export interface DatePickerData {
     mode: DatePickerMode
     open: boolean
@@ -137,7 +160,7 @@ export interface DatePickerData {
     draftEnd: string | null
     presets: DatePreset[]
     withConfirmation: boolean
-    init: () => void
+    init: (el?: HTMLElement) => void
     destroy: () => void
     applyValue: (value: unknown) => void
     openPopover: () => void
@@ -162,11 +185,12 @@ export interface DatePickerData {
 }
 
 export function datePickerData(config: DatePickerConfig, wire: WireLike | null): DatePickerData {
+    let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
     let suppressFocus = false
 
-    const root = (): HTMLElement | null => document.getElementById(config.rootId)
+    const root = (): HTMLElement | null => rootEl
     const popoverElement = (): HTMLElement | null => document.getElementById(config.popoverId)
     const formInput = (): HTMLInputElement | null =>
         config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
@@ -179,7 +203,9 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
     }
 
     const dispatch = (target: DatePickerData, name: string, value?: unknown): void => {
-        root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: { value } }))
+        const detail = value === undefined ? {} : { value }
+
+        root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
     }
 
     return {
@@ -195,7 +221,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         presets: [],
         withConfirmation: config.withConfirmation,
 
-        init() {
+        init(el) {
+            rootEl = el ?? null
             applyValue(this, readModel(wire, config.model, config.value))
 
             const today = localTodayKey()
@@ -207,7 +234,15 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 const bounds = presetBounds(key, today, startDay, min)
                 const clamped = bounds === null ? null : clampBounds(bounds, min, max)
 
-                return clamped === null ? [] : [{ key, label: config.labels.presetLabels[key] ?? key, ...clamped }]
+                if (clamped === null || (this.mode === 'single' && clamped.start !== clamped.end)) {
+                    return []
+                }
+
+                if (!presetAllowed(clamped, config.unavailable, config.minRange, config.maxRange)) {
+                    return []
+                }
+
+                return [{ key, label: config.labels.presetLabels[key] ?? key, ...clamped }]
             })
 
             this.renderDisplay()
@@ -494,7 +529,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 }
 
                 const initial =
-                    target.querySelector<HTMLElement>('td[data-active] button:not([disabled])') ??
+                    target.querySelector<HTMLElement>('td button[tabindex="0"]:not([disabled])') ??
+                    target.querySelector<HTMLElement>('td button:not([disabled])') ??
                     target.querySelector<HTMLElement>('button:not([disabled])')
 
                 initial?.focus()

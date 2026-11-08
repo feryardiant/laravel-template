@@ -97,9 +97,8 @@
     :badge="$badge"
 >
     <div
-        id="{{ $rootId }}"
         x-data="uiCalendar(@js($config), typeof $wire === 'undefined' ? null : $wire)"
-        x-init="init()"
+        x-init="init($el)"
         wire:ignore
         data-ui-calendar
         data-mode="{{ $mode }}"

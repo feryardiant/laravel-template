@@ -154,6 +154,8 @@ export function createPopover(
             return
         }
 
+        const restoreFocus = popover.contains(document.activeElement)
+
         open = false
 
         if (popover.matches(':popover-open')) {
@@ -163,7 +165,7 @@ export function createPopover(
         detach()
         options.onClose?.()
 
-        if (popover.contains(document.activeElement)) {
+        if (restoreFocus) {
             ;(options.focusTarget ?? trigger).focus()
         }
     }
