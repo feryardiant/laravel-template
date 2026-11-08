@@ -79,6 +79,37 @@ it('assigns a dropped file to the file input', function () {
         })()");
 });
 
+it('supports a custom uploader through the dropzone slot', function () {
+    visit('/ui/file-upload')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=file-upload-custom]');
+            const dropzone = root.querySelector('[data-ui-dropzone]');
+            const input = root.querySelector('input[type=file]');
+            const custom = dropzone.querySelector('.size-24');
+
+            window.__customClicks = 0;
+            input.click = () => { window.__customClicks++ };
+
+            custom.click();
+            dropzone.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            dropzone.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));
+
+            return window.__customClicks === 2 && custom.querySelector('svg') !== null;
+        })()")
+        ->wait(0.2)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]').getAttribute('data-dragging') === 'true'")
+        ->assertScript("(() => {
+            const dropzone = document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]');
+            dropzone.dispatchEvent(new DragEvent('dragleave', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));
+
+            return true;
+        })()")
+        ->wait(0.2)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]').getAttribute('data-dragging') === null");
+});
+
 it('tracks drag state and ignores drag on disabled uploads', function () {
     visit('/ui/file-upload')
         ->on()
@@ -248,6 +279,7 @@ it('keeps the dropzone and remove targets touch-friendly on mobile', function ()
         ->mobile()
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-avatar] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
         ->assertScript("(() => {
             const remove = document.querySelector('[data-ui-demo=file-upload-remove] [aria-label^=\"Hapus file:\"]');
 

@@ -4,6 +4,7 @@
     'icon' => 'cloud-arrow-up',
     'inline' => false,
     'withProgress' => false,
+    'bare' => false,
 ])
 
 @php
@@ -28,19 +29,28 @@
     x-bind:data-dragging="dragging || null"
     x-bind:data-loading="loading || null"
     x-bind:class="disabled ? 'cursor-default opacity-50' : 'cursor-pointer'"
-    class="rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50/50 transition-colors data-dragging:border-accent data-dragging:bg-accent/5 dark:border-white/15 dark:bg-white/5 dark:data-dragging:border-accent [@media(hover:none)]:min-h-11 {{ $inline ? 'px-3 py-2' : 'px-6 py-8' }}"
+    @class([
+        'group transition-colors [@media(hover:none)]:min-h-11',
+        'rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50/50 data-dragging:border-accent data-dragging:bg-accent/5 dark:border-white/15 dark:bg-white/5 dark:data-dragging:border-accent' => ! $bare,
+        'px-3 py-2' => ! $bare && $inline,
+        'px-6 py-8' => ! $bare && ! $inline,
+    ])
 >
-    <div class="{{ $inline ? 'flex items-center gap-2' : 'flex flex-col items-center gap-2 text-center' }}">
-        <flux:icon :name="$icon" variant="outline" class="{{ $inline ? 'size-5' : 'size-8' }} shrink-0 text-zinc-400" />
+    @if ($slot->isNotEmpty())
+        {{ $slot }}
+    @else
+        <div class="{{ $inline ? 'flex items-center gap-2' : 'flex flex-col items-center gap-2 text-center' }}">
+            <flux:icon :name="$icon" variant="outline" class="{{ $inline ? 'size-5' : 'size-8' }} shrink-0 text-zinc-400" />
 
-        <div class="min-w-0">
-            <div class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $heading }}</div>
+            <div class="min-w-0">
+                <div class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ $heading }}</div>
 
-            @if ($text !== null)
-                <div id="{{ $textId }}" class="text-xs text-zinc-500 dark:text-zinc-400">{{ $text }}</div>
-            @endif
+                @if ($text !== null)
+                    <div id="{{ $textId }}" class="text-xs text-zinc-500 dark:text-zinc-400">{{ $text }}</div>
+                @endif
+            </div>
         </div>
-    </div>
+    @endif
 
     @if ($withProgress)
         <div

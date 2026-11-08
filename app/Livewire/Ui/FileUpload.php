@@ -30,6 +30,11 @@ class FileUpload extends Component
      */
     public $avatar = null;
 
+    /**
+     * @var mixed
+     */
+    public $customAvatar = null;
+
     public function removePhoto(int $index): void
     {
         unset($this->photos[$index]);
@@ -47,6 +52,11 @@ class FileUpload extends Component
     public function clearAvatar(): void
     {
         $this->avatar = null;
+    }
+
+    public function clearCustomAvatar(): void
+    {
+        $this->customAvatar = null;
     }
 
     public function render(): View

@@ -20,6 +20,14 @@ it('renders and removes a single uploaded image', function () {
         ->assertSet('avatar', null);
 });
 
+it('renders and clears a custom avatar uploader', function () {
+    Livewire::test(FileUpload::class)
+        ->set('customAvatar', UploadedFile::fake()->image('custom.png'))
+        ->assertSee('custom.png')
+        ->call('clearCustomAvatar')
+        ->assertSet('customAvatar', null);
+});
+
 it('receives files from the plain multipart form', function () {
     $response = $this->post(route('ui.file-upload.plain'), [
         'plain_files' => [

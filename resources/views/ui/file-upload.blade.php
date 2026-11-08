@@ -76,6 +76,50 @@
         </p>
     </section>
 
+    <section data-ui-demo="file-upload-custom" class="max-w-lg space-y-3">
+        <x-ui.file-upload
+            wire:model="customAvatar"
+            accept="image/*"
+            label="Custom avatar"
+            description="Click or drop an image"
+        >
+            <x-ui.file-upload.dropzone bare heading="Upload avatar" text="PNG or JPG up to 5 MB">
+                <div
+                    class="relative flex size-24 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 transition-colors group-data-dragging:border-accent group-data-dragging:bg-accent/5 hover:bg-zinc-200 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15"
+                >
+                    @if ($customAvatar)
+                        <img src="{{ $customAvatar->temporaryUrl() }}" alt="" class="size-full rounded-full object-cover" />
+                    @else
+                        <flux:icon name="user" variant="solid" class="size-10 text-zinc-400" />
+                    @endif
+
+                    <span class="absolute end-0 bottom-0 rounded-full bg-white p-0.5 dark:bg-zinc-800">
+                        <flux:icon name="arrow-up-circle" variant="solid" class="size-6 text-zinc-500" />
+                    </span>
+                </div>
+            </x-ui.file-upload.dropzone>
+        </x-ui.file-upload>
+
+        @if ($customAvatar)
+            <x-ui.file-upload.item
+                :heading="$customAvatar->getClientOriginalName()"
+                :image="$customAvatar->temporaryUrl()"
+                :size="$customAvatar->getSize()"
+            >
+                <x-slot:actions>
+                    <x-ui.file-upload.item.remove
+                        wire:click="clearCustomAvatar"
+                        :aria-label="__('ui.file-upload.remove-named', ['name' => $customAvatar->getClientOriginalName()])"
+                    />
+                </x-slot:actions>
+            </x-ui.file-upload.item>
+        @endif
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Uploaded: <span data-ui-upload-count="custom-avatar">{{ $customAvatar ? 1 : 0 }}</span>
+        </p>
+    </section>
+
     <section data-ui-demo="file-upload-documents" class="max-w-lg space-y-3">
         <x-ui.file-upload
             wire:model="documents"
