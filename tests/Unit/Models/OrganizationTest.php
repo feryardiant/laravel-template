@@ -59,6 +59,33 @@ test('external counterparties can be organizations or people', function (Organiz
     'vendors' => [OrganizationRelationshipType::Vendor],
 ]);
 
+it('returns organization and person counterparties together', function () {
+    $organization = Organization::factory()->create();
+    $relatedOrganization = Organization::factory()->create();
+    $relatedPerson = Person::factory()->create();
+    $supplier = Person::factory()->create();
+
+    $organization->organizationCounterparties()->attach($relatedOrganization, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+    $organization->personCounterparties()->attach($relatedPerson, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+    $organization->personCounterparties()->attach($supplier, [
+        'type' => OrganizationRelationshipType::Supplier,
+    ]);
+
+    $counterparties = $organization->counterparties();
+    $customers = $organization->counterparties(OrganizationRelationshipType::Customer);
+
+    expect($counterparties)->toHaveCount(3)
+        ->and($counterparties->get(0)->is($relatedOrganization))->toBeTrue()
+        ->and($counterparties->get(1)->is($relatedPerson))->toBeTrue()
+        ->and($customers)->toHaveCount(2)
+        ->and($customers->get(0)->is($relatedOrganization))->toBeTrue()
+        ->and($customers->get(1)->is($relatedPerson))->toBeTrue();
+});
+
 it('allows counterparty codes to be reused by different organizations only', function () {
     $organization = Organization::factory()->create();
     $otherOrganization = Organization::factory()->create();

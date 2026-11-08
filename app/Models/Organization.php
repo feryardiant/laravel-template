@@ -89,6 +89,15 @@ class Organization extends Entity implements HasAddress
     }
 
     /**
+     * @return Collection<int, Organization|Person>
+     */
+    public function counterparties(?OrganizationRelationshipType ...$type): Collection
+    {
+        return $this->organizationCounterparties(...$type)->get()
+            ->concat($this->personCounterparties(...$type)->get());
+    }
+
+    /**
      * @return MorphToMany<Person, $this, OrganizationRelationship, 'member'>
      */
     public function members(): MorphToMany
