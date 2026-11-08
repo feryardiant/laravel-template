@@ -119,7 +119,7 @@
     </section>
 
     <section data-ui-demo="date-picker-plain" class="max-w-sm space-y-3">
-        <form method="get" action="{{ route('ui.date-picker') }}">
+        <form method="get" action="{{ route('ui.date-picker') }}" class="space-y-4">
             <x-ui.date-picker name="plain_date" value="2024-02-15" open-to="2024-02-01" label="Plain date" />
             <x-ui.date-picker
                 name="plain_range"
