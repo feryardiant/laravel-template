@@ -2,6 +2,7 @@ export interface PopoverOptions {
     onOpen?: () => void
     onClose?: () => void
     focusTarget?: HTMLElement | null
+    fullWidthOnTouch?: boolean
 }
 
 export interface PopoverController {
@@ -32,7 +33,8 @@ export function createPopover(
 
         const triggerRect = trigger.getBoundingClientRect()
         const maxWidth = Math.max(0, window.innerWidth - 2 * viewportGap)
-        const popoverWidth = Math.min(Math.max(popover.offsetWidth, triggerRect.width), maxWidth)
+        const fullWidth = options.fullWidthOnTouch === true && window.matchMedia('(hover: none)').matches
+        const popoverWidth = fullWidth ? maxWidth : Math.min(Math.max(popover.offsetWidth, triggerRect.width), maxWidth)
         const popoverHeight = popover.offsetHeight
         const spaceBelow = window.innerHeight - triggerRect.bottom - gap - viewportGap
         const spaceAbove = triggerRect.top - gap - viewportGap
@@ -45,6 +47,7 @@ export function createPopover(
 
         popover.style.minWidth = `${popoverWidth}px`
         popover.style.maxWidth = `${maxWidth}px`
+        popover.style.width = fullWidth ? `${popoverWidth}px` : ''
         popover.style.position = 'fixed'
 
         let top: number
@@ -59,7 +62,7 @@ export function createPopover(
             }
         }
 
-        let left = triggerRect.left
+        let left = fullWidth ? viewportGap : triggerRect.left
 
         if (left + popoverWidth > window.innerWidth - viewportGap) {
             left = triggerRect.right - popoverWidth

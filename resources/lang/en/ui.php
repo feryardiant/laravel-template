@@ -21,6 +21,32 @@ return [
         'clear' => 'Clear input',
     ],
 
+    'date-picker' => [
+        'label' => 'Date picker',
+        'placeholder' => 'Pick a date',
+        'placeholder-range' => 'Pick a date range',
+        'clear' => 'Clear date',
+        'cancel' => 'Cancel',
+        'select' => 'Select',
+        'select-range' => 'Select range',
+        'presets' => 'Presets',
+        'preset' => [
+            'today' => 'Today',
+            'yesterday' => 'Yesterday',
+            'this-week' => 'This week',
+            'last-week' => 'Last week',
+            'last-7-days' => 'Last 7 days',
+            'last-14-days' => 'Last 14 days',
+            'last-30-days' => 'Last 30 days',
+            'this-month' => 'This month',
+            'last-month' => 'Last month',
+            'this-year' => 'This year',
+            'last-year' => 'Last year',
+            'year-to-date' => 'Year to date',
+            'all-time' => 'All time',
+        ],
+    ],
+
     'calendar' => [
         'today' => 'Today',
         'previous-month' => 'Previous month',

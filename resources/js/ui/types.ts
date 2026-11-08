@@ -71,6 +71,7 @@ export interface CalendarLabels {
 
 export interface CalendarConfig {
     mode: CalendarMode
+    draft: boolean
     value: unknown
     model: string | null
     live: boolean
@@ -117,4 +118,41 @@ export interface CalendarMonth {
     label: string
     weekdays: string[]
     weeks: CalendarCell[][]
+}
+
+export type DatePickerMode = 'single' | 'range'
+
+export interface DatePickerLabels {
+    placeholder: string
+    placeholderRange: string
+    clear: string
+    cancel: string
+    select: string
+    selectRange: string
+    presets: string
+    presetLabels: Record<string, string>
+}
+
+export interface DatePickerConfig {
+    mode: DatePickerMode
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string
+    startDay: number | null
+    min: string | null
+    max: string | null
+    withConfirmation: boolean
+    withPresets: boolean
+    presetKeys: string[]
+    placeholder: string | null
+    clearable: boolean
+    disabled: boolean
+    rootId: string
+    triggerId: string
+    popoverId: string
+    formInputId: string | null
+    formStartId: string | null
+    formEndId: string | null
+    labels: DatePickerLabels
 }

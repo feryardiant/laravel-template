@@ -9,3 +9,4 @@ Route::view('/', 'ui.index')->name('ui.index');
 require __DIR__.'/select.php';
 require __DIR__.'/autocomplete.php';
 require __DIR__.'/calendar.php';
+require __DIR__.'/date-picker.php';

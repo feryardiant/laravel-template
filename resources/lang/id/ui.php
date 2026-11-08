@@ -21,6 +21,32 @@ return [
         'clear' => 'Kosongkan isian',
     ],
 
+    'date-picker' => [
+        'label' => 'Pemilih tanggal',
+        'placeholder' => 'Pilih tanggal',
+        'placeholder-range' => 'Pilih rentang tanggal',
+        'clear' => 'Kosongkan tanggal',
+        'cancel' => 'Batal',
+        'select' => 'Pilih',
+        'select-range' => 'Pilih rentang',
+        'presets' => 'Pilihan cepat',
+        'preset' => [
+            'today' => 'Hari ini',
+            'yesterday' => 'Kemarin',
+            'this-week' => 'Minggu ini',
+            'last-week' => 'Minggu lalu',
+            'last-7-days' => '7 hari terakhir',
+            'last-14-days' => '14 hari terakhir',
+            'last-30-days' => '30 hari terakhir',
+            'this-month' => 'Bulan ini',
+            'last-month' => 'Bulan lalu',
+            'this-year' => 'Tahun ini',
+            'last-year' => 'Tahun lalu',
+            'year-to-date' => 'Awal tahun hingga kini',
+            'all-time' => 'Semua waktu',
+        ],
+    ],
+
     'calendar' => [
         'today' => 'Hari ini',
         'previous-month' => 'Bulan sebelumnya',

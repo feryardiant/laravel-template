@@ -20,6 +20,7 @@
     'withToday' => false,
     'locale' => null,
     'invalid' => null,
+    'draft' => false,
 ])
 
 @php
@@ -61,6 +62,7 @@
 
     $config = [
         'mode' => $mode,
+        'draft' => (bool) $draft,
         'value' => $normalizedValue,
         'model' => $model,
         'live' => $live,
@@ -95,11 +97,13 @@
     :badge="$badge"
 >
     <div
+        id="{{ $rootId }}"
         x-data="uiCalendar(@js($config), typeof $wire === 'undefined' ? null : $wire)"
         x-init="init()"
         wire:ignore
         data-ui-calendar
         data-mode="{{ $mode }}"
+        @if ($draft) data-draft @endif
         :data-start-day="startDay"
         @if ($invalid) data-invalid @endif
         class="w-full space-y-2"

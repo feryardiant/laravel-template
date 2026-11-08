@@ -36,6 +36,20 @@ export function isValidKey(key: string): boolean {
     return parseKey(key) !== null
 }
 
+export function toDateKey(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null
+    }
+
+    if (isValidKey(value)) {
+        return value
+    }
+
+    const match = /^(\d{4}-\d{2}-\d{2})(?:[T ].*)?$/.exec(value)
+
+    return match !== null && isValidKey(match[1]) ? match[1] : null
+}
+
 export function localTodayKey(): string {
     const now = new Date()
 
@@ -84,6 +98,46 @@ export function shiftMonth(year: number, month: number, delta: number): { year: 
     const date = utcDate(year, month + delta, 1)
 
     return { year: date.getUTCFullYear(), month: date.getUTCMonth() }
+}
+
+export function startOfMonth(key: string): string {
+    const date = parseKey(key)
+
+    if (date === null) {
+        return key
+    }
+
+    return dateKey(utcDate(date.getUTCFullYear(), date.getUTCMonth(), 1))
+}
+
+export function endOfMonth(key: string): string {
+    const date = parseKey(key)
+
+    if (date === null) {
+        return key
+    }
+
+    return dateKey(utcDate(date.getUTCFullYear(), date.getUTCMonth() + 1, 0))
+}
+
+export function startOfYear(key: string): string {
+    const date = parseKey(key)
+
+    if (date === null) {
+        return key
+    }
+
+    return dateKey(utcDate(date.getUTCFullYear(), 0, 1))
+}
+
+export function endOfYear(key: string): string {
+    const date = parseKey(key)
+
+    if (date === null) {
+        return key
+    }
+
+    return dateKey(utcDate(date.getUTCFullYear(), 11, 31))
 }
 
 export function startOfWeek(key: string, startDay: number): string {
@@ -243,6 +297,31 @@ export function formatDayLabel(locale: string, key: string): string {
     }
 
     return dayFormatter(locale).format(date)
+}
+
+const shortDateFormatters = new Map<string, Intl.DateTimeFormat>()
+
+export function formatShortDate(locale: string, key: string): string {
+    const date = parseKey(key)
+
+    if (date === null) {
+        return key
+    }
+
+    let formatter = shortDateFormatters.get(locale)
+
+    if (formatter === undefined) {
+        formatter = new Intl.DateTimeFormat(locale, {
+            calendar: 'gregory',
+            day: 'numeric',
+            month: 'short',
+            timeZone: 'UTC',
+            year: 'numeric',
+        })
+        shortDateFormatters.set(locale, formatter)
+    }
+
+    return formatter.format(date)
 }
 
 export function compareKeys(left: string, right: string): number {

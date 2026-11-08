@@ -16,6 +16,7 @@ import {
     parseKey,
     shiftMonth,
     startOfWeek,
+    toDateKey,
     utcDate,
 } from './date'
 import type { CalendarCell, CalendarConfig, CalendarMonth, CalendarMode, WireLike } from './types'
@@ -26,19 +27,7 @@ interface NormalizedValue {
     end: string | null
 }
 
-function stringKey(value: unknown): string | null {
-    if (typeof value !== 'string') {
-        return null
-    }
-
-    if (isValidKey(value)) {
-        return value
-    }
-
-    const match = /^(\d{4}-\d{2}-\d{2})(?:[T ].*)?$/.exec(value)
-
-    return match !== null && isValidKey(match[1]) ? match[1] : null
-}
+const stringKey = toDateKey
 
 function normalizeValue(value: unknown, mode: CalendarMode): NormalizedValue {
     if (mode === 'range') {
@@ -92,6 +81,7 @@ function normalizeValue(value: unknown, mode: CalendarMode): NormalizedValue {
 
 export interface CalendarData {
     mode: CalendarMode
+    draft: boolean
     locale: string
     startDay: number
     months: number
@@ -115,6 +105,7 @@ export interface CalendarData {
     announcement: string
     init: () => void
     destroy: () => void
+    setValue: (value: unknown) => void
     refresh: (announce?: boolean) => void
     build: () => void
     previousMonth: () => void
@@ -159,6 +150,7 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
 
     return {
         mode: config.mode,
+        draft: config.draft,
         locale: config.locale,
         startDay: config.startDay ?? firstDayOfWeek(config.locale),
         months,
@@ -197,24 +189,28 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
             this.refresh(false)
 
             unwatch = watchModel(wire, config.model, (value) => {
-                applyValue(this, value)
-
-                const key = currentKey(this)
-                const date = parseKey(key)
-
-                if (date !== null) {
-                    this.viewYear = date.getUTCFullYear()
-                    this.viewMonth = date.getUTCMonth()
-                    this.activeKey = dateKey(date)
-                }
-
-                this.rangeError = ''
-                this.refresh(false)
+                this.setValue(value)
             })
         },
 
         destroy() {
             unwatch?.()
+        },
+
+        setValue(value: unknown) {
+            applyValue(this, value)
+
+            const date = parseKey(currentKey(this))
+
+            if (date !== null) {
+                this.viewYear = date.getUTCFullYear()
+                this.viewMonth = date.getUTCMonth()
+                this.activeKey = dateKey(date)
+            }
+
+            this.previewKey = null
+            this.rangeError = ''
+            this.refresh(false)
         },
 
         refresh(announce = false) {
@@ -611,7 +607,10 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
                       ? [...this.selectedValues].sort()
                       : (this.selectedValues[0] ?? null)
 
-            writeModel(wire, config.model, config.live, value, formInput())
+            if (!config.draft) {
+                writeModel(wire, config.model, config.live, value, formInput())
+            }
+
             root()?.dispatchEvent(
                 new CustomEvent('change', {
                     bubbles: true,
