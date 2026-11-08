@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
+use App\Enums\Role;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -40,6 +41,8 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('contact_id')->constrained('people')->restrictOnDelete();
+            $table->foreignId('root_organization_id')->nullable()->constrained('organizations')->nullOnDelete();
+            $table->boolean('is_tenant')->default(false);
 
             $table->string('name');
             $table->string('summary')->nullable();
@@ -55,6 +58,7 @@ return new class extends Migration
 
             $table->string('code')->nullable();
             $table->enum('type', OrganizationRelationshipType::cases())->nullable();
+            $table->enum('role', Role::cases())->nullable();
             $table->boolean('is_primary')->nullable();
             $table->string('remark')->nullable();
             $table->date('start_date')->nullable();

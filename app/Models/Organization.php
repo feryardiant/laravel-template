@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\OrganizationRelationshipType;
-use Carbon\CarbonInterface;
 use Creasi\Nusa\Contracts\HasAddress;
 use Creasi\Nusa\Models\Concerns\WithAddress;
 use Database\Factories\OrganizationFactory;
@@ -14,7 +13,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Business entity that relates to other organizations and people.
@@ -22,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  * @property int $contact_id
  * @property string $name
  * @property ?string $summary
+ * @property bool $is_tenant
+ * @property ?int $root_organization_id
  * @property-read ?Person $primaryContact
  * @property-read Collection<int, Organization> $organizationCounterparties
  * @property-read Collection<int, Person> $personCounterparties
@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\DB;
  *
  * @implements HasAddress<static>
  */
-#[Fillable(['name', 'summary'])]
+#[Fillable(['name', 'summary', 'is_tenant', 'root_organization_id'])]
 class Organization extends Entity implements HasAddress
 {
     /** @use HasFactory<OrganizationFactory> */
@@ -38,6 +38,16 @@ class Organization extends Entity implements HasAddress
 
     /** @use WithAddress<static, Address> */
     use WithAddress;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_tenant' => 'boolean',
+        ];
+    }
 
     /**
      * {@inheritdoc}
@@ -72,7 +82,7 @@ class Organization extends Entity implements HasAddress
     {
         return $this->morphedByMany($stakeholder, 'stakeholder', 'organization_relationships', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'code', 'start_date', 'finish_date');
+            ->withPivot('type', 'role', 'code', 'start_date', 'finish_date');
     }
 
     /**
@@ -131,37 +141,5 @@ class Organization extends Entity implements HasAddress
         return $this->relationships(Organization::class)
             ->wherePivot('type', '=', OrganizationRelationshipType::Subsidiary)
             ->as('subsidiary');
-    }
-
-    /**
-     * Attach a person as a member, optionally as their primary organization.
-     */
-    public function addMember(
-        Person $member,
-        bool $isPrimary = false,
-        ?CarbonInterface $finishDate = null,
-        ?CarbonInterface $startDate = null,
-    ): void {
-        $attributes = [
-            'type' => OrganizationRelationshipType::Member,
-            'is_primary' => $isPrimary ? true : null,
-            'start_date' => $startDate,
-            'finish_date' => $finishDate,
-        ];
-
-        DB::transaction(function () use ($member, $isPrimary, $attributes): void {
-            $member->newQuery()
-                ->whereKey($member->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($isPrimary) {
-                $member->organizationRelationships()->newPivotQuery()
-                    ->where('type', OrganizationRelationshipType::Member)
-                    ->update(['is_primary' => null]);
-            }
-
-            $this->members()->syncWithoutDetaching([$member->getKey() => $attributes]);
-        });
     }
 }

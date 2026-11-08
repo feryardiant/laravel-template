@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\Role;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
@@ -18,6 +19,7 @@ use InvalidArgumentException;
  * @property int $organization_id
  * @property ?string $stakeholder_type
  * @property null|OrganizationRelationshipType $type
+ * @property null|Role $role
  * @property null|string $remark
  * @property null|CarbonImmutable $start_date
  * @property null|CarbonImmutable $finish_date
@@ -31,6 +33,8 @@ class OrganizationRelationship extends MorphPivot
 {
     protected $table = 'organization_relationships';
 
+    public $timestamps = false;
+
     /**
      * Ensure the stakeholder type matches the relationship type.
      */
@@ -39,6 +43,12 @@ class OrganizationRelationship extends MorphPivot
         static::saving(function (self $relationship): void {
             if ($relationship->type !== OrganizationRelationshipType::Member || $relationship->is_primary === false) {
                 $relationship->is_primary = null;
+            }
+
+            if ($relationship->type !== OrganizationRelationshipType::Member) {
+                $relationship->role = null;
+            } elseif ($relationship->role === null) {
+                $relationship->role = Role::Member;
             }
 
             if ($relationship->type === null || $relationship->stakeholder_type === null) {
@@ -72,6 +82,7 @@ class OrganizationRelationship extends MorphPivot
         return [
             'organization_id' => 'int',
             'type' => OrganizationRelationshipType::class,
+            'role' => Role::class,
             'start_date' => 'immutable_date',
             'finish_date' => 'immutable_date',
         ];

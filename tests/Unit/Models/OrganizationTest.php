@@ -71,42 +71,6 @@ it('keeps inbound relationships when an organization is soft-deleted', function 
         ->exists())->toBeTrue();
 });
 
-it('can have members', function () {
-    $organization = Organization::factory()->create();
-    $person = Person::factory()->create();
-
-    $organization->addMember($person);
-
-    $member = $organization->members()->first();
-
-    expect($member)
-        ->is($person)->toBeTrue()
-        ->member->type->toBe(OrganizationRelationshipType::Member);
-});
-
-it('does not duplicate a membership when added twice', function () {
-    $organization = Organization::factory()->create();
-    $person = Person::factory()->create();
-
-    $organization->addMember($person);
-    $organization->addMember($person);
-
-    expect($organization->members()->count())->toBe(1);
-});
-
-it('promotes an existing member without duplicating them', function () {
-    $organization = Organization::factory()->create();
-    $person = Person::factory()->create();
-
-    $organization->addMember($person);
-    $organization->addMember($person, isPrimary: true);
-
-    $members = $organization->members()->get();
-
-    expect($members)->toHaveCount(1)
-        ->and($members->first()->member->is_primary)->toBeTrue();
-});
-
 test('external counterparties can be organizations or people', function (OrganizationRelationshipType $type) {
     $organization = Organization::factory()->create();
     $relatedOrganization = Organization::factory()->create();
@@ -172,24 +136,6 @@ it('allows counterparty codes to be reused by different organizations only', fun
     ]))->toThrow(QueryException::class);
 });
 
-it('moves a persons primary organization when they join another as primary', function () {
-    $person = Person::factory()->create();
-    $organization = Organization::factory()->create();
-    $otherOrganization = Organization::factory()->create();
-
-    $organization->addMember($person, isPrimary: true);
-    $otherOrganization->addMember($person, isPrimary: true);
-
-    $primaryOrganizations = $person->organizationRelationships()
-        ->wherePivot('type', OrganizationRelationshipType::Member)
-        ->wherePivot('is_primary', true)
-        ->get();
-
-    expect($primaryOrganizations)->toHaveCount(1)
-        ->and($primaryOrganizations->first()->is($otherOrganization))->toBeTrue()
-        ->and($organization->members()->first()->member->is_primary)->toBeNull();
-});
-
 test('subsidiaries must be organizations', function () {
     $organization = Organization::factory()->create();
     $subsidiary = Organization::factory()->create();
@@ -201,19 +147,5 @@ test('subsidiaries must be organizations', function () {
     expect(fn () => $organization->personCounterparties(OrganizationRelationshipType::Subsidiary)->attach(
         Person::factory()->create(),
         ['type' => OrganizationRelationshipType::Subsidiary],
-    ))->toThrow(InvalidArgumentException::class);
-});
-
-test('members must be people', function () {
-    $organization = Organization::factory()->create();
-    $person = Person::factory()->create();
-
-    $organization->addMember($person);
-
-    expect($organization->members->first()->is($person))->toBeTrue();
-
-    expect(fn () => $organization->organizationCounterparties()->attach(
-        Organization::factory()->create(),
-        ['type' => OrganizationRelationshipType::Member],
     ))->toThrow(InvalidArgumentException::class);
 });

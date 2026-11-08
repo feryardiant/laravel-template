@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Gender;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
+use App\Enums\Role;
 use Creasi\Nusa\Contracts\HasAddresses;
 use Creasi\Nusa\Models\Concerns\WithAddresses;
 use Database\Factories\PersonFactory;
@@ -83,8 +85,26 @@ class Person extends Entity implements HasAddresses
     {
         return $this->morphToMany(Organization::class, 'stakeholder', 'organization_relationships', 'stakeholder_id', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'code', 'start_date', 'finish_date')
+            ->withPivot('type', 'role', 'code', 'start_date', 'finish_date')
             ->as('stakeholder');
+    }
+
+    /**
+     * Get the person's role in the given organization.
+     */
+    public function roleIn(Organization $organization): ?Role
+    {
+        $today = now()->toDateString();
+
+        return OrganizationRelationship::query()
+            ->where('organization_id', $organization->getKey())
+            ->where('stakeholder_type', $this->getMorphClass())
+            ->where('stakeholder_id', $this->getKey())
+            ->where('type', OrganizationRelationshipType::Member)
+            ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
+            ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
+            ->first()
+            ?->role;
     }
 
     /**

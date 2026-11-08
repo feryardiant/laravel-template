@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
 use App\Models\Address;
 use App\Models\Organization;
@@ -105,29 +104,4 @@ it('prevents deleting a primary contact while organizations reference them', fun
     Organization::factory()->create(['contact_id' => $person->id]);
 
     expect(fn () => $person->forceDelete())->toThrow(QueryException::class);
-});
-
-it('can join many organizations with only one primary organization', function () {
-    $person = Person::factory()->create();
-    $first = Organization::factory()->create();
-    $second = Organization::factory()->create();
-    $third = Organization::factory()->create();
-
-    $first->addMember($person);
-    $second->addMember($person, isPrimary: true);
-    $third->addMember($person);
-
-    $primaries = $person->organizationRelationships()
-        ->wherePivot('type', OrganizationRelationshipType::Member)
-        ->wherePivot('is_primary', true)
-        ->get();
-
-    expect($person->organizationRelationships()->wherePivot('type', OrganizationRelationshipType::Member)->count())->toBe(3)
-        ->and($primaries)->toHaveCount(1)
-        ->and($primaries->first()->is($second))->toBeTrue();
-
-    $second->addMember(Person::factory()->create(), isPrimary: true);
-    $second->addMember(Person::factory()->create(), isPrimary: true);
-
-    expect($second->members()->wherePivot('is_primary', true)->count())->toBe(3);
 });
