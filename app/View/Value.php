@@ -165,6 +165,124 @@ final class Value
         return array_values(array_unique($ranges));
     }
 
+    public static function datetime(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d\TH:i');
+        }
+
+        if (! \is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)$/', $value, $matches)) {
+            $date = self::date($matches[1]);
+
+            return $date === null ? null : $date.'T'.$matches[2].':'.$matches[3];
+        }
+
+        $date = self::date($value);
+
+        return $date === null ? null : $date.'T00:00';
+    }
+
+    /**
+     * @return array{start: ?string, end: ?string}
+     */
+    public static function datetimeRange(mixed $value): array
+    {
+        if ($value instanceof DateRange) {
+            return [
+                'start' => self::datetime($value->start()),
+                'end' => self::datetime($value->end()),
+            ];
+        }
+
+        if (\is_string($value)) {
+            [$start, $end] = array_pad(explode('/', $value, 2), 2, null);
+
+            return [
+                'start' => self::datetime($start),
+                'end' => self::datetime($end),
+            ];
+        }
+
+        if (\is_array($value)) {
+            return [
+                'start' => self::datetime($value['start'] ?? null),
+                'end' => self::datetime($value['end'] ?? null),
+            ];
+        }
+
+        return ['start' => null, 'end' => null];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function datetimes(mixed $value): array
+    {
+        if (\is_string($value)) {
+            $value = explode(',', $value);
+        }
+
+        if (! \is_array($value)) {
+            return [];
+        }
+
+        $entries = [];
+
+        foreach ($value as $entry) {
+            if ($entry instanceof DateTimeInterface) {
+                $entries[] = $entry->format('Y-m-d\TH:i');
+
+                continue;
+            }
+
+            if (! \is_string($entry)) {
+                continue;
+            }
+
+            $entry = trim($entry);
+
+            if ($entry === '') {
+                continue;
+            }
+
+            if (preg_match('/^(\d{4}-\d{2}-\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/', $entry, $matches) && ($date = self::date($matches[1])) !== null) {
+                $entries[] = $date.'T'.$matches[2].':'.$matches[3].'-'.$matches[4].':'.$matches[5];
+
+                continue;
+            }
+
+            if (preg_match('/^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/', $entry, $matches)) {
+                $entries[] = $matches[1].':'.$matches[2].'-'.$matches[3].':'.$matches[4];
+
+                continue;
+            }
+
+            if (($date = self::date($entry)) !== null) {
+                $entries[] = $date;
+
+                continue;
+            }
+
+            if (($datetime = self::datetime($entry)) !== null) {
+                $entries[] = $datetime;
+
+                continue;
+            }
+
+            if (($time = self::time($entry)) !== null) {
+                $entries[] = $time;
+            }
+        }
+
+        return array_values(array_unique($entries));
+    }
+
     public static function calendar(mixed $value, string $mode): mixed
     {
         return match ($mode) {

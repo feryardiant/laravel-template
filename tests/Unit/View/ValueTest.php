@@ -70,6 +70,45 @@ it('normalizes unavailable time ranges', function () {
     ]);
 });
 
+it('normalizes datetimes and date-only values', function () {
+    expect(Value::datetime('2026-11-08T10:30'))->toBe('2026-11-08T10:30')
+        ->and(Value::datetime('2026-11-08 10:30'))->toBe('2026-11-08T10:30')
+        ->and(Value::datetime('2026-11-08'))->toBe('2026-11-08T00:00')
+        ->and(Value::datetime('2026-02-30T10:00'))->toBeNull()
+        ->and(Value::datetime(null))->toBeNull();
+});
+
+it('formats Carbon datetimes in their own timezone', function () {
+    $date = Carbon::parse('2026-11-08 23:30:00', 'Asia/Jakarta');
+
+    expect(Value::datetime($date))->toBe('2026-11-08T23:30');
+});
+
+it('normalizes datetime ranges', function () {
+    expect(Value::datetimeRange('2026-11-01T09:00/2026-11-05T17:00'))->toBe([
+        'start' => '2026-11-01T09:00',
+        'end' => '2026-11-05T17:00',
+    ])->and(Value::datetimeRange(['start' => '2026-11-01T09:00', 'end' => null]))->toBe([
+        'start' => '2026-11-01T09:00',
+        'end' => null,
+    ]);
+});
+
+it('normalizes datetime unavailable entries', function () {
+    expect(Value::datetimes([
+        '2026-11-08',
+        '12:00-13:00',
+        '2026-11-09T10:30',
+        '2026-11-10T08:00-09:30',
+        'invalid',
+    ]))->toBe([
+        '2026-11-08',
+        '12:00-13:00',
+        '2026-11-09T10:30',
+        '2026-11-10T08:00-09:30',
+    ]);
+});
+
 it('normalizes a calendar value by mode', function () {
     expect(Value::calendar('2026-11-08', 'single'))->toBe('2026-11-08')
         ->and(Value::calendar(['2026-11-08', '2026-11-09'], 'multiple'))->toBe([

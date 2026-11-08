@@ -62,6 +62,7 @@
             "phpstan analyse"
         ],
         "test": [
+            "Composer\\Config::disableProcessTimeout",
             "@lint",
             "@check",
             "@test:unit",
@@ -77,6 +78,7 @@
             "@php artisan test tests/Feature @additional_args"
         ],
         "test:browser": [
+            "Composer\\Config::disableProcessTimeout",
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test tests/Browser @additional_args"
         ],

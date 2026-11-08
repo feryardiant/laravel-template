@@ -47,6 +47,20 @@ return [
         ],
     ],
 
+    'datetime-picker' => [
+        'label' => 'Pemilih tanggal dan waktu',
+        'placeholder' => 'Pilih tanggal dan waktu',
+        'placeholder-range' => 'Pilih rentang tanggal dan waktu',
+        'start' => 'Mulai',
+        'end' => 'Selesai',
+        'at' => 'pukul',
+        'clear' => 'Kosongkan tanggal dan waktu',
+        'cancel' => 'Batal',
+        'select' => 'Pilih',
+        'select-range' => 'Pilih rentang',
+        'range-invalid' => 'Waktu selesai harus setelah waktu mulai',
+    ],
+
     'time-picker' => [
         'label' => 'Pemilih waktu',
         'hour' => 'Jam',

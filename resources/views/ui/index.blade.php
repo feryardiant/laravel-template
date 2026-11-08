@@ -48,5 +48,13 @@
             <div class="font-medium">Time picker</div>
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Hour and minute columns with multiple selection.</div>
         </a>
+
+        <a
+            href="{{ route('ui.datetime-picker') }}"
+            class="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
+        >
+            <div class="font-medium">Date and time picker</div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">Calendar and time columns for single dates and ranges.</div>
+        </a>
     </div>
 @endsection

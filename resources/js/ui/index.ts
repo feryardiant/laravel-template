@@ -1,6 +1,7 @@
 import { autocompleteData } from './autocomplete'
 import { calendarData } from './calendar'
 import { datePickerData } from './date-picker'
+import { datetimePickerData } from './datetime-picker'
 import { selectData } from './select'
 import { timePickerData } from './time-picker'
 
@@ -10,4 +11,5 @@ document.addEventListener('alpine:init', () => {
     globalThis.Alpine.data('uiCalendar', calendarData)
     globalThis.Alpine.data('uiDatePicker', datePickerData)
     globalThis.Alpine.data('uiTimePicker', timePickerData)
+    globalThis.Alpine.data('uiDatetimePicker', datetimePickerData)
 })

@@ -167,6 +167,58 @@ export interface TimeOption {
     selected: boolean
 }
 
+export type DateTimeMode = 'single' | 'range'
+
+export interface DateTimePickerLabels {
+    label: string
+    placeholder: string
+    placeholderRange: string
+    start: string
+    end: string
+    at: string
+    clear: string
+    cancel: string
+    select: string
+    selectRange: string
+    rangeInvalid: string
+    hour: string
+    minute: string
+    am: string
+    pm: string
+}
+
+export interface DateTimePickerConfig {
+    mode: DateTimeMode
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string
+    months: number
+    timeFormat: TimeFormat
+    interval: number
+    min: string | null
+    max: string | null
+    minDate: string | null
+    maxDate: string | null
+    minTime: string | null
+    maxTime: string | null
+    unavailable: string[]
+    defaultStartTime: string | null
+    defaultEndTime: string | null
+    openToDate: string | null
+    openToTime: string | null
+    placeholder: string | null
+    withConfirmation: boolean
+    clearable: boolean
+    disabled: boolean
+    triggerId: string
+    popoverId: string
+    formInputId: string | null
+    formStartId: string | null
+    formEndId: string | null
+    labels: DateTimePickerLabels
+}
+
 export type DatePickerMode = 'single' | 'range'
 
 export interface DatePickerLabels {

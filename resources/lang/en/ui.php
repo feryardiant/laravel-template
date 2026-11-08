@@ -47,6 +47,20 @@ return [
         ],
     ],
 
+    'datetime-picker' => [
+        'label' => 'Date and time picker',
+        'placeholder' => 'Pick a date and time',
+        'placeholder-range' => 'Pick a date and time range',
+        'start' => 'Start',
+        'end' => 'End',
+        'at' => 'at',
+        'clear' => 'Clear date and time',
+        'cancel' => 'Cancel',
+        'select' => 'Select',
+        'select-range' => 'Select range',
+        'range-invalid' => 'The end must be after the start',
+    ],
+
     'time-picker' => [
         'label' => 'Time picker',
         'hour' => 'Hour',
