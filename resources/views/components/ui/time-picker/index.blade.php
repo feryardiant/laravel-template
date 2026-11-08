@@ -176,7 +176,7 @@
         >
             <div class="flex gap-1">
                 <div class="w-16">
-                    <div class="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    <div data-ui-hour-label class="px-2 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
                         {{ $labels['hour'] }}
                     </div>
 
@@ -211,7 +211,7 @@
                 </div>
 
                 <div class="w-16">
-                    <div class="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    <div data-ui-minute-label class="px-2 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
                         {{ $labels['minute'] }}
                     </div>
 

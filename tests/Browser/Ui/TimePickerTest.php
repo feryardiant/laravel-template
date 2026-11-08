@@ -46,6 +46,31 @@ it('opens the popover and focuses the hour listbox', function () {
         })()");
 });
 
+it('scrolls the selected hour into view and centers the column labels', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-single] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-single]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const list = popover.querySelector('[data-ui-hours]');
+            const active = document.getElementById(list.getAttribute('aria-activedescendant'));
+            const box = list.getBoundingClientRect();
+            const rect = active.getBoundingClientRect();
+
+            return rect.top >= box.top - 1 &&
+                rect.bottom <= box.bottom + 1 &&
+                getComputedStyle(popover.querySelector('[data-ui-hour-label]')).textAlign === 'center' &&
+                getComputedStyle(popover.querySelector('[data-ui-minute-label]')).textAlign === 'center';
+        })()");
+});
+
 it('applies a single time and closes', function () {
     $page = visit('/ui/time-picker')->on()->desktop();
 

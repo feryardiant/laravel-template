@@ -81,6 +81,7 @@ export interface TimePickerData {
     compose: () => string | null
     syncActive: (options: TimeOption[], current: number | null, selected: number | null) => number | null
     onColumnKeydown: (event: KeyboardEvent, column: 'hour' | 'minute') => void
+    scrollColumn: (column: 'hour' | 'minute') => void
     focusFirst: () => void
     dispatch: (name: string, value?: unknown) => void
 }
@@ -250,6 +251,10 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             this.changeHour(value)
             this.activeHour = value
             this.build()
+
+            window.setTimeout(() => {
+                this.scrollColumn('minute')
+            }, 0)
         },
 
         selectMinute(value) {
@@ -299,6 +304,11 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
             this.meridiem = period
             this.build()
+
+            window.setTimeout(() => {
+                this.scrollColumn('hour')
+                this.scrollColumn('minute')
+            }, 0)
         },
 
         add() {
@@ -322,6 +332,10 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             this.activeMinute = null
             this.preservedHour = null
             this.build()
+
+            window.setTimeout(() => {
+                this.scrollColumn('minute')
+            }, 0)
         },
 
         remove(value) {
@@ -723,15 +737,40 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }
 
             window.setTimeout(() => {
-                document
-                    .getElementById(`${column === 'hour' ? config.hoursId : config.minutesId}-${next}`)
-                    ?.scrollIntoView({ block: 'nearest' })
+                this.scrollColumn(column)
             }, 0)
+        },
+
+        scrollColumn(column) {
+            const listboxId = column === 'hour' ? config.hoursId : config.minutesId
+            const listbox = document.getElementById(listboxId)
+            const value = column === 'hour' ? this.activeHour : this.activeMinute
+
+            if (listbox === null || value === null) {
+                return
+            }
+
+            const option = document.getElementById(`${listboxId}-${value}`)
+
+            if (option === null) {
+                return
+            }
+
+            const box = listbox.getBoundingClientRect()
+            const rect = option.getBoundingClientRect()
+
+            if (rect.top < box.top) {
+                listbox.scrollTop -= box.top - rect.top
+            } else if (rect.bottom > box.bottom) {
+                listbox.scrollTop += rect.bottom - box.bottom
+            }
         },
 
         focusFirst() {
             window.setTimeout(() => {
                 document.getElementById(config.hoursId)?.focus()
+                this.scrollColumn('hour')
+                this.scrollColumn('minute')
             }, 0)
         },
 
