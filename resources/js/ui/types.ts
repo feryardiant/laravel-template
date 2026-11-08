@@ -120,6 +120,52 @@ export interface CalendarMonth {
     weeks: CalendarCell[][]
 }
 
+export type TimeFormat = 'auto' | '12-hour' | '24-hour'
+
+export interface TimePickerLabels {
+    hour: string
+    minute: string
+    am: string
+    pm: string
+    clear: string
+    add: string
+    selected: string
+    selectedCount: string
+    placeholder: string
+    placeholderMultiple: string
+}
+
+export interface TimePickerConfig {
+    multiple: boolean
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string
+    format: TimeFormat
+    interval: number
+    min: string | null
+    max: string | null
+    unavailable: string[]
+    openTo: string | null
+    placeholder: string | null
+    clearable: boolean
+    disabled: boolean
+    triggerId: string
+    popoverId: string
+    hoursId: string
+    minutesId: string
+    formInputId: string | null
+    labels: TimePickerLabels
+}
+
+export interface TimeOption {
+    id: string
+    value: number
+    label: string
+    disabled: boolean
+    selected: boolean
+}
+
 export type DatePickerMode = 'single' | 'range'
 
 export interface DatePickerLabels {

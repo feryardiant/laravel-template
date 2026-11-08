@@ -47,6 +47,20 @@ return [
         ],
     ],
 
+    'time-picker' => [
+        'label' => 'Time picker',
+        'hour' => 'Hour',
+        'minute' => 'Minute',
+        'am' => 'AM',
+        'pm' => 'PM',
+        'clear' => 'Clear time',
+        'add' => 'Add time',
+        'selected' => 'Selected times',
+        'selected-count' => ':count selected',
+        'placeholder' => 'Pick a time',
+        'placeholder-multiple' => 'Pick times',
+    ],
+
     'calendar' => [
         'today' => 'Today',
         'previous-month' => 'Previous month',

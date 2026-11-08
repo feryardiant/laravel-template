@@ -40,5 +40,13 @@
             <div class="font-medium">Date picker</div>
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Popover calendar with ranges and presets.</div>
         </a>
+
+        <a
+            href="{{ route('ui.time-picker') }}"
+            class="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
+        >
+            <div class="font-medium">Time picker</div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">Hour and minute columns with multiple selection.</div>
+        </a>
     </div>
 @endsection

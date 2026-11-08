@@ -97,6 +97,74 @@ final class Value
         return ['start' => null, 'end' => null];
     }
 
+    public static function time(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('H:i');
+        }
+
+        if (! \is_string($value)) {
+            return null;
+        }
+
+        if (! preg_match('/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', trim($value), $matches)) {
+            return null;
+        }
+
+        return $matches[1].':'.$matches[2];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function times(mixed $value): array
+    {
+        if (\is_string($value)) {
+            $value = explode(',', $value);
+        }
+
+        if (! \is_array($value)) {
+            return [];
+        }
+
+        $times = array_map(self::time(...), $value);
+
+        return array_values(array_unique(array_filter($times)));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function timeRanges(mixed $value): array
+    {
+        if (\is_string($value)) {
+            $value = explode(',', $value);
+        }
+
+        if (! \is_array($value)) {
+            return [];
+        }
+
+        $ranges = [];
+
+        foreach ($value as $entry) {
+            if (! \is_string($entry)) {
+                continue;
+            }
+
+            if (! preg_match('/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?(?:\s*-\s*([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?)?$/', trim($entry), $matches)) {
+                continue;
+            }
+
+            $start = $matches[1].':'.$matches[2];
+            $end = isset($matches[3], $matches[4]) ? $matches[3].':'.$matches[4] : $start;
+
+            $ranges[] = $start === $end ? $start : $start.'-'.$end;
+        }
+
+        return array_values(array_unique($ranges));
+    }
+
     public static function calendar(mixed $value, string $mode): mixed
     {
         return match ($mode) {

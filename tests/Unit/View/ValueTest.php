@@ -40,6 +40,36 @@ it('normalizes string, array and DateRange ranges', function () {
     ]);
 });
 
+it('normalizes times and rejects invalid values', function () {
+    expect(Value::time('09:30'))->toBe('09:30')
+        ->and(Value::time('09:30:15'))->toBe('09:30')
+        ->and(Value::time('24:00'))->toBeNull()
+        ->and(Value::time('9:30'))->toBeNull()
+        ->and(Value::time(null))->toBeNull();
+});
+
+it('formats Carbon times in their own timezone without converting to UTC', function () {
+    $date = Carbon::parse('2026-11-08 23:30:00', 'Asia/Jakarta');
+
+    expect(Value::time($date))->toBe('23:30');
+});
+
+it('normalizes multiple times and removes duplicates', function () {
+    expect(Value::times('09:00, 10:30'))->toBe(['09:00', '10:30'])
+        ->and(Value::times(['09:00', '09:00', '10:30', 'invalid']))->toBe(['09:00', '10:30']);
+});
+
+it('normalizes unavailable time ranges', function () {
+    expect(Value::timeRanges('03:00,04:00,05:30-07:29'))->toBe([
+        '03:00',
+        '04:00',
+        '05:30-07:29',
+    ])->and(Value::timeRanges(['09:00 - 10:00', 'invalid', '11:00']))->toBe([
+        '09:00-10:00',
+        '11:00',
+    ]);
+});
+
 it('normalizes a calendar value by mode', function () {
     expect(Value::calendar('2026-11-08', 'single'))->toBe('2026-11-08')
         ->and(Value::calendar(['2026-11-08', '2026-11-09'], 'multiple'))->toBe([

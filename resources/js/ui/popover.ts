@@ -5,6 +5,33 @@ export interface PopoverOptions {
     fullWidthOnTouch?: boolean
 }
 
+export function trapTabFocus(container: HTMLElement, event: KeyboardEvent): void {
+    if (event.key !== 'Tab') {
+        return
+    }
+
+    const focusables = Array.from(
+        container.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]',
+        ),
+    ).filter((element) => element.tabIndex >= 0 && element.offsetWidth > 0)
+
+    if (focusables.length === 0) {
+        return
+    }
+
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+    }
+}
+
 export interface PopoverController {
     open: () => void
     close: () => void

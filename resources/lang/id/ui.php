@@ -47,6 +47,20 @@ return [
         ],
     ],
 
+    'time-picker' => [
+        'label' => 'Pemilih waktu',
+        'hour' => 'Jam',
+        'minute' => 'Menit',
+        'am' => 'AM',
+        'pm' => 'PM',
+        'clear' => 'Kosongkan waktu',
+        'add' => 'Tambah waktu',
+        'selected' => 'Waktu terpilih',
+        'selected-count' => ':count dipilih',
+        'placeholder' => 'Pilih waktu',
+        'placeholder-multiple' => 'Pilih beberapa waktu',
+    ],
+
     'calendar' => [
         'today' => 'Hari ini',
         'previous-month' => 'Bulan sebelumnya',

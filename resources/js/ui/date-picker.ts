@@ -15,7 +15,7 @@ import {
     startOfYear,
     toDateKey,
 } from './date'
-import { createPopover, type PopoverController } from './popover'
+import { createPopover, trapTabFocus, type PopoverController } from './popover'
 import type { DatePickerConfig, DatePickerMode, WireLike } from './types'
 
 interface Bounds {
@@ -427,35 +427,10 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         onPopoverKeydown(event) {
-            if (event.key !== 'Tab') {
-                return
-            }
-
             const target = popoverElement()
 
-            if (target === null) {
-                return
-            }
-
-            const focusables = Array.from(
-                target.querySelectorAll<HTMLElement>(
-                    'a[href], button:not([disabled]), input:not([disabled]), [tabindex]',
-                ),
-            ).filter((element) => element.tabIndex >= 0 && element.offsetWidth > 0)
-
-            if (focusables.length === 0) {
-                return
-            }
-
-            const first = focusables[0]
-            const last = focusables[focusables.length - 1]
-
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault()
-                last.focus()
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault()
-                first.focus()
+            if (target !== null) {
+                trapTabFocus(target, event)
             }
         },
 
