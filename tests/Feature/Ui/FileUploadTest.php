@@ -20,6 +20,18 @@ it('renders and removes a single uploaded image', function () {
         ->assertSet('avatar', null);
 });
 
+it('receives files from the plain multipart form', function () {
+    $response = $this->post(route('ui.file-upload.plain'), [
+        'plain_files' => [
+            UploadedFile::fake()->create('one.pdf', 10, 'application/pdf'),
+            UploadedFile::fake()->create('two.pdf', 10, 'application/pdf'),
+        ],
+    ]);
+
+    $response->assertRedirect(route('ui.file-upload'));
+    $response->assertSessionHas('plain_upload_count', 2);
+});
+
 it('renders and removes multiple uploaded photos', function () {
     Livewire::test(FileUpload::class)
         ->set('photos', [
