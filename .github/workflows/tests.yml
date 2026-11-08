@@ -101,8 +101,11 @@ jobs:
       - name: Static Analysis
         run: vendor/bin/phpstan analyse
 
-      - name: Backend Test
-        run: php artisan test
+      - name: Unit Test
+        run: composer test:unit
+
+      - name: Feature Test
+        run: composer test:feature
 
       - name: Browser Test
         run: composer test:browser

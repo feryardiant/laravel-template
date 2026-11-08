@@ -20,7 +20,7 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->in('Feature', 'Browser');
+    ->in('Feature', 'Browser', 'Unit');
 
 /**
  * Sign in through the real login form, optionally on a given viewport.

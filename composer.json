@@ -64,8 +64,13 @@
         "test": [
             "@lint",
             "@check",
+            "@test:unit",
             "@test:feature",
             "@test:browser"
+        ],
+        "test:unit": [
+            "@php artisan config:clear --ansi @no_additional_args",
+            "@php artisan test tests/Unit @additional_args"
         ],
         "test:feature": [
             "@php artisan config:clear --ansi @no_additional_args",
