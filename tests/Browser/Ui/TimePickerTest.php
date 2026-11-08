@@ -459,6 +459,28 @@ it('supports Home, End, PageUp and PageDown in the hour column', function () {
         ->assertScript("document.activeElement.getAttribute('aria-activedescendant').endsWith('-8')");
 });
 
+it('does not enable an hour using another hour off-step minute', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-bounds]');
+            root.querySelector('[data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-bounds]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const hour = (value) => popover.querySelector('[data-ui-hours] [data-hour=\"' + value + '\"]');
+
+            return hour('9').getAttribute('aria-disabled') === 'true' &&
+                hour('10').getAttribute('aria-disabled') === 'true' &&
+                hour('11').getAttribute('aria-disabled') === 'true';
+        })()");
+});
+
 it('writes plain-form hidden fields for single and multiple', function () {
     $page = visit('/ui/time-picker')->on()->desktop();
 

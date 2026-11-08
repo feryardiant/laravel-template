@@ -65,6 +65,17 @@
         <x-ui.time-picker multiple label="Off step multiple" open-to="09:17" interval="30" />
     </section>
 
+    <section data-ui-demo="time-picker-off-step-bounds" class="max-w-xs space-y-3">
+        <x-ui.time-picker
+            label="Off step bounds"
+            value="09:17"
+            open-to="09:17"
+            interval="30"
+            min="10:17"
+            max="10:20"
+        />
+    </section>
+
     <section data-ui-demo="time-picker-plain" class="max-w-xs space-y-3">
         <form method="get" action="{{ route('ui.time-picker') }}" class="space-y-4">
             <x-ui.time-picker name="plain_time" value="14:30" label="Plain time" interval="30" />

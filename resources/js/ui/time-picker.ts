@@ -74,6 +74,7 @@ export interface TimePickerData {
     changeHour: (value: number) => void
     build: () => void
     hourOptions: () => HourOption[]
+    minuteCandidates: (hour: number) => number[]
     minuteValues: () => number[]
     hourEnabled: (hour: number) => boolean
     isDisabled: (hour: number, minute: number) => boolean
@@ -583,7 +584,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }))
         },
 
-        minuteValues(): number[] {
+        minuteCandidates(hour): number[] {
             const values: number[] = []
 
             for (let minute = 0; minute < 60; minute += interval) {
@@ -593,7 +594,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             if (
                 this.minute !== null &&
                 this.minute % interval !== 0 &&
-                this.preservedHour === this.hour &&
+                hour === this.preservedHour &&
                 !values.includes(this.minute)
             ) {
                 values.push(this.minute)
@@ -602,8 +603,12 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             return values.sort((left, right) => left - right)
         },
 
+        minuteValues(): number[] {
+            return this.minuteCandidates(this.hour ?? 0)
+        },
+
         hourEnabled(hour) {
-            return this.minuteValues().some((minute) => !this.isDisabled(hour, minute))
+            return this.minuteCandidates(hour).some((minute) => !this.isDisabled(hour, minute))
         },
 
         isDisabled(hour, minute) {
