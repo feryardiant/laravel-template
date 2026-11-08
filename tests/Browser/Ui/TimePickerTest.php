@@ -328,6 +328,137 @@ it('traps Tab focus inside the popover', function () {
         })()");
 });
 
+it('keeps an off-step value only for its own hour', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=time-picker-off-step]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step]');
+            const popover = root.querySelector('[data-ui-popover]');
+
+            return popover.querySelector('[data-ui-minutes] [data-minute=\"17\"]') !== null &&
+                popover.querySelector('[data-ui-minutes] [data-minute=\"17\"]').getAttribute('aria-selected') === 'true';
+        })()")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step]');
+            root.querySelector('[data-ui-popover] [data-ui-hours] [data-hour=\"10\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.2)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const minutes = [...popover.querySelectorAll('[data-ui-minutes] [data-minute]')].map((option) => option.dataset.minute);
+
+            return ! minutes.includes('17') && minutes.join('|') === '0|30';
+        })()")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step]');
+            root.querySelector('[data-ui-popover] [data-ui-minutes] [data-minute=\"0\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.6)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step]');
+            const picker = window.Alpine.\$data(root.querySelector('[data-ui-time-picker]'));
+
+            return picker.selected === '10:00';
+        })()");
+});
+
+it('snaps an off-step open-to minute for new multiple selections', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=time-picker-off-step-multiple]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-multiple]');
+            const popover = root.querySelector('[data-ui-popover]');
+
+            return popover.querySelector('[data-ui-minutes] [data-minute=\"17\"]') === null;
+        })()")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-multiple]');
+            root.querySelector('[data-ui-popover] [data-ui-hours] [data-hour=\"10\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.2)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-multiple]');
+            root.querySelector('[data-ui-popover] [data-ui-minutes] [data-minute=\"0\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.2)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-multiple]');
+            root.querySelector('[data-ui-popover] [data-ui-add]').click();
+
+            return true;
+        })()")
+        ->wait(0.6)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-off-step-multiple]');
+            const picker = window.Alpine.\$data(root.querySelector('[data-ui-time-picker]'));
+
+            return picker.selectedValues.includes('10:00');
+        })()");
+});
+
+it('keeps focus inside when removing a selected time with the keyboard', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=time-picker-multiple]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->keys('[data-ui-demo=time-picker-multiple] [data-ui-selected]', ['End', 'Enter'])
+        ->wait(0.5)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-multiple]');
+
+            return root.querySelector('[data-ui-bound=times]').textContent.trim() === '09:00' &&
+                document.activeElement.hasAttribute('data-ui-selected') &&
+                root.querySelector('[data-ui-popover]').contains(document.activeElement);
+        })()");
+});
+
+it('supports Home, End, PageUp and PageDown in the hour column', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        document.querySelector('[data-ui-demo=time-picker-single] [data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->keys('[data-ui-demo=time-picker-single] [data-ui-hours]', ['End'])
+        ->assertScript("document.activeElement.getAttribute('aria-activedescendant').endsWith('-18')")
+        ->keys('[data-ui-demo=time-picker-single] [data-ui-hours]', ['Home'])
+        ->assertScript("document.activeElement.getAttribute('aria-activedescendant').endsWith('-8')")
+        ->keys('[data-ui-demo=time-picker-single] [data-ui-hours]', ['PageDown'])
+        ->assertScript("document.activeElement.getAttribute('aria-activedescendant').endsWith('-13')")
+        ->keys('[data-ui-demo=time-picker-single] [data-ui-hours]', ['PageUp'])
+        ->assertScript("document.activeElement.getAttribute('aria-activedescendant').endsWith('-8')");
+});
+
 it('writes plain-form hidden fields for single and multiple', function () {
     $page = visit('/ui/time-picker')->on()->desktop();
 

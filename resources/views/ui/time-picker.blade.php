@@ -57,6 +57,14 @@
         />
     </section>
 
+    <section data-ui-demo="time-picker-off-step" class="max-w-xs space-y-3">
+        <x-ui.time-picker label="Off step" value="09:17" open-to="09:17" interval="30" />
+    </section>
+
+    <section data-ui-demo="time-picker-off-step-multiple" class="max-w-xs space-y-3">
+        <x-ui.time-picker multiple label="Off step multiple" open-to="09:17" interval="30" />
+    </section>
+
     <section data-ui-demo="time-picker-plain" class="max-w-xs space-y-3">
         <form method="get" action="{{ route('ui.time-picker') }}" class="space-y-4">
             <x-ui.time-picker name="plain_time" value="14:30" label="Plain time" interval="30" />

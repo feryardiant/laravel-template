@@ -35,6 +35,8 @@ export interface TimePickerData {
     minutes: TimeOption[]
     activeHour: number | null
     activeMinute: number | null
+    activeSelected: string | null
+    preservedHour: number | null
     now: string
     init: (el?: HTMLElement) => void
     destroy: () => void
@@ -59,12 +61,17 @@ export interface TimePickerData {
     isSelected: (value: string) => boolean
     activeHourId: () => string
     activeMinuteId: () => string
+    activeSelectedId: () => string
+    selectedOptionId: (value: string) => string
+    onSelectedKeydown: (event: KeyboardEvent) => void
+    syncSelectedActive: () => void
     placeholderText: () => string
     formatSelected: (value: string) => string
     renderDisplay: () => void
     resolveBounds: () => void
     initialDraft: () => string
-    setDraft: (key: string) => void
+    setDraft: (key: string, preserve?: boolean) => void
+    changeHour: (value: number) => void
     build: () => void
     hourOptions: () => HourOption[]
     minuteValues: () => number[]
@@ -125,13 +132,15 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         minutes: [],
         activeHour: null,
         activeMinute: null,
+        activeSelected: null,
+        preservedHour: null,
 
         init(el) {
             rootEl = el ?? null
             unavailable = parseUnavailable(config.unavailable)
             this.applyValue(readModel(wire, config.model, config.value))
             this.resolveBounds()
-            this.setDraft(this.initialDraft())
+            this.setDraft(this.initialDraft(), !this.multiple && this.selected !== null)
             this.build()
 
             const trigger = document.getElementById(config.triggerId)
@@ -163,7 +172,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 this.renderDisplay()
 
                 if (this.open && !this.multiple) {
-                    this.setDraft(this.selected ?? this.now)
+                    this.setDraft(this.selected ?? this.now, this.selected !== null)
                     this.activeHour = null
                     this.activeMinute = null
                     this.build()
@@ -179,6 +188,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         applyValue(value) {
             if (this.multiple) {
                 this.selectedValues = normalize(value, true) as string[]
+                this.syncSelectedActive()
             } else {
                 this.selected = normalize(value, false) as string | null
             }
@@ -194,7 +204,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             this.resolveBounds()
             this.activeHour = null
             this.activeMinute = null
-            this.setDraft(this.initialDraft())
+            this.setDraft(this.initialDraft(), !this.multiple && this.selected !== null)
             this.build()
             popover?.open()
         },
@@ -210,6 +220,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
             this.selected = null
             this.selectedValues = []
+            this.activeSelected = null
             this.minute = null
             this.commit()
             dispatch(this, 'clear')
@@ -235,7 +246,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
-            this.hour = value
+            this.changeHour(value)
             this.activeHour = value
             this.build()
         },
@@ -280,8 +291,9 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
             if (this.hour !== null) {
                 const display = this.hour % 12 || 12
-                this.hour = (display % 12) + (period === 'pm' ? 12 : 0)
-                this.activeHour = this.hour
+                const hour = (display % 12) + (period === 'pm' ? 12 : 0)
+                this.changeHour(hour)
+                this.activeHour = hour
             }
 
             this.meridiem = period
@@ -303,9 +315,11 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 this.selectedValues = [...this.selectedValues, time].sort(compareTime)
             }
 
+            this.activeSelected = time
             this.commit()
             this.minute = null
             this.activeMinute = null
+            this.preservedHour = null
             this.build()
         },
 
@@ -314,8 +328,82 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
+            const index = this.selectedValues.indexOf(value)
+
             this.selectedValues = this.selectedValues.filter((selected) => selected !== value)
+
+            if (this.selectedValues.length === 0) {
+                this.activeSelected = null
+            } else {
+                this.activeSelected = this.selectedValues[Math.min(Math.max(index, 0), this.selectedValues.length - 1)]
+            }
+
             this.commit()
+
+            window.setTimeout(() => {
+                document.getElementById(config.selectedId)?.focus()
+            }, 0)
+        },
+
+        syncSelectedActive() {
+            if (this.selectedValues.length === 0) {
+                this.activeSelected = null
+
+                return
+            }
+
+            if (this.activeSelected === null || !this.selectedValues.includes(this.activeSelected)) {
+                this.activeSelected = this.selectedValues[0]
+            }
+        },
+
+        selectedOptionId(value) {
+            return `${config.selectedId}-${value.replace(':', '')}`
+        },
+
+        activeSelectedId() {
+            return this.activeSelected === null ? '' : this.selectedOptionId(this.activeSelected)
+        },
+
+        onSelectedKeydown(event) {
+            if (this.selectedValues.length === 0) {
+                return
+            }
+
+            const current = this.activeSelected ?? this.selectedValues[0]
+            const index = this.selectedValues.indexOf(current)
+            let next: string | null = null
+
+            if (event.key === 'ArrowDown') {
+                next = this.selectedValues[(index + 1) % this.selectedValues.length]
+            } else if (event.key === 'ArrowUp') {
+                next = this.selectedValues[(index - 1 + this.selectedValues.length) % this.selectedValues.length]
+            } else if (event.key === 'Home') {
+                next = this.selectedValues[0]
+            } else if (event.key === 'End') {
+                next = this.selectedValues[this.selectedValues.length - 1]
+            } else if (
+                event.key === 'Enter' ||
+                event.key === ' ' ||
+                event.key === 'Delete' ||
+                event.key === 'Backspace'
+            ) {
+                event.preventDefault()
+                this.remove(current)
+
+                return
+            } else {
+                return
+            }
+
+            event.preventDefault()
+            this.activeSelected = next
+
+            window.setTimeout(() => {
+                if (next !== null) {
+                    document.getElementById(this.selectedOptionId(next))?.scrollIntoView({ block: 'nearest' })
+                }
+            }, 0)
         },
 
         onTriggerClick() {
@@ -426,12 +514,30 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             return this.selected ?? (config.openTo === 'now' ? this.now : (toTime(config.openTo) ?? this.now))
         },
 
-        setDraft(key) {
+        setDraft(key, preserve = false) {
             const minutes = minutesOfDay(key ?? this.now) ?? 0
+            const rawMinute = minutes % 60
 
             this.hour = Math.floor(minutes / 60)
-            this.minute = minutes % 60
+
+            if (preserve && rawMinute % interval !== 0) {
+                this.preservedHour = this.hour
+                this.minute = rawMinute
+            } else {
+                this.preservedHour = null
+                this.minute = rawMinute % interval === 0 ? rawMinute : Math.floor(rawMinute / interval) * interval
+            }
+
             this.meridiem = this.hour >= 12 ? 'pm' : 'am'
+        },
+
+        changeHour(value) {
+            if (this.minute !== null && this.minute % interval !== 0 && value !== this.preservedHour) {
+                this.minute = null
+                this.preservedHour = null
+            }
+
+            this.hour = value
         },
 
         build() {
@@ -484,7 +590,12 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 values.push(minute)
             }
 
-            if (this.minute !== null && !values.includes(this.minute)) {
+            if (
+                this.minute !== null &&
+                this.minute % interval !== 0 &&
+                this.preservedHour === this.hour &&
+                !values.includes(this.minute)
+            ) {
                 values.push(this.minute)
             }
 

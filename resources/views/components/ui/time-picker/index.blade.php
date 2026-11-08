@@ -42,6 +42,7 @@
     $popoverId = 'ui-time-picker-'.$key.'-popover';
     $hoursId = 'ui-time-picker-'.$key.'-hours';
     $minutesId = 'ui-time-picker-'.$key.'-minutes';
+    $selectedId = 'ui-time-picker-'.$key.'-selected';
     $isPlain = $model === null && $name !== null;
     $formInputId = $isPlain && ! $isMultiple ? 'ui-time-picker-'.$key.'-input' : null;
 
@@ -79,6 +80,7 @@
         'popoverId' => $popoverId,
         'hoursId' => $hoursId,
         'minutesId' => $minutesId,
+        'selectedId' => $selectedId,
         'formInputId' => $formInputId,
         'labels' => $labels,
     ];
@@ -266,21 +268,23 @@
 
             <div x-show="multiple" x-cloak class="mt-2 space-y-2 border-t border-zinc-200 pt-2 dark:border-white/10">
                 <div
+                    id="{{ $selectedId }}"
                     data-ui-selected
                     role="listbox"
+                    tabindex="0"
                     aria-multiselectable="true"
                     x-bind:aria-label="labels.selected"
-                    class="max-h-32 overflow-y-auto"
+                    x-bind:aria-activedescendant="activeSelectedId()"
+                    x-on:keydown="onSelectedKeydown($event)"
+                    class="max-h-32 overflow-y-auto scroll-py-2"
                 >
                     <template x-for="selected in selectedValues" :key="selected">
                         <div
                             role="option"
+                            :id="selectedOptionId(selected)"
                             :data-time="selected"
                             aria-selected="true"
-                            tabindex="0"
                             x-on:click="remove(selected)"
-                            x-on:keydown.enter.prevent="remove(selected)"
-                            x-on:keydown.space.prevent="remove(selected)"
                             class="flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm tabular-nums text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10 [@media(hover:none)]:min-h-11"
                         >
                             <span x-text="formatSelected(selected)"></span>

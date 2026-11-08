@@ -154,6 +154,7 @@ export interface TimePickerConfig {
     popoverId: string
     hoursId: string
     minutesId: string
+    selectedId: string
     formInputId: string | null
     labels: TimePickerLabels
 }
