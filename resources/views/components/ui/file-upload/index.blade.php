@@ -16,7 +16,6 @@
     $name = $attributes->get('name');
     $isMultiple = (bool) $multiple;
     $inputName = $name === null ? null : ($isMultiple ? $name.'[]' : $name);
-    $inputId = 'ui-file-upload-'.\Illuminate\Support\Str::random(12).'-input';
     $invalid = $error !== null || ($model !== null && $errors->has($model));
     $accessibleLabel = $label ?? $attributes->get('aria-label') ?? __('ui.file-upload.drop');
 
@@ -54,10 +53,10 @@
         x-on:livewire-upload-progress="onUploadProgress($event)"
         x-on:livewire-upload-finish="onUploadFinish()"
         x-on:livewire-upload-error="onUploadFinish()"
+        x-on:livewire-upload-cancel="onUploadCancel()"
         class="relative"
     >
         <input
-            id="{{ $inputId }}"
             type="file"
             @if ($model !== null) wire:model="{{ $model }}" @elseif ($inputName !== null) name="{{ $inputName }}" @endif
             @if ($isMultiple) multiple @endif

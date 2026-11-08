@@ -30,6 +30,7 @@ export interface FileUploadData {
     onUploadStart: () => void
     onUploadProgress: (event: Event) => void
     onUploadFinish: () => void
+    onUploadCancel: () => void
     progressStyle: () => string
 }
 
@@ -166,6 +167,11 @@ export function fileUploadData(config: FileUploadConfig, wire: WireLike | null):
         onUploadFinish() {
             this.loading = false
             this.progress = 100
+            this.announcement = ''
+        },
+
+        onUploadCancel() {
+            this.loading = false
             this.announcement = ''
         },
 

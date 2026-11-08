@@ -33,7 +33,9 @@ it('wires the hidden input, dropzone and plain-form name', function () {
                 dropzone.getAttribute('aria-describedby') !== null &&
                 plain.name === 'plain_files[]' &&
                 plain.multiple &&
-                plain.accept === '.pdf';
+                plain.accept === '.pdf' &&
+                plain.closest('form').method.toLowerCase() === 'post' &&
+                plain.closest('form').enctype === 'multipart/form-data';
         })()");
 });
 
@@ -156,6 +158,54 @@ it('drives the progress bar and loading state from upload events', function () {
         })()");
 });
 
+it('clears loading when an upload is canceled', function () {
+    $page = visit('/ui/file-upload')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const input = document.querySelector('[data-ui-demo=file-upload-photos] input[type=file]');
+        input.dispatchEvent(new CustomEvent('livewire-upload-start', { bubbles: true }));
+
+        return true;
+    })()")
+        ->wait(0.1)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getAttribute('data-loading') === 'true'")
+        ->assertScript("(() => {
+            const input = document.querySelector('[data-ui-demo=file-upload-photos] input[type=file]');
+            input.dispatchEvent(new CustomEvent('livewire-upload-cancel', { bubbles: true }));
+
+            return true;
+        })()")
+        ->wait(0.1)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getAttribute('data-loading') === null");
+});
+
+it('keeps the file input morph-stable during an upload', function () {
+    $page = visit('/ui/file-upload')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const input = document.querySelector('[data-ui-demo=file-upload-photos] input[type=file]');
+        input.dispatchEvent(new CustomEvent('livewire-upload-start', { bubbles: true }));
+
+        return true;
+    })()")
+        ->wait(0.1)
+        ->click('[data-ui-test=refresh]')
+        ->wait(0.7)
+        ->assertScript("(() => {
+            const input = document.querySelector('[data-ui-demo=file-upload-photos] input[type=file]');
+
+            return input !== null && ! input.hasAttribute('id');
+        })()")
+        ->assertScript("(() => {
+            const input = document.querySelector('[data-ui-demo=file-upload-photos] input[type=file]');
+            input.dispatchEvent(new CustomEvent('livewire-upload-progress', { bubbles: true, detail: { progress: 42 } }));
+
+            return true;
+        })()")
+        ->wait(0.15)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-file-upload]').getAttribute('style').includes('42%')");
+});
+
 it('does not open a disabled upload', function () {
     visit('/ui/file-upload')
         ->on()
@@ -197,6 +247,7 @@ it('keeps the dropzone and remove targets touch-friendly on mobile', function ()
         ->on()
         ->mobile()
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-avatar] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
         ->assertScript("(() => {
             const remove = document.querySelector('[data-ui-demo=file-upload-remove] [aria-label^=\"Hapus file:\"]');
 

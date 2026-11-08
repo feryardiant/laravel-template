@@ -42,6 +42,8 @@
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Uploaded: <span data-ui-upload-count="photos">{{ count($photos) }}</span>
         </p>
+
+        <flux:button size="sm" wire:click="$refresh" data-ui-test="refresh">Refresh component</flux:button>
     </section>
 
     <section data-ui-demo="file-upload-avatar" class="max-w-lg space-y-3">
@@ -114,11 +116,25 @@
     </section>
 
     <section data-ui-demo="file-upload-plain" class="max-w-lg space-y-3">
-        <form method="get" action="{{ route('ui.file-upload') }}" class="space-y-3">
-            <x-ui.file-upload name="plain_files" multiple accept=".pdf" label="Plain files" description="Submits with the form">
+        <form
+            method="post"
+            action="{{ route('ui.file-upload.plain') }}"
+            enctype="multipart/form-data"
+            class="space-y-3"
+        >
+            @csrf
+
+            <x-ui.file-upload name="plain_files" multiple accept=".pdf" label="Plain files" description="Submitted as multipart form data">
                 <x-ui.file-upload.dropzone inline />
             </x-ui.file-upload>
         </form>
+
+        @if (session('plain_upload_count') !== null)
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                Received:
+                <span data-ui-plain-result="{{ session('plain_upload_count') }}">{{ session('plain_upload_count') }}</span>
+            </p>
+        @endif
     </section>
 
     <section data-ui-demo="file-upload-items" class="max-w-lg space-y-3">
