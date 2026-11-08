@@ -7,7 +7,7 @@ namespace App\Enums;
 /**
  * The kinds of relationships an organization has with its stakeholders.
  */
-enum OrganizationRelativeType: string
+enum OrganizationRelationshipType: string
 {
     /**
      * A organization that act as subsidiary or child organization.

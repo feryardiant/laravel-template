@@ -24,9 +24,9 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property string $name
  * @property ?string $summary
  * @property-read ?User $user
- * @property-read Collection<int, Person> $personalRelative
- * @property-read Collection<int, Organization> $organizationalRelatives
- * @property-read Collection<int, Organization> $organizations
+ * @property-read Collection<int, Person> $relatives
+ * @property-read Collection<int, Organization> $organizationRelationships
+ * @property-read Collection<int, Organization> $primaryContactOrganizations
  *
  * @implements HasAddresses<static>
  */
@@ -60,15 +60,15 @@ class Person extends Entity implements HasAddresses
     /**
      * @return HasMany<Organization, $this>
      */
-    public function organizations(): HasMany
+    public function primaryContactOrganizations(): HasMany
     {
-        return $this->hasMany(Organization::class, 'owner_id');
+        return $this->hasMany(Organization::class, 'contact_id');
     }
 
     /**
      * @return BelongsToMany<Person, $this, PersonRelative, 'relation'>
      */
-    public function personalRelative(): BelongsToMany
+    public function relatives(): BelongsToMany
     {
         return $this->belongsToMany(Person::class, 'people_relatives', 'person_id', 'relative_id')
             ->withPivot('type')
@@ -77,12 +77,12 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
-     * @return MorphToMany<Organization, $this, OrganizationRelative, 'stakeholder'>
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'stakeholder'>
      */
-    public function organizationalRelatives(): MorphToMany
+    public function organizationRelationships(): MorphToMany
     {
-        return $this->morphToMany(Organization::class, 'stakeholder', 'organizations_relatives', 'stakeholder_id', 'organization_id')
-            ->using(OrganizationRelative::class)
+        return $this->morphToMany(Organization::class, 'stakeholder', 'organization_relationships', 'stakeholder_id', 'organization_id')
+            ->using(OrganizationRelationship::class)
             ->withPivot('type', 'code', 'start_date', 'finish_date')
             ->as('stakeholder');
     }
@@ -90,8 +90,8 @@ class Person extends Entity implements HasAddresses
     /**
      * Attach a relative to this person.
      */
-    public function addPersonalRelative(Person $relative, PersonRelativeType $type): void
+    public function addRelative(Person $relative, PersonRelativeType $type): void
     {
-        $this->personalRelative()->attach($relative, ['type' => $type]);
+        $this->relatives()->attach($relative, ['type' => $type]);
     }
 }

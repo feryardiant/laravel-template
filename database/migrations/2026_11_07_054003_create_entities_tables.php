@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Gender;
-use App\Enums\OrganizationRelativeType;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -19,7 +19,7 @@ return new class extends Migration
         Schema::create('people', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->unique()->constrained('users')->nullOnDelete();
 
             $table->string('name');
             $table->enum('gender', Gender::cases())->nullable();
@@ -39,7 +39,7 @@ return new class extends Migration
         Schema::create('organizations', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('owner_id')->constrained('people')->cascadeOnDelete();
+            $table->foreignId('contact_id')->constrained('people')->restrictOnDelete();
 
             $table->string('name');
             $table->string('summary')->nullable();
@@ -48,17 +48,23 @@ return new class extends Migration
             $table->softDeletes();
         });
 
-        Schema::create('organizations_relatives', function (Blueprint $table) {
+        Schema::create('organization_relationships', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->nullableMorphs('stakeholder');
 
-            $table->string('code')->unique()->nullable();
-            $table->enum('type', OrganizationRelativeType::cases())->nullable();
+            $table->string('code')->nullable();
+            $table->enum('type', OrganizationRelationshipType::cases())->nullable();
             $table->boolean('is_primary')->nullable();
             $table->string('remark')->nullable();
             $table->date('start_date')->nullable();
             $table->date('finish_date')->nullable();
+
+            $table->unique(['organization_id', 'code']);
+            $table->unique(
+                ['stakeholder_type', 'stakeholder_id', 'type', 'is_primary'],
+                'org_relationship_primary_unique',
+            );
         });
     }
 
@@ -67,7 +73,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('organizations_relatives');
+        Schema::dropIfExists('organization_relationships');
         Schema::dropIfExists('organizations');
         Schema::dropIfExists('people_relatives');
         Schema::dropIfExists('people');

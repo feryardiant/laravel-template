@@ -24,7 +24,7 @@ class OrganizationFactory extends Factory
     public function definition(): array
     {
         return [
-            'owner_id' => Person::factory(),
+            'contact_id' => Person::factory(),
             'name' => fake()->company(),
             'summary' => fake()->sentence(),
         ];

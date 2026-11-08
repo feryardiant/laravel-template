@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\OrganizationRelativeType;
+use App\Enums\OrganizationRelationshipType;
 use Carbon\CarbonInterface;
 use Creasi\Nusa\Contracts\HasAddress;
 use Creasi\Nusa\Models\Concerns\WithAddress;
@@ -14,14 +14,17 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Business entity that relates to other organizations and people.
  *
+ * @property int $contact_id
  * @property string $name
  * @property ?string $summary
- * @property-read Collection<int, Organization> $organizationalRelatives
- * @property-read Collection<int, Person> $individualRelatives
+ * @property-read ?Person $primaryContact
+ * @property-read Collection<int, Organization> $organizationCounterparties
+ * @property-read Collection<int, Person> $personCounterparties
  * @property-read Collection<int, Organization> $subsidiaries
  * @property-read Collection<int, Person> $members
  *
@@ -39,70 +42,70 @@ class Organization extends Entity implements HasAddress
     /**
      * @return BelongsTo<Person, $this>
      */
-    public function owner(): BelongsTo
+    public function primaryContact(): BelongsTo
     {
-        return $this->belongsTo(Person::class, 'owner_id');
+        return $this->belongsTo(Person::class, 'contact_id');
     }
 
     /**
      * @template TEntity of Entity
      *
-     * @param  class-string<TEntity>  $relative
-     * @return MorphToMany<TEntity, $this, OrganizationRelative>
+     * @param  class-string<TEntity>  $stakeholder
+     * @return MorphToMany<TEntity, $this, OrganizationRelationship>
      */
-    protected function relatives(string $relative): MorphToMany
+    protected function relationships(string $stakeholder): MorphToMany
     {
-        return $this->morphedByMany($relative, 'stakeholder', 'organizations_relatives', 'organization_id')
-            ->using(OrganizationRelative::class)
+        return $this->morphedByMany($stakeholder, 'stakeholder', 'organization_relationships', 'organization_id')
+            ->using(OrganizationRelationship::class)
             ->withPivot('type', 'code', 'start_date', 'finish_date');
     }
 
     /**
-     * @return MorphToMany<Organization, $this, OrganizationRelative, 'stakeholder'>
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'stakeholder'>
      */
-    public function organizationalRelatives(?OrganizationRelativeType ...$type): MorphToMany
+    public function organizationCounterparties(?OrganizationRelationshipType ...$type): MorphToMany
     {
         if (empty($type)) {
-            $type = OrganizationRelativeType::externals();
+            $type = OrganizationRelationshipType::externals();
         }
 
-        return $this->relatives(Organization::class)
+        return $this->relationships(Organization::class)
             ->wherePivotIn('type', $type)
             ->as('stakeholder');
     }
 
     /**
-     * @return MorphToMany<Person, $this, OrganizationRelative, 'stakeholder'>
+     * @return MorphToMany<Person, $this, OrganizationRelationship, 'stakeholder'>
      */
-    public function individualRelatives(?OrganizationRelativeType ...$type): MorphToMany
+    public function personCounterparties(?OrganizationRelationshipType ...$type): MorphToMany
     {
         if (empty($type)) {
-            $type = OrganizationRelativeType::externals();
+            $type = OrganizationRelationshipType::externals();
         }
 
-        return $this->relatives(Person::class)
+        return $this->relationships(Person::class)
             ->wherePivotIn('type', $type)
             ->as('stakeholder');
     }
 
     /**
-     * @return MorphToMany<Person, $this, OrganizationRelative, 'member'>
+     * @return MorphToMany<Person, $this, OrganizationRelationship, 'member'>
      */
     public function members(): MorphToMany
     {
-        return $this->relatives(Person::class)
+        return $this->relationships(Person::class)
             ->withPivot('is_primary')
-            ->wherePivot('type', '=', OrganizationRelativeType::Member)
+            ->wherePivot('type', '=', OrganizationRelationshipType::Member)
             ->as('member');
     }
 
     /**
-     * @return MorphToMany<Organization, $this, OrganizationRelative, 'subsidiary'>
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'subsidiary'>
      */
     public function subsidiaries(): MorphToMany
     {
-        return $this->relatives(Organization::class)
-            ->wherePivot('type', '=', OrganizationRelativeType::Subsidiary)
+        return $this->relationships(Organization::class)
+            ->wherePivot('type', '=', OrganizationRelationshipType::Subsidiary)
             ->as('subsidiary');
     }
 
@@ -115,17 +118,33 @@ class Organization extends Entity implements HasAddress
         ?CarbonInterface $finishDate = null,
         ?CarbonInterface $startDate = null,
     ): void {
-        if ($isPrimary) {
-            $member->organizationalRelatives()->newPivotQuery()
-                ->where('type', OrganizationRelativeType::Member)
-                ->update(['is_primary' => false]);
+        if (! $isPrimary) {
+            $this->members()->attach($member, [
+                'type' => OrganizationRelationshipType::Member,
+                'is_primary' => null,
+                'start_date' => $startDate,
+                'finish_date' => $finishDate,
+            ]);
+
+            return;
         }
 
-        $this->members()->attach($member, [
-            'type' => OrganizationRelativeType::Member,
-            'is_primary' => $isPrimary,
-            'start_date' => $startDate,
-            'finish_date' => $finishDate,
-        ]);
+        DB::transaction(function () use ($member, $finishDate, $startDate): void {
+            $member->newQuery()
+                ->whereKey($member->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $member->organizationRelationships()->newPivotQuery()
+                ->where('type', OrganizationRelationshipType::Member)
+                ->update(['is_primary' => null]);
+
+            $this->members()->attach($member, [
+                'type' => OrganizationRelationshipType::Member,
+                'is_primary' => true,
+                'start_date' => $startDate,
+                'finish_date' => $finishDate,
+            ]);
+        });
     }
 }

@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Enums\OrganizationRelativeType;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
 use App\Models\Address;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PersonRelative;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 
 /**
  * Person model tests.
@@ -24,13 +26,39 @@ it('gets a stable uuid', function () {
         ->toBe($person->fresh()->uuid);
 });
 
+it('can exist without a credential', function () {
+    $person = Person::factory()->withoutCredential()->create();
+
+    expect($person->user_id)->toBeNull()
+        ->and($person->user)->toBeNull();
+});
+
+it('allows only one person per credential', function () {
+    $user = User::factory()->create();
+
+    Person::factory()->create(['user_id' => $user->id]);
+
+    expect(fn () => Person::factory()->create(['user_id' => $user->id]))
+        ->toThrow(QueryException::class);
+});
+
+it('keeps a person and their primary-contact organizations when their credential is deleted', function () {
+    $person = Person::factory()->create();
+    $organization = Organization::factory()->create(['contact_id' => $person->id]);
+
+    $person->user->delete();
+
+    expect($person->fresh()->user_id)->toBeNull()
+        ->and($organization->fresh())->toBeInstanceOf(Organization::class);
+});
+
 it('can have relatives', function () {
     $person = Person::factory()->create();
     $relative = Person::factory()->create();
 
-    $person->addPersonalRelative($relative, PersonRelativeType::Sibling);
+    $person->addRelative($relative, PersonRelativeType::Sibling);
 
-    expect($person->personalRelative->first())
+    expect($person->relatives->first())
         ->relation->toBeInstanceOf(PersonRelative::class)
         ->relation->type->toBe(PersonRelativeType::Sibling);
 });
@@ -44,14 +72,22 @@ it('have many addresses', function () {
         ->addresses->first()->toBeInstanceOf(Address::class);
 });
 
-it('can own organizations', function () {
+it('can be the primary contact for organizations', function () {
     $person = Person::factory()->create();
-    $organization = Organization::factory()->create(['owner_id' => $person->id]);
+    $organization = Organization::factory()->create(['contact_id' => $person->id]);
 
-    expect($person->organizations->first()->is($organization))->toBeTrue();
+    expect($organization->primaryContact->is($person))->toBeTrue()
+        ->and($person->primaryContactOrganizations->first()->is($organization))->toBeTrue();
 });
 
-it('can join many organizations but only have one primary organization', function () {
+it('prevents deleting a primary contact while organizations reference them', function () {
+    $person = Person::factory()->create();
+    Organization::factory()->create(['contact_id' => $person->id]);
+
+    expect(fn () => $person->forceDelete())->toThrow(QueryException::class);
+});
+
+it('can join many organizations with only one primary organization', function () {
     $person = Person::factory()->create();
     $first = Organization::factory()->create();
     $second = Organization::factory()->create();
@@ -61,27 +97,17 @@ it('can join many organizations but only have one primary organization', functio
     $second->addMember($person, isPrimary: true);
     $third->addMember($person);
 
-    $primaries = $person->organizationalRelatives()
-        ->wherePivot('type', OrganizationRelativeType::Member)
+    $primaries = $person->organizationRelationships()
+        ->wherePivot('type', OrganizationRelationshipType::Member)
         ->wherePivot('is_primary', true)
         ->get();
 
-    expect($person->organizationalRelatives()->wherePivot('type', OrganizationRelativeType::Member)->count())->toBe(3)
+    expect($person->organizationRelationships()->wherePivot('type', OrganizationRelationshipType::Member)->count())->toBe(3)
         ->and($primaries)->toHaveCount(1)
         ->and($primaries->first()->is($second))->toBeTrue();
 
-    $third->addMember($person, isPrimary: true);
-
-    $primaries = $person->organizationalRelatives()
-        ->wherePivot('type', OrganizationRelativeType::Member)
-        ->wherePivot('is_primary', true)
-        ->get();
-
-    expect($primaries)->toHaveCount(1)
-        ->and($primaries->first()->is($third))->toBeTrue();
-
     $second->addMember(Person::factory()->create(), isPrimary: true);
     $second->addMember(Person::factory()->create(), isPrimary: true);
 
-    expect($second->members()->wherePivot('is_primary', true)->count())->toBe(2);
+    expect($second->members()->wherePivot('is_primary', true)->count())->toBe(3);
 });

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\OrganizationRelativeType;
+use App\Enums\OrganizationRelationshipType;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
@@ -12,12 +12,12 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use InvalidArgumentException;
 
 /**
- * Pivot linking an organization to one of its stakeholders.
+ * Pivot representing an organization's relationship with one of its stakeholders.
  *
  * @property ?string $code
  * @property int $organization_id
  * @property ?string $stakeholder_type
- * @property null|OrganizationRelativeType $type
+ * @property null|OrganizationRelationshipType $type
  * @property null|string $remark
  * @property null|CarbonImmutable $start_date
  * @property null|CarbonImmutable $finish_date
@@ -27,34 +27,38 @@ use InvalidArgumentException;
  * @property-read bool $is_external
  * @property-read Entity $stakeholder
  */
-class OrganizationRelative extends MorphPivot
+class OrganizationRelationship extends MorphPivot
 {
-    protected $table = 'organizations_relatives';
+    protected $table = 'organization_relationships';
 
     /**
      * Ensure the stakeholder type matches the relationship type.
      */
     protected static function booted(): void
     {
-        static::saving(function (self $relative): void {
-            if ($relative->type === null || $relative->stakeholder_type === null) {
+        static::saving(function (self $relationship): void {
+            if ($relationship->type !== OrganizationRelationshipType::Member || $relationship->is_primary === false) {
+                $relationship->is_primary = null;
+            }
+
+            if ($relationship->type === null || $relationship->stakeholder_type === null) {
                 return;
             }
 
-            $stakeholder = Relation::getMorphedModel($relative->stakeholder_type)
-                ?? $relative->stakeholder_type;
+            $stakeholder = Relation::getMorphedModel($relationship->stakeholder_type)
+                ?? $relationship->stakeholder_type;
 
-            $allowed = match ($relative->type) {
-                OrganizationRelativeType::Subsidiary => [Organization::class],
-                OrganizationRelativeType::Member => [Person::class],
-                OrganizationRelativeType::Customer,
-                OrganizationRelativeType::Supplier,
-                OrganizationRelativeType::Vendor => [Organization::class, Person::class],
+            $allowed = match ($relationship->type) {
+                OrganizationRelationshipType::Subsidiary => [Organization::class],
+                OrganizationRelationshipType::Member => [Person::class],
+                OrganizationRelationshipType::Customer,
+                OrganizationRelationshipType::Supplier,
+                OrganizationRelationshipType::Vendor => [Organization::class, Person::class],
             };
 
             if (! \in_array($stakeholder, $allowed, true)) {
                 throw new InvalidArgumentException(
-                    "Invalid stakeholder for {$relative->type->value} relation."
+                    "Invalid stakeholder for {$relationship->type->value} relationship."
                 );
             }
         });
@@ -67,7 +71,7 @@ class OrganizationRelative extends MorphPivot
     {
         return [
             'organization_id' => 'int',
-            'type' => OrganizationRelativeType::class,
+            'type' => OrganizationRelationshipType::class,
             'start_date' => 'immutable_date',
             'finish_date' => 'immutable_date',
         ];

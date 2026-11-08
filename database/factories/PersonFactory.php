@@ -73,9 +73,9 @@ class PersonFactory extends Factory
     /**
      * Attach a personal relative of the given type.
      */
-    public function withPersonalRelative(PersonFactory $relative, PersonRelativeType $type): static
+    public function withRelative(PersonFactory $relative, PersonRelativeType $type): static
     {
-        return $this->hasAttached($relative, ['type' => $type], 'personalRelative');
+        return $this->hasAttached($relative, ['type' => $type], 'relatives');
     }
 
     /**
