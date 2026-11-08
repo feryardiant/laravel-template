@@ -465,6 +465,77 @@ it('traps Tab focus inside the popover', function () {
         })()");
 });
 
+it('fits the single time panel to the calendar and removes the right gap', function () {
+    visit('/ui/datetime-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-single] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-single]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const calendar = popover.querySelector('[data-ui-calendar]');
+            const panel = popover.querySelector('[data-ui-time-panel]');
+            const list = popover.querySelector('[data-endpoint=start] [data-column=hour]');
+
+            return Math.abs(panel.offsetHeight - calendar.offsetHeight) <= 1 &&
+                panel.offsetWidth <= 120 &&
+                Math.abs(list.getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom) <= 1;
+        })()");
+});
+
+it('fits the range time panel to the calendar with four visible rows', function () {
+    visit('/ui/datetime-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const calendar = popover.querySelector('[data-ui-calendar]');
+            const panel = popover.querySelector('[data-ui-time-panel]');
+            const lists = [...popover.querySelectorAll('[data-ui-time-columns] [data-column=hour]')];
+
+            return Math.abs(panel.offsetHeight - calendar.offsetHeight) <= 1 &&
+                lists.length === 2 &&
+                lists.every((list) => {
+                    const row = list.querySelector('[role=option]').offsetHeight;
+
+                    return list.clientHeight === row * 4;
+                });
+        })()");
+});
+
+it('scrolls the constrained hour column to the selected time on open', function () {
+    visit('/ui/datetime-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-constrained] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-constrained]');
+            const list = root.querySelector('[data-ui-popover] [data-endpoint=start] [data-column=hour]');
+            const active = document.getElementById(list.getAttribute('aria-activedescendant'));
+            const box = list.getBoundingClientRect();
+            const rect = active.getBoundingClientRect();
+
+            return active.dataset.hour === '10' && rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1;
+        })()");
+});
+
 it('repairs a single time that becomes unavailable on a new date', function () {
     visit('/ui/datetime-picker')
         ->on()

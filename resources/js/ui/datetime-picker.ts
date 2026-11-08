@@ -94,6 +94,7 @@ export interface DateTimePickerData {
     timeOptionId: (endpoint: Endpoint, column: Column, value: number) => string
     onTimeKeydown: (event: KeyboardEvent, endpoint: Endpoint, column: Column) => void
     scrollTimeColumn: (endpoint: Endpoint, column: Column) => void
+    sizeTimePanel: () => void
     syncActive: (options: TimeOption[], current: number | null, selected: number | null) => number | null
     renderDisplay: () => void
     placeholderText: () => string
@@ -106,6 +107,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
     let suppressFocus = false
+    let timeObserver: ResizeObserver | null = null
+    let resizeListener: (() => void) | null = null
     let unavailable: DateTimeUnavailable = parseUnavailable([])
 
     const interval = Math.min(60, Math.max(1, config.interval))
@@ -185,6 +188,16 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             const target = popoverElement()
 
             if (trigger !== null && target !== null) {
+                const calendar = target.querySelector<HTMLElement>('[data-ui-calendar]')
+
+                if (calendar !== null && typeof ResizeObserver !== 'undefined') {
+                    timeObserver = new ResizeObserver(() => this.sizeTimePanel())
+                    timeObserver.observe(calendar)
+                }
+
+                resizeListener = () => this.sizeTimePanel()
+                window.addEventListener('resize', resizeListener)
+
                 popover = createPopover(trigger, target, {
                     focusTarget: trigger,
                     fullWidthOnTouch: true,
@@ -220,6 +233,14 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
 
         destroy() {
             unwatch?.()
+            timeObserver?.disconnect()
+            timeObserver = null
+
+            if (resizeListener !== null) {
+                window.removeEventListener('resize', resizeListener)
+                resizeListener = null
+            }
+
             popover?.destroy()
         },
 
@@ -1026,7 +1047,27 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     target.querySelector<HTMLElement>('button:not([disabled])')
 
                 initial?.focus()
+                this.sizeTimePanel()
+                this.scrollTimeColumn('start', 'hour')
+                this.scrollTimeColumn('start', 'minute')
+
+                if (this.mode === 'range') {
+                    this.scrollTimeColumn('end', 'hour')
+                    this.scrollTimeColumn('end', 'minute')
+                }
             }, 0)
+        },
+
+        sizeTimePanel() {
+            const target = popoverElement()
+            const calendar = target?.querySelector<HTMLElement>('[data-ui-calendar]')
+            const panel = target?.querySelector<HTMLElement>('[data-ui-time-panel]')
+
+            if (calendar === undefined || calendar === null || panel === undefined || panel === null) {
+                return
+            }
+
+            panel.style.height = window.matchMedia('(min-width: 1024px)').matches ? `${calendar.offsetHeight}px` : ''
         },
 
         dispatch(name, value) {

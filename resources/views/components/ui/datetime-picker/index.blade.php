@@ -169,6 +169,7 @@
     ];
 
     $endpoints = $isRange ? ['start', 'end'] : ['start'];
+    $optionHeight = $isRange ? 'h-7' : 'h-8';
     $rootAttributes = $attributes->filter(
         fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'name',
     );
@@ -288,20 +289,20 @@
                     />
                 </div>
 
-                <div class="flex shrink-0 flex-col gap-3 lg:w-40">
+                <div data-ui-time-panel class="flex shrink-0 flex-col gap-3">
                     @foreach ($endpoints as $endpoint)
-                        <div data-ui-time-columns data-endpoint="{{ $endpoint }}">
+                        <div data-ui-time-columns data-endpoint="{{ $endpoint }}" class="flex flex-col lg:min-h-0 lg:flex-1">
                             @if ($isRange)
                                 <div class="px-1 pb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                                     {{ $labels[$endpoint] }}
                                 </div>
                             @endif
 
-                            <div class="flex gap-1">
-                                <div class="w-14">
+                            <div class="flex min-h-0 flex-1 gap-1">
+                                <div class="flex w-14 min-h-0 flex-col">
                                     <div
                                         data-ui-{{ $endpoint }}-hour-label
-                                        class="px-1 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                                        class="px-1 py-0.5 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400"
                                     >
                                         {{ $labels['hour'] }}
                                     </div>
@@ -314,7 +315,7 @@
                                         aria-label="{{ $isRange ? $labels[$endpoint].' '.$labels['hour'] : $labels['hour'] }}"
                                         x-bind:aria-activedescendant="activeTimeId('{{ $endpoint }}', 'hour')"
                                         x-on:keydown="onTimeKeydown($event, '{{ $endpoint }}', 'hour')"
-                                        class="max-h-40 overflow-y-auto scroll-py-2"
+                                        class="max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1"
                                     >
                                         <template x-for="option in {{ $endpoint }}.hours" :key="option.id">
                                             <div
@@ -329,17 +330,17 @@
                                                     : option.selected
                                                         ? 'cursor-pointer bg-accent text-accent-foreground'
                                                         : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                                class="flex h-8 items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
+                                                class="flex {{ $optionHeight }} items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
                                                 x-text="option.label"
                                             ></div>
                                         </template>
                                     </div>
                                 </div>
 
-                                <div class="w-14">
+                                <div class="flex w-14 min-h-0 flex-col">
                                     <div
                                         data-ui-{{ $endpoint }}-minute-label
-                                        class="px-1 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                                        class="px-1 py-0.5 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400"
                                     >
                                         {{ $labels['minute'] }}
                                     </div>
@@ -352,7 +353,7 @@
                                         aria-label="{{ $isRange ? $labels[$endpoint].' '.$labels['minute'] : $labels['minute'] }}"
                                         x-bind:aria-activedescendant="activeTimeId('{{ $endpoint }}', 'minute')"
                                         x-on:keydown="onTimeKeydown($event, '{{ $endpoint }}', 'minute')"
-                                        class="max-h-40 overflow-y-auto scroll-py-2"
+                                        class="max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1"
                                     >
                                         <template x-for="option in {{ $endpoint }}.minutes" :key="option.id">
                                             <div
@@ -367,7 +368,7 @@
                                                     : option.selected
                                                         ? 'cursor-pointer bg-accent text-accent-foreground'
                                                         : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                                class="flex h-8 items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
+                                                class="flex {{ $optionHeight }} items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
                                                 x-text="option.label"
                                             ></div>
                                         </template>
