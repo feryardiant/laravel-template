@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 
+use function Pest\Laravel\post;
+
 beforeEach(function () {
     Storage::fake(FileUploadConfiguration::disk());
 });
@@ -29,7 +31,7 @@ it('renders and clears a custom avatar uploader', function () {
 });
 
 it('receives files from the plain multipart form', function () {
-    $response = $this->post(route('ui.file-upload.plain'), [
+    $response = post(route('ui.file-upload.plain'), [
         'plain_files' => [
             UploadedFile::fake()->create('one.pdf', 10, 'application/pdf'),
             UploadedFile::fake()->create('two.pdf', 10, 'application/pdf'),
