@@ -95,6 +95,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
     let ready = false
     let form: HTMLFormElement | null = null
     let onReset: (() => void) | null = null
+    let initialValues: string[] = []
 
     const multiple = config.variant === 'pillbox' ? true : config.multiple
 
@@ -134,6 +135,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             }
 
             this.selectedValues = normalizeValues(readModel(wire, config.model, config.value))
+            initialValues = [...this.selectedValues]
             this.refresh()
 
             popover = createPopover(trigger() ?? anchorElement, popoverElement, {
@@ -161,8 +163,20 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
 
             if (form !== null) {
                 onReset = () => {
-                    this.selectedValues = normalizeValues(config.value)
-                    this.refresh()
+                    // Run after the browser restores the form controls, then put
+                    // the trigger and submitted value back in sync.
+                    window.setTimeout(() => {
+                        this.selectedValues = [...initialValues]
+                        this.refresh()
+
+                        const element = trigger()
+
+                        if (element instanceof HTMLInputElement) {
+                            element.value = this.display
+                        }
+
+                        this.commit()
+                    }, 0)
                 }
 
                 form.addEventListener('reset', onReset)

@@ -63,6 +63,20 @@ it('keeps the typeahead character when typing reopens the listbox', function () 
         ->assertScript("document.querySelector('[data-ui-demo=select-single] [data-ui-option]:not([hidden])').dataset.value === 'design'");
 });
 
+it('restores the initial selection when the form resets', function () {
+    $page = visit('/ui/select')->on()->desktop();
+
+    $page->click('[data-ui-demo="select-form-reset"] [role="combobox"]')
+        ->click('[data-ui-demo="select-form-reset"] [data-ui-option][data-value="design"]')
+        ->wait(0.3)
+        ->assertScript("document.querySelector('[data-ui-demo=select-form-reset] [role=combobox]').value === 'Design services'")
+        ->assertScript("document.querySelector('[data-ui-demo=select-form-reset] input[type=hidden]').value === 'design'")
+        ->click('[data-ui-demo="select-form-reset"] [data-ui-test=reset-select]')
+        ->wait(0.3)
+        ->assertScript("document.querySelector('[data-ui-demo=select-form-reset] [role=combobox]').value === 'Web development'")
+        ->assertScript("document.querySelector('[data-ui-demo=select-form-reset] input[type=hidden]').value === 'web'");
+});
+
 it('keeps multiple selections open and clears them', function () {
     $page = visit('/ui/select')->on()->desktop();
 

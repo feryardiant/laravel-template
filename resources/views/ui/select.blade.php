@@ -148,4 +148,15 @@
             <flux:description>Outer field description</flux:description>
         </flux:field>
     </section>
+
+    <section data-ui-demo="select-form-reset" class="space-y-2">
+        <form class="space-y-2">
+            <x-ui.select name="reset_industry" value="web" label="Reset industry">
+                <x-ui.select.option value="web">Web development</x-ui.select.option>
+                <x-ui.select.option value="design">Design services</x-ui.select.option>
+            </x-ui.select>
+
+            <flux:button type="reset" size="sm" data-ui-test="reset-select">Reset</flux:button>
+        </form>
+    </section>
 </div>

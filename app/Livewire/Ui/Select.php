@@ -14,7 +14,7 @@ use Livewire\Component;
 #[Layout('ui.layout')]
 class Select extends Component
 {
-    public string $industry = 'web';
+    public ?string $industry = 'web';
 
     /**
      * @var array<int, string>
