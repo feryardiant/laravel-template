@@ -15,21 +15,23 @@
     'meridiemWhen' => 'hour12',
     'onSelectAm' => null,
     'onSelectPm' => null,
-    'optionClass' => 'h-8',
-    'columnClass' => 'w-16 [@media(hover:none)]:flex-1',
-    'listClass' => 'max-h-56 overflow-y-auto scroll-py-2',
-    'headerClass' => 'px-2 py-1',
-    'meridiemWrapperClass' => 'flex flex-col gap-1 pt-6 [@media(hover:none)]:flex-1',
-    'meridiemClass' => 'flex h-8 min-w-12 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors [@media(hover:none)]:min-h-11',
 ])
 
 @php
     $hourLabel = __('ui.time-picker.hour');
     $minuteLabel = __('ui.time-picker.minute');
+
+    $columnClass = $attributes->pluck('class:column', 'w-16 [@media(hover:none)]:flex-1');
+    $listClass = $attributes->pluck('class:list', 'max-h-56 overflow-y-auto scroll-py-2');
+    $headerClass = $attributes->pluck('class:header', 'px-2 pb-2');
+    $optionClass = $attributes->pluck('class:option', 'h-8');
+    $meridiemWrapperClass = $attributes->pluck('class:meridiem-wrapper', 'flex flex-col gap-1 pt-6 [@media(hover:none)]:flex-1');
+    $meridiemClass = $attributes->pluck('class:meridiem', 'flex h-8 min-w-12 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors [@media(hover:none)]:min-h-11');
 @endphp
 
 {{-- Presentational hour/minute columns. State, bounds and unavailable rules
-     stay with the consuming component. --}}
+     stay with the consuming component. `class:*` parts are consumed with
+     Flux's pluck macro, so they never reach the DOM. --}}
 <div {{ $attributes->merge(['class' => 'flex gap-1']) }}>
     <div class="{{ $columnClass }}">
         <div data-ui-hour-label class="{{ $headerClass }} text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">

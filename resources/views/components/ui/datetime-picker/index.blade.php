@@ -312,14 +312,14 @@
                             is-pm="draft.meridiem === 'pm'"
                             on-select-am="setMeridiem('am')"
                             on-select-pm="setMeridiem('pm')"
-                            :option-class="$optionHeight"
                             class="min-h-0 flex-1"
-                            column-class="flex flex-1 flex-col min-w-11"
-                            :list-class="$isRange
+                            class:column="flex flex-1 flex-col min-w-11"
+                            class:option="{{ $optionHeight }}"
+                            class:list="{{ $isRange
                                 ? 'max-h-44 overflow-y-auto scroll-py-2'
-                                : 'max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1'"
-                            meridiem-wrapper-class="flex flex-col gap-1 pt-6"
-                            meridiem-class="flex h-8 min-w-10 items-center justify-center rounded-md px-1 text-xs font-medium transition-colors [@media(hover:none)]:min-h-11"
+                                : 'max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1' }}"
+                            class:meridiem-wrapper="flex flex-col gap-1 pt-6"
+                            class:meridiem="flex h-8 min-w-10 items-center justify-center rounded-md px-1 text-xs font-medium transition-colors [@media(hover:none)]:min-h-11"
                         />
                     </div>
 
