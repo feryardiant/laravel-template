@@ -370,6 +370,17 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                 return
             }
 
+            // Invalidate any request started by the cleared query.
+            if (debounceTimer !== null) {
+                clearTimeout(debounceTimer)
+                debounceTimer = null
+            }
+
+            abortController?.abort()
+            abortController = null
+            requestId++
+            this.loading = false
+
             this.query = ''
             this.results = []
             this.emptyVisible = false

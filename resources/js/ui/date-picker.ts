@@ -534,7 +534,35 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         canConfirm() {
-            return this.draftStart !== null && (this.mode === 'single' || this.draftEnd !== null)
+            if (this.draftStart === null || (this.mode === 'range' && this.draftEnd === null)) {
+                return false
+            }
+
+            const start = this.draftStart
+            const end = this.draftEnd ?? this.draftStart
+            const today = localTodayKey()
+            const min = config.min === 'today' ? today : toDateKey(config.min)
+            const max = config.max === 'today' ? today : toDateKey(config.max)
+
+            if (compareKeys(start, end) > 0) {
+                return false
+            }
+
+            if (min !== null && compareKeys(start, min) < 0) {
+                return false
+            }
+
+            if (max !== null && compareKeys(end, max) > 0) {
+                return false
+            }
+
+            return presetAllowed(
+                { start, end },
+                config.unavailable,
+                config.minRange,
+                config.maxRange,
+                this.mode === 'range',
+            )
         },
 
         syncCalendar() {

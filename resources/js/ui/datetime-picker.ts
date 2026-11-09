@@ -311,6 +311,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
 
                 if (this.isPopoverOpen()) {
                     this.syncDrafts()
+                    this.syncCalendar()
                 }
             })
         },
