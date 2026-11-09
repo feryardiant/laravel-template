@@ -83,7 +83,10 @@
     $openToDate = null;
     $openToTime = null;
 
-    if ($openTo === 'now') {
+    if ($openTo instanceof \DateTimeInterface) {
+        $openToDate = $openTo->format('Y-m-d');
+        $openToTime = $openTo->format('H:i');
+    } elseif ($openTo === 'now') {
         $openToDate = $now->format('Y-m-d');
         $openToTime = $now->format('H:i');
     } elseif ($openTo === 'today') {

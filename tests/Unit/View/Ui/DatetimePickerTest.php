@@ -57,3 +57,13 @@ it('marks the field invalid when its model has errors', function () {
     $view->assertSee('data-invalid', false)
         ->assertSee('aria-invalid="true"', false);
 });
+
+it('keeps the time of an open-to datetime object', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.datetime-picker :open-to="$when" />', [
+        'when' => new DateTimeImmutable('2026-11-15 14:30'),
+    ]);
+
+    $view->assertSee('2026-11-15', false)
+        ->assertSee('14:30', false);
+});
