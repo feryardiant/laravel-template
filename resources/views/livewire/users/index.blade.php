@@ -5,7 +5,7 @@
             <flux:subheading>{{ __('All registered users') }}</flux:subheading>
         </div>
 
-        @if (auth()->user()->role->canManageUsers())
+        @if (auth()->user()->can('create', \App\Models\User::class))
             <div class="hidden items-center gap-2 sm:flex">
                 <flux:button variant="primary" icon="plus" wire:click="$set('showCreateModal', true)">
                     {{ __('Add user') }}
@@ -60,7 +60,7 @@
 
     <flux:separator variant="subtle" />
 
-    @php($canManageUsers = auth()->user()->role->canManageUsers())
+    @php($canCreateUsers = auth()->user()->can('create', \App\Models\User::class))
     @php($selectedIds = array_map('intval', $selected))
 
     <flux:checkbox.group
@@ -71,7 +71,7 @@
             <flux:table.columns>
                 <flux:table.column>
                     <span class="inline-flex items-center gap-2">
-                        @if ($canManageUsers)
+                        @if ($canCreateUsers)
                             <label class="relative -m-1.5 inline-flex shrink-0 cursor-pointer items-center justify-center p-1.5">
                                 <input
                                     type="checkbox"
@@ -115,7 +115,7 @@
                 @foreach ($users as $user)
                     @php($isCurrentUser = $user->is(auth()->user()))
                     @php($isSelected = in_array($user->id, $selectedIds, true))
-                    @php($canManageUser = $canManageUsers && ! $isCurrentUser && (auth()->user()->role->isOwner() || ! $user->role->isOwner()))
+                    @php($canManageUser = auth()->user()->can('delete', $user))
 
                     <flux:table.row
                         :key="$user->id"
