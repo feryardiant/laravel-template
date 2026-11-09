@@ -253,6 +253,102 @@ it('clears the value without opening the popover', function () {
 
             return root.querySelector('[data-ui-bound=date]').textContent.trim() === '' &&
                 root.querySelector('[data-ui-trigger]').value === '' &&
+                root.querySelector('[data-ui-popover]').matches(':popover-open') === false &&
+                getComputedStyle(root.querySelector('[aria-label=\"Kosongkan tanggal\"]')).display === 'none';
+        })()");
+});
+
+it('clears a selected single value without JavaScript errors', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=date-picker-single]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single]');
+            const cell = [...root.querySelectorAll('[data-ui-popover] td[data-date]:not([data-outside]):not([aria-disabled=true])')][9];
+
+            cell.querySelector('button').click();
+
+            return true;
+        })()")
+        ->wait(0.7)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single]');
+            root.querySelector('[aria-label=\"Kosongkan tanggal\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.4);
+
+    assertNoBackendErrors();
+
+    $page->assertNoJavaScriptErrors()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single]');
+
+            return root.querySelector('[data-ui-bound=date]').textContent.trim() === '' &&
+                root.querySelector('[data-ui-trigger]').value === '';
+        })()");
+});
+
+it('clears a selected range without JavaScript errors', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=date-picker-range]');
+        root.querySelector('[data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            const cells = root.querySelectorAll('[data-ui-popover] [role=grid]')[0].querySelectorAll('td[data-date]:not([data-outside])');
+
+            cells[cells.length - 6].querySelector('button').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            const cells = root.querySelectorAll('[data-ui-popover] [role=grid]')[0].querySelectorAll('td[data-date]:not([data-outside])');
+
+            cells[cells.length - 2].querySelector('button').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            const confirm = [...root.querySelectorAll('[data-ui-popover] button')].find((button) => button.textContent.trim() === 'Pilih rentang');
+
+            confirm.click();
+
+            return true;
+        })()")
+        ->wait(0.6)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+            root.querySelector('[aria-label=\"Kosongkan tanggal\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.4);
+
+    assertNoBackendErrors();
+
+    $page->assertNoJavaScriptErrors()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-range]');
+
+            return root.querySelector('[data-ui-trigger]').value === '' &&
+                root.querySelector('[data-ui-bound=range]').textContent.trim() === '/' &&
                 root.querySelector('[data-ui-popover]').matches(':popover-open') === false;
         })()");
 });

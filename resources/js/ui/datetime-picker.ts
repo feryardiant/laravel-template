@@ -422,7 +422,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.rangeStart = null
             this.rangeEnd = null
             this.setTimeDraft(null)
-            this.write(null)
+            this.write(this.mode === 'range' ? { start: null, end: null } : null)
             dispatch(this, 'clear')
             this.closePopover()
         },

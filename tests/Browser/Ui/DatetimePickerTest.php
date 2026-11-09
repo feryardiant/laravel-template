@@ -451,6 +451,94 @@ it('clears the value without opening the popover', function () {
 
             return root.querySelector('[data-ui-bound=start-at]').textContent.trim() === '' &&
                 root.querySelector('[data-ui-trigger]').value === '' &&
+                root.querySelector('[data-ui-popover]').matches(':popover-open') === false &&
+                getComputedStyle(root.querySelector('[aria-label=\"Kosongkan tanggal dan waktu\"]')).display === 'none';
+        })()");
+});
+
+it('clears a selected single value without JavaScript errors', function () {
+    $page = visit('/ui/datetime-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        document.querySelector('[data-ui-demo=datetime-picker-empty] [data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-empty]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-15\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.5)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-empty]');
+            root.querySelector('[aria-label=\"Kosongkan tanggal dan waktu\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.4);
+
+    assertNoBackendErrors();
+
+    $page->assertNoJavaScriptErrors()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-empty]');
+
+            return root.querySelector('[data-ui-bound=empty-at]').textContent.trim() === '' &&
+                root.querySelector('[data-ui-trigger]').value === '';
+        })()");
+});
+
+it('clears a selected range without JavaScript errors', function () {
+    $page = visit('/ui/datetime-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        document.querySelector('[data-ui-demo=datetime-picker-range] [data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-12\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-14\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+            const confirm = [...root.querySelectorAll('[data-ui-popover] .border-t button')].find((button) => button.textContent.trim() === 'Pilih rentang');
+
+            confirm.click();
+
+            return true;
+        })()")
+        ->wait(0.6)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+            root.querySelector('[aria-label=\"Kosongkan tanggal dan waktu\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.4);
+
+    assertNoBackendErrors();
+
+    $page->assertNoJavaScriptErrors()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
+
+            return root.querySelector('[data-ui-trigger]').value === '' &&
+                root.querySelector('[data-ui-bound=schedule]').textContent.trim() === '/' &&
                 root.querySelector('[data-ui-popover]').matches(':popover-open') === false;
         })()");
 });

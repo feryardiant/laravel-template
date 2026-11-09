@@ -373,12 +373,9 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         commit() {
-            const value =
-                this.mode === 'range'
-                    ? this.draftStart === null
-                        ? null
-                        : { start: this.draftStart, end: this.draftEnd }
-                    : this.draftStart
+            // Range models keep their shape when cleared; a bare null resets a typed
+            // array property to [] and breaks consumers reading start/end.
+            const value = this.mode === 'range' ? { start: this.draftStart, end: this.draftEnd } : this.draftStart
 
             this.start = this.draftStart
             this.end = this.draftEnd
