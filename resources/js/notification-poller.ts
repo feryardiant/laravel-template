@@ -13,27 +13,6 @@ type PollerResponse = {
     closeLabel: string
 }
 
-type ToastOptions = {
-    heading?: string
-    text?: string
-    variant?: string
-    duration?: number
-    link?: {
-        label: string
-        href: string
-        navigate?: boolean
-    }
-}
-
-declare global {
-    interface Window {
-        Flux?: {
-            toast: (options: ToastOptions) => void
-        }
-        __notificationPollerStarted?: boolean
-    }
-}
-
 const interval = 5000
 
 const isActive = (): boolean => document.visibilityState === 'visible' && document.hasFocus()

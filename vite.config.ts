@@ -1,11 +1,16 @@
 import tailwindcss from '@tailwindcss/vite'
 import laravel from 'laravel-vite-plugin'
 import { fontsource } from 'laravel-vite-plugin/fonts'
-import { defineConfig, lazyPlugins, loadEnv, type UserConfig } from 'vite-plus'
+import { defineConfig, lazyPlugins, loadEnv, type TestUserConfig, type UserConfig } from 'vite-plus'
 
 export default defineConfig(({ mode }): UserConfig => {
     const env = loadEnv(mode, '.', '')
     const appUrl = new URL(env.APP_URL || 'http://localhost')
+    const reporters: TestUserConfig['reporters'] = ['default']
+
+    if (env.GITHUB_ACTIONS === 'true') {
+        reporters.push('github-actions')
+    }
 
     return {
         staged: {
@@ -42,6 +47,16 @@ export default defineConfig(({ mode }): UserConfig => {
                 'vite-plus/prefer-vite-plus-imports': 'error',
                 'no-console': ['error', { allow: ['warn', 'error'] }],
             },
+        },
+        test: {
+            include: ['resources/js/**/*.test.ts'],
+            // testTimeout: 60000,
+            // hookTimeout: 40000,
+            // coverage: {
+            //     provider: 'istanbul',
+            //     reportsDirectory: 'tests/reports/coverage',
+            // },
+            reporters,
         },
         plugins: lazyPlugins(() => [
             laravel({

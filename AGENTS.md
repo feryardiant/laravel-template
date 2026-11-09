@@ -8,12 +8,13 @@ Laravel 13 / PHP 8.4 app. UI is Blade + Livewire 4 + Flux UI 2 + Tailwind 4; aut
 | --- | --- |
 | First-time setup | `composer setup`, then `npm ci` |
 | Dev (server, queue, logs, Vite) | `composer run dev` (same as `php artisan dev`); `php artisan dev:list` shows the processes |
-| Full gate | `composer test` — Pint check → PHPStan → Pest (Feature) → Pest (Browser) |
+| Full gate | `composer test` — Pint check → PHPStan → Pest (Unit) → Pest (Feature) → Pest (Browser); Vitest is separate (`vp test run`) |
 | Feature tests | `composer test:feature` (also run by `composer test`) — clears config, then Pest on `tests/Feature`; forwards extra args |
 | Browser (end-to-end) tests | `composer test:browser` (also run by `composer test`) — once per clone: `vpx playwright install chromium` |
 | Backend format | `composer format`, or `vendor/bin/pint --dirty --format agent` for only changed files |
 | Backend static analysis | `composer check` (Larastan level 7: `app/`, `bootstrap/app.php`, `config/`, `database/`, `routes/`) |
 | Frontend lint/format/typecheck | `npm run lint` / `npm run format` (Vite+ `vp check`, type-aware) |
+| Frontend unit tests | `vp test run` (Vitest through Vite+; file filters forwarded) |
 | Frontend build | `npm run build` (Vite+ `vp build`) |
 | One test file | `php artisan test --compact tests/Feature/DashboardTest.php` |
 | One test | `vendor/bin/pest tests/Feature/DashboardTest.php --filter=testName` |
@@ -43,6 +44,12 @@ Laravel 13 / PHP 8.4 app. UI is Blade + Livewire 4 + Flux UI 2 + Tailwind 4; aut
 - `phpunit.xml` deliberately leaves the DB env vars commented, so tests use the `.env.testing` (or `.env`) connection: a local `php artisan test` runs against PostgreSQL and `RefreshDatabase` wipes that database. Never point tests at data you need.
 - Every Feature and Browser test automatically uses `RefreshDatabase` (`tests/Pest.php`). Fortify feature tests use `$this->skipUnlessFortifyHas(...)` from `tests/TestCase.php` instead of asserting on disabled features.
 - Browser tests live in `tests/Browser` (Pest Browser + Playwright) and also run as part of `composer test`; run them alone with `composer test:browser`. Use the shared `browserLogin()` helper in `tests/Pest.php`. They need built assets (`npm run build`) and Chromium (`vpx playwright install chromium`); CI installs only the headless shell, so use the full install locally for headed debugging. Assert the Indonesian UI text because `APP_LOCALE=id`, and run `php artisan optimize:clear` when Livewire assets 404 on a stale cache.
+- Pick the lowest test layer that proves the behavior:
+  - pure JS helpers → a colocated Vitest file (`resources/js/util/date.ts` → `resources/js/util/date.test.ts`) importing from `vite-plus/test`; the suite includes `resources/js/**/*.test.ts` and has no DOM environment, so keep it pure;
+  - Blade markup and server-rendered attributes → `tests/Unit/View/Ui` with `$this->blade()`;
+  - Livewire page rendering → `tests/Feature/Ui` with `Livewire::test()`;
+  - `tests/Browser` only for interaction, Alpine reactivity, computed layout/touch sizes, accessibility audits, popovers and uploads.
+- `composer test` does not run Vitest; run `vp test run` separately (or `vpr test`). CI runs `vp check` and `vp test` before `vp build`.
 - Add a feature test for behavior changes instead of writing a verification script or tinker snippet; reserve browser tests for critical end-to-end paths (auth, main flows, accessibility, mobile usability).
 
 ## Boost MCP
@@ -53,7 +60,8 @@ Laravel 13 / PHP 8.4 app. UI is Blade + Livewire 4 + Flux UI 2 + Tailwind 4; aut
 
 - Locale defaults are `id` with `en` fallback (`APP_LOCALE`, `APP_FALLBACK_LOCALE`).
 - Write app strings in English with `__('English text')`; their exact text is the key in `resources/lang/id.json`. Update the matching key when changing the English text.
-- Framework groups (`auth`, `passwords`, `pagination`, `validation`) live in `resources/lang/id/*.php`. Do not add English translation files.
+- UI component strings live in `resources/lang/{id,en}/ui.php` and use `__('ui.{component}.{part}')` with kebab-case segments (for example `ui.select.no-results`). Keep component strings out of `id.json`.
+- Framework groups (`auth`, `passwords`, `pagination`, `validation`) live in `resources/lang/id/*.php`. Do not add other English translation files outside `resources/lang/en/ui.php`.
 - Preserve replacement placeholders such as `:name` and `:role` in translated values.
 - Use sentence case for multiword action labels and lowercase for inline fragments. Tests that assert translated output should use Indonesian values and set the locale explicitly when needed.
 

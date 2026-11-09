@@ -92,6 +92,14 @@ jobs:
       - name: Setup Playwright
         run: vpx playwright install chromium --with-deps --only-shell
 
+      - name: Check frontend
+        run: vp check
+
+      - name: Test frontend
+        env:
+          LARAVEL_BYPASS_ENV_CHECK: 1
+        run: vp test
+
       - name: Build Frontend
         run: vp build
 

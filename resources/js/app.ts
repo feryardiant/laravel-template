@@ -1,10 +1,8 @@
 'use strict'
 
-import { startNotificationPoller } from './notification-poller'
+import { startNotificationPoller } from '@/notification-poller'
+import { createUi } from '@/ui'
 
 startNotificationPoller()
 
-export function main() {
-    // just to silence oxlint
-    // https://oxc.rs/docs/guide/usage/linter/rules/unicorn/no-empty-file.html
-}
+document.addEventListener('alpine:init', createUi)

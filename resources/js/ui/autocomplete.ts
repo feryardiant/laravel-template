@@ -1,0 +1,582 @@
+import { readModel, stringValue, watchModel, writeModel, type WireLike } from '@/util/binding'
+import { applyFilter, assignOptionIds, scanOptions, type ListboxOption } from '@/util/listbox'
+
+import { createPopover, type PopoverController } from './popover'
+
+/** Blade-to-Alpine config for an autocomplete. */
+export interface AutocompleteConfig {
+    value: string
+    model: string | null
+    live: boolean
+    disabled: boolean
+    readonly: boolean
+    /** When set, enables remote suggestions from `GET {searchUrl}?q=` */
+    searchUrl: string | null
+    minLength: number
+    debounce: number
+    empty: string
+    loading: string
+    triggerId: string
+    popoverId: string
+    listboxId: string
+    formInputId: string | null
+}
+
+/** Normalized remote autocomplete result. */
+export interface RemoteItem {
+    label: string
+}
+
+/**
+ * Alpine data for local and remote autocomplete.
+ *
+ * Local options are filtered from the DOM. Remote mode debounces and aborts
+ * requests, ignores stale responses and renders a normalized result list.
+ */
+export interface Autocomplete {
+    query: string
+    activeIndex: number
+    activeId: string
+    loading: boolean
+    emptyVisible: boolean
+    results: RemoteItem[]
+    disabled: boolean
+    readonly: boolean
+    emptyText: string
+    loadingText: string
+    init: () => void
+    destroy: () => void
+    isPopoverOpen: () => boolean
+    openPopover: () => void
+    closePopover: () => void
+    refresh: () => void
+    onInput: (event: Event) => void
+    onFocus: () => void
+    onKeydown: (event: KeyboardEvent) => void
+    onBlur: () => void
+    selectFromEvent: (event: MouseEvent) => void
+    selectRemote: (item: RemoteItem) => void
+    selectOption: (option: ListboxOption) => void
+    clear: () => void
+    setActive: (index: number) => void
+    move: (delta: number) => void
+    scanLocal: () => void
+    applyLocalFilter: () => void
+    syncRemoteOptions: () => void
+    scheduleFetch: () => void
+    fetchRemote: () => Promise<void>
+    focusTrigger: () => void
+    write: () => void
+    dispatch: (name: string) => void
+}
+
+function normalizeRemote(data: unknown): RemoteItem[] {
+    if (!Array.isArray(data)) {
+        return []
+    }
+
+    return data.flatMap((item) => {
+        if (typeof item === 'string') {
+            return [{ label: item }]
+        }
+
+        if (typeof item === 'object' && item !== null && 'label' in item) {
+            const label = (item as { label: unknown }).label
+
+            if (typeof label === 'string') {
+                return [{ label }]
+            }
+        }
+
+        return []
+    })
+}
+
+/**
+ * Create the Alpine data for an autocomplete.
+ *
+ * The query is the editable value. Local mode filters slot options; remote mode
+ * fetches `GET {searchUrl}?q=...` and accepts either `["Label"]` or
+ * `[{ label: "Label" }]`.
+ */
+export function autocompleteData(config: AutocompleteConfig, wire: WireLike | null): Autocomplete {
+    let options: ListboxOption[] = []
+    let visible: ListboxOption[] = []
+    let popover: PopoverController | null = null
+    let unwatch: (() => void) | null = null
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    let abortController: AbortController | null = null
+    // Monotonic request id: only the latest remote response may update the list.
+    let requestId = 0
+    let suppressFocus = false
+    let ready = false
+
+    const trigger = (): HTMLInputElement | null => document.getElementById(config.triggerId) as HTMLInputElement | null
+    const listbox = (): HTMLElement | null => document.getElementById(config.listboxId)
+    const formInput = (): HTMLInputElement | null =>
+        config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
+
+    return {
+        query: '',
+        activeIndex: -1,
+        activeId: '',
+        loading: false,
+        emptyVisible: false,
+        results: [],
+        disabled: config.disabled,
+        readonly: config.readonly,
+        emptyText: config.empty,
+        loadingText: config.loading,
+
+        init() {
+            if (ready) {
+                return
+            }
+
+            ready = true
+
+            const triggerElement = trigger()
+            const popoverElement = document.getElementById(config.popoverId)
+
+            if (triggerElement === null || popoverElement === null) {
+                return
+            }
+
+            const bound = readModel(wire, config.model, config.value)
+            this.query =
+                typeof bound === 'string' ? bound : bound === null || bound === undefined ? '' : stringValue(bound)
+
+            popover = createPopover(triggerElement, popoverElement, {
+                focusTarget: triggerElement,
+                onOpen: () => {
+                    this.dispatch('open')
+                },
+                onClose: () => {
+                    this.activeIndex = -1
+                    this.activeId = ''
+                    this.dispatch('close')
+                },
+            })
+
+            unwatch = watchModel(wire, config.model, (value) => {
+                this.query =
+                    typeof value === 'string' ? value : value === null || value === undefined ? '' : stringValue(value)
+
+                if (this.isPopoverOpen()) {
+                    this.refresh()
+                }
+            })
+        },
+
+        destroy() {
+            abortController?.abort()
+            unwatch?.()
+            popover?.destroy()
+
+            if (debounceTimer !== null) {
+                clearTimeout(debounceTimer)
+            }
+        },
+
+        isPopoverOpen() {
+            return popover?.isOpen() ?? false
+        },
+
+        openPopover() {
+            if (this.disabled) {
+                return
+            }
+
+            if (config.searchUrl !== null && this.query.length < config.minLength) {
+                return
+            }
+
+            popover?.open()
+            this.refresh()
+        },
+
+        refresh() {
+            if (config.searchUrl !== null) {
+                // scheduleFetch also aborts a stale request and resets below minLength.
+                this.scheduleFetch()
+
+                return
+            }
+
+            this.scanLocal()
+            this.applyLocalFilter()
+        },
+
+        closePopover() {
+            popover?.close()
+        },
+
+        onInput(event) {
+            if (this.disabled || this.readonly) {
+                return
+            }
+
+            this.query = (event.target as HTMLInputElement).value
+            this.write()
+
+            if (config.searchUrl !== null && this.query.length < config.minLength) {
+                this.closePopover()
+            } else if (!this.isPopoverOpen()) {
+                popover?.open()
+            }
+
+            this.refresh()
+        },
+
+        onFocus() {
+            if (suppressFocus) {
+                return
+            }
+
+            // Remote search waits for a query long enough to fetch.
+            if (config.searchUrl !== null && this.query.length < config.minLength) {
+                return
+            }
+
+            if (!this.isPopoverOpen()) {
+                this.openPopover()
+            }
+        },
+
+        onBlur() {
+            // Outside pointerdown and Tab handling close the popover; keep focus
+            // stable while the user clicks an option.
+        },
+
+        onKeydown(event) {
+            if (this.disabled) {
+                return
+            }
+
+            if (event.key === 'Escape') {
+                if (this.isPopoverOpen()) {
+                    event.preventDefault()
+                    this.closePopover()
+                }
+
+                return
+            }
+
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault()
+
+                if (!this.isPopoverOpen()) {
+                    this.openPopover()
+                } else {
+                    this.move(event.key === 'ArrowDown' ? 1 : -1)
+                }
+
+                return
+            }
+
+            if (event.key === 'Home' || event.key === 'End') {
+                const enabled = visible.filter((option) => !option.disabled)
+
+                if (this.isPopoverOpen() && enabled.length > 0) {
+                    event.preventDefault()
+                    this.setActive(visible.indexOf(event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]))
+                }
+
+                return
+            }
+
+            if (event.key === 'Enter') {
+                if (this.loading) {
+                    event.preventDefault()
+
+                    return
+                }
+
+                const active = visible[this.activeIndex]
+
+                if (this.isPopoverOpen() && active !== undefined) {
+                    event.preventDefault()
+                    this.selectOption(active)
+                }
+
+                return
+            }
+
+            if (event.key === 'Tab') {
+                this.closePopover()
+            }
+        },
+
+        selectFromEvent(event) {
+            if (this.disabled) {
+                return
+            }
+
+            const target = event.target
+
+            if (!(target instanceof Element)) {
+                return
+            }
+
+            const element = target.closest<HTMLElement>('[data-ui-option]')
+
+            if (element === null) {
+                return
+            }
+
+            const option = options.find((candidate) => candidate.el === element)
+
+            if (option !== undefined && !option.disabled) {
+                this.selectOption(option)
+            }
+        },
+
+        selectRemote(item) {
+            if (this.disabled || this.readonly) {
+                return
+            }
+
+            const index = visible.findIndex((option) => option.label === item.label)
+
+            if (index >= 0) {
+                this.setActive(index)
+            }
+
+            this.query = item.label
+            this.write()
+            this.closePopover()
+            this.focusTrigger()
+        },
+
+        selectOption(option) {
+            if (this.disabled || this.readonly || option.disabled) {
+                return
+            }
+
+            const index = visible.indexOf(option)
+
+            if (index >= 0) {
+                this.setActive(index)
+            }
+
+            this.query = option.selectedLabel
+            this.write()
+            this.closePopover()
+            this.focusTrigger()
+        },
+
+        clear() {
+            if (this.disabled || this.readonly) {
+                return
+            }
+
+            // Invalidate any request started by the cleared query.
+            if (debounceTimer !== null) {
+                clearTimeout(debounceTimer)
+                debounceTimer = null
+            }
+
+            abortController?.abort()
+            abortController = null
+            requestId++
+            this.loading = false
+
+            this.query = ''
+            this.results = []
+            this.emptyVisible = false
+            this.write()
+            this.dispatch('clear')
+            this.closePopover()
+            this.focusTrigger()
+        },
+
+        setActive(index) {
+            if (visible.length === 0) {
+                this.activeIndex = -1
+                this.activeId = ''
+
+                for (const option of options) {
+                    option.el.removeAttribute('data-active')
+                }
+
+                return
+            }
+
+            let target = ((index % visible.length) + visible.length) % visible.length
+
+            for (let step = 0; step < visible.length; step++) {
+                if (!visible[target].disabled) {
+                    break
+                }
+
+                target = (target + 1) % visible.length
+            }
+
+            if (visible[target].disabled) {
+                this.activeIndex = -1
+                this.activeId = ''
+
+                for (const option of options) {
+                    option.el.removeAttribute('data-active')
+                }
+
+                return
+            }
+
+            this.activeIndex = target
+
+            for (const [optionIndex, option] of visible.entries()) {
+                option.el.toggleAttribute('data-active', optionIndex === target)
+            }
+
+            const active = visible[target] ?? null
+
+            this.activeId = this.isPopoverOpen() ? (active?.el.id ?? '') : ''
+
+            if (this.isPopoverOpen()) {
+                active?.el.scrollIntoView({ block: 'nearest' })
+            }
+        },
+
+        move(delta) {
+            const enabled = visible.filter((option) => !option.disabled)
+
+            if (enabled.length === 0) {
+                return
+            }
+
+            const current = visible[this.activeIndex]
+            const currentIndex = current ? enabled.indexOf(current) : -1
+            const next =
+                currentIndex < 0
+                    ? delta > 0
+                        ? 0
+                        : enabled.length - 1
+                    : (currentIndex + delta + enabled.length) % enabled.length
+
+            this.setActive(visible.indexOf(enabled[next]))
+        },
+
+        scanLocal() {
+            options = scanOptions(listbox())
+            assignOptionIds(options, config.listboxId)
+        },
+
+        applyLocalFilter() {
+            visible = applyFilter(listbox(), options, this.query)
+            this.emptyVisible = visible.length === 0
+            this.setActive(visible.length > 0 ? 0 : -1)
+        },
+
+        syncRemoteOptions() {
+            options = scanOptions(listbox())
+            assignOptionIds(options, config.listboxId)
+            visible = options
+            this.emptyVisible = visible.length === 0
+            this.setActive(visible.length > 0 ? 0 : -1)
+        },
+
+        scheduleFetch() {
+            if (debounceTimer !== null) {
+                clearTimeout(debounceTimer)
+            }
+
+            abortController?.abort()
+            requestId++
+            this.loading = false
+            this.results = []
+            this.emptyVisible = false
+            this.activeIndex = -1
+            this.activeId = ''
+
+            for (const option of options) {
+                option.el.removeAttribute('data-active')
+            }
+
+            options = []
+            visible = []
+
+            if (this.query.length < config.minLength) {
+                return
+            }
+
+            this.loading = true
+
+            debounceTimer = setTimeout(() => {
+                void this.fetchRemote()
+            }, config.debounce)
+        },
+
+        async fetchRemote() {
+            if (config.searchUrl === null) {
+                return
+            }
+
+            abortController?.abort()
+
+            const controller = new AbortController()
+            abortController = controller
+            const id = ++requestId
+
+            this.loading = true
+
+            const url = new URL(config.searchUrl, window.location.origin)
+            url.searchParams.set('q', this.query)
+
+            try {
+                const response = await fetch(url.toString(), {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                })
+
+                if (!response.ok) {
+                    throw new Error('Autocomplete request failed')
+                }
+
+                const data: unknown = await response.json()
+
+                if (id !== requestId) {
+                    return
+                }
+
+                this.results = normalizeRemote(data)
+                this.loading = false
+
+                setTimeout(() => {
+                    if (id === requestId) {
+                        this.syncRemoteOptions()
+                    }
+                }, 0)
+            } catch {
+                if (controller.signal.aborted || id !== requestId) {
+                    return
+                }
+
+                this.loading = false
+                this.results = []
+                this.emptyVisible = true
+            }
+        },
+
+        focusTrigger() {
+            suppressFocus = true
+            trigger()?.focus()
+
+            setTimeout(() => {
+                suppressFocus = false
+            }, 0)
+        },
+
+        write() {
+            writeModel(wire, config.model, config.live, this.query, formInput())
+            this.dispatch('change')
+        },
+
+        dispatch(name) {
+            const element = trigger()
+            const detail = name === 'change' ? { value: this.query } : {}
+
+            element?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
+        },
+    }
+}

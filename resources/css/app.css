@@ -62,6 +62,32 @@
   [role='menu'] {
     cursor: default;
   }
+
+  [data-ui-popover] {
+    inset: auto;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: default;
+  }
+
+  [disabled],
+  [aria-disabled='true'] {
+    user-select: none;
+  }
+
+  [data-ui-popover]::backdrop {
+    background: transparent;
+  }
+
+  [data-ui-option]:not([data-disabled]) {
+    cursor: pointer;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
 }
 
 [data-flux-field]:not(ui-radio, ui-checkbox) {
