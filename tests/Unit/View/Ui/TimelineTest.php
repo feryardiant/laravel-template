@@ -69,6 +69,8 @@ it('renders a bare indicator from the item props', function () {
 
 it('announces each item status', function () {
     /** @var TestCase $this */
+    app()->setLocale('id');
+
     $view = $this->blade(<<<'BLADE'
         <x-ui.timeline>
             <x-ui.timeline.item status="complete">Order confirmed</x-ui.timeline.item>
@@ -83,7 +85,8 @@ it('announces each item status', function () {
         ->assertSee('aria-current="step"', false);
 });
 
-it('renders a default dot when no indicator is configured', function () {    /** @var TestCase $this */
+it('renders a default dot when no indicator is configured', function () {
+    /** @var TestCase $this */
     $view = $this->blade(<<<'BLADE'
         <x-ui.timeline>
             <x-ui.timeline.item>Draft</x-ui.timeline.item>

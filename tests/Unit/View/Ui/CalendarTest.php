@@ -43,6 +43,12 @@ it('renders the invalid state', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.calendar name="date" value="2026-11-09" invalid />');
 
-    $view->assertSee('data-invalid', false)
-        ->assertSee('data-invalid:ring-2', false);
+    $view->assertSee('aria-invalid="true"', false);
+});
+
+it('does not render the invalid state by default', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.calendar name="date" value="2026-11-09" />');
+
+    $view->assertDontSee('aria-invalid', false);
 });
