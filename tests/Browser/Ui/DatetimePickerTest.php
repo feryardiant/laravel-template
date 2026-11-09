@@ -314,6 +314,45 @@ it('uses the default start and end times for a new range', function () {
         })()");
 });
 
+it('keeps the configured end time when the end date is picked after adding the start', function () {
+    $page = visit('/ui/datetime-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-empty]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-12\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-add]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-empty]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-14\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-popover]');
+            const endHour = popover.querySelector('[data-endpoint=end] [data-column=hour] [aria-selected=true]');
+
+            return endHour !== null &&
+                endHour.dataset.hour === '17' &&
+                popover.querySelector('[data-ui-add]').textContent.trim() === 'Tambah akhir';
+        })()");
+});
+
 it('discards a pending range on cancel and Escape', function () {
     $page = visit('/ui/datetime-picker')->on()->desktop();
 

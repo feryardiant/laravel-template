@@ -1,5 +1,5 @@
 import { isValidKey } from './date'
-import { isTimeUnavailable, minutesOfDay, timeFromMinutes, type TimeRange } from './time'
+import { compareTime, isTimeUnavailable, minutesOfDay, timeFromMinutes, type TimeRange } from './time'
 
 /**
  * Wall-clock datetime helpers for the datetime picker.
@@ -52,6 +52,32 @@ export function timePart(value: string): string {
 /** Combine a date key and an `H:i` time into the canonical datetime shape. */
 export function combineDateTime(date: string, time: string): string {
     return `${date}T${time}`
+}
+
+/**
+ * Seed a range end time.
+ *
+ * The configured end wins when it is allowed and still follows the start on a
+ * same-day range; otherwise fall back to `interval` minutes after the start.
+ */
+export function seedEndTime(options: {
+    configured: string
+    start: string | null
+    sameDay: boolean
+    interval: number
+    allowed: (time: string) => boolean
+}): string {
+    const { configured, start, sameDay, interval, allowed } = options
+
+    if (allowed(configured) && !(sameDay && start !== null && compareTime(configured, start) <= 0)) {
+        return configured
+    }
+
+    if (start === null) {
+        return configured
+    }
+
+    return timeFromMinutes(Math.min((minutesOfDay(start) ?? 0) + interval, 23 * 60 + 59))
 }
 
 /** Lexicographic comparison for canonical datetimes. */

@@ -9,6 +9,7 @@ import {
     localNowDateTime,
     parseDateTime,
     parseUnavailable,
+    seedEndTime,
     timePart,
     type DateTimeUnavailable,
 } from '@/util/datetime'
@@ -149,7 +150,7 @@ export interface DateTimePicker {
     canAddMore: () => boolean
     removeAdded: (endpoint: Endpoint) => void
     formatTimeValue: (time: string | null) => string
-    after: (time: string) => string
+    resolveEndSeed: () => string
     setTimeDraft: (time: string | null) => void
     dateFor: (endpoint: Endpoint) => string | null
     draftTime: () => string | null
@@ -611,9 +612,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     if (this.activeEndpoint() === 'start' && this.rangeStart === null) {
                         this.setTimeDraft(this.initialTime('start'))
                     } else if (this.activeEndpoint() === 'end' && this.rangeEnd === null) {
-                        this.setTimeDraft(
-                            this.rangeStart === null ? this.initialTime('end') : this.after(this.rangeStart),
-                        )
+                        this.setTimeDraft(this.resolveEndSeed())
                     } else {
                         this.setTimeDraft(this.rangeStart)
                     }
@@ -671,6 +670,9 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
+            // Off-step times keep their minute for the original hour only; new
+            // choices follow `interval`. This preserves supplied values instead
+            // of silently rewriting them.
             const minutes = minutesOfDay(time) ?? 0
             const rawMinute = minutes % 60
 
@@ -991,13 +993,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 this.setTimeDraft(this.startDate === null ? null : this.initialTime('start'))
             } else {
                 this.rangeEnd = null
-                this.setTimeDraft(
-                    this.rangeStart === null
-                        ? this.endDate === null
-                            ? null
-                            : this.initialTime('end')
-                        : this.after(this.rangeStart),
-                )
+                this.setTimeDraft(this.endDate === null ? null : this.resolveEndSeed())
             }
 
             this.buildTimes()
@@ -1008,11 +1004,19 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return time === null ? '' : formatTime(locale, time, config.timeFormat)
         },
 
-        /** First interval time after a start, clamped to the end of the day. */
-        after(time) {
-            const minutes = minutesOfDay(time) ?? 0
+        /** Seed the end draft from the configured end or start + interval. */
+        resolveEndSeed() {
+            return seedEndTime({
+                configured: this.initialTime('end'),
+                start: this.rangeStart,
+                sameDay: this.startDate !== null && this.startDate === this.endDate,
+                interval,
+                allowed: (time) => {
+                    const minutes = minutesOfDay(time)
 
-            return timeFromMinutes(Math.min(minutes + interval, 23 * 60 + 59))
+                    return minutes !== null && !this.isTimeDisabledFor('end', Math.floor(minutes / 60), minutes % 60)
+                },
+            })
         },
 
         activeTimeId(column) {
