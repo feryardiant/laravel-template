@@ -11,6 +11,7 @@ import {
     firstDayOfWeek,
     formatDayLabel,
     formatMonthLabel,
+    formatMonthName,
     formatWeekdayLabels,
     isValidKey,
     localTodayKey,
@@ -109,6 +110,9 @@ export interface CalendarData {
     viewMonth: number
     monthsData: CalendarMonth[]
     heading: string
+    monthHeading: string
+    yearOptions: number[]
+    yearSelect: boolean
     activeKey: string
     selectedValues: string[]
     rangeStart: string | null
@@ -128,6 +132,7 @@ export interface CalendarData {
     refreshToday: () => void
     refresh: (announce?: boolean) => void
     build: () => void
+    resolveYearOptions: () => number[]
     previousMonth: () => void
     nextMonth: () => void
     todayAction: () => void
@@ -195,6 +200,9 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         viewMonth: 0,
         monthsData: [],
         heading: '',
+        monthHeading: '',
+        yearOptions: [],
+        yearSelect: config.yearSelect,
         activeKey: '',
         selectedValues: [],
         rangeStart: null,
@@ -351,6 +359,33 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
 
             this.monthsData = data
             this.heading = data.length === 1 ? data[0].label : `${data[0].label} – ${data[data.length - 1].label}`
+            this.monthHeading =
+                data.length === 1
+                    ? formatMonthName(this.locale, data[0].year, data[0].month)
+                    : `${formatMonthName(this.locale, data[0].year, data[0].month)} – ${formatMonthName(this.locale, data[data.length - 1].year, data[data.length - 1].month)}`
+            this.yearOptions = this.resolveYearOptions()
+        },
+
+        /** Years offered by the header select: 1970 through five years ahead. */
+        resolveYearOptions(): number[] {
+            const today = parseKey(this.today)
+            const currentYear = today?.getUTCFullYear() ?? new Date().getUTCFullYear()
+            let first = 1970
+            let last = currentYear + 5
+
+            if (minKey !== null) {
+                first = Math.max(first, Number(minKey.slice(0, 4)))
+            }
+
+            if (maxKey !== null) {
+                last = Math.min(last, Number(maxKey.slice(0, 4)))
+            }
+
+            if (last < first) {
+                last = first
+            }
+
+            return Array.from({ length: last - first + 1 }, (_, index) => first + index)
         },
 
         isDisabled(key: string, outside: boolean): boolean {

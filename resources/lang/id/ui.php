@@ -89,6 +89,7 @@ return [
         'today' => 'Hari ini',
         'previous-month' => 'Bulan sebelumnya',
         'next-month' => 'Bulan berikutnya',
+        'year' => 'Tahun',
         'selected' => 'Dipilih',
         'unavailable' => 'Tidak tersedia',
         'range-too-short' => 'Pilih minimal :count hari',

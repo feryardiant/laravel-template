@@ -98,6 +98,7 @@ export interface CalendarLabels {
 /** Blade-to-Alpine config for a calendar. */
 export interface CalendarConfig {
     mode: CalendarMode
+    yearSelect: boolean
     /** When true, selection updates the grid but does not write `model`. */
     draft: boolean
     value: unknown

@@ -275,6 +275,7 @@ export function firstDayOfWeek(locale: string): number {
 }
 
 const monthFormatters = new Map<string, Intl.DateTimeFormat>()
+const monthNameFormatters = new Map<string, Intl.DateTimeFormat>()
 const weekdayFormatters = new Map<string, Intl.DateTimeFormat>()
 const dayFormatters = new Map<string, Intl.DateTimeFormat>()
 
@@ -330,6 +331,22 @@ function dayFormatter(locale: string): Intl.DateTimeFormat {
 /** Localized month + year heading, formatted in UTC. */
 export function formatMonthLabel(locale: string, year: number, month: number): string {
     return monthFormatter(locale).format(utcDate(year, month, 1))
+}
+
+/** Localized month name without the year, formatted in UTC. */
+export function formatMonthName(locale: string, year: number, month: number): string {
+    let formatter = monthNameFormatters.get(locale)
+
+    if (formatter === undefined) {
+        formatter = new Intl.DateTimeFormat(locale, {
+            calendar: 'gregory',
+            month: 'long',
+            timeZone: 'UTC',
+        })
+        monthNameFormatters.set(locale, formatter)
+    }
+
+    return formatter.format(utcDate(year, month, 1))
 }
 
 /** Localized short weekday headers in display order. */

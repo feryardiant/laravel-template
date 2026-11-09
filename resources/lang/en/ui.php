@@ -89,6 +89,7 @@ return [
         'today' => 'Today',
         'previous-month' => 'Previous month',
         'next-month' => 'Next month',
+        'year' => 'Year',
         'selected' => 'Selected',
         'unavailable' => 'Unavailable',
         'range-too-short' => 'Select at least :count days',

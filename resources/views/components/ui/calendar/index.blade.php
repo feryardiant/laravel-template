@@ -9,6 +9,7 @@
     'max' => null,
     'unavailable' => null,
     'size' => 'base',
+    'yearSelect' => true,
     'startDay' => null,
     'months' => null,
     'fixedWeeks' => false,
@@ -52,6 +53,7 @@
         'today' => __('ui.calendar.today'),
         'previousMonth' => __('ui.calendar.previous-month'),
         'nextMonth' => __('ui.calendar.next-month'),
+        'year' => __('ui.calendar.year'),
         'selected' => __('ui.calendar.selected'),
         'unavailable' => __('ui.calendar.unavailable'),
         'rangeTooShort' => __('ui.calendar.range-too-short'),
@@ -66,6 +68,7 @@
         'model' => $model,
         'live' => $live,
         'locale' => $locale,
+        'yearSelect' => (bool) $yearSelect,
         'startDay' => $resolvedStartDay,
         'months' => $resolvedMonths,
         'fixedWeeks' => (bool) $fixedWeeks,
@@ -145,7 +148,25 @@
                 />
             </div>
 
-            <div data-ui-heading class="text-center text-sm font-medium text-zinc-800 dark:text-white" x-text="heading"></div>
+            <div
+                data-ui-heading
+                class="flex items-center justify-center gap-1 text-center text-sm font-medium text-zinc-800 dark:text-white"
+            >
+                <span x-text="yearSelect ? monthHeading : heading"></span>
+
+                <template x-if="yearSelect">
+                    <select
+                        x-model.number="viewYear"
+                        x-on:change="refresh(true)"
+                        aria-label="{{ $labels['year'] }}"
+                        class="rounded-md border border-zinc-200 bg-white px-1 py-0.5 text-sm font-medium text-zinc-800 focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-accent-foreground focus:outline-hidden dark:border-white/10 dark:bg-white/10 dark:text-white [@media(hover:none)]:min-h-11"
+                    >
+                        <template x-for="year in yearOptions" :key="year">
+                            <option :value="year" x-text="year"></option>
+                        </template>
+                    </select>
+                </template>
+            </div>
 
             <div class="flex justify-end">
                 <flux:button

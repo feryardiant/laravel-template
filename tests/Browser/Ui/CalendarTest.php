@@ -62,13 +62,13 @@ it('navigates between months', function () {
     $page = visit('/ui/calendar')->on()->desktop();
 
     $page->assertScript("(() => {
-        window.__beforeHeading = document.querySelector('[data-ui-demo=calendar-single] [x-text=heading]').textContent;
+        window.__beforeHeading = document.querySelector('[data-ui-demo=calendar-single] [data-ui-heading] span').textContent;
 
         return true;
     })()")
         ->click('[data-ui-demo="calendar-single"] button[aria-label="Bulan berikutnya"]')
         ->wait(0.3)
-        ->assertScript("document.querySelector('[data-ui-demo=calendar-single] [x-text=heading]').textContent !== window.__beforeHeading");
+        ->assertScript("document.querySelector('[data-ui-demo=calendar-single] [data-ui-heading] span').textContent !== window.__beforeHeading");
 });
 
 it('toggles multiple dates', function () {
@@ -459,13 +459,13 @@ it('supports Home, End and PageDown keyboard navigation', function () {
         })()")
         ->wait(0.3)
         ->assertScript("(() => {
-            window.__headingBeforePageDown = document.querySelector('[data-ui-demo=calendar-single] [x-text=heading]').textContent;
+            window.__headingBeforePageDown = document.querySelector('[data-ui-demo=calendar-single] [data-ui-heading] span').textContent;
             document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true }));
 
             return true;
         })()")
         ->wait(0.4)
-        ->assertScript("document.querySelector('[data-ui-demo=calendar-single] [x-text=heading]').textContent !== window.__headingBeforePageDown");
+        ->assertScript("document.querySelector('[data-ui-demo=calendar-single] [data-ui-heading] span').textContent !== window.__headingBeforePageDown");
 });
 
 it('keeps day and toolbar targets touch-sized on mobile', function () {
@@ -612,7 +612,7 @@ it('crosses between two visible months without shifting the view', function () {
         const cells = [...first.querySelectorAll('td[data-date]:not([data-outside])')];
         const last = cells[cells.length - 1].querySelector('button');
 
-        window.__headingBeforeCrossing = root.querySelector('[x-text=heading]').textContent;
+        window.__headingBeforeCrossing = root.querySelector('[data-ui-heading] span').textContent;
         last.focus();
         last.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
 
@@ -624,7 +624,7 @@ it('crosses between two visible months without shifting the view', function () {
             const grids = root.querySelectorAll('[role=grid]');
             const active = document.activeElement;
 
-            return active.closest('[role=grid]') === grids[1] && root.querySelector('[x-text=heading]').textContent === window.__headingBeforeCrossing;
+            return active.closest('[role=grid]') === grids[1] && root.querySelector('[data-ui-heading] span').textContent === window.__headingBeforeCrossing;
         })()");
 });
 
@@ -687,5 +687,60 @@ it('renders one centered heading for a two-month calendar', function () {
             return headings.length === 1 &&
                 headings[0].textContent.includes('–') &&
                 getComputedStyle(headings[0]).textAlign === 'center';
+        })()");
+});
+
+it('offers a year select from 1970 through five years ahead', function () {
+    visit('/ui/calendar')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=calendar-single] [data-ui-calendar]');
+            const select = root.querySelector('[data-ui-heading] select');
+            const years = [...select.options].map((option) => Number(option.value));
+            const current = new Date().getFullYear();
+
+            return select.getAttribute('aria-label') === 'Tahun' &&
+                years[0] === 1970 &&
+                years[years.length - 1] === current + 5 &&
+                Number(select.value) === current;
+        })()");
+});
+
+it('changes the year without changing the month', function () {
+    visit('/ui/calendar')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=calendar-single] [data-ui-calendar]');
+            const select = root.querySelector('[data-ui-heading] select');
+            window.__monthBeforeYear = root.querySelector('[data-ui-heading] span').textContent.trim();
+
+            select.value = '2030';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=calendar-single] [data-ui-calendar]');
+            const select = root.querySelector('[data-ui-heading] select');
+            const first = root.querySelector('td[data-date]:not([data-outside])');
+
+            return select.value === '2030' &&
+                root.querySelector('[data-ui-heading] span').textContent.trim() === window.__monthBeforeYear &&
+                first.dataset.date.startsWith('2030-');
+        })()");
+});
+
+it('limits year options to the calendar bounds', function () {
+    visit('/ui/calendar')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=calendar-constrained] [data-ui-calendar]');
+            const years = [...root.querySelector('[data-ui-heading] select').options].map((option) => Number(option.value));
+
+            return years.length === 1 && years[0] === new Date().getFullYear();
         })()");
 });
