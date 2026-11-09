@@ -126,26 +126,28 @@
         @endif
 
         <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <div class="flex items-center gap-1" x-show="navigation">
-                <flux:button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon="chevron-left"
-                    x-on:click="previousMonth()"
-                    aria-label="{{ $labels['previousMonth'] }}"
-                    class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-                />
+            <div>
+                <div class="flex items-center gap-1" x-show="navigation">
+                    <flux:button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon="chevron-left"
+                        x-on:click="previousMonth()"
+                        aria-label="{{ $labels['previousMonth'] }}"
+                        class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
+                    />
 
-                <flux:button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon="chevron-right"
-                    x-on:click="nextMonth()"
-                    aria-label="{{ $labels['nextMonth'] }}"
-                    class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-                />
+                    <flux:button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon="chevron-right"
+                        x-on:click="nextMonth()"
+                        aria-label="{{ $labels['nextMonth'] }}"
+                        class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
+                    />
+                </div>
             </div>
 
             <div
@@ -159,7 +161,7 @@
                         x-model.number="viewYear"
                         x-on:change="refresh(true)"
                         aria-label="{{ $labels['year'] }}"
-                        class="rounded-md border border-zinc-200 bg-white px-1 py-0.5 text-sm font-medium text-zinc-800 focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-accent-foreground focus:outline-hidden dark:border-white/10 dark:bg-white/10 dark:text-white [@media(hover:none)]:min-h-11"
+                        class="rounded-md border border-zinc-200 bg-white p-0.5 text-sm font-medium text-zinc-800 focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-accent-foreground focus:outline-hidden dark:border-white/10 dark:bg-white/10 dark:text-white [@media(hover:none)]:min-h-11"
                     >
                         <template x-for="year in yearOptions" :key="year">
                             <option :value="year" x-text="year"></option>

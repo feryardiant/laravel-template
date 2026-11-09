@@ -694,6 +694,31 @@ it('renders one centered heading for a two-month calendar', function () {
         })()");
 });
 
+it('keeps the year select from equalizing the heading side tracks', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=date-picker-single] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=date-picker-single]');
+            const heading = root.querySelector('[data-ui-heading]');
+            const grid = heading.parentElement;
+            const tracks = getComputedStyle(grid).gridTemplateColumns.split(' ').map(parseFloat);
+            const headingRect = heading.getBoundingClientRect();
+            const gridRect = grid.getBoundingClientRect();
+
+            return tracks.length === 3 &&
+                tracks[0] < tracks[1] &&
+                tracks[2] < tracks[1] &&
+                Math.abs(headingRect.left + headingRect.width / 2 - (gridRect.left + gridRect.width / 2)) < 1;
+        })()");
+});
+
 it('offers a year select from 1970 through five years ahead', function () {
     visit('/ui/calendar')
         ->on()
