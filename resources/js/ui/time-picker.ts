@@ -1,7 +1,5 @@
 import { resolveLocale } from '@/locale'
-
-import { readModel, watchModel, writeModel } from './binding'
-import { createPopover, trapTabFocus, type PopoverController } from './popover'
+import { readModel, watchModel, writeModel, type WireLike } from '@/util/binding'
 import {
     compareTime,
     formatTime,
@@ -13,8 +11,67 @@ import {
     timeFromMinutes,
     toTime,
     type TimeRange,
-} from './time'
-import type { TimeOption, TimePickerConfig, WireLike } from './types'
+} from '@/util/time'
+
+import { createPopover, trapTabFocus, type PopoverController } from './popover'
+
+export type TimeFormat = 'auto' | '12-hour' | '24-hour'
+
+/** Display hour for 12/24-hour mode; `value` is always the 24-hour hour. */
+interface HourOption {
+    value: number
+    label: string
+}
+
+/** One hour or minute row in a time picker. */
+export interface TimeOption {
+    id: string
+    value: number
+    label: string
+    disabled: boolean
+    selected: boolean
+}
+
+/** Translated time-picker strings. */
+interface TimePickerLabels {
+    clear: string
+    add: string
+    selected: string
+    selectedCount: string
+    placeholder: string
+    placeholderMultiple: string
+    placeholderRange: string
+    addStart: string
+    addEnd: string
+}
+
+/** Blade-to-Alpine config for a time picker. */
+export interface TimePickerConfig {
+    /** Single time, several times, or an ordered start/end pair. */
+    mode: 'single' | 'multiple' | 'range'
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string | null
+    format: TimeFormat
+    interval: number
+    min: string | null
+    max: string | null
+    unavailable: string[]
+    openTo: string | null
+    placeholder: string | null
+    clearable: boolean
+    disabled: boolean
+    triggerId: string
+    popoverId: string
+    hoursId: string
+    minutesId: string
+    selectedId: string
+    formInputId: string | null
+    formStartId: string | null
+    formEndId: string | null
+    labels: TimePickerLabels
+}
 
 /**
  * Alpine data for the time picker popover.
@@ -24,15 +81,7 @@ import type { TimeOption, TimePickerConfig, WireLike } from './types'
  * disables earlier times until an end is added. 12-hour mode only changes the
  * visible hour options and meridiem; the stored value stays 24-hour.
  */
-
-/** Display hour for 12/24-hour mode; `value` is always the 24-hour hour. */
-interface HourOption {
-    value: number
-    label: string
-}
-
-/** State and actions exposed to the time picker Blade markup. */
-export interface TimePickerData {
+export interface TimePicker {
     hour12: boolean
     multiple: boolean
     range: boolean
@@ -111,7 +160,7 @@ export interface TimePickerData {
  * `{ start, end }` for range mode. Off-step values are preserved only for their
  * original hour so a new choice still follows the configured interval.
  */
-export function timePickerData(config: TimePickerConfig, wire: WireLike | null): TimePickerData {
+export function timePickerData(config: TimePickerConfig, wire: WireLike | null): TimePicker {
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
@@ -125,7 +174,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
     const interval = Math.min(60, Math.max(1, config.interval))
 
-    const dispatch = (target: TimePickerData, name: string, value?: unknown): void => {
+    const dispatch = (target: TimePicker, name: string, value?: unknown): void => {
         const detail = value === undefined ? {} : { value }
 
         root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))

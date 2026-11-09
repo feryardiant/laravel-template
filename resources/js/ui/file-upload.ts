@@ -1,13 +1,4 @@
-import type { WireLike } from './types'
-
-/**
- * Alpine data for the file-upload wrapper.
- *
- * The wrapper owns drag/drop, picker activation and upload feedback. The real
- * file input keeps Livewire's `wire:model`; upload events are read from the DOM
- * and, for completion, from `$wire` because a morph can detach the input before
- * the finish event bubbles.
- */
+import type { WireLike } from '@/util/binding'
 
 export interface FileUploadConfig {
     disabled: boolean
@@ -23,8 +14,15 @@ type WireWithEvents = WireLike & {
     $on?: (event: string, callback: (detail: unknown) => void) => (() => void) | undefined
 }
 
-/** State and actions exposed to the file-upload Blade markup. */
-export interface FileUploadData {
+/**
+ * Alpine data for the file-upload wrapper.
+ *
+ * The wrapper owns drag/drop, picker activation and upload feedback. The real
+ * file input keeps Livewire's `wire:model`; upload events are read from the DOM
+ * and, for completion, from `$wire` because a morph can detach the input before
+ * the finish event bubbles.
+ */
+export interface FileUpload {
     disabled: boolean
     dragging: boolean
     loading: boolean
@@ -53,7 +51,7 @@ export interface FileUploadData {
  * `wire` is used only to observe upload completion/error events; the actual
  * upload remains the responsibility of the hidden file input.
  */
-export function fileUploadData(config: FileUploadConfig, wire: WireLike | null): FileUploadData {
+export function fileUploadData(config: FileUploadConfig, wire: WireLike | null): FileUpload {
     let rootEl: HTMLElement | null = null
     const unsubscribes: (() => void)[] = []
 

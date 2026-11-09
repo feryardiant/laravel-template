@@ -1,7 +1,6 @@
 import { resolveLocale } from '@/locale'
-
-import { readModel, watchModel, writeModel } from './binding'
-import { formatShortDate, toDateKey } from './date'
+import { readModel, watchModel, writeModel, type WireLike } from '@/util/binding'
+import { formatShortDate, toDateKey } from '@/util/date'
 import {
     combineDateTime,
     compareDateTime,
@@ -12,19 +11,11 @@ import {
     parseUnavailable,
     timePart,
     type DateTimeUnavailable,
-} from './datetime'
-import { createPopover, trapTabFocus, type PopoverController } from './popover'
-import { compareTime, formatTime, localNowKey, minutesOfDay, prefersHour12, timeFromMinutes } from './time'
-import type { DateTimePickerConfig, TimeOption, WireLike } from './types'
+} from '@/util/datetime'
+import { compareTime, formatTime, localNowKey, minutesOfDay, prefersHour12, timeFromMinutes } from '@/util/time'
 
-/**
- * Alpine data for the datetime picker.
- *
- * Combines one calendar with one time panel. Single mode writes on a date change
- * and closes on a minute; range mode uses the same single draft, Add start/Add
- * end chips and footer commit as the standalone time picker. Earlier times are
- * not disabled in range mode because the end may fall on a later date.
- */
+import { createPopover, trapTabFocus, type PopoverController } from './popover'
+import type { TimeFormat, TimeOption } from './time-picker'
 
 type DateTimeMode = 'single' | 'range'
 type Endpoint = 'start' | 'end'
@@ -42,8 +33,72 @@ interface TimeDraftState {
     activeMinute: number | null
 }
 
-/** State and actions exposed to the datetime picker Blade markup. */
-export interface DateTimePickerData {
+/** Translated datetime-picker strings. */
+export interface DateTimePickerLabels {
+    label: string
+    placeholder: string
+    placeholderRange: string
+    start: string
+    end: string
+    at: string
+    clear: string
+    cancel: string
+    select: string
+    selectRange: string
+    rangeInvalid: string
+    addStart: string
+    addEnd: string
+    removeStart: string
+    removeEnd: string
+}
+
+/** Blade-to-Alpine config for a datetime picker. */
+export interface DateTimePickerConfig {
+    mode: DateTimeMode
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string | null
+    months: number
+    timeFormat: TimeFormat
+    interval: number
+    min: string | null
+    max: string | null
+    minDate: string | null
+    maxDate: string | null
+    /** Markers that make `min`/`max` re-resolve on every open. */
+    minSource: 'now' | 'today' | null
+    maxSource: 'now' | 'today' | null
+    openToDate: string | null
+    openToTime: string | null
+    /** Marker that makes `open-to` re-resolve on every open. */
+    openToSource: 'now' | 'today' | null
+    minTime: string | null
+    maxTime: string | null
+    unavailable: string[]
+    defaultStartTime: string | null
+    defaultEndTime: string | null
+    placeholder: string | null
+    withConfirmation: boolean
+    clearable: boolean
+    disabled: boolean
+    triggerId: string
+    popoverId: string
+    formInputId: string | null
+    formStartId: string | null
+    formEndId: string | null
+    labels: DateTimePickerLabels
+}
+
+/**
+ * Alpine data for the datetime picker.
+ *
+ * Combines one calendar with one time panel. Single mode writes on a date change
+ * and closes on a minute; range mode uses the same single draft, Add start/Add
+ * end chips and footer commit as the standalone time picker. Earlier times are
+ * not disabled in range mode because the end may fall on a later date.
+ */
+export interface DateTimePicker {
     mode: DateTimeMode
     disabled: boolean
     labels: DateTimePickerConfig['labels']
@@ -131,7 +186,7 @@ export interface DateTimePickerData {
  * Writes `Y-m-d\TH:i` for single mode and `{ start, end }` for range mode. The
  * time panel height is synchronized with the calendar on desktop.
  */
-export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike | null): DateTimePickerData {
+export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike | null): DateTimePicker {
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
@@ -177,7 +232,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         return { start: null, end: null }
     }
 
-    const dispatch = (target: DateTimePickerData, name: string, value?: unknown): void => {
+    const dispatch = (target: DateTimePicker, name: string, value?: unknown): void => {
         const detail = value === undefined ? {} : { value }
 
         root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))

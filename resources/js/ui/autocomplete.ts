@@ -1,7 +1,31 @@
-import { readModel, stringValue, watchModel, writeModel } from './binding'
-import { applyFilter, assignOptionIds, scanOptions } from './listbox'
+import { readModel, stringValue, watchModel, writeModel, type WireLike } from '@/util/binding'
+import { applyFilter, assignOptionIds, scanOptions, type ListboxOption } from '@/util/listbox'
+
 import { createPopover, type PopoverController } from './popover'
-import type { AutocompleteConfig, ListboxOption, RemoteItem, WireLike } from './types'
+
+/** Blade-to-Alpine config for an autocomplete. */
+export interface AutocompleteConfig {
+    value: string
+    model: string | null
+    live: boolean
+    disabled: boolean
+    readonly: boolean
+    /** When set, enables remote suggestions from `GET {searchUrl}?q=` */
+    searchUrl: string | null
+    minLength: number
+    debounce: number
+    empty: string
+    loading: string
+    triggerId: string
+    popoverId: string
+    listboxId: string
+    formInputId: string | null
+}
+
+/** Normalized remote autocomplete result. */
+export interface RemoteItem {
+    label: string
+}
 
 /**
  * Alpine data for local and remote autocomplete.
@@ -9,9 +33,7 @@ import type { AutocompleteConfig, ListboxOption, RemoteItem, WireLike } from './
  * Local options are filtered from the DOM. Remote mode debounces and aborts
  * requests, ignores stale responses and renders a normalized result list.
  */
-
-/** State and actions exposed to the autocomplete Blade markup. */
-export interface AutocompleteData {
+export interface Autocomplete {
     query: string
     activeIndex: number
     activeId: string
@@ -77,7 +99,7 @@ function normalizeRemote(data: unknown): RemoteItem[] {
  * fetches `GET {searchUrl}?q=...` and accepts either `["Label"]` or
  * `[{ label: "Label" }]`.
  */
-export function autocompleteData(config: AutocompleteConfig, wire: WireLike | null): AutocompleteData {
+export function autocompleteData(config: AutocompleteConfig, wire: WireLike | null): Autocomplete {
     let options: ListboxOption[] = []
     let visible: ListboxOption[] = []
     let popover: PopoverController | null = null

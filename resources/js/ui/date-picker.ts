@@ -1,6 +1,5 @@
 import { resolveLocale } from '@/locale'
-
-import { readModel, watchModel, writeModel } from './binding'
+import { readModel, watchModel, writeModel, type WireLike } from '@/util/binding'
 import {
     addDays,
     addMonthsClamped,
@@ -16,9 +15,51 @@ import {
     startOfWeek,
     startOfYear,
     toDateKey,
-} from './date'
+} from '@/util/date'
+
 import { createPopover, trapTabFocus, type PopoverController } from './popover'
-import type { DatePickerConfig, DatePickerMode, WireLike } from './types'
+
+export type DatePickerMode = 'single' | 'range'
+
+/** Translated date-picker strings. */
+export interface DatePickerLabels {
+    placeholder: string
+    placeholderRange: string
+    clear: string
+    cancel: string
+    select: string
+    selectRange: string
+    presets: string
+    presetLabels: Record<string, string>
+}
+
+/** Blade-to-Alpine config for a date picker. */
+export interface DatePickerConfig {
+    mode: DatePickerMode
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string | null
+    startDay: number | null
+    min: string | null
+    max: string | null
+    unavailable: string[]
+    minRange: number | null
+    maxRange: number | null
+    /** Require the footer even in single mode. */
+    withConfirmation: boolean
+    withPresets: boolean
+    presetKeys: string[]
+    placeholder: string | null
+    clearable: boolean
+    disabled: boolean
+    triggerId: string
+    popoverId: string
+    formInputId: string | null
+    formStartId: string | null
+    formEndId: string | null
+    labels: DatePickerLabels
+}
 
 /**
  * Alpine data for the date picker popover.
@@ -28,6 +69,41 @@ import type { DatePickerConfig, DatePickerMode, WireLike } from './types'
  * immediately, while range/confirmation mode waits for the footer. Presets use
  * the browser's local date and are filtered against the active constraints.
  */
+export interface DatePicker {
+    mode: DatePickerMode
+    disabled: boolean
+    labels: DatePickerConfig['labels']
+    display: string
+    start: string | null
+    end: string | null
+    draftStart: string | null
+    draftEnd: string | null
+    presets: DatePreset[]
+    withConfirmation: boolean
+    init: (el?: HTMLElement) => void
+    destroy: () => void
+    applyValue: (value: unknown) => void
+    isPopoverOpen: () => boolean
+    openPopover: () => void
+    closePopover: () => void
+    cancel: () => void
+    confirm: () => void
+    clear: () => void
+    commit: () => void
+    onTriggerClick: () => void
+    onTriggerFocus: () => void
+    onTriggerKeydown: (event: KeyboardEvent) => void
+    onCalendarChange: (event: Event) => void
+    onPopoverKeydown: (event: KeyboardEvent) => void
+    selectPreset: (key: string) => void
+    presetActive: (key: string) => boolean
+    canConfirm: () => boolean
+    syncCalendar: () => void
+    renderDisplay: () => void
+    placeholderText: () => string
+    focusFirst: () => void
+    dispatch: (name: string, value?: unknown) => void
+}
 
 interface Bounds {
     start: string | null
@@ -165,43 +241,6 @@ function presetAllowed(
     return !unavailable.some((key) => compareKeys(key, from) >= 0 && compareKeys(key, to) <= 0)
 }
 
-/** State and actions exposed to the date picker Blade markup. */
-export interface DatePickerData {
-    mode: DatePickerMode
-    disabled: boolean
-    labels: DatePickerConfig['labels']
-    display: string
-    start: string | null
-    end: string | null
-    draftStart: string | null
-    draftEnd: string | null
-    presets: DatePreset[]
-    withConfirmation: boolean
-    init: (el?: HTMLElement) => void
-    destroy: () => void
-    applyValue: (value: unknown) => void
-    isPopoverOpen: () => boolean
-    openPopover: () => void
-    closePopover: () => void
-    cancel: () => void
-    confirm: () => void
-    clear: () => void
-    commit: () => void
-    onTriggerClick: () => void
-    onTriggerFocus: () => void
-    onTriggerKeydown: (event: KeyboardEvent) => void
-    onCalendarChange: (event: Event) => void
-    onPopoverKeydown: (event: KeyboardEvent) => void
-    selectPreset: (key: string) => void
-    presetActive: (key: string) => boolean
-    canConfirm: () => boolean
-    syncCalendar: () => void
-    renderDisplay: () => void
-    placeholderText: () => string
-    focusFirst: () => void
-    dispatch: (name: string, value?: unknown) => void
-}
-
 /**
  * Create the Alpine data for a date picker.
  *
@@ -209,7 +248,7 @@ export interface DatePickerData {
  * The nested calendar is a separate Alpine component controlled through
  * `syncCalendar()`.
  */
-export function datePickerData(config: DatePickerConfig, wire: WireLike | null): DatePickerData {
+export function datePickerData(config: DatePickerConfig, wire: WireLike | null): DatePicker {
     let rootEl: HTMLElement | null = null
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
@@ -219,14 +258,14 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
     const formInput = (): HTMLInputElement | null =>
         config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
 
-    const applyValue = (target: DatePickerData, value: unknown): void => {
+    const applyValue = (target: DatePicker, value: unknown): void => {
         const bounds = normalize(value, target.mode)
 
         target.start = bounds.start
         target.end = bounds.end
     }
 
-    const dispatch = (target: DatePickerData, name: string, value?: unknown): void => {
+    const dispatch = (target: DatePicker, name: string, value?: unknown): void => {
         const detail = value === undefined ? {} : { value }
 
         root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))

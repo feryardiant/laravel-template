@@ -1,7 +1,32 @@
-import { normalizeValues, readModel, watchModel, writeModel } from './binding'
-import { applyFilter, assignOptionIds, scanOptions } from './listbox'
+import { normalizeValues, readModel, watchModel, writeModel, type WireLike } from '@/util/binding'
+import { applyFilter, assignOptionIds, scanOptions, type ListboxOption } from '@/util/listbox'
+
 import { createPopover, type PopoverController } from './popover'
-import type { ListboxOption, SelectConfig, SelectedOption, WireLike } from './types'
+
+/** Blade-to-Alpine config for a select. */
+export interface SelectConfig {
+    /** Pillbox always behaves as multiple. */
+    variant: 'listbox' | 'pillbox'
+    multiple: boolean
+    value: unknown
+    model: string | null
+    live: boolean
+    disabled: boolean
+    empty: string
+    selectedSuffix: string
+    triggerId: string
+    anchorId: string
+    popoverId: string
+    listboxId: string
+    formInputId: string | null
+}
+
+/** Selected option rendered in the trigger or pill list. */
+export interface SelectedOption {
+    value: string
+    label: string
+    selectedLabel: string
+}
 
 /**
  * Alpine data for the select listbox and pillbox.
@@ -10,9 +35,7 @@ import type { ListboxOption, SelectConfig, SelectedOption, WireLike } from './ty
  * input drives typeahead filtering. Writes go through Livewire or the hidden
  * plain-form input.
  */
-
-/** State and actions exposed to the select Blade markup. */
-export interface SelectData {
+export interface Select {
     variant: 'listbox' | 'pillbox'
     multiple: boolean
     query: string
@@ -64,7 +87,7 @@ export interface SelectData {
  * `variant: 'pillbox'` forces multiple selection. The factory owns popover
  * placement, active-option movement, selection and model writes.
  */
-export function selectData(config: SelectConfig, wire: WireLike | null): SelectData {
+export function selectData(config: SelectConfig, wire: WireLike | null): Select {
     let options: ListboxOption[] = []
     let visible: ListboxOption[] = []
     let popover: PopoverController | null = null

@@ -1,6 +1,5 @@
 import { resolveLocale } from '@/locale'
-
-import { readModel, watchModel, writeModel } from './binding'
+import { readModel, watchModel, writeModel, type WireLike } from '@/util/binding'
 import {
     addDays,
     addMonthsClamped,
@@ -21,8 +20,146 @@ import {
     startOfWeek,
     toDateKey,
     utcDate,
-} from './date'
-import type { CalendarCell, CalendarConfig, CalendarMonth, CalendarMode, WireLike } from './types'
+} from '@/util/date'
+
+export type CalendarMode = 'single' | 'multiple' | 'range'
+
+/** Translated calendar strings. */
+export interface CalendarLabels {
+    today: string
+    previousMonth: string
+    nextMonth: string
+    selected: string
+    unavailable: string
+    rangeTooShort: string
+    rangeTooLong: string
+    rangeUnavailable: string
+}
+
+/** Blade-to-Alpine config for a calendar. */
+export interface CalendarConfig {
+    mode: CalendarMode
+    yearSelect: boolean
+    /** When true, selection updates the grid but does not write `model`. */
+    draft: boolean
+    value: unknown
+    model: string | null
+    live: boolean
+    locale: string | null
+    startDay: number | null
+    months: number
+    fixedWeeks: boolean
+    min: string | null
+    max: string | null
+    unavailable: string[]
+    minRange: number | null
+    maxRange: number | null
+    openTo: string | null
+    navigation: boolean
+    static: boolean
+    withToday: boolean
+    rootId: string
+    cellClass: string
+    formInputId: string | null
+    labels: CalendarLabels
+}
+
+/** Rendered state for one day cell. */
+export interface CalendarCell {
+    id: string
+    key: string
+    day: number
+    label: string
+    outside: boolean
+    today: boolean
+    disabled: boolean
+    unavailable: boolean
+    selected: boolean
+    /** Inside the committed range or the hover/focus preview. */
+    inRange: boolean
+    rangeStart: boolean
+    rangeEnd: boolean
+    active: boolean
+    tabIndex: number
+}
+
+/** One rendered month in a one- or two-month calendar. */
+export interface CalendarMonth {
+    key: string
+    year: number
+    month: number
+    label: string
+    weekdays: string[]
+    weeks: CalendarCell[][]
+}
+
+/**
+ * Alpine data for the dependency-free Gregorian calendar.
+ *
+ * Date values are `Y-m-d` keys. The calendar owns single/multiple/range state and
+ * dispatches a bubbling `change` event with the selected value. In `draft` mode it
+ * still updates visually but does not write the model, so pickers can manage
+ * their own commit/cancel lifecycle.
+ */
+export interface Calendar {
+    mode: CalendarMode
+    /** When true, `commit()` skips the model write but still dispatches `change`. */
+    draft: boolean
+    locale: string
+    startDay: number
+    months: number
+    fixedWeeks: boolean
+    navigation: boolean
+    static: boolean
+    withToday: boolean
+    labels: CalendarConfig['labels']
+    cellClass: string
+    today: string
+    viewYear: number
+    viewMonth: number
+    monthsData: CalendarMonth[]
+    heading: string
+    monthHeading: string
+    yearOptions: number[]
+    yearSelect: boolean
+    activeKey: string
+    selectedValues: string[]
+    rangeStart: string | null
+    rangeEnd: string | null
+    previewKey: string | null
+    rangeError: string
+    announcement: string
+    init: (el?: HTMLElement) => void
+    destroy: () => void
+    /** Replace the visible value without writing the model; used by pickers. */
+    setValue: (value: unknown) => void
+    /** Re-apply min/max after render, for time-sensitive bounds such as `now`. */
+    setBounds: (min: string | null, max: string | null) => void
+    /** Update the month used when there is no selected value. */
+    setOpenTo: (key: string | null) => void
+    /** Re-resolve the browser's local today across midnight. */
+    refreshToday: () => void
+    refresh: (announce?: boolean) => void
+    build: () => void
+    resolveYearOptions: () => number[]
+    previousMonth: () => void
+    nextMonth: () => void
+    todayAction: () => void
+    select: (key: string) => void
+    onFocus: (key: string) => void
+    onHover: (key: string) => void
+    clearPreview: () => void
+    onKeydown: (event: KeyboardEvent, key: string) => void
+    isDisabled: (key: string, outside: boolean) => boolean
+    isUnavailable: (key: string) => boolean
+    isInView: (key: string) => boolean
+    previewBounds: () => { start: string; end: string } | null
+    findEnabled: (key: string, direction: number) => string | null
+    findCell: (key: string) => CalendarCell | null
+    rangeCrossesUnavailable: (start: string, end: string) => boolean
+    /** Write the model (unless draft) and dispatch the bubbling `change` event. */
+    commit: () => void
+}
 
 /** Normalized calendar value for the active mode. */
 interface NormalizedValue {
@@ -84,81 +221,12 @@ function normalizeValue(value: unknown, mode: CalendarMode): NormalizedValue {
 }
 
 /**
- * Alpine data for the dependency-free Gregorian calendar.
- *
- * Date values are `Y-m-d` keys. The calendar owns single/multiple/range state and
- * dispatches a bubbling `change` event with the selected value. In `draft` mode it
- * still updates visually but does not write the model, so pickers can manage
- * their own commit/cancel lifecycle.
- */
-
-export interface CalendarData {
-    mode: CalendarMode
-    /** When true, `commit()` skips the model write but still dispatches `change`. */
-    draft: boolean
-    locale: string
-    startDay: number
-    months: number
-    fixedWeeks: boolean
-    navigation: boolean
-    static: boolean
-    withToday: boolean
-    labels: CalendarConfig['labels']
-    cellClass: string
-    today: string
-    viewYear: number
-    viewMonth: number
-    monthsData: CalendarMonth[]
-    heading: string
-    monthHeading: string
-    yearOptions: number[]
-    yearSelect: boolean
-    activeKey: string
-    selectedValues: string[]
-    rangeStart: string | null
-    rangeEnd: string | null
-    previewKey: string | null
-    rangeError: string
-    announcement: string
-    init: (el?: HTMLElement) => void
-    destroy: () => void
-    /** Replace the visible value without writing the model; used by pickers. */
-    setValue: (value: unknown) => void
-    /** Re-apply min/max after render, for time-sensitive bounds such as `now`. */
-    setBounds: (min: string | null, max: string | null) => void
-    /** Update the month used when there is no selected value. */
-    setOpenTo: (key: string | null) => void
-    /** Re-resolve the browser's local today across midnight. */
-    refreshToday: () => void
-    refresh: (announce?: boolean) => void
-    build: () => void
-    resolveYearOptions: () => number[]
-    previousMonth: () => void
-    nextMonth: () => void
-    todayAction: () => void
-    select: (key: string) => void
-    onFocus: (key: string) => void
-    onHover: (key: string) => void
-    clearPreview: () => void
-    onKeydown: (event: KeyboardEvent, key: string) => void
-    isDisabled: (key: string, outside: boolean) => boolean
-    isUnavailable: (key: string) => boolean
-    isInView: (key: string) => boolean
-    previewBounds: () => { start: string; end: string } | null
-    findEnabled: (key: string, direction: number) => string | null
-    findCell: (key: string) => CalendarCell | null
-    rangeCrossesUnavailable: (start: string, end: string) => boolean
-    /** Write the model (unless draft) and dispatch the bubbling `change` event. */
-    commit: () => void
-}
-
-/**
  * Create the Alpine data for a calendar.
  *
  * `wire`/`config.model` are optional; without them the calendar works as a plain
  * form control using the hidden input referenced by `config.formInputId`.
  */
-export function calendarData(config: CalendarConfig, wire: WireLike | null): CalendarData {
+export function calendarData(config: CalendarConfig, wire: WireLike | null): Calendar {
     let rootEl: HTMLElement | null = null
     let unwatch: (() => void) | null = null
     let openToKey: string | null = config.openTo
@@ -172,7 +240,7 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
     const months = Math.min(2, Math.max(1, config.months))
 
-    const applyValue = (target: CalendarData, value: unknown): void => {
+    const applyValue = (target: Calendar, value: unknown): void => {
         const normalized = normalizeValue(value, target.mode)
 
         target.selectedValues = normalized.values
@@ -180,7 +248,7 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         target.rangeEnd = normalized.end
     }
 
-    const currentKey = (target: CalendarData): string =>
+    const currentKey = (target: Calendar): string =>
         target.rangeStart ?? target.selectedValues[0] ?? openToKey ?? target.today
 
     return {

@@ -1,5 +1,3 @@
-import type { WireLike } from './types'
-
 /**
  * Livewire and plain-form binding helpers shared by the UI Alpine factories.
  *
@@ -7,6 +5,13 @@ import type { WireLike } from './types'
  * from the Blade fallback otherwise. Writes go through `$wire.set()` or through a
  * hidden input when the component is used outside Livewire.
  */
+
+/** Minimal Livewire surface used by the factories. */
+export interface WireLike {
+    get(name: string): unknown
+    set(name: string, value: unknown, live?: boolean): void
+    $watch(name: string, callback: (value: unknown) => void): () => void
+}
 
 /** Coerce a scalar to the string used by DOM values. */
 export function stringValue(value: unknown): string {

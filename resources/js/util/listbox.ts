@@ -1,10 +1,18 @@
-import type { ListboxOption } from './types'
-
 /**
  * DOM scanning and filtering for the select listbox.
  *
  * Options are marked with `data-ui-option`; groups with `role="group"`.
  */
+
+/** Option metadata scanned from the rendered listbox. */
+export interface ListboxOption {
+    el: HTMLElement
+    value: string
+    label: string
+    selectedLabel: string
+    keywords: string
+    disabled: boolean
+}
 
 /** Normalize search text for accent- and case-insensitive matching. */
 export function normalizeSearch(value: string): string {
