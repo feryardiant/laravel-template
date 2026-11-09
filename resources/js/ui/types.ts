@@ -165,12 +165,15 @@ export interface TimePickerLabels {
     selectedCount: string
     placeholder: string
     placeholderMultiple: string
+    placeholderRange: string
+    addStart: string
+    addEnd: string
 }
 
 /** Blade-to-Alpine config for a time picker. */
 export interface TimePickerConfig {
-    /** Keep several times and render the removable selected list. */
-    multiple: boolean
+    /** Single time, several times, or an ordered start/end pair. */
+    mode: 'single' | 'multiple' | 'range'
     value: unknown
     model: string | null
     live: boolean
@@ -190,6 +193,8 @@ export interface TimePickerConfig {
     minutesId: string
     selectedId: string
     formInputId: string | null
+    formStartId: string | null
+    formEndId: string | null
     labels: TimePickerLabels
 }
 
@@ -208,6 +213,10 @@ export interface DateTimePickerLabels {
     select: string
     selectRange: string
     rangeInvalid: string
+    addStart: string
+    addEnd: string
+    removeStart: string
+    removeEnd: string
     hour: string
     minute: string
     am: string

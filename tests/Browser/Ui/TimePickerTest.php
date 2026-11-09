@@ -653,3 +653,206 @@ it('centers the time columns across the popover on mobile', function () {
                 getComputedStyle(minutes.parentElement).flexGrow === '1';
         })()");
 });
+
+it('commits a time range from start to end', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const selected = [...popover.querySelectorAll('[data-ui-selected] [data-time]')].map((item) => item.dataset.time);
+
+            return selected.join('|') === '09:00|11:00' &&
+                getComputedStyle(popover.querySelector('[data-ui-add]')).display === 'none' &&
+                root.querySelector('[data-ui-trigger]').value === '9.00 – 11.00';
+        })()")
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover]');
+            popover.querySelector('[data-ui-selected] [data-time=\"11:00\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover]');
+            const add = popover.querySelector('[data-ui-add]');
+
+            return getComputedStyle(add).display !== 'none' &&
+                add.textContent.trim() === 'Tambah akhir' &&
+                !add.disabled;
+        })()")
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover]');
+            popover.querySelector('[data-ui-hours] [data-hour=\"12\"]').click();
+            popover.querySelector('[data-ui-minutes] [data-minute=\"30\"]').click();
+
+            return true;
+        })()")
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover] [data-ui-add]').click();
+
+            return true;
+        })()")
+        ->wait(0.7)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+
+            return !root.querySelector('[data-ui-popover]').matches(':popover-open') &&
+                root.querySelector('[data-ui-trigger]').value === '9.00 – 12.30' &&
+                document.querySelector('[data-ui-bound=time-range]').textContent.trim() === '09:00 / 12:30';
+        })()");
+});
+
+it('disables times before the range start and clears both endpoints', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover]');
+            popover.querySelector('[data-ui-selected] [data-time=\"11:00\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover]');
+            const disabled = [...popover.querySelectorAll('[data-ui-hours] [data-hour]')]
+                .filter((option) => option.getAttribute('aria-disabled') === 'true')
+                .map((option) => Number(option.dataset.hour));
+
+            return disabled.join('|') === '0|1|2|3|4|5|6|7|8' &&
+                popover.querySelector('[data-ui-minutes] [data-minute=\"0\"]').getAttribute('aria-disabled') === 'true';
+        })()")
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-popover]');
+            popover.querySelector('[data-ui-selected] [data-time=\"09:00\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const add = popover.querySelector('[data-ui-add]');
+
+            return popover.querySelectorAll('[data-ui-selected] [data-time]').length === 0 &&
+                add.textContent.trim() === 'Tambah awal' &&
+                document.querySelector('[data-ui-bound=time-range]').textContent.trim() === '/';
+        })()");
+});
+
+it('renders plain range hidden inputs', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const inputs = [...document.querySelectorAll('[data-ui-demo=time-picker-plain] input[type=hidden]')];
+
+            return inputs.some((input) => input.name === 'plain_range[start]' && input.value === '08:00') &&
+                inputs.some((input) => input.name === 'plain_range[end]' && input.value === '12:00');
+        })()");
+});
+
+it('builds a range from scratch with Add start and Add end', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+            root.querySelector('button[aria-label=\"Kosongkan waktu\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.8)
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.8)
+        ->assertScript("(() => {
+            const add = document.querySelector('[data-ui-demo=time-picker-range] [data-ui-add]');
+
+            return add.textContent.trim() === 'Tambah awal' && !add.disabled;
+        })()")
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-add]').click();
+
+            return true;
+        })()")
+        ->wait(0.8)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const add = popover.querySelector('[data-ui-add]');
+
+            return popover.querySelectorAll('[data-ui-selected] [data-time]').length === 1 &&
+                add.textContent.trim() === 'Tambah akhir' &&
+                !add.disabled &&
+                root.querySelector('[data-ui-trigger]').value !== '' &&
+                document.querySelector('[data-ui-bound=time-range]').textContent.includes('/');
+        })()")
+        ->keys('[data-ui-demo=time-picker-range] [data-ui-add]', 'Enter')
+        ->wait(0.7)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+            const bound = document.querySelector('[data-ui-bound=time-range]').textContent.trim();
+
+            return !root.querySelector('[data-ui-popover]').matches(':popover-open') &&
+                bound.includes('/') &&
+                !bound.endsWith('/');
+        })()");
+});
+
+it('clears both endpoints when the range start is removed', function () {
+    visit('/ui/time-picker')
+        ->on()
+        ->desktop()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-selected] [data-time=\"09:00\"]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=time-picker-range]');
+            const popover = root.querySelector('[data-ui-popover]');
+
+            return popover.querySelectorAll('[data-ui-selected] [data-time]').length === 0 &&
+                root.querySelector('[data-ui-trigger]').value === '' &&
+                document.querySelector('[data-ui-bound=time-range]').textContent.trim() === '/';
+        })()");
+});
+
+it('has no serious accessibility issues with an open range popover', function (string $device) {
+    visit('/ui/time-picker')
+        ->on()
+        ->{$device}()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=time-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertNoAccessibilityIssues()
+        ->assertNoJavaScriptErrors();
+})->with(['desktop', 'mobile']);

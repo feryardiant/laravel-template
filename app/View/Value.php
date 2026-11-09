@@ -160,6 +160,32 @@ final class Value
     }
 
     /**
+     * Normalize an array or `start/end` string to nullable `H:i` endpoints.
+     *
+     * @return array{start: ?string, end: ?string}
+     */
+    public static function timeRange(mixed $value): array
+    {
+        if (\is_string($value)) {
+            $parts = explode('/', $value, 2);
+
+            return [
+                'start' => self::time($parts[0]),
+                'end' => self::time($parts[1] ?? null),
+            ];
+        }
+
+        if (! \is_array($value)) {
+            return ['start' => null, 'end' => null];
+        }
+
+        return [
+            'start' => self::time($value['start'] ?? null),
+            'end' => self::time($value['end'] ?? null),
+        ];
+    }
+
+    /**
      * Normalize time and inclusive `H:i-H:i` range entries, dropping invalid
      * values.
      *

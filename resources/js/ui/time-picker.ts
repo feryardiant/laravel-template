@@ -18,7 +18,8 @@ import type { TimeOption, TimePickerConfig, WireLike } from './types'
  * Alpine data for the time picker popover.
  *
  * Values are wall-clock `H:i` strings. Single mode applies on minute selection;
- * multiple mode appends to a removable list. 12-hour mode only changes the
+ * multiple mode appends to a removable list; range mode records a start, then
+ * disables earlier times until an end is added. 12-hour mode only changes the
  * visible hour options and meridiem; the stored value stays 24-hour.
  */
 
@@ -32,11 +33,14 @@ interface HourOption {
 export interface TimePickerData {
     hour12: boolean
     multiple: boolean
+    range: boolean
     disabled: boolean
     labels: TimePickerConfig['labels']
     display: string
     selected: string | null
     selectedValues: string[]
+    rangeStart: string | null
+    rangeEnd: string | null
     hour: number | null
     minute: number | null
     meridiem: 'am' | 'pm'
@@ -67,19 +71,21 @@ export interface TimePickerData {
     onMinuteKeydown: (event: KeyboardEvent) => void
     onPopoverKeydown: (event: KeyboardEvent) => void
     canAdd: () => boolean
+    hasEndAfter: (start: string) => boolean
+    addLabel: () => string
+    canAddMore: () => boolean
     hasValue: () => boolean
-    isSelected: (value: string) => boolean
     activeHourId: () => string | null
     activeMinuteId: () => string | null
     activeSelectedId: () => string | null
     selectedOptionId: (value: string) => string
     onSelectedKeydown: (event: KeyboardEvent) => void
     syncSelectedActive: () => void
-    placeholderText: () => string
     formatSelected: (value: string) => string
     renderDisplay: () => void
     resolveBounds: () => void
     initialDraft: () => string
+    nextRangeDraft: (start: string) => string
     setDraft: (key: string, preserve?: boolean) => void
     changeHour: (value: number) => void
     build: () => void
@@ -99,9 +105,9 @@ export interface TimePickerData {
 /**
  * Create the Alpine data for a time picker.
  *
- * Writes `H:i` for single mode and a sorted array for multiple mode. Off-step
- * values are preserved only for their original hour so a new choice still
- * follows the configured interval.
+ * Writes `H:i` for single mode, a sorted array for multiple mode and
+ * `{ start, end }` for range mode. Off-step values are preserved only for their
+ * original hour so a new choice still follows the configured interval.
  */
 export function timePickerData(config: TimePickerConfig, wire: WireLike | null): TimePickerData {
     let rootEl: HTMLElement | null = null
@@ -134,14 +140,33 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         return toTime(value)
     }
 
+    const normalizeRange = (value: unknown): { start: string | null; end: string | null } => {
+        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+            const range = value as { start?: unknown; end?: unknown }
+
+            return { start: toTime(range.start), end: toTime(range.end) }
+        }
+
+        if (typeof value === 'string') {
+            const [start, end] = value.split('/', 2)
+
+            return { start: toTime(start), end: toTime(end) }
+        }
+
+        return { start: null, end: null }
+    }
+
     return {
         hour12: config.format === '12-hour' || (config.format === 'auto' && prefersHour12(config.locale)),
-        multiple: config.multiple,
+        multiple: config.mode !== 'single',
+        range: config.mode === 'range',
         disabled: config.disabled,
         labels: config.labels,
         display: '',
         selected: null,
         selectedValues: [],
+        rangeStart: null,
+        rangeEnd: null,
         hour: null,
         minute: null,
         meridiem: 'am',
@@ -198,7 +223,14 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         applyValue(value) {
-            if (this.multiple) {
+            if (this.range) {
+                const range = normalizeRange(value)
+
+                this.rangeStart = range.start
+                this.rangeEnd = range.start === null ? null : range.end
+                this.selectedValues = [range.start, range.end].filter((entry): entry is string => entry !== null)
+                this.syncSelectedActive()
+            } else if (this.multiple) {
                 this.selectedValues = normalize(value, true) as string[]
                 this.syncSelectedActive()
             } else {
@@ -220,6 +252,14 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             this.resolveBounds()
             this.activeHour = null
             this.activeMinute = null
+
+            if (this.range) {
+                this.selectedValues = [this.rangeStart, this.rangeEnd].filter(
+                    (entry): entry is string => entry !== null,
+                )
+                this.syncSelectedActive()
+            }
+
             this.setDraft(this.initialDraft(), !this.multiple && this.selected !== null)
             this.build()
             popover?.open()
@@ -236,6 +276,8 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
             this.selected = null
             this.selectedValues = []
+            this.rangeStart = null
+            this.rangeEnd = null
             this.activeSelected = null
             this.minute = null
             this.commit()
@@ -244,6 +286,16 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         commit() {
+            if (this.range) {
+                const value = { start: this.rangeStart, end: this.rangeEnd }
+
+                writeModel(wire, config.model, config.live, value, null)
+                this.renderDisplay()
+                dispatch(this, 'change', value)
+
+                return
+            }
+
             const value = this.multiple ? [...this.selectedValues] : this.selected
 
             writeModel(wire, config.model, config.live, value, this.multiple ? null : formInput())
@@ -337,6 +389,38 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
+            if (this.range) {
+                if (this.selectedValues.length === 0) {
+                    this.selectedValues = [time]
+                    this.rangeStart = time
+                    this.rangeEnd = null
+                    this.activeSelected = time
+                    this.minute = null
+                    this.activeMinute = null
+                    this.preservedHour = null
+                    this.commit()
+                    this.setDraft(this.nextRangeDraft(time), false)
+                    this.build()
+
+                    window.setTimeout(() => {
+                        this.scrollColumn('minute')
+                    }, 0)
+
+                    return
+                }
+
+                if (this.selectedValues.length === 1 && compareTime(time, this.selectedValues[0]) > 0) {
+                    this.selectedValues = [this.selectedValues[0], time]
+                    this.rangeStart = this.selectedValues[0]
+                    this.rangeEnd = time
+                    this.activeSelected = time
+                    this.commit()
+                    this.closePopover()
+                }
+
+                return
+            }
+
             if (!this.selectedValues.includes(time)) {
                 this.selectedValues = [...this.selectedValues, time].sort(compareTime)
             }
@@ -362,8 +446,24 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }
 
             const index = this.selectedValues.indexOf(value)
+            const wasRangeStart = this.range && this.selectedValues[0] === value
 
             this.selectedValues = this.selectedValues.filter((selected) => selected !== value)
+
+            if (this.range) {
+                if (wasRangeStart) {
+                    this.selectedValues = []
+                    this.rangeStart = null
+                    this.rangeEnd = null
+                } else {
+                    this.rangeStart = this.selectedValues[0] ?? null
+                    this.rangeEnd = this.selectedValues[1] ?? null
+
+                    if (this.rangeStart !== null) {
+                        this.setDraft(this.rangeEnd ?? this.nextRangeDraft(this.rangeStart), false)
+                    }
+                }
+            }
 
             if (this.selectedValues.length === 0) {
                 this.activeSelected = null
@@ -371,6 +471,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 this.activeSelected = this.selectedValues[Math.min(Math.max(index, 0), this.selectedValues.length - 1)]
             }
 
+            this.build()
             this.commit()
 
             window.setTimeout(() => {
@@ -482,17 +583,45 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         canAdd() {
-            return (
-                this.multiple && this.hour !== null && this.minute !== null && !this.isDisabled(this.hour, this.minute)
-            )
+            if (this.hour === null || this.minute === null || this.isDisabled(this.hour, this.minute)) {
+                return false
+            }
+
+            if (!this.range) {
+                return this.multiple
+            }
+
+            const time = this.compose()
+
+            if (time === null) {
+                return false
+            }
+
+            if (this.selectedValues.length === 0) {
+                return this.hasEndAfter(time)
+            }
+
+            return this.selectedValues.length === 1 && compareTime(time, this.selectedValues[0]) > 0
+        },
+
+        addLabel() {
+            if (!this.range) {
+                return this.labels.add
+            }
+
+            return this.selectedValues.length === 0 ? this.labels.addStart : this.labels.addEnd
+        },
+
+        canAddMore() {
+            return !this.range || this.selectedValues.length < 2
         },
 
         hasValue() {
-            return this.multiple ? this.selectedValues.length > 0 : this.selected !== null
-        },
+            if (this.range) {
+                return this.rangeStart !== null
+            }
 
-        isSelected(value) {
-            return this.selectedValues.includes(value)
+            return this.multiple ? this.selectedValues.length > 0 : this.selected !== null
         },
 
         activeHourId() {
@@ -503,15 +632,28 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             return this.minutes.find((option) => option.value === this.activeMinute)?.id ?? null
         },
 
-        placeholderText() {
-            return config.placeholder ?? (this.multiple ? this.labels.placeholderMultiple : this.labels.placeholder)
-        },
-
         formatSelected(value) {
             return formatTime(config.locale, value, config.format)
         },
 
         renderDisplay() {
+            if (this.range) {
+                if (this.rangeStart === null) {
+                    this.display = ''
+
+                    return
+                }
+
+                const start = formatTime(config.locale, this.rangeStart, config.format)
+
+                this.display =
+                    this.rangeEnd === null
+                        ? start
+                        : `${start} – ${formatTime(config.locale, this.rangeEnd, config.format)}`
+
+                return
+            }
+
             if (this.multiple) {
                 if (this.selectedValues.length === 0) {
                     this.display = ''
@@ -536,11 +678,55 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         initialDraft() {
+            if (this.range) {
+                const start = this.selectedValues[0]
+
+                if (start !== undefined) {
+                    return this.selectedValues[1] ?? this.nextRangeDraft(start)
+                }
+
+                return config.openTo === 'now' ? this.now : (toTime(config.openTo) ?? this.now)
+            }
+
             if (this.multiple) {
                 return config.openTo === 'now' ? this.now : (toTime(config.openTo) ?? this.now)
             }
 
             return this.selected ?? (config.openTo === 'now' ? this.now : (toTime(config.openTo) ?? this.now))
+        },
+
+        /** First selectable interval time after a range start, if any. */
+        nextRangeDraft(start: string): string {
+            const startMinutes = minutesOfDay(start) ?? 0
+
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += interval) {
+                    if (hour * 60 + minute <= startMinutes) {
+                        continue
+                    }
+
+                    if (!this.isDisabled(hour, minute)) {
+                        return timeFromMinutes(hour * 60 + minute)
+                    }
+                }
+            }
+
+            return timeFromMinutes(Math.min(startMinutes + 1, 23 * 60 + 59))
+        },
+
+        /** Whether any selectable time exists after a candidate start. */
+        hasEndAfter(start: string): boolean {
+            const startMinutes = minutesOfDay(start) ?? 0
+
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += interval) {
+                    if (hour * 60 + minute > startMinutes && !this.isDisabled(hour, minute)) {
+                        return true
+                    }
+                }
+            }
+
+            return false
         },
 
         /**
@@ -580,11 +766,13 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 this.setDraft(this.initialDraft())
             }
 
+            const locked = this.range && this.selectedValues.length === 2
+
             this.hours = this.hourOptions().map((option) => ({
                 id: `${config.hoursId}-${option.value}`,
                 value: option.value,
                 label: option.label,
-                disabled: !this.hourEnabled(option.value),
+                disabled: locked || !this.hourEnabled(option.value),
                 selected: this.hour === option.value,
             }))
 
@@ -594,7 +782,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 id: `${config.minutesId}-${value}`,
                 value,
                 label: String(value).padStart(2, '0'),
-                disabled: hour === null || this.isDisabled(hour, value),
+                disabled: locked || hour === null || this.isDisabled(hour, value),
                 selected: this.minute === value,
             }))
 
@@ -647,6 +835,14 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         isDisabled(hour, minute) {
+            if (this.range && this.selectedValues.length === 1) {
+                const start = minutesOfDay(this.selectedValues[0])
+
+                if (start !== null && hour * 60 + minute <= start) {
+                    return true
+                }
+            }
+
             const key = timeFromMinutes(hour * 60 + minute)
 
             if (minKey !== null && compareTime(key, minKey) < 0) {

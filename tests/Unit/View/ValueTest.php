@@ -59,6 +59,19 @@ it('normalizes multiple times and removes duplicates', function () {
         ->and(Value::times(['09:00', '09:00', '10:30', 'invalid']))->toBe(['09:00', '10:30']);
 });
 
+it('normalizes a time range by array or slash string', function () {
+    expect(Value::timeRange(['start' => '09:30:15', 'end' => '11:00']))->toBe([
+        'start' => '09:30',
+        'end' => '11:00',
+    ])->and(Value::timeRange('09:30/11:00'))->toBe([
+        'start' => '09:30',
+        'end' => '11:00',
+    ])->and(Value::timeRange(['start' => 'invalid', 'end' => null]))->toBe([
+        'start' => null,
+        'end' => null,
+    ]);
+});
+
 it('normalizes unavailable time ranges', function () {
     expect(Value::timeRanges('03:00,04:00,05:30-07:29'))->toBe([
         '03:00',

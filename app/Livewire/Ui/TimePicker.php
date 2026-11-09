@@ -9,7 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * Development page for single, multiple and 12-hour time picking.
+ * Development page for single, multiple, range and 12-hour time picking.
  */
 #[Layout('ui.layout')]
 class TimePicker extends Component
@@ -17,6 +17,11 @@ class TimePicker extends Component
     public ?string $time = '09:00';
 
     public ?string $time12 = '13:30';
+
+    /**
+     * @var array{start: ?string, end: ?string}
+     */
+    public array $timeRange = ['start' => '09:00', 'end' => '11:00'];
 
     /**
      * @var array<int, string>

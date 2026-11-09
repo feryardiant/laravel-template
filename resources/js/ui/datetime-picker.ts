@@ -18,10 +18,10 @@ import type { DateTimePickerConfig, TimeOption, WireLike } from './types'
 /**
  * Alpine data for the datetime picker.
  *
- * Combines one calendar with per-endpoint time drafts. Single mode writes on a
- * date change and closes on a minute; range mode commits only from the footer.
- * Times are revalidated against bounds, unavailable entries and end-after-start
- * ordering whenever a date or time changes.
+ * Combines one calendar with one time panel. Single mode writes on a date change
+ * and closes on a minute; range mode uses the same single draft, Add start/Add
+ * end chips and footer commit as the standalone time picker. Earlier times are
+ * not disabled in range mode because the end may fall on a later date.
  */
 
 type DateTimeMode = 'single' | 'range'
@@ -50,8 +50,9 @@ export interface DateTimePickerData {
     nowTime: string
     startDate: string | null
     endDate: string | null
-    start: TimeDraftState
-    end: TimeDraftState
+    draft: TimeDraftState
+    rangeStart: string | null
+    rangeEnd: string | null
     valueStartDate: string | null
     valueStartTime: string | null
     valueEndDate: string | null
@@ -83,28 +84,37 @@ export interface DateTimePickerData {
     onTriggerKeydown: (event: KeyboardEvent) => void
     onCalendarChange: (event: Event) => void
     onPopoverKeydown: (event: KeyboardEvent) => void
-    setTimeDraft: (endpoint: Endpoint, time: string | null) => void
+    activeEndpoint: () => Endpoint
+    rangeComplete: () => boolean
+    addTime: () => void
+    addLabel: () => string
+    canAddTime: () => boolean
+    canAddMore: () => boolean
+    removeAdded: (endpoint: Endpoint) => void
+    formatTimeValue: (time: string | null) => string
+    after: (time: string) => string
+    setTimeDraft: (time: string | null) => void
     dateFor: (endpoint: Endpoint) => string | null
-    draftFor: (endpoint: Endpoint) => TimeDraftState
-    draftTimeFor: (endpoint: Endpoint) => string | null
-    draftTimeValid: (endpoint: Endpoint) => boolean
-    firstValidTime: (endpoint: Endpoint) => string | null
-    revalidateTime: (endpoint: Endpoint) => void
+    draftTime: () => string | null
+    draftTimeValid: () => boolean
+    firstValidTimeFor: (endpoint: Endpoint) => string | null
+    revalidateRangeTimes: () => void
     initialTime: (endpoint: Endpoint) => string
-    buildTimes: (endpoint: Endpoint) => void
+    buildTimes: () => void
     hourOptions: (draft: TimeDraftState) => { value: number; label: string }[]
-    minuteCandidates: (endpoint: Endpoint, hour: number) => number[]
-    hourEnabled: (endpoint: Endpoint, hour: number) => boolean
-    isTimeDisabled: (endpoint: Endpoint, hour: number, minute: number) => boolean
-    changeHour: (endpoint: Endpoint, value: number) => void
-    selectHour: (endpoint: Endpoint, value: number) => void
-    selectMinute: (endpoint: Endpoint, value: number) => void
-    setMeridiem: (endpoint: Endpoint, period: 'am' | 'pm') => void
-    activeTimeId: (endpoint: Endpoint, column: Column) => string | null
-    timeListId: (endpoint: Endpoint, column: Column) => string
-    timeOptionId: (endpoint: Endpoint, column: Column, value: number) => string
-    onTimeKeydown: (event: KeyboardEvent, endpoint: Endpoint, column: Column) => void
-    scrollTimeColumn: (endpoint: Endpoint, column: Column) => void
+    minuteCandidates: (hour: number) => number[]
+    hourEnabled: (hour: number) => boolean
+    isTimeDisabled: (hour: number, minute: number) => boolean
+    isTimeDisabledFor: (endpoint: Endpoint, hour: number, minute: number) => boolean
+    changeHour: (value: number) => void
+    selectHour: (value: number) => void
+    selectMinute: (value: number) => void
+    setMeridiem: (period: 'am' | 'pm') => void
+    activeTimeId: (column: Column) => string | null
+    timeListId: (column: Column) => string
+    timeOptionId: (column: Column, value: number) => string
+    onTimeKeydown: (event: KeyboardEvent, column: Column) => void
+    scrollTimeColumn: (column: Column) => void
     sizeTimePanel: () => void
     syncActive: (options: TimeOption[], current: number | null, selected: number | null) => number | null
     renderDisplay: () => void
@@ -180,8 +190,9 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         nowTime: localNowKey(),
         startDate: null,
         endDate: null,
-        start: emptyDraft(),
-        end: emptyDraft(),
+        draft: emptyDraft(),
+        rangeStart: null,
+        rangeEnd: null,
         valueStartDate: null,
         valueStartTime: null,
         valueEndDate: null,
@@ -297,11 +308,31 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         syncDrafts() {
             this.startDate = this.valueStartDate
             this.endDate = this.valueEndDate
-            this.setTimeDraft('start', this.valueStartTime)
-            this.setTimeDraft('end', this.valueEndTime)
-            this.buildTimes('start')
-            this.buildTimes('end')
+
+            if (this.mode === 'range') {
+                this.rangeStart = this.valueStartTime
+                this.rangeEnd = this.valueEndTime
+                this.setTimeDraft(this.rangeStart ?? (this.startDate === null ? null : this.initialTime('start')))
+            } else {
+                this.rangeStart = null
+                this.rangeEnd = null
+                this.setTimeDraft(this.valueStartTime)
+            }
+
+            this.buildTimes()
             this.updateRangeError()
+        },
+
+        activeEndpoint(): Endpoint {
+            if (this.mode !== 'range' || this.rangeStart === null || this.rangeEnd !== null) {
+                return 'start'
+            }
+
+            return 'end'
+        },
+
+        rangeComplete(): boolean {
+            return this.mode === 'range' && this.rangeStart !== null && this.rangeEnd !== null
         },
 
         syncCalendar() {
@@ -353,14 +384,14 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            if (this.mode === 'range') {
-                const start = combineDateTime(this.startDate as string, this.draftTimeFor('start') as string)
-                const end = combineDateTime(this.endDate as string, this.draftTimeFor('end') as string)
+            if (this.mode === 'range' && this.rangeStart !== null && this.rangeEnd !== null) {
+                const start = combineDateTime(this.startDate as string, this.rangeStart)
+                const end = combineDateTime(this.endDate as string, this.rangeEnd)
 
                 this.valueStartDate = this.startDate
-                this.valueStartTime = this.draftTimeFor('start')
+                this.valueStartTime = this.rangeStart
                 this.valueEndDate = this.endDate
-                this.valueEndTime = this.draftTimeFor('end')
+                this.valueEndTime = this.rangeEnd
                 this.write({ start, end })
             } else {
                 this.commitSingle()
@@ -384,8 +415,9 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.valueStartTime = null
             this.valueEndDate = null
             this.valueEndTime = null
-            this.setTimeDraft('start', null)
-            this.setTimeDraft('end', null)
+            this.rangeStart = null
+            this.rangeEnd = null
+            this.setTimeDraft(null)
             this.write(null)
             dispatch(this, 'clear')
             this.closePopover()
@@ -393,9 +425,9 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
 
         commitSingle() {
             const date = this.startDate
-            const time = this.draftTimeFor('start')
+            const time = this.draftTime()
 
-            if (date === null || time === null || !this.draftTimeValid('start')) {
+            if (date === null || time === null || !this.draftTimeValid()) {
                 return
             }
 
@@ -425,29 +457,33 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return (
                     this.startDate !== null &&
                     this.endDate !== null &&
-                    this.draftTimeValid('start') &&
-                    this.draftTimeValid('end') &&
+                    this.rangeStart !== null &&
+                    this.rangeEnd !== null &&
                     !this.rangeInvalid()
                 )
             }
 
-            return this.startDate !== null && this.draftTimeValid('start')
+            return this.startDate !== null && this.draftTimeValid()
         },
 
         rangeInvalid() {
-            if (this.mode !== 'range' || this.startDate === null || this.endDate === null) {
+            if (this.mode !== 'range' || this.rangeStart === null || this.rangeEnd === null) {
                 return false
             }
 
-            const startTime = this.draftTimeFor('start')
-            const endTime = this.draftTimeFor('end')
+            if (this.startDate === null || this.endDate === null) {
+                return false
+            }
 
-            if (startTime === null || endTime === null) {
+            if (this.startDate !== this.endDate) {
                 return false
             }
 
             return (
-                compareDateTime(combineDateTime(this.endDate, endTime), combineDateTime(this.startDate, startTime)) <= 0
+                compareDateTime(
+                    combineDateTime(this.endDate, this.rangeEnd),
+                    combineDateTime(this.startDate, this.rangeStart),
+                ) <= 0
             )
         },
 
@@ -501,21 +537,24 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 this.endDate = end
 
                 if (start === null) {
-                    this.setTimeDraft('start', null)
-                } else if (this.draftTimeFor('start') === null) {
-                    this.setTimeDraft('start', this.initialTime('start'))
+                    this.rangeStart = null
+                    this.rangeEnd = null
+                    this.setTimeDraft(null)
+                } else {
+                    this.revalidateRangeTimes()
+
+                    if (this.activeEndpoint() === 'start' && this.rangeStart === null) {
+                        this.setTimeDraft(this.initialTime('start'))
+                    } else if (this.activeEndpoint() === 'end' && this.rangeEnd === null) {
+                        this.setTimeDraft(
+                            this.rangeStart === null ? this.initialTime('end') : this.after(this.rangeStart),
+                        )
+                    } else {
+                        this.setTimeDraft(this.rangeStart)
+                    }
                 }
 
-                if (end === null) {
-                    this.setTimeDraft('end', null)
-                } else if (this.draftTimeFor('end') === null) {
-                    this.setTimeDraft('end', this.initialTime('end'))
-                }
-
-                this.revalidateTime('start')
-                this.revalidateTime('end')
-                this.buildTimes('start')
-                this.buildTimes('end')
+                this.buildTimes()
                 this.updateRangeError()
 
                 return
@@ -526,18 +565,21 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             this.startDate = date
 
             if (date === null) {
-                this.setTimeDraft('start', null)
-                this.buildTimes('start')
+                this.setTimeDraft(null)
+                this.buildTimes()
 
                 return
             }
 
-            if (this.draftTimeFor('start') === null) {
-                this.setTimeDraft('start', this.initialTime('start'))
+            if (this.draftTime() === null) {
+                this.setTimeDraft(this.initialTime('start'))
             }
 
-            this.revalidateTime('start')
-            this.buildTimes('start')
+            if (!this.draftTimeValid()) {
+                this.setTimeDraft(this.firstValidTimeFor('start'))
+            }
+
+            this.buildTimes()
             this.commitSingle()
         },
 
@@ -549,8 +591,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             }
         },
 
-        setTimeDraft(endpoint, time) {
-            const draft = this.draftFor(endpoint)
+        setTimeDraft(time) {
+            const draft = this.draft
 
             if (time === null) {
                 draft.hour = null
@@ -565,15 +607,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             const rawMinute = minutes % 60
 
             draft.hour = Math.floor(minutes / 60)
-
-            if (rawMinute % interval !== 0) {
-                draft.preservedHour = draft.hour
-                draft.minute = rawMinute
-            } else {
-                draft.preservedHour = null
-                draft.minute = rawMinute
-            }
-
+            draft.preservedHour = rawMinute % interval === 0 ? null : draft.hour
+            draft.minute = rawMinute
             draft.meridiem = draft.hour >= 12 ? 'pm' : 'am'
         },
 
@@ -581,18 +616,25 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return endpoint === 'start' ? this.startDate : this.endDate
         },
 
-        draftFor(endpoint) {
-            return endpoint === 'start' ? this.start : this.end
-        },
-
-        draftTimeFor(endpoint) {
-            const draft = this.draftFor(endpoint)
+        draftTime() {
+            const draft = this.draft
 
             if (draft.hour === null || draft.minute === null) {
                 return null
             }
 
             return timeFromMinutes(draft.hour * 60 + draft.minute)
+        },
+
+        draftTimeValid() {
+            const draft = this.draft
+
+            return (
+                this.dateFor(this.activeEndpoint()) !== null &&
+                draft.hour !== null &&
+                draft.minute !== null &&
+                !this.isTimeDisabled(draft.hour, draft.minute)
+            )
         },
 
         initialTime(endpoint) {
@@ -605,23 +647,11 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return config.defaultEndTime ?? this.openToTime ?? start
         },
 
-        /** Whether the endpoint has a date and a currently selectable time. */
-        draftTimeValid(endpoint) {
-            const draft = this.draftFor(endpoint)
-
-            return (
-                this.dateFor(endpoint) !== null &&
-                draft.hour !== null &&
-                draft.minute !== null &&
-                !this.isTimeDisabled(endpoint, draft.hour, draft.minute)
-            )
-        },
-
         /** First interval time that satisfies the endpoint constraints, if any. */
-        firstValidTime(endpoint) {
+        firstValidTimeFor(endpoint) {
             for (let hour = 0; hour < 24; hour++) {
                 for (let minute = 0; minute < 60; minute += interval) {
-                    if (!this.isTimeDisabled(endpoint, hour, minute)) {
+                    if (!this.isTimeDisabledFor(endpoint, hour, minute)) {
                         return timeFromMinutes(hour * 60 + minute)
                     }
                 }
@@ -630,44 +660,56 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return null
         },
 
-        /**
-         * Repair an endpoint time that became invalid after a date change.
-         *
-         * Falls back to the first valid interval time, or clears the time when
-         * the endpoint has no valid option.
-         */
-        revalidateTime(endpoint) {
-            if (this.dateFor(endpoint) === null) {
-                this.setTimeDraft(endpoint, null)
-
+        /** Replace an added time that is no longer available on the selected dates. */
+        revalidateRangeTimes() {
+            if (this.mode !== 'range') {
                 return
             }
 
-            if (this.draftTimeValid(endpoint)) {
-                return
-            }
+            for (const endpoint of ['start', 'end'] as Endpoint[]) {
+                const time = endpoint === 'start' ? this.rangeStart : this.rangeEnd
 
-            this.setTimeDraft(endpoint, this.firstValidTime(endpoint))
+                if (time === null || this.dateFor(endpoint) === null) {
+                    continue
+                }
+
+                const minutes = minutesOfDay(time) ?? 0
+                const hour = Math.floor(minutes / 60)
+                const minute = minutes % 60
+
+                if (!this.isTimeDisabledFor(endpoint, hour, minute)) {
+                    continue
+                }
+
+                const replacement = this.firstValidTimeFor(endpoint)
+
+                if (endpoint === 'start') {
+                    this.rangeStart = replacement
+                } else {
+                    this.rangeEnd = replacement
+                }
+            }
         },
 
-        buildTimes(endpoint) {
-            const draft = this.draftFor(endpoint)
+        buildTimes() {
+            const draft = this.draft
+            const locked = this.rangeComplete()
 
             draft.hours = this.hourOptions(draft).map((option) => ({
-                id: this.timeOptionId(endpoint, 'hour', option.value),
+                id: this.timeOptionId('hour', option.value),
                 value: option.value,
                 label: option.label,
-                disabled: !this.hourEnabled(endpoint, option.value),
+                disabled: locked || !this.hourEnabled(option.value),
                 selected: draft.hour === option.value,
             }))
 
             const hour = draft.hour
 
-            draft.minutes = this.minuteCandidates(endpoint, hour ?? 0).map((value) => ({
-                id: this.timeOptionId(endpoint, 'minute', value),
+            draft.minutes = this.minuteCandidates(hour ?? 0).map((value) => ({
+                id: this.timeOptionId('minute', value),
                 value,
                 label: String(value).padStart(2, '0'),
-                disabled: hour === null || this.isTimeDisabled(endpoint, hour, value),
+                disabled: locked || hour === null || this.isTimeDisabled(hour, value),
                 selected: draft.minute === value,
             }))
 
@@ -691,14 +733,14 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             }))
         },
 
-        minuteCandidates(endpoint, hour) {
+        minuteCandidates(hour) {
             const values: number[] = []
 
             for (let minute = 0; minute < 60; minute += interval) {
                 values.push(minute)
             }
 
-            const draft = this.draftFor(endpoint)
+            const draft = this.draft
 
             if (
                 draft.minute !== null &&
@@ -712,19 +754,20 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return values.sort((left, right) => left - right)
         },
 
-        hourEnabled(endpoint, hour) {
-            if (this.dateFor(endpoint) === null) {
+        hourEnabled(hour) {
+            if (this.dateFor(this.activeEndpoint()) === null) {
                 return false
             }
 
-            return this.minuteCandidates(endpoint, hour).some((minute) => !this.isTimeDisabled(endpoint, hour, minute))
+            return this.minuteCandidates(hour).some((minute) => !this.isTimeDisabled(hour, minute))
         },
 
-        /**
-         * Check datetime bounds, daily time windows, unavailable entries and
-         * end-after-start ordering for a candidate time.
-         */
-        isTimeDisabled(endpoint, hour, minute) {
+        isTimeDisabled(hour, minute) {
+            return this.isTimeDisabledFor(this.activeEndpoint(), hour, minute)
+        },
+
+        /** Check bounds, daily windows and unavailable entries for one endpoint. */
+        isTimeDisabledFor(endpoint, hour, minute) {
             const date = this.dateFor(endpoint)
 
             if (date === null) {
@@ -750,35 +793,11 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return true
             }
 
-            if (isUnavailable(date, time, unavailable)) {
-                return true
-            }
-
-            if (this.mode === 'range') {
-                const startDate = this.startDate
-                const endDate = this.endDate
-                const startTime = this.draftTimeFor('start')
-                const endTime = this.draftTimeFor('end')
-
-                if (startDate !== null && startTime !== null && endDate !== null && endTime !== null) {
-                    const start = combineDateTime(startDate, startTime)
-                    const end = combineDateTime(endDate, endTime)
-
-                    if (endpoint === 'end' && compareDateTime(candidate, start) <= 0) {
-                        return true
-                    }
-
-                    if (endpoint === 'start' && compareDateTime(candidate, end) >= 0) {
-                        return true
-                    }
-                }
-            }
-
-            return false
+            return isUnavailable(date, time, unavailable)
         },
 
-        changeHour(endpoint, value) {
-            const draft = this.draftFor(endpoint)
+        changeHour(value) {
+            const draft = this.draft
 
             if (draft.minute !== null && draft.minute % interval !== 0 && value !== draft.preservedHour) {
                 draft.minute = null
@@ -788,33 +807,25 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             draft.hour = value
         },
 
-        selectHour(endpoint, value) {
-            const draft = this.draftFor(endpoint)
+        selectHour(value) {
+            const draft = this.draft
             const option = draft.hours.find((candidate) => candidate.value === value)
 
             if (option === undefined || option.disabled) {
                 return
             }
 
-            this.changeHour(endpoint, value)
+            this.changeHour(value)
             draft.activeHour = value
-            this.buildTimes(endpoint)
-
-            if (this.mode === 'range') {
-                const other = endpoint === 'start' ? 'end' : 'start'
-
-                this.revalidateTime(other)
-                this.buildTimes(other)
-                this.updateRangeError()
-            }
+            this.buildTimes()
 
             window.setTimeout(() => {
-                this.scrollTimeColumn(endpoint, 'minute')
+                this.scrollTimeColumn('minute')
             }, 0)
         },
 
-        selectMinute(endpoint, value) {
-            const draft = this.draftFor(endpoint)
+        selectMinute(value) {
+            const draft = this.draft
             const option = draft.minutes.find((candidate) => candidate.value === value)
 
             if (option === undefined || option.disabled) {
@@ -825,7 +836,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             draft.activeMinute = value
 
             if (this.mode === 'single') {
-                this.buildTimes('start')
+                this.buildTimes()
 
                 if (config.withConfirmation) {
                     return
@@ -837,63 +848,121 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            const other = endpoint === 'start' ? 'end' : 'start'
-
-            this.revalidateTime(other)
-            this.buildTimes(endpoint)
-            this.buildTimes(other)
+            this.buildTimes()
             this.updateRangeError()
         },
 
-        setMeridiem(endpoint, period) {
-            const draft = this.draftFor(endpoint)
+        setMeridiem(period) {
+            const draft = this.draft
 
             if (draft.meridiem === period) {
-                this.buildTimes(endpoint)
+                this.buildTimes()
 
                 return
             }
 
             if (draft.hour !== null) {
                 const display = draft.hour % 12 || 12
-                this.changeHour(endpoint, (display % 12) + (period === 'pm' ? 12 : 0))
+                this.changeHour((display % 12) + (period === 'pm' ? 12 : 0))
                 draft.activeHour = draft.hour
             }
 
             draft.meridiem = period
-            this.buildTimes(endpoint)
-
-            if (this.mode === 'range') {
-                const other = endpoint === 'start' ? 'end' : 'start'
-
-                this.revalidateTime(other)
-                this.buildTimes(other)
-                this.updateRangeError()
-            }
+            this.buildTimes()
+            this.updateRangeError()
 
             window.setTimeout(() => {
-                this.scrollTimeColumn(endpoint, 'hour')
-                this.scrollTimeColumn(endpoint, 'minute')
+                this.scrollTimeColumn('hour')
+                this.scrollTimeColumn('minute')
             }, 0)
         },
 
-        activeTimeId(endpoint, column) {
-            const draft = this.draftFor(endpoint)
-            const value = column === 'hour' ? draft.activeHour : draft.activeMinute
+        addTime() {
+            if (this.disabled || this.mode !== 'range' || this.rangeComplete()) {
+                return
+            }
 
-            return value === null ? null : this.timeOptionId(endpoint, column, value)
+            const time = this.draftTime()
+
+            if (time === null || !this.draftTimeValid()) {
+                return
+            }
+
+            if (this.rangeStart === null) {
+                this.rangeStart = time
+                this.setTimeDraft(this.endDate === null ? null : this.initialTime('end'))
+            } else {
+                this.rangeEnd = time
+                this.setTimeDraft(this.rangeStart)
+            }
+
+            this.buildTimes()
+            this.updateRangeError()
         },
 
-        timeListId(endpoint, column) {
-            return `${config.triggerId}-${endpoint}-${column}s`
+        addLabel() {
+            return this.rangeStart === null ? this.labels.addStart : this.labels.addEnd
         },
 
-        timeOptionId(endpoint, column, value) {
-            return `${this.timeListId(endpoint, column)}-${value}`
+        canAddTime() {
+            return this.mode === 'range' && !this.rangeComplete() && this.draftTimeValid()
         },
 
-        onTimeKeydown(event, endpoint, column) {
-            const draft = this.draftFor(endpoint)
+        canAddMore() {
+            return this.mode === 'range' && !this.rangeComplete()
+        },
+
+        removeAdded(endpoint) {
+            if (this.disabled || this.mode !== 'range') {
+                return
+            }
+
+            if (endpoint === 'start') {
+                this.rangeStart = null
+                this.rangeEnd = null
+                this.setTimeDraft(this.startDate === null ? null : this.initialTime('start'))
+            } else {
+                this.rangeEnd = null
+                this.setTimeDraft(
+                    this.rangeStart === null
+                        ? this.endDate === null
+                            ? null
+                            : this.initialTime('end')
+                        : this.after(this.rangeStart),
+                )
+            }
+
+            this.buildTimes()
+            this.updateRangeError()
+        },
+
+        formatTimeValue(time) {
+            return time === null ? '' : formatTime(config.locale, time, config.timeFormat)
+        },
+
+        /** First interval time after a start, clamped to the end of the day. */
+        after(time) {
+            const minutes = minutesOfDay(time) ?? 0
+
+            return timeFromMinutes(Math.min(minutes + interval, 23 * 60 + 59))
+        },
+
+        activeTimeId(column) {
+            const value = column === 'hour' ? this.draft.activeHour : this.draft.activeMinute
+
+            return value === null ? null : this.timeOptionId(column, value)
+        },
+
+        timeListId(column) {
+            return `${config.triggerId}-time-${column}s`
+        },
+
+        timeOptionId(column, value) {
+            return `${this.timeListId(column)}-${value}`
+        },
+
+        onTimeKeydown(event, column) {
+            const draft = this.draft
             const options = column === 'hour' ? draft.hours : draft.minutes
             const active = column === 'hour' ? draft.activeHour : draft.activeMinute
             const enabled = options.filter((option) => !option.disabled)
@@ -904,9 +973,9 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
 
             const choose = (value: number): void => {
                 if (column === 'hour') {
-                    this.selectHour(endpoint, value)
+                    this.selectHour(value)
                 } else {
-                    this.selectMinute(endpoint, value)
+                    this.selectMinute(value)
                 }
             }
 
@@ -963,21 +1032,20 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             }
 
             window.setTimeout(() => {
-                this.scrollTimeColumn(endpoint, column)
+                this.scrollTimeColumn(column)
             }, 0)
         },
 
         /** Scroll one time column so its active option is visible. */
-        scrollTimeColumn(endpoint, column) {
-            const listbox = document.getElementById(this.timeListId(endpoint, column))
-            const draft = this.draftFor(endpoint)
-            const value = column === 'hour' ? draft.activeHour : draft.activeMinute
+        scrollTimeColumn(column) {
+            const listbox = document.getElementById(this.timeListId(column))
+            const value = column === 'hour' ? this.draft.activeHour : this.draft.activeMinute
 
             if (listbox === null || value === null) {
                 return
             }
 
-            const option = document.getElementById(this.timeOptionId(endpoint, column, value))
+            const option = document.getElementById(this.timeOptionId(column, value))
 
             if (option === null) {
                 return
@@ -1071,13 +1139,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
 
                 initial?.focus()
                 this.sizeTimePanel()
-                this.scrollTimeColumn('start', 'hour')
-                this.scrollTimeColumn('start', 'minute')
-
-                if (this.mode === 'range') {
-                    this.scrollTimeColumn('end', 'hour')
-                    this.scrollTimeColumn('end', 'minute')
-                }
+                this.scrollTimeColumn('hour')
+                this.scrollTimeColumn('minute')
             }, 0)
         },
 
@@ -1095,7 +1158,12 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            panel.style.height = window.matchMedia('(min-width: 1024px)').matches ? `${calendar.offsetHeight}px` : ''
+            panel.style.height =
+                this.mode === 'range'
+                    ? ''
+                    : window.matchMedia('(min-width: 1024px)').matches
+                      ? `${calendar.offsetHeight}px`
+                      : ''
         },
 
         dispatch(name, value) {

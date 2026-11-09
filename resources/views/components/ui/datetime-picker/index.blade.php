@@ -127,6 +127,10 @@
         'select' => __('ui.datetime-picker.select'),
         'selectRange' => __('ui.datetime-picker.select-range'),
         'rangeInvalid' => __('ui.datetime-picker.range-invalid'),
+        'addStart' => __('ui.datetime-picker.add-start'),
+        'addEnd' => __('ui.datetime-picker.add-end'),
+        'removeStart' => __('ui.datetime-picker.remove-start'),
+        'removeEnd' => __('ui.datetime-picker.remove-end'),
         'hour' => __('ui.time-picker.hour'),
         'minute' => __('ui.time-picker.minute'),
         'am' => __('ui.time-picker.am'),
@@ -168,7 +172,6 @@
         'labels' => $labels,
     ];
 
-    $endpoints = $isRange ? ['start', 'end'] : ['start'];
     $optionHeight = $isRange ? 'h-7' : 'h-8';
     $rootAttributes = $attributes->filter(
         fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'name',
@@ -286,117 +289,93 @@
                 </div>
 
                 <div data-ui-time-panel class="flex shrink-0 flex-col gap-3">
-                    @foreach ($endpoints as $endpoint)
-                        <div data-ui-time-columns data-endpoint="{{ $endpoint }}" class="flex flex-col lg:min-h-0 lg:flex-1">
-                            @if ($isRange)
-                                <div class="px-1 pb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                                    {{ $labels[$endpoint] }}
-                                </div>
-                            @endif
+                    <div
+                        data-ui-time-columns
+                        x-bind:data-endpoint="activeEndpoint()"
+                        class="flex flex-col lg:min-h-0 lg:flex-1"
+                    >
+                        <x-ui.time-picker.panel
+                            panel-class="flex min-h-0 flex-1 gap-1"
+                            hours="draft.hours"
+                            minutes="draft.minutes"
+                            active-hour="activeTimeId('hour')"
+                            active-minute="activeTimeId('minute')"
+                            hour-keydown="onTimeKeydown($event, 'hour')"
+                            minute-keydown="onTimeKeydown($event, 'minute')"
+                            select-hour="selectHour(option.value)"
+                            select-minute="selectMinute(option.value)"
+                            hour-id="timeListId('hour')"
+                            minute-id="timeListId('minute')"
+                            bound-ids
+                            :labels="$labels"
+                            is-am="draft.meridiem === 'am'"
+                            is-pm="draft.meridiem === 'pm'"
+                            on-select-am="setMeridiem('am')"
+                            on-select-pm="setMeridiem('pm')"
+                            :option-class="$optionHeight"
+                            column-class="flex w-14 min-h-0 flex-col"
+                            :list-class="$isRange
+                                ? 'max-h-44 overflow-y-auto scroll-py-2'
+                                : 'max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1'"
+                            header-class="px-1 py-0.5"
+                            meridiem-wrapper-class="flex flex-col gap-1 pt-6"
+                            meridiem-class="flex h-8 min-w-10 items-center justify-center rounded-md px-1 text-xs font-medium transition-colors [@media(hover:none)]:min-h-11"
+                        />
+                    </div>
 
-                            <div class="flex min-h-0 flex-1 gap-1">
-                                <div class="flex w-14 min-h-0 flex-col">
-                                    <div
-                                        data-ui-{{ $endpoint }}-hour-label
-                                        class="px-1 py-0.5 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400"
-                                    >
-                                        {{ $labels['hour'] }}
-                                    </div>
-
-                                    <div
-                                        x-bind:id="timeListId('{{ $endpoint }}', 'hour')"
-                                        data-column="hour"
-                                        role="listbox"
-                                        tabindex="0"
-                                        aria-label="{{ $isRange ? $labels[$endpoint].' '.$labels['hour'] : $labels['hour'] }}"
-                                        x-bind:aria-activedescendant="activeTimeId('{{ $endpoint }}', 'hour')"
-                                        x-on:keydown="onTimeKeydown($event, '{{ $endpoint }}', 'hour')"
-                                        class="max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1"
-                                    >
-                                        <template x-for="option in {{ $endpoint }}.hours" :key="option.id">
-                                            <div
-                                                role="option"
-                                                :id="option.id"
-                                                :data-hour="option.value"
-                                                :aria-selected="option.selected ? 'true' : 'false'"
-                                                :aria-disabled="option.disabled || null"
-                                                x-on:click="selectHour('{{ $endpoint }}', option.value)"
-                                                :class="option.disabled
-                                                    ? 'cursor-default text-zinc-300 dark:text-zinc-600'
-                                                    : option.selected
-                                                        ? 'cursor-pointer bg-accent text-accent-foreground'
-                                                        : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                                class="flex {{ $optionHeight }} items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
-                                                x-text="option.label"
-                                            ></div>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <div class="flex w-14 min-h-0 flex-col">
-                                    <div
-                                        data-ui-{{ $endpoint }}-minute-label
-                                        class="px-1 py-0.5 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400"
-                                    >
-                                        {{ $labels['minute'] }}
-                                    </div>
-
-                                    <div
-                                        x-bind:id="timeListId('{{ $endpoint }}', 'minute')"
-                                        data-column="minute"
-                                        role="listbox"
-                                        tabindex="0"
-                                        aria-label="{{ $isRange ? $labels[$endpoint].' '.$labels['minute'] : $labels['minute'] }}"
-                                        x-bind:aria-activedescendant="activeTimeId('{{ $endpoint }}', 'minute')"
-                                        x-on:keydown="onTimeKeydown($event, '{{ $endpoint }}', 'minute')"
-                                        class="max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1"
-                                    >
-                                        <template x-for="option in {{ $endpoint }}.minutes" :key="option.id">
-                                            <div
-                                                role="option"
-                                                :id="option.id"
-                                                :data-minute="option.value"
-                                                :aria-selected="option.selected ? 'true' : 'false'"
-                                                :aria-disabled="option.disabled || null"
-                                                x-on:click="selectMinute('{{ $endpoint }}', option.value)"
-                                                :class="option.disabled
-                                                    ? 'cursor-default text-zinc-300 dark:text-zinc-600'
-                                                    : option.selected
-                                                        ? 'cursor-pointer bg-accent text-accent-foreground'
-                                                        : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                                class="flex {{ $optionHeight }} items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
-                                                x-text="option.label"
-                                            ></div>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <div x-show="hour12" class="flex flex-col gap-1 pt-6">
-                                    <button
-                                        type="button"
-                                        x-on:click="setMeridiem('{{ $endpoint }}', 'am')"
-                                        x-bind:aria-pressed="{{ $endpoint }}.meridiem === 'am' ? 'true' : 'false'"
-                                        x-bind:class="{{ $endpoint }}.meridiem === 'am' ? 'bg-accent text-accent-foreground' : 'text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                        class="flex h-8 min-w-10 items-center justify-center rounded-md px-1 text-xs font-medium transition-colors [@media(hover:none)]:min-h-11"
-                                        x-text="labels.am"
-                                    ></button>
+                    @if ($isRange)
+                        <div class="space-y-2 border-t border-zinc-200 pt-3 dark:border-white/10">
+                            <div data-ui-selected class="flex flex-wrap gap-1">
+                                <div
+                                    x-show="rangeStart !== null"
+                                    data-time="start"
+                                    class="inline-flex items-center gap-1 rounded-md bg-zinc-400/15 px-2 py-1 text-sm text-zinc-700 dark:bg-zinc-400/40 dark:text-zinc-200"
+                                >
+                                    <span x-text="formatTimeValue(rangeStart)"></span>
 
                                     <button
                                         type="button"
-                                        x-on:click="setMeridiem('{{ $endpoint }}', 'pm')"
-                                        x-bind:aria-pressed="{{ $endpoint }}.meridiem === 'pm' ? 'true' : 'false'"
-                                        x-bind:class="{{ $endpoint }}.meridiem === 'pm' ? 'bg-accent text-accent-foreground' : 'text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                        class="flex h-8 min-w-10 items-center justify-center rounded-md px-1 text-xs font-medium transition-colors [@media(hover:none)]:min-h-11"
-                                        x-text="labels.pm"
-                                    ></button>
+                                        x-on:click="removeAdded('start')"
+                                        aria-label="{{ $labels['removeStart'] }}"
+                                        class="rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11 dark:hover:text-zinc-200"
+                                    >
+                                        <flux:icon name="x-mark" variant="micro" class="size-4" />
+                                    </button>
+                                </div>
+
+                                <div
+                                    x-show="rangeEnd !== null"
+                                    data-time="end"
+                                    class="inline-flex items-center gap-1 rounded-md bg-zinc-400/15 px-2 py-1 text-sm text-zinc-700 dark:bg-zinc-400/40 dark:text-zinc-200"
+                                >
+                                    <span x-text="formatTimeValue(rangeEnd)"></span>
+
+                                    <button
+                                        type="button"
+                                        x-on:click="removeAdded('end')"
+                                        aria-label="{{ $labels['removeEnd'] }}"
+                                        class="rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11 dark:hover:text-zinc-200"
+                                    >
+                                        <flux:icon name="x-mark" variant="micro" class="size-4" />
+                                    </button>
                                 </div>
                             </div>
+
+                            <button
+                                type="button"
+                                data-ui-add
+                                x-show="canAddMore()"
+                                x-bind:disabled="!canAddTime()"
+                                x-on:click="addTime()"
+                                class="inline-flex h-8 w-full items-center justify-center rounded-md bg-accent px-3 text-sm font-medium text-accent-foreground transition-colors disabled:cursor-default disabled:opacity-50 [@media(hover:none)]:min-h-11"
+                                x-text="addLabel()"
+                            ></button>
                         </div>
-                    @endforeach
+                    @endif
                 </div>
             </div>
 
-            <div x-show="rangeError !== ''" role="status" class="mt-2 text-sm text-red-600 select-text dark:text-red-400" x-text="rangeError"></div>
+            <div x-show="rangeError !== ''" role="status" data-ui-range-error class="mt-2 text-sm text-red-600 select-text dark:text-red-400" x-text="rangeError"></div>
 
             @if ($withConfirmation || $isRange)
                 <div class="mt-3 flex justify-end gap-2 border-t border-zinc-200 pt-3 dark:border-white/10">

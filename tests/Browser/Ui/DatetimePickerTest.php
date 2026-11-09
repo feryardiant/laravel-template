@@ -168,7 +168,7 @@ it('previews a range and applies it only with the footer', function () {
             window.__rangeBefore = root.querySelector('[data-ui-bound=schedule]').textContent.trim();
 
             return root.querySelector('[data-ui-popover]').querySelectorAll('[role=grid]').length === 2 &&
-                root.querySelectorAll('[data-ui-popover] [data-ui-time-columns]').length === 2;
+                root.querySelectorAll('[data-ui-popover] [data-ui-time-columns]').length === 1;
         })()")
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
@@ -236,9 +236,31 @@ it('uses the default start and end times for a new range', function () {
             const root = document.querySelector('[data-ui-demo=datetime-picker-range-empty]');
             const popover = root.querySelector('[data-ui-popover]');
             const startHour = popover.querySelector('[data-endpoint=start] [data-column=hour] [aria-selected=true]');
-            const endHour = popover.querySelector('[data-endpoint=end] [data-column=hour] [aria-selected=true]');
 
-            return startHour.dataset.hour === '9' && endHour.dataset.hour === '17';
+            return startHour.dataset.hour === '9' &&
+                popover.querySelector('[data-ui-add]').textContent.trim() === 'Tambah awal';
+        })()")
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-add]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-range-empty]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const endHour = popover.querySelector('[data-endpoint=end] [data-column=hour] [aria-selected=true]');
+            const add = popover.querySelector('[data-ui-add]');
+
+            return getComputedStyle(popover.querySelector('[data-endpoint=end]')).display !== 'none' &&
+                endHour.dataset.hour === '17' &&
+                add.textContent.trim() === 'Tambah akhir' &&
+                !add.disabled;
+        })()")
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-add]').click();
+
+            return true;
         })()")
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-range-empty]');
@@ -247,7 +269,11 @@ it('uses the default start and end times for a new range', function () {
             return true;
         })()")
         ->wait(0.5)
-        ->assertScript("window.Alpine.\$data(document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-datetime-picker]')).valueStartTime === '09:00'");
+        ->assertScript("(() => {
+            const picker = window.Alpine.\$data(document.querySelector('[data-ui-demo=datetime-picker-range-empty] [data-ui-datetime-picker]'));
+
+            return picker.valueStartTime === '09:00' && picker.valueEndTime === '17:00';
+        })()");
 });
 
 it('discards a pending range on cancel and Escape', function () {
@@ -309,7 +335,7 @@ it('discards a pending range on cancel and Escape', function () {
         })()");
 });
 
-it('prevents a same-day end time before the start', function () {
+it('keeps earlier end times selectable but rejects a same-day end before the start', function () {
     visit('/ui/datetime-picker')
         ->on()
         ->desktop()
@@ -322,26 +348,41 @@ it('prevents a same-day end time before the start', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-same-day]');
             const popover = root.querySelector('[data-ui-popover]');
-            const hour = (endpoint, value) => popover.querySelector('[data-endpoint=' + endpoint + '] [data-column=hour] [data-hour=\"' + value + '\"]');
+            const hours = [...popover.querySelectorAll('[data-endpoint=start] [data-column=hour] [data-hour]')];
 
-            return hour('end', '8').getAttribute('aria-disabled') === 'true' &&
-                hour('end', '9').getAttribute('aria-disabled') === null &&
-                hour('end', '10').getAttribute('aria-disabled') === null &&
-                hour('start', '17').getAttribute('aria-disabled') === 'true' &&
-                hour('start', '16').getAttribute('aria-disabled') === null;
+            return hours.every((option) => option.getAttribute('aria-disabled') === 'true') &&
+                popover.querySelectorAll('[data-ui-selected] [data-time]').length === 2;
         })()")
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-same-day]');
-            root.querySelector('[data-ui-popover] [data-endpoint=end] [data-column=hour] [data-hour=\"9\"]').click();
+            root.querySelector('[data-ui-popover] [data-ui-selected] [data-time=end] button').click();
 
             return true;
         })()")
         ->wait(0.3)
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-same-day]');
-            const minute = (value) => root.querySelector('[data-ui-popover] [data-endpoint=end] [data-column=minute] [data-minute=\"' + value + '\"]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const hours = [...popover.querySelectorAll('[data-endpoint=end] [data-column=hour] [data-hour]')];
 
-            return minute('0').getAttribute('aria-disabled') === 'true' && minute('30').getAttribute('aria-disabled') === null;
+            return hours.every((option) => option.getAttribute('aria-disabled') !== 'true');
+        })()")
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=datetime-picker-same-day] [data-ui-popover]');
+            popover.querySelector('[data-endpoint=end] [data-column=hour] [data-hour=\"8\"]').click();
+            popover.querySelector('[data-endpoint=end] [data-column=minute] [data-minute=\"0\"]').click();
+            popover.querySelector('[data-ui-add]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-same-day]');
+            const popover = root.querySelector('[data-ui-popover]');
+            const confirm = [...popover.querySelectorAll('.border-t button')].find((button) => button.textContent.trim() === 'Pilih rentang');
+
+            return confirm.disabled &&
+                popover.querySelector('[data-ui-range-error]').textContent.trim() === 'Waktu selesai harus setelah waktu mulai';
         })()");
 });
 
@@ -508,17 +549,15 @@ it('fits the range time panel to the calendar', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
             const popover = root.querySelector('[data-ui-popover]');
-            const calendar = popover.querySelector('[data-ui-calendar]');
             const panel = popover.querySelector('[data-ui-time-panel]');
-            const lists = [...popover.querySelectorAll('[data-ui-time-columns] [data-column=hour]')];
+            const visible = [...popover.querySelectorAll('[data-ui-time-columns]')]
+                .filter((columns) => getComputedStyle(columns).display !== 'none');
+            const list = visible[0].querySelector('[data-column=hour]');
+            const row = list.querySelector('[role=option]').offsetHeight;
 
-            return Math.abs(panel.offsetHeight - calendar.offsetHeight) <= 1 &&
-                lists.length === 2 &&
-                lists.every((list) => {
-                    const row = list.querySelector('[role=option]').offsetHeight;
-
-                    return list.clientHeight >= row * 3;
-                });
+            return visible.length === 1 &&
+                panel.offsetHeight > 0 &&
+                list.clientHeight >= row * 3;
         })()");
 });
 
@@ -667,7 +706,7 @@ it('resolves now bounds and open-to when the popover opens', function () {
         })()");
 });
 
-it('names range time listboxes per endpoint', function () {
+it('uses one time column for the range and switches its endpoint', function () {
     visit('/ui/datetime-picker')
         ->on()
         ->desktop()
@@ -678,13 +717,24 @@ it('names range time listboxes per endpoint', function () {
         })()")
         ->wait(0.4)
         ->assertScript("(() => {
-            const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
-            const label = (endpoint, column) => root.querySelector('[data-ui-popover] [data-endpoint=' + endpoint + '] [data-column=' + column + ']').getAttribute('aria-label');
+            const popover = document.querySelector('[data-ui-demo=datetime-picker-range] [data-ui-popover]');
+            const columns = popover.querySelectorAll('[data-ui-time-columns]');
 
-            return label('start', 'hour') === 'Mulai Jam' &&
-                label('end', 'hour') === 'Selesai Jam' &&
-                label('start', 'minute') === 'Mulai Menit' &&
-                label('end', 'minute') === 'Selesai Menit';
+            return columns.length === 1 &&
+                columns[0].dataset.endpoint === 'start' &&
+                columns[0].querySelector('[data-column=hour]').getAttribute('aria-label') === 'Jam';
+        })()")
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=datetime-picker-range] [data-ui-selected] [data-time=end] button').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=datetime-picker-range] [data-ui-popover]');
+            const columns = popover.querySelectorAll('[data-ui-time-columns]');
+
+            return columns.length === 1 && columns[0].dataset.endpoint === 'end';
         })()");
 });
 

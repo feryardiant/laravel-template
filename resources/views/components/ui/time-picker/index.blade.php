@@ -1,5 +1,5 @@
 @props([
-    'multiple' => false,
+    'mode' => 'single',
     'value' => null,
     'label' => null,
     'description' => null,
@@ -27,7 +27,9 @@
     $name = $attributes->get('name');
     $invalid ??= $model !== null && $errors->has($model);
 
-    $isMultiple = (bool) $multiple;
+    $mode = in_array($mode, ['single', 'multiple', 'range'], true) ? $mode : 'single';
+    $isRange = $mode === 'range';
+    $isMultiple = $mode === 'multiple';
     $format = in_array($timeFormat, ['auto', '12-hour', '24-hour'], true) ? $timeFormat : 'auto';
     $resolvedInterval = min(60, max(1, (int) $interval));
     $resolvedLocale = $locale ?? app()->getLocale();
@@ -35,7 +37,11 @@
     $resolvedMax = $max === 'now' ? 'now' : \App\View\Value::time($max);
     $resolvedOpenTo = $openTo === 'now' ? 'now' : \App\View\Value::time($openTo);
     $unavailableRanges = \App\View\Value::timeRanges($unavailable);
-    $normalizedValue = $isMultiple ? \App\View\Value::times($value) : \App\View\Value::time($value);
+    $normalizedValue = match ($mode) {
+        'multiple' => \App\View\Value::times($value),
+        'range' => \App\View\Value::timeRange($value),
+        default => \App\View\Value::time($value),
+    };
 
     $key = \Illuminate\Support\Str::random(12);
     $triggerId = 'ui-time-picker-'.$key.'-trigger';
@@ -44,7 +50,9 @@
     $minutesId = 'ui-time-picker-'.$key.'-minutes';
     $selectedId = 'ui-time-picker-'.$key.'-selected';
     $isPlain = $model === null && $name !== null;
-    $formInputId = $isPlain && ! $isMultiple ? 'ui-time-picker-'.$key.'-input' : null;
+    $formInputId = $isPlain && $mode === 'single' ? 'ui-time-picker-'.$key.'-input' : null;
+    $formStartId = $isPlain && $isRange ? 'ui-time-picker-'.$key.'-start' : null;
+    $formEndId = $isPlain && $isRange ? 'ui-time-picker-'.$key.'-end' : null;
 
     $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder ?? __('ui.time-picker.label');
 
@@ -59,10 +67,13 @@
         'selectedCount' => __('ui.time-picker.selected-count'),
         'placeholder' => __('ui.time-picker.placeholder'),
         'placeholderMultiple' => __('ui.time-picker.placeholder-multiple'),
+        'placeholderRange' => __('ui.time-picker.placeholder-range'),
+        'addStart' => __('ui.time-picker.add-start'),
+        'addEnd' => __('ui.time-picker.add-end'),
     ];
 
     $config = [
-        'multiple' => $isMultiple,
+        'mode' => $mode,
         'value' => $normalizedValue,
         'model' => $model,
         'live' => $live,
@@ -82,6 +93,8 @@
         'minutesId' => $minutesId,
         'selectedId' => $selectedId,
         'formInputId' => $formInputId,
+        'formStartId' => $formStartId,
+        'formEndId' => $formEndId,
         'labels' => $labels,
     ];
 
@@ -104,6 +117,7 @@
         wire:ignore
         data-ui-time-picker
         @if ($isMultiple) data-multiple @endif
+        @if ($isRange) data-range @endif
         @if ($disabled) data-disabled @endif
         @if ($invalid) data-invalid @endif
         class="relative"
@@ -119,6 +133,9 @@
             <template x-for="selected in selectedValues" :key="selected">
                 <input type="hidden" name="{{ $name }}[]" :value="selected" />
             </template>
+        @elseif ($formStartId !== null)
+            <input type="hidden" id="{{ $formStartId }}" name="{{ $name }}[start]" :value="rangeStart || ''" />
+            <input type="hidden" id="{{ $formEndId }}" name="{{ $name }}[end]" :value="rangeEnd || ''" />
         @endif
 
         <div class="relative">
@@ -126,7 +143,7 @@
                 id="{{ $triggerId }}"
                 readonly
                 icon="clock"
-                :placeholder="$placeholder ?? ($isMultiple ? $labels['placeholderMultiple'] : $labels['placeholder'])"
+                :placeholder="$placeholder ?? ($isRange ? $labels['placeholderRange'] : ($isMultiple ? $labels['placeholderMultiple'] : $labels['placeholder']))"
                 :size="$size"
                 :invalid="$invalid"
                 :disabled="$disabled"
@@ -170,97 +187,23 @@
             x-on:keydown="onPopoverKeydown($event)"
             class="rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
         >
-            <div class="flex gap-1">
-                <div class="w-16 [@media(hover:none)]:flex-1">
-                    <div data-ui-hour-label class="px-2 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        {{ $labels['hour'] }}
-                    </div>
-
-                    <div
-                        id="{{ $hoursId }}"
-                        data-ui-hours
-                        role="listbox"
-                        tabindex="0"
-                        aria-label="{{ $labels['hour'] }}"
-                        x-bind:aria-activedescendant="activeHourId()"
-                        x-on:keydown="onHourKeydown($event)"
-                        class="max-h-56 overflow-y-auto scroll-py-2"
-                    >
-                        <template x-for="option in hours" :key="option.id">
-                            <div
-                                role="option"
-                                :id="option.id"
-                                :data-hour="option.value"
-                                :aria-selected="option.selected ? 'true' : 'false'"
-                                :aria-disabled="option.disabled || null"
-                                x-on:click="selectHour(option.value)"
-                                :class="option.disabled
-                                    ? 'cursor-default text-zinc-300 dark:text-zinc-600'
-                                    : option.selected
-                                        ? 'cursor-pointer bg-accent text-accent-foreground'
-                                        : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                class="flex h-8 items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
-                                x-text="option.label"
-                            ></div>
-                        </template>
-                    </div>
-                </div>
-
-                <div class="w-16 [@media(hover:none)]:flex-1">
-                    <div data-ui-minute-label class="px-2 py-1 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        {{ $labels['minute'] }}
-                    </div>
-
-                    <div
-                        id="{{ $minutesId }}"
-                        data-ui-minutes
-                        role="listbox"
-                        tabindex="0"
-                        aria-label="{{ $labels['minute'] }}"
-                        x-bind:aria-activedescendant="activeMinuteId()"
-                        x-on:keydown="onMinuteKeydown($event)"
-                        class="max-h-56 overflow-y-auto scroll-py-2"
-                    >
-                        <template x-for="option in minutes" :key="option.id">
-                            <div
-                                role="option"
-                                :id="option.id"
-                                :data-minute="option.value"
-                                :aria-selected="option.selected ? 'true' : 'false'"
-                                :aria-disabled="option.disabled || null"
-                                x-on:click="selectMinute(option.value)"
-                                :class="option.disabled
-                                    ? 'cursor-default text-zinc-300 dark:text-zinc-600'
-                                    : option.selected
-                                        ? 'cursor-pointer bg-accent text-accent-foreground'
-                                        : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                                class="flex h-8 items-center justify-center rounded-md text-sm tabular-nums transition-colors [@media(hover:none)]:min-h-11"
-                                x-text="option.label"
-                            ></div>
-                        </template>
-                    </div>
-                </div>
-
-                <div x-show="hour12" class="flex flex-col gap-1 pt-6 [@media(hover:none)]:flex-1">
-                    <button
-                        type="button"
-                        x-on:click="setMeridiem('am')"
-                        x-bind:aria-pressed="meridiem === 'am' ? 'true' : 'false'"
-                        x-bind:class="meridiem === 'am' ? 'bg-accent text-accent-foreground' : 'text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                        class="flex h-8 min-w-12 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors [@media(hover:none)]:min-h-11"
-                        x-text="labels.am"
-                    ></button>
-
-                    <button
-                        type="button"
-                        x-on:click="setMeridiem('pm')"
-                        x-bind:aria-pressed="meridiem === 'pm' ? 'true' : 'false'"
-                        x-bind:class="meridiem === 'pm' ? 'bg-accent text-accent-foreground' : 'text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
-                        class="flex h-8 min-w-12 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors [@media(hover:none)]:min-h-11"
-                        x-text="labels.pm"
-                    ></button>
-                </div>
-            </div>
+            <x-ui.time-picker.panel
+                hours="hours"
+                minutes="minutes"
+                active-hour="activeHourId()"
+                active-minute="activeMinuteId()"
+                hour-keydown="onHourKeydown($event)"
+                minute-keydown="onMinuteKeydown($event)"
+                select-hour="selectHour(option.value)"
+                select-minute="selectMinute(option.value)"
+                :hour-id="$hoursId"
+                :minute-id="$minutesId"
+                :labels="$labels"
+                is-am="meridiem === 'am'"
+                is-pm="meridiem === 'pm'"
+                on-select-am="setMeridiem('am')"
+                on-select-pm="setMeridiem('pm')"
+            />
 
             <div x-show="multiple" x-cloak class="mt-2 space-y-2 border-t border-zinc-200 pt-2 dark:border-white/10">
                 <div
@@ -293,10 +236,11 @@
                 <button
                     type="button"
                     data-ui-add
+                    x-show="canAddMore()"
                     x-bind:disabled="! canAdd()"
                     x-on:click="add()"
                     class="inline-flex h-8 w-full items-center justify-center rounded-md bg-accent px-3 text-sm font-medium text-accent-foreground transition-colors disabled:cursor-default disabled:opacity-50 [@media(hover:none)]:min-h-11"
-                    x-text="labels.add"
+                    x-text="addLabel()"
                 ></button>
             </div>
         </x-ui.popover>

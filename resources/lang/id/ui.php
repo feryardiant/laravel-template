@@ -67,6 +67,10 @@ return [
         'select' => 'Pilih',
         'select-range' => 'Pilih rentang',
         'range-invalid' => 'Waktu selesai harus setelah waktu mulai',
+        'add-start' => 'Tambah awal',
+        'add-end' => 'Tambah akhir',
+        'remove-start' => 'Hapus waktu awal',
+        'remove-end' => 'Hapus waktu akhir',
     ],
 
     'time-picker' => [
@@ -81,6 +85,9 @@ return [
         'selected-count' => ':count dipilih',
         'placeholder' => 'Pilih waktu',
         'placeholder-multiple' => 'Pilih beberapa waktu',
+        'placeholder-range' => 'Pilih rentang waktu',
+        'add-start' => 'Tambah awal',
+        'add-end' => 'Tambah akhir',
     ],
 
     'calendar' => [

@@ -67,6 +67,10 @@ return [
         'select' => 'Select',
         'select-range' => 'Select range',
         'range-invalid' => 'The end must be after the start',
+        'add-start' => 'Add start',
+        'add-end' => 'Add end',
+        'remove-start' => 'Remove start time',
+        'remove-end' => 'Remove end time',
     ],
 
     'time-picker' => [
@@ -81,6 +85,9 @@ return [
         'selected-count' => ':count selected',
         'placeholder' => 'Pick a time',
         'placeholder-multiple' => 'Pick times',
+        'placeholder-range' => 'Pick a time range',
+        'add-start' => 'Add start',
+        'add-end' => 'Add end',
     ],
 
     'calendar' => [
