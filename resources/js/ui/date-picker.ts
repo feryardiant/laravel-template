@@ -1,3 +1,5 @@
+import { resolveLocale } from '@/locale'
+
 import { readModel, watchModel, writeModel } from './binding'
 import {
     addDays,
@@ -230,6 +232,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
     }
 
+    const locale = resolveLocale(config.locale)
+
     return {
         mode: config.mode,
         disabled: config.disabled,
@@ -247,7 +251,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             applyValue(this, readModel(wire, config.model, config.value))
 
             const today = localTodayKey()
-            const startDay = config.startDay ?? firstDayOfWeek(config.locale)
+            const startDay = config.startDay ?? firstDayOfWeek(locale)
             const min = config.min === 'today' ? today : toDateKey(config.min)
             const max = config.max === 'today' ? today : toDateKey(config.max)
 
@@ -282,6 +286,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                     focusTarget: trigger,
                     fullWidthOnTouch: true,
                     scrollLock: true,
+                    // Single mode fits the 7 × (w-9) grid; range keeps the trigger width.
+                    matchTriggerWidth: config.mode === 'range',
                     onOpen: () => {
                         this.draftStart = this.start
                         this.draftEnd = this.end
@@ -503,12 +509,12 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             }
 
             if (this.mode === 'single' || this.end === null) {
-                this.display = formatShortDate(config.locale, this.start)
+                this.display = formatShortDate(locale, this.start)
 
                 return
             }
 
-            this.display = `${formatShortDate(config.locale, this.start)} – ${formatShortDate(config.locale, this.end)}`
+            this.display = `${formatShortDate(locale, this.start)} – ${formatShortDate(locale, this.end)}`
         },
 
         placeholderText() {

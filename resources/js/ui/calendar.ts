@@ -1,3 +1,5 @@
+import { resolveLocale } from '@/locale'
+
 import { readModel, watchModel, writeModel } from './binding'
 import {
     addDays,
@@ -159,6 +161,7 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
     let maxKey: string | null = null
     let unavailable: string[] = []
 
+    const locale = resolveLocale(config.locale)
     const root = (): HTMLElement | null => rootEl
     const formInput = (): HTMLInputElement | null =>
         config.formInputId === null ? null : (document.getElementById(config.formInputId) as HTMLInputElement | null)
@@ -178,8 +181,8 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
     return {
         mode: config.mode,
         draft: config.draft,
-        locale: config.locale,
-        startDay: config.startDay ?? firstDayOfWeek(config.locale),
+        locale: locale,
+        startDay: config.startDay ?? firstDayOfWeek(locale),
         months,
         fixedWeeks: config.fixedWeeks,
         navigation: config.navigation,

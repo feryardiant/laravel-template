@@ -1,3 +1,5 @@
+import { resolveLocale } from '@/locale'
+
 import { readModel, watchModel, writeModel } from './binding'
 import { formatShortDate, toDateKey } from './date'
 import {
@@ -181,12 +183,14 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         root()?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
     }
 
+    const locale = resolveLocale(config.locale)
+
     return {
         mode: config.mode,
         disabled: config.disabled,
         labels: config.labels,
         display: '',
-        hour12: config.timeFormat === '12-hour' || (config.timeFormat === 'auto' && prefersHour12(config.locale)),
+        hour12: config.timeFormat === '12-hour' || (config.timeFormat === 'auto' && prefersHour12(locale)),
         nowTime: localNowKey(),
         startDate: null,
         endDate: null,
@@ -937,7 +941,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         },
 
         formatTimeValue(time) {
-            return time === null ? '' : formatTime(config.locale, time, config.timeFormat)
+            return time === null ? '' : formatTime(locale, time, config.timeFormat)
         },
 
         /** First interval time after a start, clamped to the end of the day. */
@@ -1089,8 +1093,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     return
                 }
 
-                const start = formatShortDate(config.locale, this.valueStartDate)
-                const startTime = formatTime(config.locale, this.valueStartTime, config.timeFormat)
+                const start = formatShortDate(locale, this.valueStartDate)
+                const startTime = formatTime(locale, this.valueStartTime, config.timeFormat)
 
                 if (this.valueEndDate === null || this.valueEndTime === null) {
                     this.display = `${start}, ${startTime}`
@@ -1098,8 +1102,8 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     return
                 }
 
-                const end = formatShortDate(config.locale, this.valueEndDate)
-                const endTime = formatTime(config.locale, this.valueEndTime, config.timeFormat)
+                const end = formatShortDate(locale, this.valueEndDate)
+                const endTime = formatTime(locale, this.valueEndTime, config.timeFormat)
 
                 this.display =
                     this.valueStartDate === this.valueEndDate
@@ -1115,7 +1119,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                 return
             }
 
-            this.display = `${formatShortDate(config.locale, this.valueStartDate)} ${this.labels.at} ${formatTime(config.locale, this.valueStartTime, config.timeFormat)}`
+            this.display = `${formatShortDate(locale, this.valueStartDate)} ${this.labels.at} ${formatTime(locale, this.valueStartTime, config.timeFormat)}`
         },
 
         placeholderText() {

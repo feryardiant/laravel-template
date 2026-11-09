@@ -1,3 +1,5 @@
+import { resolveLocale } from '@/locale'
+
 import { readModel, watchModel, writeModel } from './binding'
 import { createPopover, trapTabFocus, type PopoverController } from './popover'
 import {
@@ -156,8 +158,10 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         return { start: null, end: null }
     }
 
+    const locale = resolveLocale(config.locale)
+
     return {
-        hour12: config.format === '12-hour' || (config.format === 'auto' && prefersHour12(config.locale)),
+        hour12: config.format === '12-hour' || (config.format === 'auto' && prefersHour12(locale)),
         multiple: config.mode !== 'single',
         range: config.mode === 'range',
         disabled: config.disabled,
@@ -633,7 +637,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         },
 
         formatSelected(value) {
-            return formatTime(config.locale, value, config.format)
+            return formatTime(locale, value, config.format)
         },
 
         renderDisplay() {
@@ -644,12 +648,10 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                     return
                 }
 
-                const start = formatTime(config.locale, this.rangeStart, config.format)
+                const start = formatTime(locale, this.rangeStart, config.format)
 
                 this.display =
-                    this.rangeEnd === null
-                        ? start
-                        : `${start} – ${formatTime(config.locale, this.rangeEnd, config.format)}`
+                    this.rangeEnd === null ? start : `${start} – ${formatTime(locale, this.rangeEnd, config.format)}`
 
                 return
             }
@@ -658,7 +660,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 if (this.selectedValues.length === 0) {
                     this.display = ''
                 } else if (this.selectedValues.length === 1) {
-                    this.display = formatTime(config.locale, this.selectedValues[0], config.format)
+                    this.display = formatTime(locale, this.selectedValues[0], config.format)
                 } else {
                     this.display = this.labels.selectedCount.replace(':count', String(this.selectedValues.length))
                 }
@@ -666,7 +668,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
-            this.display = this.selected === null ? '' : formatTime(config.locale, this.selected, config.format)
+            this.display = this.selected === null ? '' : formatTime(locale, this.selected, config.format)
         },
 
         now: localNowKey(),

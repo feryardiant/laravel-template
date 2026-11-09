@@ -37,7 +37,6 @@
     $mode = in_array($mode, ['single', 'range'], true) ? $mode : 'single';
     $isRange = $mode === 'range';
     $resolvedMonths = min(2, max(1, (int) ($months ?? ($isRange ? 2 : 1))));
-    $resolvedLocale = $locale ?? app()->getLocale();
     $resolvedStartDay = $startDay === null ? null : min(6, max(0, (int) $startDay));
     $resolvedMin = $min === 'today' ? 'today' : \App\View\Value::date($min);
     $resolvedMax = $max === 'today' ? 'today' : \App\View\Value::date($max);
@@ -94,7 +93,7 @@
         'value' => $normalizedValue,
         'model' => $model,
         'live' => $live,
-        'locale' => $resolvedLocale,
+        'locale' => $locale,
         'startDay' => $resolvedStartDay,
         'min' => $resolvedMin,
         'max' => $resolvedMax,
@@ -250,7 +249,7 @@
                         :start-day="$resolvedStartDay"
                         :fixed-weeks="$fixedWeeks"
                         :with-today="$withToday"
-                        :locale="$resolvedLocale"
+                        :locale="$locale"
                         :size="$size ?? 'base'"
                     />
                 </div>

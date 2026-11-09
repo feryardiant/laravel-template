@@ -13,12 +13,12 @@ import { fileUploadData } from './file-upload'
 import { selectData } from './select'
 import { timePickerData } from './time-picker'
 
-document.addEventListener('alpine:init', () => {
-    globalThis.Alpine.data('uiSelect', selectData)
-    globalThis.Alpine.data('uiAutocomplete', autocompleteData)
-    globalThis.Alpine.data('uiCalendar', calendarData)
-    globalThis.Alpine.data('uiDatePicker', datePickerData)
-    globalThis.Alpine.data('uiTimePicker', timePickerData)
-    globalThis.Alpine.data('uiDatetimePicker', datetimePickerData)
-    globalThis.Alpine.data('uiFileUpload', fileUploadData)
-})
+export function createUi() {
+    Alpine.data('uiSelect', selectData)
+    Alpine.data('uiAutocomplete', autocompleteData)
+    Alpine.data('uiCalendar', calendarData)
+    Alpine.data('uiDatePicker', datePickerData)
+    Alpine.data('uiTimePicker', timePickerData)
+    Alpine.data('uiDatetimePicker', datetimePickerData)
+    Alpine.data('uiFileUpload', fileUploadData)
+}

@@ -103,7 +103,7 @@ export interface CalendarConfig {
     value: unknown
     model: string | null
     live: boolean
-    locale: string
+    locale: string | null
     startDay: number | null
     months: number
     fixedWeeks: boolean
@@ -155,10 +155,6 @@ export type TimeFormat = 'auto' | '12-hour' | '24-hour'
 
 /** Translated time-picker strings. */
 export interface TimePickerLabels {
-    hour: string
-    minute: string
-    am: string
-    pm: string
     clear: string
     add: string
     selected: string
@@ -177,7 +173,7 @@ export interface TimePickerConfig {
     value: unknown
     model: string | null
     live: boolean
-    locale: string
+    locale: string | null
     format: TimeFormat
     interval: number
     min: string | null
@@ -217,10 +213,6 @@ export interface DateTimePickerLabels {
     addEnd: string
     removeStart: string
     removeEnd: string
-    hour: string
-    minute: string
-    am: string
-    pm: string
 }
 
 /** Blade-to-Alpine config for a datetime picker. */
@@ -229,7 +221,7 @@ export interface DateTimePickerConfig {
     value: unknown
     model: string | null
     live: boolean
-    locale: string
+    locale: string | null
     months: number
     timeFormat: TimeFormat
     interval: number
@@ -281,7 +273,7 @@ export interface DatePickerConfig {
     value: unknown
     model: string | null
     live: boolean
-    locale: string
+    locale: string | null
     startDay: number | null
     min: string | null
     max: string | null

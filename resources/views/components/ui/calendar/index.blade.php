@@ -33,7 +33,6 @@
 
     $mode = in_array($mode, ['single', 'multiple', 'range'], true) ? $mode : 'single';
     $resolvedMonths = min(2, max(1, (int) ($months ?? ($mode === 'range' ? 2 : 1))));
-    $resolvedLocale = $locale ?? app()->getLocale();
     $resolvedStartDay = $startDay === null ? null : min(6, max(0, (int) $startDay));
     $resolvedMin = $min === 'today' ? 'today' : \App\View\Value::date($min);
     $resolvedMax = $max === 'today' ? 'today' : \App\View\Value::date($max);
@@ -45,8 +44,8 @@
     $formInputId = $isPlain && $mode === 'single' ? $rootId.'-input' : null;
 
     $cellClass = match ($size) {
-        'sm' => 'size-9 text-sm',
-        default => 'size-10 text-sm',
+        'sm' => 'w-6 h-7 text-sm',
+        default => 'w-9 h-8 text-sm',
     };
 
     $labels = [
@@ -66,7 +65,7 @@
         'value' => $normalizedValue,
         'model' => $model,
         'live' => $live,
-        'locale' => $resolvedLocale,
+        'locale' => $locale,
         'startDay' => $resolvedStartDay,
         'months' => $resolvedMonths,
         'fixedWeeks' => (bool) $fixedWeeks,

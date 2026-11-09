@@ -32,7 +32,6 @@
     $isMultiple = $mode === 'multiple';
     $format = in_array($timeFormat, ['auto', '12-hour', '24-hour'], true) ? $timeFormat : 'auto';
     $resolvedInterval = min(60, max(1, (int) $interval));
-    $resolvedLocale = $locale ?? app()->getLocale();
     $resolvedMin = $min === 'now' ? 'now' : \App\View\Value::time($min);
     $resolvedMax = $max === 'now' ? 'now' : \App\View\Value::time($max);
     $resolvedOpenTo = $openTo === 'now' ? 'now' : \App\View\Value::time($openTo);
@@ -57,10 +56,6 @@
     $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder ?? __('ui.time-picker.label');
 
     $labels = [
-        'hour' => __('ui.time-picker.hour'),
-        'minute' => __('ui.time-picker.minute'),
-        'am' => __('ui.time-picker.am'),
-        'pm' => __('ui.time-picker.pm'),
         'clear' => __('ui.time-picker.clear'),
         'add' => __('ui.time-picker.add'),
         'selected' => __('ui.time-picker.selected'),
@@ -77,7 +72,7 @@
         'value' => $normalizedValue,
         'model' => $model,
         'live' => $live,
-        'locale' => $resolvedLocale,
+        'locale' => $locale,
         'format' => $format,
         'interval' => $resolvedInterval,
         'min' => $resolvedMin,
@@ -198,7 +193,6 @@
                 select-minute="selectMinute(option.value)"
                 :hour-id="$hoursId"
                 :minute-id="$minutesId"
-                :labels="$labels"
                 is-am="meridiem === 'am'"
                 is-pm="meridiem === 'pm'"
                 on-select-am="setMeridiem('am')"

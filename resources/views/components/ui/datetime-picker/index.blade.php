@@ -39,7 +39,6 @@
 
     $mode = in_array($mode, ['single', 'range'], true) ? $mode : 'single';
     $isRange = $mode === 'range';
-    $resolvedLocale = $locale ?? app()->getLocale();
     $resolvedMonths = min(2, max(1, (int) ($months ?? ($isRange ? 2 : 1))));
     $format = in_array($timeFormat, ['auto', '12-hour', '24-hour'], true) ? $timeFormat : 'auto';
     $resolvedInterval = min(60, max(1, (int) $interval));
@@ -123,18 +122,14 @@
         'end' => __('ui.datetime-picker.end'),
         'at' => __('ui.datetime-picker.at'),
         'clear' => __('ui.datetime-picker.clear'),
-        'cancel' => __('ui.datetime-picker.cancel'),
-        'select' => __('ui.datetime-picker.select'),
-        'selectRange' => __('ui.datetime-picker.select-range'),
+        'cancel' => __('ui.date-picker.cancel'),
+        'select' => __('ui.date-picker.select'),
+        'selectRange' => __('ui.date-picker.select-range'),
         'rangeInvalid' => __('ui.datetime-picker.range-invalid'),
-        'addStart' => __('ui.datetime-picker.add-start'),
-        'addEnd' => __('ui.datetime-picker.add-end'),
+        'addStart' => __('ui.time-picker.add-start'),
+        'addEnd' => __('ui.time-picker.add-end'),
         'removeStart' => __('ui.datetime-picker.remove-start'),
         'removeEnd' => __('ui.datetime-picker.remove-end'),
-        'hour' => __('ui.time-picker.hour'),
-        'minute' => __('ui.time-picker.minute'),
-        'am' => __('ui.time-picker.am'),
-        'pm' => __('ui.time-picker.pm'),
     ];
 
     $config = [
@@ -142,7 +137,7 @@
         'value' => $normalizedValue,
         'model' => $model,
         'live' => $live,
-        'locale' => $resolvedLocale,
+        'locale' => $locale,
         'months' => $resolvedMonths,
         'timeFormat' => $format,
         'interval' => $resolvedInterval,
@@ -284,7 +279,7 @@
                         :start-day="$resolvedStartDay"
                         :fixed-weeks="$fixedWeeks"
                         :with-today="$withToday"
-                        :locale="$resolvedLocale"
+                        :locale="$locale"
                     />
                 </div>
 
@@ -307,7 +302,6 @@
                             hour-id="timeListId('hour')"
                             minute-id="timeListId('minute')"
                             bound-ids
-                            :labels="$labels"
                             is-am="draft.meridiem === 'am'"
                             is-pm="draft.meridiem === 'pm'"
                             on-select-am="setMeridiem('am')"

@@ -9,10 +9,7 @@
     'selectMinute',
     'hourId',
     'minuteId',
-    'labels',
     'boundIds' => false,
-    'hourAria' => null,
-    'minuteAria' => null,
     'isAm' => 'false',
     'isPm' => 'false',
     'meridiemWhen' => 'hour12',
@@ -27,12 +24,17 @@
     'panelClass' => 'flex gap-1',
 ])
 
+@php
+    $hourLabel = __('ui.time-picker.hour');
+    $minuteLabel = __('ui.time-picker.minute');
+@endphp
+
 {{-- Presentational hour/minute columns. State, bounds and unavailable rules
      stay with the consuming component. --}}
 <div class="{{ $panelClass }}">
     <div class="{{ $columnClass }}">
         <div data-ui-hour-label class="{{ $headerClass }} text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            {{ $labels['hour'] }}
+            {{ $hourLabel }}
         </div>
 
         <div
@@ -41,7 +43,7 @@
             data-column="hour"
             role="listbox"
             tabindex="0"
-            aria-label="{{ $hourAria ?? $labels['hour'] }}"
+            aria-label="{{ $hourLabel }}"
             x-bind:aria-activedescendant="{{ $activeHour }}"
             x-on:keydown="{{ $hourKeydown }}"
             class="{{ $listClass }}"
@@ -68,7 +70,7 @@
 
     <div class="{{ $columnClass }}">
         <div data-ui-minute-label class="{{ $headerClass }} text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            {{ $labels['minute'] }}
+            {{ $minuteLabel }}
         </div>
 
         <div
@@ -77,7 +79,7 @@
             data-column="minute"
             role="listbox"
             tabindex="0"
-            aria-label="{{ $minuteAria ?? $labels['minute'] }}"
+            aria-label="{{ $minuteLabel }}"
             x-bind:aria-activedescendant="{{ $activeMinute }}"
             x-on:keydown="{{ $minuteKeydown }}"
             class="{{ $listClass }}"
@@ -110,7 +112,7 @@
                 x-bind:aria-pressed="{{ $isAm }} ? 'true' : 'false'"
                 x-bind:class="{{ $isAm }} ? 'bg-accent text-accent-foreground' : 'text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
                 class="{{ $meridiemClass }}"
-            >{{ $labels['am'] }}</button>
+            >{{ __('ui.time-picker.am') }}</button>
 
             <button
                 type="button"
@@ -118,7 +120,7 @@
                 x-bind:aria-pressed="{{ $isPm }} ? 'true' : 'false'"
                 x-bind:class="{{ $isPm }} ? 'bg-accent text-accent-foreground' : 'text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
                 class="{{ $meridiemClass }}"
-            >{{ $labels['pm'] }}</button>
+            >{{ __('ui.time-picker.pm') }}</button>
         </div>
     @endif
 </div>
