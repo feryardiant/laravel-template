@@ -284,7 +284,7 @@
                     />
                 </div>
 
-                <div data-ui-time-panel class="flex shrink-0 flex-col gap-3">
+                <div data-ui-time-panel class="flex shrink-0 flex-col gap-2">
                     <div
                         data-ui-time-columns
                         x-bind:data-endpoint="activeEndpoint()"
@@ -308,7 +308,7 @@
                             on-select-am="setMeridiem('am')"
                             on-select-pm="setMeridiem('pm')"
                             :option-class="$optionHeight"
-                            column-class="flex w-14 min-h-0 flex-col"
+                            column-class="flex flex-1 flex-col"
                             :list-class="$isRange
                                 ? 'max-h-44 overflow-y-auto scroll-py-2'
                                 : 'max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1'"
@@ -319,40 +319,44 @@
                     </div>
 
                     @if ($isRange)
-                        <div class="space-y-2 border-t border-zinc-200 pt-3 dark:border-white/10">
+                        <div class="flex flex-col gap-2 border-t border-zinc-200 pt-2 dark:border-white/10">
                             <div data-ui-selected class="flex flex-wrap gap-1">
                                 <div
                                     x-show="rangeStart !== null"
                                     data-time="start"
-                                    class="inline-flex items-center gap-1 rounded-md bg-zinc-400/15 px-2 py-1 text-sm text-zinc-700 dark:bg-zinc-400/40 dark:text-zinc-200"
+                                    x-on:click.stop="removeAdded('start')"
+                                    class="inline-flex max-w-full cursor-pointer items-center gap-1 rounded-md bg-zinc-400/15 p-1 pl-2 text-sm leading-4 text-zinc-700 select-none dark:bg-zinc-400/40 dark:text-zinc-200"
                                 >
-                                    <span x-text="formatTimeValue(rangeStart)"></span>
+                                    <span class="min-w-0 truncate" x-text="formatTimeValue(rangeStart)"></span>
 
-                                    <button
+                                    <flux:button
                                         type="button"
-                                        x-on:click="removeAdded('start')"
+                                        variant="ghost"
+                                        size="xs"
+                                        icon="x-mark"
+                                        x-on:click.stop="removeAdded('start')"
                                         aria-label="{{ $labels['removeStart'] }}"
-                                        class="rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11 dark:hover:text-zinc-200"
-                                    >
-                                        <flux:icon name="x-mark" variant="micro" class="size-4" />
-                                    </button>
+                                        class="size-4"
+                                    />
                                 </div>
 
                                 <div
                                     x-show="rangeEnd !== null"
                                     data-time="end"
-                                    class="inline-flex items-center gap-1 rounded-md bg-zinc-400/15 px-2 py-1 text-sm text-zinc-700 dark:bg-zinc-400/40 dark:text-zinc-200"
+                                    x-on:click.stop="removeAdded('end')"
+                                    class="inline-flex max-w-full cursor-pointer items-center gap-1 rounded-md bg-zinc-400/15 p-1 pl-2 text-sm leading-4 text-zinc-700 select-none dark:bg-zinc-400/40 dark:text-zinc-200"
                                 >
-                                    <span x-text="formatTimeValue(rangeEnd)"></span>
+                                    <span class="min-w-0 truncate" x-text="formatTimeValue(rangeEnd)"></span>
 
-                                    <button
+                                    <flux:button
                                         type="button"
-                                        x-on:click="removeAdded('end')"
+                                        variant="ghost"
+                                        size="xs"
+                                        icon="x-mark"
+                                        x-on:click.stop="removeAdded('end')"
                                         aria-label="{{ $labels['removeEnd'] }}"
-                                        class="rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11 dark:hover:text-zinc-200"
-                                    >
-                                        <flux:icon name="x-mark" variant="micro" class="size-4" />
-                                    </button>
+                                        class="size-4"
+                                    />
                                 </div>
                             </div>
 

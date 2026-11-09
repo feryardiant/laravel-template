@@ -784,3 +784,26 @@ it('dispatches lifecycle events without a value detail', function () {
         ->wait(0.3)
         ->assertScript('window.__openDetail.hasValue === false && window.__openDetail.keys.length === 0');
 });
+
+it('shows full preset labels in a grid on mobile', function () {
+    visit('/ui/date-picker')
+        ->on()
+        ->mobile()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=date-picker-range] [data-ui-trigger]').click();
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=date-picker-range] [data-ui-popover]');
+            const group = popover.querySelector('[data-ui-presets]');
+            const buttons = [...group.querySelectorAll('button')];
+
+            return getComputedStyle(group).display === 'grid' &&
+                getComputedStyle(group).gridTemplateColumns.split(' ').length === 2 &&
+                buttons.length > 0 &&
+                buttons.every((button) => getComputedStyle(button).textOverflow !== 'ellipsis' &&
+                    button.scrollWidth <= button.clientWidth + 1);
+        })()");
+});

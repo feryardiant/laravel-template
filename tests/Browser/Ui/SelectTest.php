@@ -313,3 +313,50 @@ it('can sit bare inside a flux field', function () {
             return count('Nested field') === 1 && count('Outer field description') === 1;
         })()");
 });
+
+it('centers option content on mobile', function () {
+    visit('/ui/select')
+        ->on()
+        ->mobile()
+        ->assertScript("(() => {
+            document.querySelector('[data-ui-demo=select-single] [role=combobox]').click();
+
+            return true;
+        })()")
+        ->wait(0.3)
+        ->assertScript("(() => {
+            const option = document.querySelector('[data-ui-demo=select-single] [data-ui-option]');
+            const style = getComputedStyle(option);
+
+            return style.alignItems === 'center' &&
+                Math.round(option.getBoundingClientRect().height) === 44;
+        })()");
+});
+
+it('keeps pills compact and removes them from a pill click', function () {
+    $page = visit('/ui/select')->on()->mobile();
+    $pill = '[data-ui-demo=select-pillbox] [data-ui-pill][data-value=design]';
+
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=select-pillbox]');
+        const pill = root.querySelector('[data-ui-pill][data-value=design]');
+        const button = pill.querySelector('button');
+        const clear = root.querySelector('button[aria-label=\"Kosongkan pilihan\"]');
+        const anchor = root.querySelector('[role=combobox]').closest('[data-flux-control]');
+
+        return !button.disabled &&
+            clear !== null &&
+            getComputedStyle(clear).display !== 'none' &&
+            pill.getBoundingClientRect().height < 36 &&
+            anchor.getBoundingClientRect().height >= 44;
+    })()")
+        ->click($pill)
+        ->wait(0.8)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=select-pillbox]');
+
+            return root.querySelectorAll('[data-ui-pill]').length === 0 &&
+                getComputedStyle(root.querySelector('button[aria-label=\"Kosongkan pilihan\"]')).display === 'none' &&
+                document.querySelector('[data-ui-bound=tags]').textContent.trim() === '';
+        })()");
+});

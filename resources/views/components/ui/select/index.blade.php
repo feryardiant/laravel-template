@@ -97,7 +97,7 @@
                 id="{{ $anchorId }}"
                 x-on:click="focusSearch()"
                 @class([
-                    'flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white px-2 py-1.5 text-base shadow-xs focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-accent-foreground sm:text-sm dark:border-white/10 dark:bg-white/10 [@media(hover:none)]:min-h-11',
+                    'flex min-h-10 w-full flex-wrap items-center gap-1 rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white p-1 pr-2 text-base shadow-xs focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-accent-foreground sm:text-sm dark:border-white/10 dark:bg-white/10 [@media(hover:none)]:min-h-11',
                     'opacity-50' => $disabled,
                     'border-red-500 dark:border-red-500' => $invalid,
                 ])
@@ -105,18 +105,24 @@
                 data-flux-group-target
             >
                 <template x-for="pill in selectedOptions" :key="pill.value">
-                    <span class="inline-flex max-w-full items-center gap-1 rounded-md bg-zinc-400/15 px-2 py-1 text-sm leading-4 text-zinc-700 dark:bg-zinc-400/40 dark:text-zinc-200">
+                    <span
+                        data-ui-pill
+                        :data-value="pill.value"
+                        x-on:click.stop="removeValue(pill.value)"
+                        x-bind:class="disabled ? null : 'cursor-pointer'"
+                        class="inline-flex max-w-full items-center gap-1 rounded-md bg-zinc-400/15 p-1 pl-2 text-sm leading-4 text-zinc-700 select-none dark:bg-zinc-400/40 dark:text-zinc-200"
+                    >
                         <span class="min-w-0 truncate" x-text="pill.selectedLabel"></span>
 
-                        <button
+                        <flux:button
                             type="button"
+                            variant="ghost"
+                            size="xs"
+                            icon="x-mark"
                             x-on:click.stop="removeValue(pill.value)"
                             x-bind:aria-label="{{ \Illuminate\Support\Js::from(__('ui.select.remove', ['label' => ':label'])) }}.replace(':label', pill.selectedLabel)"
-                            @disabled($disabled)
-                            class="shrink-0 rounded-sm p-0.5 text-zinc-400 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-                        >
-                            <flux:icon name="x-mark" variant="micro" class="size-4" />
-                        </button>
+                            :disabled="$disabled"
+                        />
                     </span>
                 </template>
 

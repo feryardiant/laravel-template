@@ -215,7 +215,8 @@
                     <div
                         x-show="presets.length > 0"
                         x-cloak
-                        class="flex shrink-0 gap-1 overflow-x-auto sm:w-36 sm:flex-col"
+                        data-ui-presets
+                        class="grid grid-cols-2 gap-1 sm:flex sm:w-36 sm:shrink-0 sm:flex-col"
                         role="group"
                         aria-label="{{ $labels['presets'] }}"
                     >
@@ -228,7 +229,7 @@
                                 x-bind:class="presetActive(preset.key)
                                     ? 'bg-zinc-800/5 font-medium text-zinc-800 dark:bg-white/10 dark:text-white'
                                     : 'text-zinc-600 hover:bg-zinc-800/5 dark:text-zinc-300 dark:hover:bg-white/10'"
-                                class="truncate rounded-md px-2 py-1.5 text-start text-sm transition-colors [@media(hover:none)]:min-h-11"
+                                class="rounded-md px-2 py-1.5 text-start text-sm transition-colors sm:truncate [@media(hover:none)]:min-h-11"
                                 x-text="preset.label"
                             ></button>
                         </template>

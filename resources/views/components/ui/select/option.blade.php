@@ -27,7 +27,7 @@
     aria-selected="false"
     @if ($disabled) aria-disabled="true" data-disabled @endif
     @class([
-        'flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-start text-sm text-zinc-800 dark:text-white',
+        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm text-zinc-800 dark:text-white',
         'data-active:bg-zinc-100 dark:data-active:bg-zinc-600',
         'data-selected:font-medium',
         '[@media(hover:none)]:min-h-11',
@@ -35,9 +35,9 @@
     ])
 >
     @if ($avatar)
-        <flux:avatar :src="$avatar" size="sm" class="mt-0.5 shrink-0" />
+        <flux:avatar :src="$avatar" size="sm" class="shrink-0" />
     @elseif ($icon)
-        <flux:icon :name="$icon" variant="mini" class="mt-0.5 size-5 shrink-0 text-zinc-400" />
+        <flux:icon :name="$icon" variant="mini" class="size-5 shrink-0 text-zinc-400" />
     @endif
 
     <div class="min-w-0 flex-1">
@@ -53,6 +53,6 @@
         variant="micro"
         data-selected-indicator
         hidden
-        class="mt-0.5 size-4 shrink-0 text-accent-content"
+        class="size-4 shrink-0 text-accent-content"
     />
 </div>

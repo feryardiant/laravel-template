@@ -49,7 +49,7 @@
     </section>
 
     <section data-ui-demo="select-pillbox" class="space-y-2">
-        <x-ui.select wire:model.live="tags" variant="pillbox" label="Tags" placeholder="Choose tags...">
+        <x-ui.select wire:model.live="tags" variant="pillbox" label="Tags" placeholder="Choose tags..." clearable>
             <x-ui.select.option value="design">Design</x-ui.select.option>
             <x-ui.select.option value="development">Development</x-ui.select.option>
             <x-ui.select.option value="marketing">Marketing</x-ui.select.option>
