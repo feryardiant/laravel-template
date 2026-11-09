@@ -85,6 +85,12 @@ return [
         'add-end' => 'Tambah akhir',
     ],
 
+    'timeline' => [
+        'complete' => 'Selesai',
+        'current' => 'Sedang berlangsung',
+        'incomplete' => 'Belum selesai',
+    ],
+
     'calendar' => [
         'today' => 'Hari ini',
         'previous-month' => 'Bulan sebelumnya',

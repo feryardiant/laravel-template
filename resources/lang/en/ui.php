@@ -85,6 +85,12 @@ return [
         'add-end' => 'Add end',
     ],
 
+    'timeline' => [
+        'complete' => 'Complete',
+        'current' => 'In progress',
+        'incomplete' => 'Incomplete',
+    ],
+
     'calendar' => [
         'today' => 'Today',
         'previous-month' => 'Previous month',

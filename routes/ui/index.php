@@ -14,3 +14,4 @@ require __DIR__.'/date-picker.php';
 require __DIR__.'/time-picker.php';
 require __DIR__.'/datetime-picker.php';
 require __DIR__.'/file-upload.php';
+require __DIR__.'/timeline.php';

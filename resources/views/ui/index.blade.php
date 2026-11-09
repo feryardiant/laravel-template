@@ -62,6 +62,14 @@
             <div class="font-medium">File upload</div>
             <div class="text-sm text-zinc-500 dark:text-zinc-400">Drag and drop, upload progress and file items.</div>
         </a>
+
+        <a
+            href="{{ route('ui.timeline') }}"
+            class="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
+        >
+            <div class="font-medium">Timeline</div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400">Vertical and horizontal events with connector lines.</div>
+        </a>
     </div>
 
     <section data-ui-demo="popover-scroll" class="space-y-4">

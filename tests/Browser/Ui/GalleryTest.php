@@ -16,6 +16,7 @@ it('links to every component page', function () {
                 '/ui/time-picker',
                 '/ui/datetime-picker',
                 '/ui/file-upload',
+                '/ui/timeline',
             ];
 
             return required.every((path) => hrefs.some((href) => href.endsWith(path)));
