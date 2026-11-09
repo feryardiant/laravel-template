@@ -67,3 +67,11 @@ it('keeps the time of an open-to datetime object', function () {
     $view->assertSee('2026-11-15', false)
         ->assertSee('14:30', false);
 });
+
+it('renders the invalid state', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.datetime-picker name="starts_at" invalid />');
+
+    $view->assertSee('data-invalid', false)
+        ->assertSee('aria-invalid="true"', false);
+});

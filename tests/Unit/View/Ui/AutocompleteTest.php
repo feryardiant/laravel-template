@@ -47,3 +47,26 @@ it('marks the field invalid when its model has errors', function () {
     $view->assertSee('data-invalid', false)
         ->assertSee('aria-invalid="true"', false);
 });
+
+it('uses the placeholder as its accessible name', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.autocomplete placeholder="Choose a state" />');
+
+    $view->assertSee('aria-label="Choose a state"', false);
+});
+
+it('falls back to the generic accessible name', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.autocomplete />');
+
+    $view->assertSee('aria-label="Pilih"', false);
+});
+
+it('renders disabled and invalid states', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.autocomplete name="state" value="Alaska" disabled invalid />');
+
+    $view->assertSee('data-invalid', false)
+        ->assertSee('aria-invalid="true"', false)
+        ->assertSee('disabled', false);
+});

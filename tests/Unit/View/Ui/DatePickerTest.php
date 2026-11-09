@@ -47,3 +47,11 @@ it('renders the presets, clear action and footer labels', function () {
         ->assertSee('Batal')
         ->assertSee('Pilih rentang');
 });
+
+it('renders the invalid state', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.date-picker name="publish_date" invalid />');
+
+    $view->assertSee('data-invalid', false)
+        ->assertSee('aria-invalid="true"', false);
+});

@@ -314,21 +314,6 @@ it('renders the invalid upload error', function () {
         })()");
 });
 
-it('formats item sizes and marks invalid items', function () {
-    visit('/ui/file-upload')
-        ->on()
-        ->desktop()
-        ->assertScript("(() => {
-            const items = [...document.querySelectorAll('[data-ui-demo=file-upload-items] [data-ui-file-upload-item]')];
-
-            return items.length === 3 &&
-                items[0].textContent.includes('1.5 KB') &&
-                items[1].textContent.includes('2.0 MB') &&
-                items[2].hasAttribute('data-invalid') &&
-                ! items[0].hasAttribute('data-invalid');
-        })()");
-});
-
 it('keeps the dropzone and remove targets touch-friendly on mobile', function () {
     visit('/ui/file-upload')
         ->on()

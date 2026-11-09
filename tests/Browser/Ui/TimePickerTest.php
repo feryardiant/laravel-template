@@ -24,13 +24,6 @@ it('has no serious accessibility issues while the popover is open', function () 
         ->assertNoAccessibilityIssues();
 });
 
-it('renders the invalid state in the gallery', function () {
-    visit('/ui/time-picker')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=time-picker-invalid] [data-ui-time-picker]').hasAttribute('data-invalid')");
-});
-
 it('opens the popover and focuses the hour listbox', function () {
     visit('/ui/time-picker')
         ->on()

@@ -240,13 +240,6 @@ it('skips disabled options during keyboard navigation', function () {
         ->assertScript("document.querySelector('[data-ui-demo=select-disabled-options] [data-ui-option][data-value=available]').hasAttribute('data-active')");
 });
 
-it('uses the placeholder as an accessible name when unlabeled', function () {
-    visit('/ui/select')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=select-unlabeled] [role=combobox]').getAttribute('aria-label') === 'Choose something'");
-});
-
 it('dispatches open, close, change, and clear events', function () {
     $page = visit('/ui/select')->on()->desktop();
     $trigger = '[data-ui-demo="select-single"] [role="combobox"]';
@@ -294,24 +287,6 @@ it('uses touch-sized option rows on mobile', function () {
         ->assertScript("document.querySelector('[data-ui-demo=select-single] [data-ui-option]').getBoundingClientRect().height >= 44");
 });
 
-it('generates unique ids for duplicate models', function () {
-    visit('/ui/select')
-        ->on()
-        ->desktop()
-        ->assertScript("(() => {
-            const elements = document.querySelectorAll('[data-ui-demo=select-duplicate-model] [role=combobox]');
-
-            return elements.length === 2 && elements[0].id !== elements[1].id && elements[0].getAttribute('aria-controls') !== elements[1].getAttribute('aria-controls');
-        })()");
-});
-
-it('falls back to a generic accessible name when all name sources are missing', function () {
-    visit('/ui/select')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=select-no-name] [role=combobox]').getAttribute('aria-label') === 'Pilih'");
-});
-
 it('keeps a wide popover inside the mobile viewport', function () {
     $page = visit('/ui/select')->on()->mobile();
 
@@ -323,26 +298,6 @@ it('keeps a wide popover inside the mobile viewport', function () {
             const rect = popover.getBoundingClientRect();
 
             return rect.left >= 8 && rect.right <= window.innerWidth - 8;
-        })()");
-});
-
-it('renders disabled and invalid states', function () {
-    $page = visit('/ui/select')->on()->desktop();
-
-    $page->assertScript("document.querySelector('[data-ui-demo=select-disabled] [role=combobox]').disabled === true")
-        ->assertScript("document.querySelector('[data-ui-demo=select-invalid] [data-ui-select]').hasAttribute('data-invalid')")
-        ->assertScript("document.querySelector('[data-ui-demo=select-invalid] [role=combobox]').getAttribute('aria-invalid') === 'true'");
-});
-
-it('can sit bare inside a flux field', function () {
-    visit('/ui/select')
-        ->on()
-        ->desktop()
-        ->assertScript("(() => {
-            const section = document.querySelector('[data-ui-demo=select-field-nested]');
-            const count = (text) => (section.textContent.match(new RegExp(text, 'g')) ?? []).length;
-
-            return count('Nested field') === 1 && count('Outer field description') === 1;
         })()");
 });
 

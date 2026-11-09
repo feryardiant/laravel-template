@@ -24,13 +24,6 @@ it('has no serious accessibility issues while the popover is open', function () 
         ->assertNoAccessibilityIssues();
 });
 
-it('renders the invalid state in the gallery', function () {
-    visit('/ui/datetime-picker')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=datetime-picker-invalid] [data-ui-datetime-picker]').hasAttribute('data-invalid')");
-});
-
 it('opens on the selected date, time and formatted trigger value', function () {
     visit('/ui/datetime-picker')
         ->on()

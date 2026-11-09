@@ -55,3 +55,68 @@ it('renders the pillbox variant with a searchable trigger', function () {
         ->assertSee('Design')
         ->assertSee('Marketing');
 });
+
+it('uses the placeholder as its accessible name', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.select placeholder="Choose something" />');
+
+    $view->assertSee('aria-label="Choose something"', false);
+});
+
+it('falls back to the generic accessible name', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.select />');
+
+    $view->assertSee('aria-label="Pilih"', false);
+});
+
+it('renders the invalid state', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.select name="industry" value="web" invalid />');
+
+    $view->assertSee('data-invalid', false)
+        ->assertSee('aria-invalid="true"', false);
+});
+
+it('generates unique ids for duplicate models', function () {
+    /** @var TestCase $this */
+    $this->withViewErrors([]);
+
+    $view = $this->blade(<<<'BLADE'
+        <div>
+            <x-ui.select wire:model="industry">
+                <x-ui.select.option value="web">Web</x-ui.select.option>
+            </x-ui.select>
+            <x-ui.select wire:model="industry">
+                <x-ui.select.option value="web">Web</x-ui.select.option>
+            </x-ui.select>
+        </div>
+    BLADE);
+
+    $html = (string) $view;
+
+    preg_match_all('/id="(ui-select-[^"]+-trigger)"/', $html, $triggers);
+    preg_match_all('/aria-controls="(ui-select-[^"]+-listbox)"/', $html, $controls);
+
+    expect($triggers[1])->toHaveCount(2)
+        ->and(array_unique($triggers[1]))->toHaveCount(2)
+        ->and(array_unique($controls[1]))->toHaveCount(2);
+});
+
+it('sits bare inside a Flux field', function () {
+    /** @var TestCase $this */
+    $view = $this->blade(<<<'BLADE'
+        <flux:field>
+            <flux:label>Nested field</flux:label>
+            <x-ui.select name="nested_industry" placeholder="Pick one">
+                <x-ui.select.option value="design">Design services</x-ui.select.option>
+            </x-ui.select>
+            <flux:description>Outer field description</flux:description>
+        </flux:field>
+    BLADE);
+
+    $html = (string) $view;
+
+    expect(substr_count($html, 'Nested field'))->toBe(1)
+        ->and(substr_count($html, 'Outer field description'))->toBe(1);
+});

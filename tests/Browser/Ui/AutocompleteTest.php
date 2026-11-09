@@ -223,13 +223,6 @@ it('skips disabled local items during keyboard navigation', function () {
         ->assertScript("!document.querySelector('[data-ui-demo=autocomplete-local] [data-ui-option][data-value=Alabama]').hasAttribute('data-active')");
 });
 
-it('uses the placeholder as an accessible name when unlabeled', function () {
-    visit('/ui/autocomplete')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-unlabeled] [role=combobox]').getAttribute('aria-label') === 'Choose a state'");
-});
-
 it('discards results when the query changes before the debounce fires', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
 
@@ -321,20 +314,6 @@ it('does not commit a stale suggestion while a new remote query is loading', fun
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === 'zzz'")
         ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'zzz'");
-});
-
-it('falls back to a generic accessible name when all name sources are missing', function () {
-    visit('/ui/autocomplete')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-no-name] [role=combobox]').getAttribute('aria-label') === 'Pilih'");
-});
-
-it('renders disabled and invalid states', function () {
-    $page = visit('/ui/autocomplete')->on()->desktop();
-
-    $page->assertScript("document.querySelector('[data-ui-demo=autocomplete-disabled] [role=combobox]').disabled === true")
-        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-invalid] [role=combobox]').getAttribute('aria-invalid') === 'true'");
 });
 
 it('waits for a remote query before opening', function () {

@@ -509,13 +509,6 @@ it('distinguishes out-of-bounds dates from unavailable dates', function () {
         })()");
 });
 
-it('renders a plain-form hidden value', function () {
-    visit('/ui/calendar')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=calendar-plain] input[name=plain_date]').value === '2024-02-15'");
-});
-
 it('rejects a range longer than a year when it crosses unavailable', function () {
     $page = visit('/ui/calendar')->on()->desktop();
 

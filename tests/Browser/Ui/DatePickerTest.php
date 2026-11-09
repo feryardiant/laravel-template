@@ -11,13 +11,6 @@ it('has no serious accessibility issues on the date picker gallery', function (s
         ->assertScript('document.documentElement.scrollWidth <= window.innerWidth');
 })->with(['desktop', 'mobile']);
 
-it('renders the invalid state in the gallery', function () {
-    visit('/ui/date-picker')
-        ->on()
-        ->desktop()
-        ->assertScript("document.querySelector('[data-ui-demo=date-picker-invalid] [data-ui-date-picker]').hasAttribute('data-invalid')");
-});
-
 it('opens the popover and focuses the active calendar day', function () {
     visit('/ui/date-picker')
         ->on()

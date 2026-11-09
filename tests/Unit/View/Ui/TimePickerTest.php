@@ -40,3 +40,11 @@ it('renders the localized clear and range actions', function () {
         ->assertSee('Tambah awal')
         ->assertSee('Tambah akhir');
 });
+
+it('renders the invalid state', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.time-picker name="reminder_at" invalid />');
+
+    $view->assertSee('data-invalid', false)
+        ->assertSee('aria-invalid="true"', false);
+});
