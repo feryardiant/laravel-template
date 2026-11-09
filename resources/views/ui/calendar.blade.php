@@ -29,6 +29,7 @@
             wire:model.live="range"
             mode="range"
             label="Date range"
+            months="2"
             min-range="2"
             max-range="10"
             :unavailable="[now()->addDays(1)->format('Y-m-d')]"

@@ -243,7 +243,11 @@ it('renders two months and disables duplicate outside days', function () {
     $page->assertScript("(() => {
         const root = document.querySelector('[data-ui-demo=calendar-range]');
 
-        return root.querySelectorAll('[role=grid]').length === 2 && root.querySelectorAll('td[data-outside][aria-disabled=true]').length > 0;
+        const single = document.querySelector('[data-ui-demo=calendar-typed-range]');
+
+        return root.querySelectorAll('[role=grid]').length === 2 &&
+            root.querySelectorAll('td[data-outside][aria-disabled=true]').length > 0 &&
+            single.querySelectorAll('[role=grid]').length === 1;
     })()");
 });
 

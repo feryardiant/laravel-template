@@ -456,7 +456,7 @@ it('does not open when the picker is disabled', function () {
         })()");
 });
 
-it('renders two months for range mode', function () {
+it('renders one month by default for range mode', function () {
     visit('/ui/date-picker')
         ->on()
         ->desktop()
@@ -467,7 +467,7 @@ it('renders two months for range mode', function () {
             return true;
         })()")
         ->wait(0.3)
-        ->assertScript("document.querySelector('[data-ui-demo=date-picker-range] [data-ui-popover]').querySelectorAll('[role=grid]').length === 2");
+        ->assertScript("document.querySelector('[data-ui-demo=date-picker-range] [data-ui-popover]').querySelectorAll('[role=grid]').length === 1");
 });
 
 it('keeps touch targets at least 44px on mobile', function () {

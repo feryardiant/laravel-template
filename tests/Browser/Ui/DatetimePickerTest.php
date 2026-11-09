@@ -167,7 +167,7 @@ it('previews a range and applies it only with the footer', function () {
             const root = document.querySelector('[data-ui-demo=datetime-picker-range]');
             window.__rangeBefore = root.querySelector('[data-ui-bound=schedule]').textContent.trim();
 
-            return root.querySelector('[data-ui-popover]').querySelectorAll('[role=grid]').length === 2 &&
+            return root.querySelector('[data-ui-popover]').querySelectorAll('[role=grid]').length === 1 &&
                 root.querySelectorAll('[data-ui-popover] [data-ui-time-columns]').length === 1;
         })()")
         ->assertScript("(() => {

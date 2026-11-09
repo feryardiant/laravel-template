@@ -33,7 +33,7 @@
     $invalid ??= $model !== null && $errors->has($model);
 
     $mode = in_array($mode, ['single', 'multiple', 'range'], true) ? $mode : 'single';
-    $resolvedMonths = min(2, max(1, (int) ($months ?? ($mode === 'range' ? 2 : 1))));
+    $resolvedMonths = min(2, max(1, (int) ($months ?? 1)));
     $resolvedStartDay = $startDay === null ? null : min(6, max(0, (int) $startDay));
     $resolvedMin = $min === 'today' ? 'today' : \App\View\Value::date($min);
     $resolvedMax = $max === 'today' ? 'today' : \App\View\Value::date($max);

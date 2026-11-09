@@ -36,7 +36,7 @@
 
     $mode = in_array($mode, ['single', 'range'], true) ? $mode : 'single';
     $isRange = $mode === 'range';
-    $resolvedMonths = min(2, max(1, (int) ($months ?? ($isRange ? 2 : 1))));
+    $resolvedMonths = min(2, max(1, (int) ($months ?? 1)));
     $resolvedStartDay = $startDay === null ? null : min(6, max(0, (int) $startDay));
     $resolvedMin = $min === 'today' ? 'today' : \App\View\Value::date($min);
     $resolvedMax = $max === 'today' ? 'today' : \App\View\Value::date($max);

@@ -39,7 +39,7 @@
 
     $mode = in_array($mode, ['single', 'range'], true) ? $mode : 'single';
     $isRange = $mode === 'range';
-    $resolvedMonths = min(2, max(1, (int) ($months ?? ($isRange ? 2 : 1))));
+    $resolvedMonths = min(2, max(1, (int) ($months ?? 1)));
     $format = in_array($timeFormat, ['auto', '12-hour', '24-hour'], true) ? $timeFormat : 'auto';
     $resolvedInterval = min(60, max(1, (int) $interval));
     $resolvedStartDay = $startDay === null ? null : min(6, max(0, (int) $startDay));
