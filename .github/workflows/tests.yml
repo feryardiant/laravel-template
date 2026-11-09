@@ -92,6 +92,12 @@ jobs:
       - name: Setup Playwright
         run: vpx playwright install chromium --with-deps --only-shell
 
+      - name: Check frontend
+        run: vp check
+
+      - name: Test frontend
+        run: vp test
+
       - name: Build Frontend
         run: vp build
 
