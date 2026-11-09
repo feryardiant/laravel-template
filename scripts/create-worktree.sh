@@ -17,6 +17,7 @@ copies=(
 )
 
 links=(
+    ".agents/plans"
     ".agents/skills"
     ".agents/specs"
 )
