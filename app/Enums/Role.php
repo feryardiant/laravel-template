@@ -25,11 +25,6 @@ enum Role: int
         return $this === self::Member;
     }
 
-    public function canManageUsers(): bool
-    {
-        return $this->isOwner() || $this->isAdmin();
-    }
-
     public function label(): string
     {
         return match ($this) {

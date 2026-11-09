@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -49,7 +48,7 @@ class Edit extends Component
     {
         $user = User::findOrFail($userId);
 
-        $this->authorizeUserManagement($user);
+        $this->authorize('update', $user);
         $this->fillFrom($user);
 
         $this->showModal = true;
@@ -62,7 +61,7 @@ class Edit extends Component
     {
         abort_if($this->user === null, 404);
 
-        $this->authorizeUserManagement($this->user);
+        $this->authorize('update', $this->user);
 
         $this->email = Str::lower($this->email);
 
@@ -107,22 +106,14 @@ class Edit extends Component
         return view('livewire.users.edit');
     }
 
+    /**
+     * Fill the form from the selected user.
+     */
     private function fillFrom(User $user): void
     {
         $this->user = $user;
         $this->name = $user->name;
         $this->handle = $user->handle;
         $this->email = $user->email;
-    }
-
-    /**
-     * Authorize the current user to manage the given user.
-     */
-    private function authorizeUserManagement(User $user): void
-    {
-        $actor = Auth::user();
-
-        abort_unless($actor instanceof User && $actor->role->canManageUsers(), 403);
-        abort_if($user->role->isOwner() && ! $actor->role->isOwner(), 403);
     }
 }
