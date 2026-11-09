@@ -5,6 +5,7 @@ import {
     combineDateTime,
     compareDateTime,
     datePart,
+    isRangeReversed,
     isUnavailable,
     localNowDateTime,
     parseDateTime,
@@ -136,6 +137,7 @@ export interface DateTimePicker {
     write: (value: unknown) => void
     canConfirm: () => boolean
     rangeInvalid: () => boolean
+    rangeTimesAllowed: () => boolean
     updateRangeError: () => void
     onTriggerClick: () => void
     onTriggerFocus: () => void
@@ -525,6 +527,7 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
                     this.endDate !== null &&
                     this.rangeStart !== null &&
                     this.rangeEnd !== null &&
+                    this.rangeTimesAllowed() &&
                     !this.rangeInvalid()
                 )
             }
@@ -532,25 +535,22 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             return this.startDate !== null && this.draftTimeValid()
         },
 
+        /** Whether both endpoints pass the current bounds and unavailable rules. */
+        rangeTimesAllowed() {
+            for (const endpoint of ['start', 'end'] as Endpoint[]) {
+                const time = endpoint === 'start' ? this.rangeStart : this.rangeEnd
+                const minutes = time === null ? null : minutesOfDay(time)
+
+                if (minutes === null || this.isTimeDisabledFor(endpoint, Math.floor(minutes / 60), minutes % 60)) {
+                    return false
+                }
+            }
+
+            return true
+        },
+
         rangeInvalid() {
-            if (this.mode !== 'range' || this.rangeStart === null || this.rangeEnd === null) {
-                return false
-            }
-
-            if (this.startDate === null || this.endDate === null) {
-                return false
-            }
-
-            if (this.startDate !== this.endDate) {
-                return false
-            }
-
-            return (
-                compareDateTime(
-                    combineDateTime(this.endDate, this.rangeEnd),
-                    combineDateTime(this.startDate, this.rangeStart),
-                ) <= 0
-            )
+            return isRangeReversed(this.startDate, this.rangeStart, this.endDate, this.rangeEnd)
         },
 
         updateRangeError() {
@@ -584,6 +584,9 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         },
 
         onCalendarChange(event) {
+            // Only the picker's committed event may reach outer listeners.
+            event.stopPropagation()
+
             const detail = (event as CustomEvent<{ value?: unknown }>).detail
 
             if (detail === undefined || !('value' in detail)) {

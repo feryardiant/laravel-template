@@ -80,6 +80,24 @@ export function seedEndTime(options: {
     return timeFromMinutes(Math.min((minutesOfDay(start) ?? 0) + interval, 23 * 60 + 59))
 }
 
+/**
+ * Whether a complete range ends at or before it starts.
+ *
+ * Incomplete endpoints are not reversed.
+ */
+export function isRangeReversed(
+    startDate: string | null,
+    startTime: string | null,
+    endDate: string | null,
+    endTime: string | null,
+): boolean {
+    if (startDate === null || startTime === null || endDate === null || endTime === null) {
+        return false
+    }
+
+    return compareDateTime(combineDateTime(endDate, endTime), combineDateTime(startDate, startTime)) <= 0
+}
+
 /** Lexicographic comparison for canonical datetimes. */
 export function compareDateTime(left: string, right: string): number {
     return left < right ? -1 : left > right ? 1 : 0

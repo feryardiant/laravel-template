@@ -440,6 +440,9 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         onCalendarChange(event) {
+            // Only the picker's committed event may reach outer listeners.
+            event.stopPropagation()
+
             const detail = (event as CustomEvent<{ value?: unknown }>).detail
 
             if (detail === undefined || !('value' in detail)) {
