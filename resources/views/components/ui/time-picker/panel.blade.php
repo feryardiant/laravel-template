@@ -21,7 +21,6 @@
     'headerClass' => 'px-2 py-1',
     'meridiemWrapperClass' => 'flex flex-col gap-1 pt-6 [@media(hover:none)]:flex-1',
     'meridiemClass' => 'flex h-8 min-w-12 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors [@media(hover:none)]:min-h-11',
-    'panelClass' => 'flex gap-1',
 ])
 
 @php
@@ -31,7 +30,7 @@
 
 {{-- Presentational hour/minute columns. State, bounds and unavailable rules
      stay with the consuming component. --}}
-<div class="{{ $panelClass }}">
+<div {{ $attributes->merge(['class' => 'flex gap-1']) }}>
     <div class="{{ $columnClass }}">
         <div data-ui-hour-label class="{{ $headerClass }} text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
             {{ $hourLabel }}
@@ -57,7 +56,7 @@
                     :aria-disabled="option.disabled || null"
                     x-on:click="{{ $selectHour }}"
                     :class="option.disabled
-                        ? 'cursor-default text-zinc-300 dark:text-zinc-600'
+                        ? 'cursor-default text-zinc-400 dark:text-zinc-600'
                         : option.selected
                             ? 'cursor-pointer bg-accent text-accent-foreground'
                             : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"
@@ -93,7 +92,7 @@
                     :aria-disabled="option.disabled || null"
                     x-on:click="{{ $selectMinute }}"
                     :class="option.disabled
-                        ? 'cursor-default text-zinc-300 dark:text-zinc-600'
+                        ? 'cursor-default text-zinc-400 dark:text-zinc-600'
                         : option.selected
                             ? 'cursor-pointer bg-accent text-accent-foreground'
                             : 'cursor-pointer text-zinc-700 hover:bg-zinc-800/5 dark:text-zinc-200 dark:hover:bg-white/10'"

@@ -284,14 +284,19 @@
                     />
                 </div>
 
-                <div data-ui-time-panel class="flex shrink-0 flex-col gap-2">
+                <div
+                    data-ui-time-panel
+                    @class([
+                        'flex shrink-0 flex-col',
+                        'min-w-36' => $isRange
+                    ])
+                >
                     <div
                         data-ui-time-columns
                         x-bind:data-endpoint="activeEndpoint()"
                         class="flex flex-col lg:min-h-0 lg:flex-1"
                     >
                         <x-ui.time-picker.panel
-                            panel-class="flex min-h-0 flex-1 gap-1"
                             hours="draft.hours"
                             minutes="draft.minutes"
                             active-hour="activeTimeId('hour')"
@@ -308,11 +313,11 @@
                             on-select-am="setMeridiem('am')"
                             on-select-pm="setMeridiem('pm')"
                             :option-class="$optionHeight"
-                            column-class="flex flex-1 flex-col"
+                            class="min-h-0 flex-1"
+                            column-class="flex flex-1 flex-col min-w-11"
                             :list-class="$isRange
                                 ? 'max-h-44 overflow-y-auto scroll-py-2'
                                 : 'max-h-44 overflow-y-auto scroll-py-2 lg:max-h-none lg:min-h-0 lg:flex-1'"
-                            header-class="px-1 py-0.5"
                             meridiem-wrapper-class="flex flex-col gap-1 pt-6"
                             meridiem-class="flex h-8 min-w-10 items-center justify-center rounded-md px-1 text-xs font-medium transition-colors [@media(hover:none)]:min-h-11"
                         />
