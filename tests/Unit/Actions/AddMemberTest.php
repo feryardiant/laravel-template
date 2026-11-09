@@ -7,6 +7,9 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 /**
  * AddMember action tests.

@@ -6,6 +6,9 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 it('has no organization role without a person profile', function () {
     $user = User::factory()->create();
