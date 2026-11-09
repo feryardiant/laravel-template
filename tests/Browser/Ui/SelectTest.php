@@ -59,7 +59,8 @@ it('keeps multiple selections open and clears them', function () {
         ->click('[data-ui-demo="select-multiple"] button[aria-label="Kosongkan pilihan"]')
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-bound=industries]').textContent.trim() === ''")
-        ->assertScript("document.querySelectorAll('[data-ui-demo=select-multiple] [data-ui-option][data-selected]').length === 0");
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-multiple] [data-ui-option][data-selected]').length === 0")
+        ->assertScript("getComputedStyle(document.querySelector('[data-ui-demo=select-multiple] button[aria-label=\"Kosongkan pilihan\"]')).display === 'none'");
 });
 
 it('adds and removes pills in the pillbox variant', function () {

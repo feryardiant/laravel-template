@@ -110,19 +110,22 @@
                 role="combobox"
             />
 
-            @if ($clearable)
-                <button
-                    type="button"
-                    x-show="query.length > 0 && ! disabled"
-                    x-cloak
-                    x-on:click.stop="clear()"
-                    @disabled($disabled)
-                    aria-label="{{ __('ui.autocomplete.clear') }}"
-                    class="absolute end-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-zinc-400 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-                >
-                    <flux:icon name="x-mark" variant="micro" class="size-4" />
-                </button>
-            @endif
+            <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1">
+                @if ($clearable)
+                    <flux:button
+                        type="button"
+                        variant="ghost"
+                        icon="x-mark"
+                        size="xs"
+                        x-cloak
+                        x-show="query.length > 0 && ! disabled"
+                        x-on:click.stop="clear()"
+                        :disabled="$disabled"
+                        aria-label="{{ __('ui.autocomplete.clear') }}"
+                        class="pointer-events-auto"
+                    />
+                @endif
+            </div>
         </div>
 
         <x-ui.popover

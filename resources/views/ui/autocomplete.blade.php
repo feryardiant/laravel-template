@@ -51,7 +51,7 @@
     </section>
 
     <section data-ui-demo="autocomplete-disabled" class="space-y-2">
-        <x-ui.autocomplete label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="California" disabled>
+        <x-ui.autocomplete label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="California" clearable disabled>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
         </x-ui.autocomplete>
     </section>

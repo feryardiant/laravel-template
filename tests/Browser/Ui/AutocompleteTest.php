@@ -96,7 +96,19 @@ it('clears the value with the clear button', function () {
         ->click('[data-ui-demo="autocomplete-local"] button[aria-label="Kosongkan isian"]')
         ->wait(0.5)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').value === ''")
-        ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === ''");
+        ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === ''")
+        ->assertScript("getComputedStyle(document.querySelector('[data-ui-demo=autocomplete-local] button[aria-label=\"Kosongkan isian\"]')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+
+    assertNoBackendErrors();
+});
+
+it('does not expose the clear action when disabled', function () {
+    visit('/ui/autocomplete')
+        ->on()
+        ->desktop()
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-disabled] [role=combobox]').disabled === true")
+        ->assertScript("getComputedStyle(document.querySelector('[data-ui-demo=autocomplete-disabled] button[aria-label=\"Kosongkan isian\"]')).display === 'none'");
 });
 
 it('closes on a mouse selection and on an outside click', function () {

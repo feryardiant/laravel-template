@@ -142,17 +142,18 @@
                 />
 
                 @if ($clearable)
-                    <button
+                    <flux:button
                         type="button"
-                        x-show="selectedValues.length > 0 && ! disabled"
+                        variant="ghost"
+                        icon="x-mark"
+                        size="xs"
                         x-cloak
+                        x-show="selectedValues.length > 0 && ! disabled"
                         x-on:click.stop="clear()"
-                        @disabled($disabled)
+                        :disabled="$disabled"
                         aria-label="{{ __('ui.select.clear') }}"
-                        class="shrink-0 rounded-sm p-1 text-zinc-400 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-                    >
-                        <flux:icon name="x-mark" variant="micro" class="size-4" />
-                    </button>
+                        class="pointer-events-auto shrink-0"
+                    />
                 @endif
 
                 <flux:icon name="chevron-down" variant="micro" class="shrink-0 text-zinc-400" />
@@ -182,19 +183,20 @@
                     data-ui-trigger
                 />
 
-                <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1 text-zinc-400">
+                <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1">
                     @if ($clearable)
-                        <button
+                        <flux:button
                             type="button"
-                            x-show="selectedValues.length > 0 && ! disabled"
+                            variant="ghost"
+                            icon="x-mark"
+                            size="xs"
                             x-cloak
+                            x-show="selectedValues.length > 0 && ! disabled"
                             x-on:click.stop="clear()"
-                            @disabled($disabled)
+                            :disabled="$disabled"
                             aria-label="{{ __('ui.select.clear') }}"
-                            class="pointer-events-auto rounded-sm p-1 hover:text-zinc-800 disabled:pointer-events-none disabled:opacity-50 dark:hover:text-zinc-200 [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
-                        >
-                            <flux:icon name="x-mark" variant="micro" class="size-4" />
-                        </button>
+                            class="pointer-events-auto"
+                        />
                     @endif
 
                     <flux:icon name="chevron-down" variant="micro" class="size-4" />
