@@ -689,6 +689,13 @@ it('fits the single time panel to the calendar and removes the right gap', funct
         })()")
         ->wait(0.4)
         ->assertScript("(() => {
+            const popover = document.querySelector('[data-ui-demo=datetime-picker-single] [data-ui-popover]');
+            const style = getComputedStyle(popover);
+
+            return style.overflowY === 'auto' &&
+                parseFloat(style.maxHeight) <= window.innerHeight - 16;
+        })()")
+        ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-single]');
             const popover = root.querySelector('[data-ui-popover]');
             const calendar = popover.querySelector('[data-ui-calendar]');

@@ -160,6 +160,13 @@ export function createPopover(
             return
         }
 
+        // Dialog pickers lock document scrolling, so the popover itself must be
+        // able to scroll to its footer on short viewports.
+        if (options.scrollLock === true) {
+            popover.style.maxHeight = `${Math.max(0, window.innerHeight - 2 * viewportGap)}px`
+            popover.style.overflowY = 'auto'
+        }
+
         const triggerRect = anchor.getBoundingClientRect()
         const maxWidth = Math.max(0, window.innerWidth - 2 * viewportGap)
         const fullWidth = options.fullWidthOnTouch === true && window.matchMedia('(hover: none)').matches
@@ -311,6 +318,8 @@ export function createPopover(
         popover.style.minWidth = ''
         popover.style.maxWidth = ''
         popover.style.width = ''
+        popover.style.maxHeight = ''
+        popover.style.overflowY = ''
 
         if (options.scrollLock === true) {
             unlockDocumentScroll()
