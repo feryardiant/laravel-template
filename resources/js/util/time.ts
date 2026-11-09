@@ -28,7 +28,7 @@ export function toTime(value: unknown): string | null {
         return null
     }
 
-    const match = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(value)
+    const match = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(value.trim())
 
     return match === null ? null : `${match[1]}:${match[2]}`
 }

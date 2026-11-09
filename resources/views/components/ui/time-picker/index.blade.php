@@ -123,14 +123,15 @@
                 id="{{ $formInputId }}"
                 name="{{ $name }}"
                 value="{{ is_string($normalizedValue) ? $normalizedValue : '' }}"
+                @disabled($disabled)
             />
         @elseif ($isPlain && $isMultiple)
             <template x-for="selected in selectedValues" :key="selected">
-                <input type="hidden" name="{{ $name }}[]" :value="selected" />
+                <input type="hidden" name="{{ $name }}[]" :value="selected" @disabled($disabled) />
             </template>
         @elseif ($formStartId !== null)
-            <input type="hidden" id="{{ $formStartId }}" name="{{ $name }}[start]" :value="rangeStart || ''" />
-            <input type="hidden" id="{{ $formEndId }}" name="{{ $name }}[end]" :value="rangeEnd || ''" />
+            <input type="hidden" id="{{ $formStartId }}" name="{{ $name }}[start]" :value="rangeStart || ''" @disabled($disabled) />
+            <input type="hidden" id="{{ $formEndId }}" name="{{ $name }}[end]" :value="rangeEnd || ''" @disabled($disabled) />
         @endif
 
         <div class="relative">

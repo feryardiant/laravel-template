@@ -83,12 +83,13 @@
                 id="{{ $formInputId }}"
                 name="{{ $name }}"
                 value="{{ is_scalar($value) ? $value : '' }}"
+                @disabled($disabled)
             />
         @endif
 
         @if ($isPlain && $isMultiple)
             <template x-for="selected in selectedValues" :key="selected">
-                <input type="hidden" name="{{ $name }}[]" :value="selected" />
+                <input type="hidden" name="{{ $name }}[]" :value="selected" @disabled($disabled) />
             </template>
         @endif
 

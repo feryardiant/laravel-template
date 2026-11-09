@@ -280,7 +280,12 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         announcement: '',
 
         init(el) {
-            rootEl = el ?? null
+            // Alpine calls init() itself before x-init supplies the root element.
+            if (el === undefined || rootEl !== null) {
+                return
+            }
+
+            rootEl = el
             minKey = config.min === 'today' ? this.today : stringKey(config.min)
             maxKey = config.max === 'today' ? this.today : stringKey(config.max)
             unavailable = config.unavailable.filter((key) => isValidKey(key))
@@ -453,7 +458,16 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
                 last = first
             }
 
-            return Array.from({ length: last - first + 1 }, (_, index) => first + index)
+            const years = Array.from({ length: last - first + 1 }, (_, index) => first + index)
+
+            // The header select must be able to show the month being viewed, even
+            // when `open-to` points outside the default range.
+            if (this.viewYear > 0 && !years.includes(this.viewYear)) {
+                years.push(this.viewYear)
+                years.sort((a, b) => a - b)
+            }
+
+            return years
         },
 
         isDisabled(key: string, outside: boolean): boolean {

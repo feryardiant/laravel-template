@@ -263,7 +263,12 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
         rangeError: '',
 
         init(el) {
-            rootEl = el ?? null
+            // Alpine calls init() itself before x-init supplies the root element.
+            if (el === undefined || rootEl !== null) {
+                return
+            }
+
+            rootEl = el
             unavailable = parseUnavailable(config.unavailable)
             this.refreshNow()
             this.applyValue(readModel(wire, config.model, config.value))
@@ -639,7 +644,10 @@ export function datetimePickerData(config: DateTimePickerConfig, wire: WireLike 
             }
 
             this.buildTimes()
-            this.commitSingle()
+
+            if (!config.withConfirmation) {
+                this.commitSingle()
+            }
         },
 
         onPopoverKeydown(event) {

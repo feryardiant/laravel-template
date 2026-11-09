@@ -37,7 +37,9 @@ it('renders localized clear and disabled states', function () {
 
     $view->assertSee('Kosongkan pilihan')
         ->assertSee('data-disabled', false)
-        ->assertSee('disabled', false);
+        ->assertSee('disabled', false)
+        // A disabled picker must not submit its hidden value.
+        ->assertSeeInOrder(['type="hidden"', 'name="industry"', 'value="web"', 'disabled'], false);
 });
 
 it('renders the pillbox variant with a searchable trigger', function () {

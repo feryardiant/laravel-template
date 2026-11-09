@@ -67,7 +67,12 @@ export function fileUploadData(config: FileUploadConfig, wire: WireLike | null):
         dragDepth: 0,
 
         init(el) {
-            rootEl = el ?? null
+            // Alpine calls init() itself before x-init supplies the root element.
+            if (el === undefined || rootEl !== null) {
+                return
+            }
+
+            rootEl = el
 
             const events = wire as WireWithEvents | null
 

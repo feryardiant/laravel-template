@@ -128,6 +128,18 @@ it('requires the footer in single mode when confirmation is enabled', function (
         ->wait(0.4)
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-confirm]');
+            root.querySelector('[data-ui-popover] td[data-date=\"2026-11-15\"] button').click();
+
+            return true;
+        })()")
+        ->wait(0.2)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-confirm]');
+
+            return root.querySelector('[data-ui-bound=confirmed-at]').textContent.trim() === '2026-11-08T10:30';
+        })()")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-confirm]');
             root.querySelector('[data-ui-popover] [data-endpoint=start] [data-column=minute] [data-minute=\"0\"]').click();
 
             return true;
@@ -149,7 +161,7 @@ it('requires the footer in single mode when confirmation is enabled', function (
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=datetime-picker-confirm]');
 
-            return root.querySelector('[data-ui-bound=confirmed-at]').textContent.trim() === '2026-11-08T10:00' &&
+            return root.querySelector('[data-ui-bound=confirmed-at]').textContent.trim() === '2026-11-15T10:00' &&
                 root.querySelector('[data-ui-popover]').matches(':popover-open') === false;
         })()");
 });

@@ -92,6 +92,9 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
     let visible: ListboxOption[] = []
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
+    let ready = false
+    let form: HTMLFormElement | null = null
+    let onReset: (() => void) | null = null
 
     const multiple = config.variant === 'pillbox' ? true : config.multiple
 
@@ -117,6 +120,12 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         typeahead: '',
 
         init() {
+            if (ready) {
+                return
+            }
+
+            ready = true
+
             const anchorElement = anchor()
             const popoverElement = document.getElementById(config.popoverId)
 
@@ -147,11 +156,26 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                 this.selectedValues = normalizeValues(value)
                 this.refresh()
             })
+
+            form = anchorElement.closest('form')
+
+            if (form !== null) {
+                onReset = () => {
+                    this.selectedValues = normalizeValues(config.value)
+                    this.refresh()
+                }
+
+                form.addEventListener('reset', onReset)
+            }
         },
 
         destroy() {
             unwatch?.()
             popover?.destroy()
+
+            if (form !== null && onReset !== null) {
+                form.removeEventListener('reset', onReset)
+            }
         },
 
         refresh() {
@@ -466,11 +490,15 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         },
 
         filterByTypeahead() {
+            // openPopover() clears the query; keep the character that reopened it.
+            const typeahead = this.typeahead
+
             if (!this.isPopoverOpen()) {
                 this.openPopover()
             }
 
-            this.query = this.typeahead
+            this.typeahead = typeahead
+            this.query = typeahead
             this.applyQuery()
             this.setActive(0)
         },

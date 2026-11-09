@@ -96,6 +96,7 @@ export interface DatePicker {
     onCalendarChange: (event: Event) => void
     onPopoverKeydown: (event: KeyboardEvent) => void
     selectPreset: (key: string) => void
+    buildPresets: () => void
     presetActive: (key: string) => boolean
     canConfirm: () => boolean
     syncCalendar: () => void
@@ -286,35 +287,15 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         withConfirmation: config.withConfirmation,
 
         init(el) {
-            rootEl = el ?? null
+            // Alpine calls init() itself before x-init supplies the root element.
+            if (el === undefined || rootEl !== null) {
+                return
+            }
+
+            rootEl = el
             applyValue(this, readModel(wire, config.model, config.value))
 
-            const today = localTodayKey()
-            const startDay = config.startDay ?? firstDayOfWeek(locale)
-            const min = config.min === 'today' ? today : toDateKey(config.min)
-            const max = config.max === 'today' ? today : toDateKey(config.max)
-
-            this.presets = config.presetKeys.flatMap((key) => {
-                const bounds = presetBounds(key, today, startDay, min)
-                const clamped = bounds === null ? null : clampBounds(bounds, min, max)
-
-                if (clamped === null) {
-                    return []
-                }
-
-                if (this.mode === 'single' && !['today', 'yesterday'].includes(key)) {
-                    return []
-                }
-
-                if (
-                    !presetAllowed(clamped, config.unavailable, config.minRange, config.maxRange, this.mode === 'range')
-                ) {
-                    return []
-                }
-
-                return [{ key, label: config.labels.presetLabels[key] ?? key, ...clamped }]
-            })
-
+            this.buildPresets()
             this.renderDisplay()
 
             const trigger = document.getElementById(config.triggerId)
@@ -328,6 +309,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                     // Single mode fits the 7 × (w-9) grid; range keeps the trigger width.
                     matchTriggerWidth: config.mode === 'range',
                     onOpen: () => {
+                        this.buildPresets()
                         this.draftStart = this.start
                         this.draftEnd = this.end
                         this.syncCalendar()
@@ -490,7 +472,38 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             }
         },
 
+        /** Rebuild the presets from the current local date and bounds. */
+        buildPresets() {
+            const today = localTodayKey()
+            const startDay = config.startDay ?? firstDayOfWeek(locale)
+            const min = config.min === 'today' ? today : toDateKey(config.min)
+            const max = config.max === 'today' ? today : toDateKey(config.max)
+
+            this.presets = config.presetKeys.flatMap((key) => {
+                const bounds = presetBounds(key, today, startDay, min)
+                const clamped = bounds === null ? null : clampBounds(bounds, min, max)
+
+                if (clamped === null) {
+                    return []
+                }
+
+                if (this.mode === 'single' && !['today', 'yesterday'].includes(key)) {
+                    return []
+                }
+
+                if (
+                    !presetAllowed(clamped, config.unavailable, config.minRange, config.maxRange, this.mode === 'range')
+                ) {
+                    return []
+                }
+
+                return [{ key, label: config.labels.presetLabels[key] ?? key, ...clamped }]
+            })
+        },
+
         selectPreset(key) {
+            this.buildPresets()
+
             const preset = this.presets.find((candidate) => candidate.key === key)
 
             if (preset === undefined) {

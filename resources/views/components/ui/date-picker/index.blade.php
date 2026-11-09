@@ -143,6 +143,7 @@
                 id="{{ $formInputId }}"
                 name="{{ $name }}"
                 value="{{ is_string($normalizedValue) ? $normalizedValue : '' }}"
+                @disabled($disabled)
             />
         @elseif ($formStartId !== null)
             <input
@@ -150,12 +151,14 @@
                 id="{{ $formStartId }}"
                 name="{{ $name }}[start]"
                 value="{{ $normalizedValue['start'] ?? '' }}"
+                @disabled($disabled)
             />
             <input
                 type="hidden"
                 id="{{ $formEndId }}"
                 name="{{ $name }}[end]"
                 value="{{ $normalizedValue['end'] ?? '' }}"
+                @disabled($disabled)
             />
         @endif
 

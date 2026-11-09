@@ -109,6 +109,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
     // Monotonic request id: only the latest remote response may update the list.
     let requestId = 0
     let suppressFocus = false
+    let ready = false
 
     const trigger = (): HTMLInputElement | null => document.getElementById(config.triggerId) as HTMLInputElement | null
     const listbox = (): HTMLElement | null => document.getElementById(config.listboxId)
@@ -128,6 +129,12 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         loadingText: config.loading,
 
         init() {
+            if (ready) {
+                return
+            }
+
+            ready = true
+
             const triggerElement = trigger()
             const popoverElement = document.getElementById(config.popoverId)
 
@@ -325,7 +332,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         selectRemote(item) {
-            if (this.disabled) {
+            if (this.disabled || this.readonly) {
                 return
             }
 
@@ -342,7 +349,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         selectOption(option) {
-            if (this.disabled || option.disabled) {
+            if (this.disabled || this.readonly || option.disabled) {
                 return
             }
 
@@ -359,7 +366,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         },
 
         clear() {
-            if (this.disabled) {
+            if (this.disabled || this.readonly) {
                 return
             }
 

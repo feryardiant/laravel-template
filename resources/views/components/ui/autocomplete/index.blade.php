@@ -81,7 +81,7 @@
         class="relative"
     >
         @if ($formInputId !== null)
-            <input type="hidden" id="{{ $formInputId }}" name="{{ $name }}" value="{{ $value }}" />
+            <input type="hidden" id="{{ $formInputId }}" name="{{ $name }}" value="{{ $value }}" @disabled($disabled) />
         @endif
 
         <div class="relative">
@@ -118,7 +118,7 @@
                         icon="x-mark"
                         size="xs"
                         x-cloak
-                        x-show="query.length > 0 && ! disabled"
+                        x-show="query.length > 0 && ! disabled && ! readonly"
                         x-on:click.stop="clear()"
                         :disabled="$disabled"
                         aria-label="{{ __('ui.autocomplete.clear') }}"

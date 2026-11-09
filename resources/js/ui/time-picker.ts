@@ -231,7 +231,12 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         preservedHour: null,
 
         init(el) {
-            rootEl = el ?? null
+            // Alpine calls init() itself before x-init supplies the root element.
+            if (el === undefined || rootEl !== null) {
+                return
+            }
+
+            rootEl = el
             unavailable = parseUnavailable(config.unavailable)
             this.applyValue(readModel(wire, config.model, config.value))
             this.resolveBounds()
@@ -281,7 +286,9 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
                 this.rangeStart = range.start
                 this.rangeEnd = range.start === null ? null : range.end
-                this.selectedValues = [range.start, range.end].filter((entry): entry is string => entry !== null)
+                this.selectedValues = [this.rangeStart, this.rangeEnd].filter(
+                    (entry): entry is string => entry !== null,
+                )
                 this.syncSelectedActive()
             } else if (this.multiple) {
                 this.selectedValues = normalize(value, true) as string[]
@@ -959,7 +966,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                     return enabled[delta > 0 ? 0 : enabled.length - 1].value
                 }
 
-                return enabled[(index + delta + enabled.length) % enabled.length].value
+                return enabled[(((index + delta) % enabled.length) + enabled.length) % enabled.length].value
             }
 
             let next: number | null = null

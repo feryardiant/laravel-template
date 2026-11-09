@@ -45,6 +45,24 @@ it('filters with typeahead and selects with the keyboard', function () {
         ->assertScript("!document.querySelector('[data-ui-demo=select-single] [data-ui-option][data-value=photography]').hasAttribute('data-active')");
 });
 
+it('keeps the typeahead character when typing reopens the listbox', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo="select-single"] [role="combobox"]';
+
+    $page->click($trigger)
+        ->keys($trigger, 'Escape')
+        ->wait(0.2)
+        ->assertScript("document.querySelector('[data-ui-demo=select-single] [role=combobox]').getAttribute('aria-expanded') === 'false'")
+        ->keys($trigger, 'd')
+        ->wait(0.2)
+        ->assertScript("document.querySelector('[data-ui-demo=select-single] [role=combobox]').getAttribute('aria-expanded') === 'true'")
+        ->assertScript("document.querySelector('[data-ui-demo=select-single] [role=combobox]').value === 'd'")
+        ->keys($trigger, ['e', 's'])
+        ->wait(0.2)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-single] [data-ui-option]:not([hidden])').length === 1")
+        ->assertScript("document.querySelector('[data-ui-demo=select-single] [data-ui-option]:not([hidden])').dataset.value === 'design'");
+});
+
 it('keeps multiple selections open and clears them', function () {
     $page = visit('/ui/select')->on()->desktop();
 

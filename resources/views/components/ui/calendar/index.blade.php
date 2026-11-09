@@ -200,6 +200,7 @@
                     <table
                         role="grid"
                         :aria-label="month.label"
+                        @if ($mode !== 'single') aria-multiselectable="true" @endif
                         @if ($invalid) aria-invalid="true" @endif
                         class="w-full border-separate border-spacing-y-1"
                     >

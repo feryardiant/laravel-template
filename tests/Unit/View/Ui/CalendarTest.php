@@ -11,7 +11,8 @@ it('renders a plain field for a single date', function () {
     $view->assertSee('data-ui-calendar', false)
         ->assertSee('data-mode="single"', false)
         ->assertSee('name="date"', false)
-        ->assertSee('value="2026-11-09"', false);
+        ->assertSee('value="2026-11-09"', false)
+        ->assertDontSee('aria-multiselectable', false);
 });
 
 it('renders start and end fields for a range', function () {
@@ -24,7 +25,8 @@ it('renders start and end fields for a range', function () {
         ->assertSee('name="range[start]"', false)
         ->assertSee('name="range[end]"', false)
         ->assertSee('2026-11-09', false)
-        ->assertSee('2026-11-12', false);
+        ->assertSee('2026-11-12', false)
+        ->assertSee('aria-multiselectable="true"', false);
 });
 
 it('renders localized navigation and the today shortcut', function () {
