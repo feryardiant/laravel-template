@@ -13,7 +13,7 @@
     @if ($role) role="{{ $role }}" @endif
     @if ($role === 'dialog') aria-modal="false" @endif
     @if ($label) aria-label="{{ $label }}" @endif
-    {{ $attributes->class('z-50 select-none') }}
+    {{ $attributes->class('z-50 select-none rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-700') }}
 >
     {{ $slot }}
 </div>

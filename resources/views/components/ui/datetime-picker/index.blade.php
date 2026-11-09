@@ -262,7 +262,7 @@
             :label="$accessibleLabel"
             x-on:keydown="onPopoverKeydown($event)"
             x-on:change="onCalendarChange($event)"
-            class="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
+            class="max-h-[calc(100dvh-1rem)] overflow-y-auto p-3"
         >
             <div class="flex flex-col gap-4 lg:flex-row">
                 <div class="min-w-0 flex-1">

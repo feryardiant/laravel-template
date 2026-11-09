@@ -130,7 +130,7 @@
 
         <x-ui.popover
             :id="$popoverId"
-            class="min-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-700 {{ $containerClass }}"
+            class="min-w-48 overflow-hidden p-1 {{ $containerClass }}"
         >
             <div
                 id="{{ $listboxId }}"

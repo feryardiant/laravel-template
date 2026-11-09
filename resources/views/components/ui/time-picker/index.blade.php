@@ -180,7 +180,7 @@
             role="dialog"
             :label="$accessibleLabel"
             x-on:keydown="onPopoverKeydown($event)"
-            class="rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-600 dark:bg-zinc-800"
+            class="p-2"
         >
             <x-ui.time-picker.panel
                 hours="hours"
