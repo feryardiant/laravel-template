@@ -28,8 +28,7 @@ it('renders a plain hidden field for the selected value', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.autocomplete name="state" value="Alaska" label="State" />');
 
-    $view->assertSee('name="state"', false)
-        ->assertSee('value="Alaska"', false);
+    expect(hiddenFormInputCount((string) $view, 'state', 'Alaska'))->toBe(1);
 });
 
 it('renders the localized clear action', function () {

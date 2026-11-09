@@ -196,6 +196,39 @@ it('drives the progress bar and loading state from upload events', function () {
         })()");
 });
 
+it('completes uploads only for the bound property', function () {
+    $page = visit('/ui/file-upload')->on()->desktop();
+
+    // The synthetic events below are also picked up by Livewire's own upload
+    // manager, which expects a real in-flight upload and raises its own errors.
+    $page->assertScript("(() => {
+        const root = document.querySelector('[data-ui-demo=file-upload-photos]');
+        root.querySelector('input[type=file]').dispatchEvent(new CustomEvent('livewire-upload-start', { bubbles: true }));
+        root.dispatchEvent(new CustomEvent('upload:finished', { bubbles: true, detail: { name: 'avatar', tmpFilenames: ['stale'] } }));
+
+        return true;
+    })()")
+        ->wait(0.15)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getAttribute('data-loading') === 'true'")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=file-upload-photos]');
+            root.dispatchEvent(new CustomEvent('upload:errored', { bubbles: true, detail: { name: 'photos' } }));
+
+            return true;
+        })()")
+        ->wait(0.15)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getAttribute('data-loading') === null")
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=file-upload-photos]');
+            root.querySelector('input[type=file]').dispatchEvent(new CustomEvent('livewire-upload-start', { bubbles: true }));
+            root.dispatchEvent(new CustomEvent('upload:finished', { bubbles: true, detail: { name: 'photos', tmpFilenames: ['fresh'] } }));
+
+            return true;
+        })()")
+        ->wait(0.15)
+        ->assertScript("document.querySelector('[data-ui-demo=file-upload-photos] [data-ui-dropzone]').getAttribute('data-loading') === null");
+});
+
 it('clears loading when an upload is canceled', function () {
     $page = visit('/ui/file-upload')->on()->desktop();
 
@@ -304,7 +337,7 @@ it('keeps the dropzone and remove targets touch-friendly on mobile', function ()
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-avatar] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
         ->assertScript("(() => {
-            const remove = document.querySelector('[data-ui-demo=file-upload-remove] [aria-label^=\"Hapus file:\"]');
+            const remove = document.querySelector('[data-ui-demo=file-upload-remove] [data-ui-remove]');
 
             return remove !== null && remove.getBoundingClientRect().height >= 44;
         })()");

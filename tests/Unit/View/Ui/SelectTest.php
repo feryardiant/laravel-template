@@ -27,8 +27,7 @@ it('renders a plain hidden field for the selected value', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.select name="industry" value="web" label="Industry" />');
 
-    $view->assertSee('name="industry"', false)
-        ->assertSee('value="web"', false);
+    expect(hiddenFormInputCount((string) $view, 'industry', 'web'))->toBe(1);
 });
 
 it('renders localized clear and disabled states', function () {

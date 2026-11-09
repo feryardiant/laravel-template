@@ -67,23 +67,73 @@ it('ignores a slower older remote response', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
 
     $page->assertScript("(() => {
+        window.__pending = {};
+        window.fetch = (url) => new Promise((resolve) => {
+            window.__pending[new URL(url, location.origin).searchParams.get('q')] = (labels) => resolve({
+                ok: true,
+                json: async () => labels,
+            });
+        });
+
         const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
         input.focus();
-        input.value = 'slow';
+        input.value = 'older';
         input.dispatchEvent(new Event('input', { bubbles: true }));
 
         return true;
     })()")
-        ->wait(0.25)
+        ->wait(0.4)
+        ->assertScript("typeof window.__pending.older === 'function'")
         ->assertScript("(() => {
             const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
-            input.value = 'new';
+            input.value = 'newer';
             input.dispatchEvent(new Event('input', { bubbles: true }));
 
             return true;
         })()")
-        ->wait(1.2)
-        ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]:not([hidden])')).map((option) => option.dataset.label).join('|') === 'New Hampshire|New Jersey|New Mexico|New York'");
+        ->wait(0.4)
+        ->assertScript("typeof window.__pending.newer === 'function'")
+        ->assertScript("(() => {
+            window.__pending.newer(['Newer result']);
+            window.__pending.older(['Older result']);
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]:not([hidden])')).map((option) => option.dataset.label).join('|') === 'Newer result'");
+});
+
+it('drops a remote response that completes after clearing', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+
+    $page->assertScript("(() => {
+        window.__pending = {};
+        window.fetch = (url) => new Promise((resolve) => {
+            window.__pending[new URL(url, location.origin).searchParams.get('q')] = (labels) => resolve({
+                ok: true,
+                json: async () => labels,
+            });
+        });
+
+        const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+        input.focus();
+        input.value = 'new';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        return true;
+    })()")
+        ->wait(0.4)
+        ->assertScript("typeof window.__pending.new === 'function'")
+        ->click('[data-ui-demo="autocomplete-remote"] button[aria-label="Kosongkan isian"]')
+        ->wait(0.2)
+        ->assertScript("(() => {
+            window.__pending.new(['Stale result']);
+
+            return true;
+        })()")
+        ->wait(0.4)
+        ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === ''")
+        ->assertScript("document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]:not([hidden])').length === 0");
 });
 
 it('clears the value with the clear button', function () {

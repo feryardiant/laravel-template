@@ -117,6 +117,32 @@ it('uses the default time when a date is picked without a value', function () {
         })()");
 });
 
+it('syncs the calendar when the model changes while open', function () {
+    $page = visit('/ui/datetime-picker')->on()->desktop();
+
+    $page->assertScript("(() => {
+        document.querySelector('[data-ui-demo=datetime-picker-single] [data-ui-trigger]').click();
+
+        return true;
+    })()")
+        ->wait(0.4)
+        ->assertScript('(() => {
+            window.Livewire.first().moveStartAt();
+
+            return true;
+        })()')
+        ->wait(0.9)
+        ->assertScript("(() => {
+            const root = document.querySelector('[data-ui-demo=datetime-picker-single]');
+            const selected = root.querySelector('[data-ui-popover] td[data-date=\"2026-11-10\"]');
+
+            return root.querySelector('[data-ui-popover]').matches(':popover-open') &&
+                selected !== null &&
+                selected.hasAttribute('data-selected') &&
+                root.querySelector('[data-ui-bound=start-at]').textContent.trim() === '2026-11-10T14:30';
+        })()");
+});
+
 it('requires the footer in single mode when confirmation is enabled', function () {
     $page = visit('/ui/datetime-picker')->on()->desktop();
 

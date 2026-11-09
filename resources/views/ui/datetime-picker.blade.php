@@ -23,7 +23,7 @@
     </section>
 
     <section data-ui-demo="datetime-picker-empty" class="max-w-sm space-y-3">
-        <x-ui.datetime-picker wire:model.live="emptyAt" label="Empty starts at" default-time="09:00" clearable />
+        <x-ui.datetime-picker wire:model.live="emptyAt" label="Empty starts at" default-time="09:00" open-to="2026-11-01" clearable />
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Bound value: <span data-ui-bound="empty-at">{{ $emptyAt }}</span>
@@ -49,6 +49,7 @@
             mode="range"
             label="Empty schedule"
             default-time="09:00/17:00"
+            open-to="2026-11-01"
             with-confirmation
         />
     </section>

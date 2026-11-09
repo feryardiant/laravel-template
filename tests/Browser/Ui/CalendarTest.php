@@ -38,6 +38,7 @@ it('moves and selects with the keyboard', function () {
         const root = document.querySelector('[data-ui-demo=calendar-single]');
         const selected = root.querySelector('[data-selected] button');
 
+        window.__beforeDate = root.querySelector('[data-ui-bound=date]').textContent.trim();
         selected.focus();
         selected.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
 
@@ -53,8 +54,15 @@ it('moves and selects with the keyboard', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=calendar-single]');
             const selected = root.querySelector('[data-selected]');
+            const date = new Date(window.__beforeDate + 'T00:00:00Z');
 
-            return selected !== null && root.querySelector('[data-ui-bound=date]').textContent.trim() === selected.dataset.date;
+            date.setUTCDate(date.getUTCDate() + 1);
+
+            const expected = date.toISOString().slice(0, 10);
+
+            return selected !== null &&
+                selected.dataset.date === expected &&
+                root.querySelector('[data-ui-bound=date]').textContent.trim() === expected;
         })()");
 });
 
@@ -156,8 +164,11 @@ it('reflects a server-side single date update', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=calendar-single]');
             const selected = root.querySelector('[data-selected]');
+            const bound = root.querySelector('[data-ui-bound=date]').textContent.trim();
 
-            return root.querySelector('[data-ui-bound=date]').textContent.trim() !== window.__beforeDate && selected !== null;
+            return bound !== window.__beforeDate &&
+                selected !== null &&
+                selected.dataset.date === bound;
         })()");
 });
 

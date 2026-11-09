@@ -63,10 +63,16 @@ it('applies a single selection and closes immediately', function () {
         ->assertScript("(() => {
             const root = document.querySelector('[data-ui-demo=date-picker-single]');
             const trigger = root.querySelector('[data-ui-trigger]');
+            const expected = new Intl.DateTimeFormat(document.documentElement.lang, {
+                calendar: 'gregory',
+                day: 'numeric',
+                month: 'short',
+                timeZone: 'UTC',
+                year: 'numeric',
+            }).format(new Date(window.__pickedDate + 'T00:00:00Z'));
 
             return root.querySelector('[data-ui-bound=date]').textContent.trim() === window.__pickedDate &&
-                trigger.value !== '' &&
-                trigger.value.includes('Nov') &&
+                trigger.value === expected &&
                 trigger.getAttribute('aria-expanded') === 'false' &&
                 root.querySelector('[data-ui-popover]').matches(':popover-open') === false &&
                 document.activeElement === trigger;

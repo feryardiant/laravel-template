@@ -14,7 +14,7 @@ it('formats single dates and rejects invalid keys', function () {
 });
 
 it('formats Carbon in its own timezone without converting to UTC', function () {
-    $date = Carbon::parse('2026-11-08 23:30:00', 'Asia/Jakarta');
+    $date = Carbon::parse('2026-11-08 00:30:00', 'Asia/Jakarta');
 
     expect(Value::date($date))->toBe('2026-11-08');
 });

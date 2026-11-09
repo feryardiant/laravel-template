@@ -9,6 +9,7 @@
 @endphp
 
 <button
+    data-ui-remove
     {{ $attributes->merge([
         'type' => 'button',
         'aria-label' => $label ?? __('ui.file-upload.remove'),

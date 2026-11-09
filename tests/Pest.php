@@ -29,6 +29,27 @@ pest()->extend(TestCase::class)
 pest()->browser()->timeout(10_000);
 
 /**
+ * Count hidden form inputs matching one name and value in rendered HTML.
+ *
+ * The name and value assertions share this helper so a match cannot come from
+ * two different elements.
+ */
+function hiddenFormInputCount(string $html, string $name, string $value): int
+{
+    $document = new DOMDocument;
+    $previous = libxml_use_internal_errors(true);
+    $document->loadHTML($html);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous);
+
+    $nodes = (new DOMXPath($document))->query(
+        \sprintf('//input[@type="hidden"][@name="%s"][@value="%s"]', $name, $value),
+    );
+
+    return $nodes === false ? 0 : $nodes->length;
+}
+
+/**
  * Assert the browser test's last backend request did not throw.
  *
  * The browser plugin only mentions server exceptions when another assertion
