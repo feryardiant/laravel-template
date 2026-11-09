@@ -53,6 +53,50 @@ export function isValidKey(key: string): boolean {
 }
 
 /**
+ * Find the next key in `direction` that `isDisabled` accepts.
+ *
+ * Bounds are clamped before each check, so a long unavailable run is traversed
+ * until the enabled date or the min/max boundary is reached.
+ */
+export function findEnabledKey(options: {
+    start: string
+    direction: 1 | -1
+    min: string | null
+    max: string | null
+    maxSteps: number
+    isDisabled: (key: string) => boolean
+}): string | null {
+    const { start, direction, min, max, maxSteps, isDisabled } = options
+    let candidate = start
+
+    for (let step = 0; step < maxSteps; step++) {
+        if (min !== null && compareKeys(candidate, min) < 0) {
+            candidate = min
+        }
+
+        if (max !== null && compareKeys(candidate, max) > 0) {
+            candidate = max
+        }
+
+        if (!isValidKey(candidate)) {
+            return null
+        }
+
+        if (!isDisabled(candidate)) {
+            return candidate
+        }
+
+        if ((direction > 0 && candidate === max) || (direction < 0 && candidate === min)) {
+            return null
+        }
+
+        candidate = addDays(candidate, direction)
+    }
+
+    return null
+}
+
+/**
  * Read a date key from a `Y-m-d` or ISO datetime string.
  *
  * Date-time suffixes are ignored; the date part is validated.

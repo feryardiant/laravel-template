@@ -7,6 +7,7 @@ import {
     dateKey,
     daysBetweenInclusive,
     endOfWeek,
+    findEnabledKey,
     firstDayOfWeek,
     formatDayLabel,
     formatMonthLabel,
@@ -471,6 +472,10 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         },
 
         isDisabled(key: string, outside: boolean): boolean {
+            if (!isValidKey(key)) {
+                return true
+            }
+
             if (this.months > 1 && outside) {
                 return true
             }
@@ -529,6 +534,11 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
             }
 
             const next = shiftMonth(this.viewYear, this.viewMonth, -1)
+
+            if (next.year < 1) {
+                return
+            }
+
             this.viewYear = next.year
             this.viewMonth = next.month
             this.refresh(true)
@@ -540,6 +550,11 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
             }
 
             const next = shiftMonth(this.viewYear, this.viewMonth, 1)
+
+            if (next.year > 9999) {
+                return
+            }
+
             this.viewYear = next.year
             this.viewMonth = next.month
             this.refresh(true)
@@ -736,27 +751,14 @@ export function calendarData(config: CalendarConfig, wire: WireLike | null): Cal
         },
 
         findEnabled(key: string, direction: number): string | null {
-            if (!isValidKey(key)) {
-                return null
-            }
-
-            let candidate = key
-
-            for (let step = 0; step < 42; step++) {
-                const date = parseKey(candidate)
-
-                if (date === null) {
-                    return null
-                }
-
-                if (!this.isDisabled(candidate, false)) {
-                    return candidate
-                }
-
-                candidate = addDays(candidate, direction)
-            }
-
-            return null
+            return findEnabledKey({
+                start: key,
+                direction: direction < 0 ? -1 : 1,
+                min: minKey,
+                max: maxKey,
+                maxSteps: unavailable.length + 2,
+                isDisabled: (candidate) => this.isDisabled(candidate, false),
+            })
         },
 
         findCell(key: string): CalendarCell | null {
