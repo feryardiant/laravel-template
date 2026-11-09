@@ -14,6 +14,8 @@ opencode.json          export-ignore
 
 # Dev-only UI gallery
 app/Livewire/Ui        export-ignore
+resources/css          export-ignore
+resources/js           export-ignore
 resources/views/ui     export-ignore
 routes/ui              export-ignore
 

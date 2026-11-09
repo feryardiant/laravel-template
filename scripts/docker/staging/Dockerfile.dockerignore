@@ -43,6 +43,8 @@ pint.json
 package-lock.json
 pnpm-*.yaml
 jsconfig.json
+resources/css
+resources/js
 resources/views/ui
 routes/ui
 tests
