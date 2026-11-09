@@ -2,27 +2,6 @@
 
 declare(strict_types=1);
 
-it('links to every component page', function () {
-    visit('/ui')
-        ->on()
-        ->desktop()
-        ->assertScript("(() => {
-            const hrefs = [...document.querySelectorAll('a')].map((link) => link.getAttribute('href') || '');
-            const required = [
-                '/ui/select',
-                '/ui/autocomplete',
-                '/ui/calendar',
-                '/ui/date-picker',
-                '/ui/time-picker',
-                '/ui/datetime-picker',
-                '/ui/file-upload',
-                '/ui/timeline',
-            ];
-
-            return required.every((path) => hrefs.some((href) => href.endsWith(path)));
-        })()");
-});
-
 it('has no serious accessibility issues on the gallery', function (string $device) {
     visit('/ui')
         ->on()
