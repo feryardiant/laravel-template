@@ -9,10 +9,12 @@ use Creasi\Nusa\Contracts\HasAddress;
 use Creasi\Nusa\Models\Concerns\WithAddress;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 
 /**
  * Business entity that relates to other organizations and people.
@@ -30,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  *
  * @implements HasAddress<static>
  */
-#[Fillable(['name', 'summary', 'is_tenant', 'root_organization_id'])]
+#[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id'])]
 class Organization extends Entity implements HasAddress
 {
     /** @use HasFactory<OrganizationFactory> */
@@ -62,6 +64,29 @@ class Organization extends Entity implements HasAddress
                 ->where('stakeholder_id', $organization->getKey())
                 ->delete();
         });
+    }
+
+    /**
+     * Limit the query to root tenant organizations.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeRootTenant(Builder $query): Builder
+    {
+        return $query->where('is_tenant', true)->whereNull('root_organization_id');
+    }
+
+    /**
+     * Get the organization's initials.
+     */
+    public function initials(): string
+    {
+        $initials = Str::initials($this->name, true);
+
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
     }
 
     /**
@@ -123,14 +148,13 @@ class Organization extends Entity implements HasAddress
     }
 
     /**
-     * @return MorphToMany<Person, $this, OrganizationRelationship, 'member'>
+     * @return MorphToMany<Person, $this, OrganizationRelationship>
      */
     public function members(): MorphToMany
     {
         return $this->relationships(Person::class)
             ->withPivot('is_primary')
-            ->wherePivot('type', '=', OrganizationRelationshipType::Member)
-            ->as('member');
+            ->wherePivot('type', '=', OrganizationRelationshipType::Member);
     }
 
     /**

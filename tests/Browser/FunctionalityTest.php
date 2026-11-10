@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 use App\Enums\Locale;
 use App\Enums\Role;
-use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 
 it('redirects guests away from protected pages', function () {
-    visit('/users')->assertPathIs('/login');
+    visit('/members')->assertPathIs('/login');
 });
 
 it('lets a verified user sign in and out', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     $page = browserLogin($owner)
         ->assertPathIs('/dashboard')
-        ->assertSee('Pengguna');
+        ->assertSee('Anggota');
 
     $page->click('@sidebar-menu-button')
         ->click('[data-flux-sidebar] [data-test="logout-button"]');
@@ -25,24 +24,26 @@ it('lets a verified user sign in and out', function () {
 });
 
 it('hides management actions on your own user detail page', function () {
-    $admin = User::factory()->withRole(Role::Admin)->create();
-    $member = User::factory()->withRole(Role::Member)->create();
+    $admin = browserMember(Role::Admin);
+    $member = browserMember(Role::Member);
 
-    $page = browserLogin($admin)->navigate("/users/{$admin->handle}");
+    $page = browserLogin($admin)->navigate("/members/{$admin->person->uuid}");
 
-    $page->assertDontSee('Edit pengguna')
+    $page->assertDontSee('Edit anggota')
         ->assertDontSee('Jadikan Anggota')
-        ->navigate("/users/{$member->handle}")
-        ->assertSee('Edit pengguna');
+        ->navigate("/members/{$member->person->uuid}")
+        ->assertSee('Edit anggota');
 });
 
-it('lets an owner add a user', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+it('lets an owner add a member', function () {
+    $owner = browserMember(Role::Owner);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
-    $page->click('Tambah pengguna')
+    $page->click('Tambah anggota')
         ->fill('name', 'Budi Santoso')
+        ->click('Buat kredensial masuk')
+        ->wait(0.4)
         ->fill('email', 'budi@example.test')
         ->click('Tambah');
 
@@ -51,17 +52,17 @@ it('lets an owner add a user', function () {
 });
 
 it('hides management controls from members on mobile', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     browserLogin($member, 'mobile')
-        ->navigate('/users')
-        ->assertSee('Semua pengguna terdaftar')
-        ->assertDontSee('Tambah pengguna')
+        ->navigate('/members')
+        ->assertSee('Anggota')
+        ->assertDontSee('Tambah anggota')
         ->assertMissing('[aria-label^="Tindakan untuk"]');
 });
 
 it('rejects invalid credentials without signing in', function () {
-    $member = User::factory()->create();
+    $member = browserMember(Role::Member);
 
     visit('/login')
         ->fill('email', $member->email)
@@ -72,7 +73,7 @@ it('rejects invalid credentials without signing in', function () {
 });
 
 it('gates unverified users from verified pages', function () {
-    $unverified = User::factory()->unverified()->create();
+    $unverified = browserMember(Role::Member, verified: false);
 
     browserLogin($unverified)
         ->assertPathIs('/email/verify')
@@ -80,70 +81,71 @@ it('gates unverified users from verified pages', function () {
 });
 
 it('prevents admins from managing owners', function () {
-    $admin = User::factory()->withRole(Role::Admin)->create();
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $member = User::factory()->withRole(Role::Member)->create();
+    $admin = browserMember(Role::Admin);
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
 
     browserLogin($admin)
-        ->navigate('/users')
+        ->navigate('/members')
         ->assertMissing("[aria-label=\"Tindakan untuk {$owner->name}\"]")
         ->assertPresent("[aria-label=\"Tindakan untuk {$member->name}\"]")
         ->assertMissing("[aria-label=\"Tindakan untuk {$admin->name}\"]");
 });
 
 it('deletes selected users in one batch', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $first = User::factory()->withRole(Role::Member)->create();
-    $second = User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    $first = browserMember(Role::Member);
+    $second = browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/users');
+    $page = browserLogin($owner, 'mobile')->navigate('/members');
 
-    $page->click('input[aria-label="Pilih semua pengguna"]')
+    $page->click('input[aria-label="Pilih semua anggota"]')
         ->wait(0.5)
         ->click('button[aria-label="Tindakan"]')
         ->wait(0.6)
         ->click('[role="menu"]:popover-open [role="menuitem"]:last-of-type')
         ->wait(0.4)
-        ->assertSee('Hapus 2 pengguna terpilih?')
+        ->assertSee('Hapus 2 anggota terpilih dari organisasi ini?')
         ->click('button[wire\:click="deleteSelectedConfirmed"]')
         ->wait(0.8)
-        ->assertSee('2 pengguna berhasil dihapus.')
+        ->assertSee('2 anggota berhasil dihapus.')
         ->assertDontSee($first->name)
         ->assertDontSee($second->name);
 });
 
 it('clears the user selection when sorting', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->count(2)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/users');
+    $page = browserLogin($owner, 'mobile')->navigate('/members');
 
-    $page->click('input[aria-label="Pilih semua pengguna"]')
+    $page->click('input[aria-label="Pilih semua anggota"]')
         ->wait(0.4)
-        ->click('Terdaftar pada')
+        ->click('Bergabung pada')
         ->wait(0.5)
         ->assertScript('document.querySelectorAll("ui-checkbox[aria-checked=\"true\"]").length === 0')
-        ->assertScript('document.querySelector("input[aria-label=\"Pilih semua pengguna\"]").indeterminate === false');
+        ->assertScript('document.querySelector("input[aria-label=\"Pilih semua anggota\"]").indeterminate === false');
 });
 
 it('updates a user from the edit flyout and discards on escape', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $member = User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
     $page->click("[aria-label=\"Tindakan untuk {$member->name}\"]")
         ->wait(0.3)
-        ->click('Edit pengguna')
+        ->click('Edit anggota')
         ->wait(0.5)
         ->fill('dialog[open] input[name="name"]', 'Nama Baru')
         ->click('dialog[open] button[type="submit"]')
         ->wait(0.8)
-        ->assertSee('Pengguna diperbarui.')
+        ->assertSee('Anggota diperbarui.')
         ->assertSee('Nama Baru')
         ->click('[aria-label="Tindakan untuk Nama Baru"]')
         ->wait(0.3)
-        ->click('Edit pengguna')
+        ->click('Edit anggota')
         ->wait(0.5)
         ->fill('dialog[open] input[name="name"]', 'Nama Dibatalkan')
         ->keys('dialog[open] input[name="name"]', 'Escape')
@@ -153,28 +155,28 @@ it('updates a user from the edit flyout and discards on escape', function () {
 });
 
 it('navigates from a user row but not from its selection control', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $member = User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
-    $page->click('[data-flux-row]:has(ui-checkbox[value="'.$member->id.'"]) [data-flux-cell]:nth-child(2)')
-        ->assertPathIs("/users/{$member->handle}");
+    $page->click('[data-flux-row]:has(ui-checkbox[value="'.$member->person->id.'"]) [data-flux-cell]:nth-child(2)')
+        ->assertPathIs("/members/{$member->person->uuid}");
 
-    $page->navigate('/users')
-        ->hover('[data-flux-row]:has(ui-checkbox[value="'.$member->id.'"])')
+    $page->navigate('/members')
+        ->hover('[data-flux-row]:has(ui-checkbox[value="'.$member->person->id.'"])')
         ->wait(0.4)
-        ->click('ui-checkbox[value="'.$member->id.'"]')
+        ->click('ui-checkbox[value="'.$member->person->id.'"]')
         ->wait(0.4)
-        ->assertPathIs('/users')
-        ->assertScript('document.querySelector("ui-checkbox[value=\"'.$member->id.'\"]").getAttribute("aria-checked") === "true"');
+        ->assertPathIs('/members')
+        ->assertScript('document.querySelector("ui-checkbox[value=\"'.$member->person->id.'\"]").getAttribute("aria-checked") === "true"');
 });
 
 it('does not navigate when selecting text in a user row', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
     $page->script(<<<'JS'
         const cell = document.querySelector('[data-flux-row]:has(ui-checkbox) [data-flux-cell]:nth-child(2)');
@@ -189,16 +191,16 @@ it('does not navigate when selecting text in a user row', function () {
         JS);
     $page->wait(0.4);
 
-    $page->assertPathIs('/users');
+    $page->assertPathIs('/members');
 });
 
 it('lists only the signed-in user notifications', function () {
-    $owner = User::factory()->create();
-    $actor = User::factory()->create();
-    $otherActor = User::factory()->create();
+    $owner = browserMember(Role::Member);
+    $actor = browserMember(Role::Member);
+    $otherActor = browserMember(Role::Member);
 
     $owner->notify(new UserRoleChangedNotification($actor, Role::Admin));
-    User::factory()->create()->notify(new UserRoleChangedNotification($otherActor, Role::Admin));
+    browserMember(Role::Member)->notify(new UserRoleChangedNotification($otherActor, Role::Admin));
 
     browserLogin($owner)
         ->navigate('/notifications')
@@ -207,7 +209,7 @@ it('lists only the signed-in user notifications', function () {
 });
 
 it('shows an empty state when there are no notifications', function () {
-    $member = User::factory()->create();
+    $member = browserMember(Role::Member);
 
     browserLogin($member)
         ->navigate('/notifications')
@@ -215,8 +217,8 @@ it('shows an empty state when there are no notifications', function () {
 });
 
 it('opens a notification, marks it read, and updates the menu count', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
     $page = browserLogin($owner)->navigate('/notifications');
 
@@ -232,8 +234,8 @@ it('opens a notification, marks it read, and updates the menu count', function (
 });
 
 it('opens a notification from a deep link', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
     $notification = $owner->notifications()->firstOrFail();
 
@@ -247,9 +249,9 @@ it('opens a notification from a deep link', function () {
 });
 
 it('marks selected notifications read and unread in bulk', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Member));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
 
     $page = browserLogin($owner, 'mobile')->navigate('/notifications');
 
@@ -266,14 +268,14 @@ it('marks selected notifications read and unread in bulk', function () {
 });
 
 it('shows a toast when a new notification arrives', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
     $page = browserLogin($owner)->navigate('/dashboard');
 
     $page->wait(1);
 
-    $actor = User::factory()->create();
+    $actor = browserMember(Role::Member);
     $owner->notify(new UserRoleChangedNotification($actor, Role::Member));
 
     $page->wait(7)
@@ -282,7 +284,7 @@ it('shows a toast when a new notification arrives', function () {
 });
 
 it('lets a user update their own profile', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     $page = browserLogin($member)->navigate('/settings/profile');
 
@@ -295,7 +297,7 @@ it('lets a user update their own profile', function () {
 });
 
 it('updates locale and offers to reload the page', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     $page = browserLogin($member)->navigate('/settings/preferences');
 
@@ -310,7 +312,7 @@ it('updates locale and offers to reload the page', function () {
 });
 
 it('keeps the latest rapid preference selection', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     $page = browserLogin($member)->navigate('/settings/preferences');
 
@@ -322,7 +324,7 @@ it('keeps the latest rapid preference selection', function () {
 });
 
 it('applies the preferred locale to livewire updates', function () {
-    $member = User::factory()->withRole(Role::Member)->create(['locale' => Locale::English]);
+    $member = browserMember(Role::Member, ['locale' => Locale::English]);
 
     $page = browserLogin($member)->navigate('/settings/profile');
 
@@ -332,7 +334,7 @@ it('applies the preferred locale to livewire updates', function () {
 });
 
 it('shows a danger toast when preferences cannot be saved', function () {
-    $member = User::factory()->withRole(Role::Member)->create(['locale' => Locale::English]);
+    $member = browserMember(Role::Member, ['locale' => Locale::English]);
 
     $page = browserLogin($member)->navigate('/settings/preferences');
 
@@ -348,7 +350,7 @@ it('shows a danger toast when preferences cannot be saved', function () {
 });
 
 it('updates timezone and offers to reload the page', function () {
-    $member = User::factory()->withRole(Role::Member)->create(['timezone' => null]);
+    $member = browserMember(Role::Member, ['timezone' => null]);
 
     $page = browserLogin($member)->navigate('/settings/preferences');
 

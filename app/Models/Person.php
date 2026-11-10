@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 
 /**
  * Individual entity and its personal relationships.
@@ -87,6 +88,53 @@ class Person extends Entity implements HasAddresses
             ->using(OrganizationRelationship::class)
             ->withPivot('type', 'role', 'code', 'start_date', 'finish_date')
             ->as('stakeholder');
+    }
+
+    /**
+     * Get every membership relationship of the person.
+     *
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'stakeholder'>
+     */
+    public function memberships(): MorphToMany
+    {
+        return $this->organizationRelationships()
+            ->wherePivot('type', OrganizationRelationshipType::Member);
+    }
+
+    /**
+     * Get the organizations the person is currently a member of.
+     *
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'stakeholder'>
+     */
+    public function organizations(): MorphToMany
+    {
+        $today = now()->toDateString();
+
+        return $this->memberships()
+            ->where(fn ($query) => $query->whereNull('organization_relationships.start_date')
+                ->orWhere('organization_relationships.start_date', '<=', $today))
+            ->where(fn ($query) => $query->whereNull('organization_relationships.finish_date')
+                ->orWhere('organization_relationships.finish_date', '>=', $today));
+    }
+
+    /**
+     * Get the person's primary organization.
+     */
+    public function primaryOrganization(): ?Organization
+    {
+        return $this->organizations()->wherePivot('is_primary', true)->first();
+    }
+
+    /**
+     * Get the person's initials.
+     */
+    public function initials(): string
+    {
+        $initials = Str::initials($this->name, true);
+
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
     }
 
     /**

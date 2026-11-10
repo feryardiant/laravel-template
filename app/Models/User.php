@@ -12,6 +12,7 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -106,6 +107,24 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function person(): HasOne
     {
         return $this->hasOne(Person::class);
+    }
+
+    /**
+     * Get the organizations the user is currently a member of.
+     *
+     * @return Collection<int, Organization>
+     */
+    public function organizations(): Collection
+    {
+        return $this->person?->organizations()->get() ?? new Collection;
+    }
+
+    /**
+     * Get the user's primary organization.
+     */
+    public function primaryOrganization(): ?Organization
+    {
+        return $this->person?->primaryOrganization();
     }
 
     /**

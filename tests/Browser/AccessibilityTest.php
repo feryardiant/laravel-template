@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
-use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 
 it('has no serious accessibility issues on the login page', function (string $device) {
@@ -15,16 +14,16 @@ it('has no serious accessibility issues on the login page', function (string $de
 })->with(['desktop', 'mobile']);
 
 it('has no serious accessibility issues on the users page', function (string $device) {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     browserLogin($owner, $device)
-        ->navigate('/users')
+        ->navigate('/members')
         ->assertNoAccessibilityIssues()
         ->assertNoJavaScriptErrors();
 })->with(['desktop', 'mobile']);
 
 it('can sign in using only the keyboard', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     $page = visit('/login');
 
@@ -39,23 +38,23 @@ it('can sign in using only the keyboard', function () {
 });
 
 it('moves focus into a modal and back to its trigger', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
-    $page->click('Tambah pengguna')
+    $page->click('Tambah anggota')
         ->wait(0.3)
         ->assertScript('!! document.activeElement.closest("dialog")')
         ->keys('dialog[open]', 'Escape')
         ->wait(0.3)
         ->assertScript('document.querySelectorAll("dialog[open]").length === 0')
-        ->assertScript('document.activeElement.textContent.trim() === "Tambah pengguna"');
+        ->assertScript('document.activeElement.textContent.trim() === "Tambah anggota"');
 });
 
 it('has no serious accessibility issues on the notifications page', function (string $device) {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Member));
+    $owner = browserMember(Role::Owner);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
     $owner->notifications()->latest()->first()->markAsRead();
 
     browserLogin($owner, $device)
@@ -65,7 +64,7 @@ it('has no serious accessibility issues on the notifications page', function (st
 })->with(['desktop', 'mobile']);
 
 it('has no serious accessibility issues on the preferences page', function (string $device) {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     browserLogin($owner, $device)
         ->navigate('/settings/preferences')
@@ -74,29 +73,29 @@ it('has no serious accessibility issues on the preferences page', function (stri
 })->with(['desktop', 'mobile']);
 
 it('has no serious accessibility issues on the user detail page', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $member = User::factory()->create();
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
 
     browserLogin($owner)
-        ->navigate("/users/{$member->handle}")
+        ->navigate("/members/{$member->person->uuid}")
         ->assertNoAccessibilityIssues()
         ->assertNoJavaScriptErrors();
 });
 
 it('exposes the users table sort direction', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     browserLogin($owner)
-        ->navigate('/users')
+        ->navigate('/members')
         ->assertScript('document.querySelector("[aria-sort]")?.getAttribute("aria-sort") === "descending"')
-        ->click('Terdaftar pada')
+        ->click('Bergabung pada')
         ->wait(0.4)
         ->assertScript('document.querySelector("[aria-sort]")?.getAttribute("aria-sort") === "ascending"');
 });
 
 it('focuses the notification flyout and returns focus to its trigger', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $owner = browserMember(Role::Owner);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
     $page = browserLogin($owner)->navigate('/notifications');
 
@@ -116,24 +115,24 @@ it('focuses the notification flyout and returns focus to its trigger', function 
 });
 
 it('exposes tri-state user selection to assistive technology', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $first = User::factory()->create();
-    User::factory()->create();
+    $owner = browserMember(Role::Owner);
+    $first = browserMember(Role::Member);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
-    $page->click('input[aria-label="Pilih semua pengguna"]')
+    $page->click('input[aria-label="Pilih semua anggota"]')
         ->wait(0.4)
         ->assertScript('[...document.querySelectorAll("ui-checkbox[value]")].every((el) => el.getAttribute("aria-checked") === "true")')
         ->assertScript('[...document.querySelectorAll("ui-checkbox[value]")].every((el) => (el.getAttribute("aria-label") || "").startsWith("Pilih "))')
-        ->click('ui-checkbox[value="'.$first->id.'"]')
+        ->click('ui-checkbox[value="'.$first->person->id.'"]')
         ->wait(0.4)
-        ->assertScript('document.querySelector("input[aria-label=\"Pilih semua pengguna\"]").indeterminate === true');
+        ->assertScript('document.querySelector("input[aria-label=\"Pilih semua anggota\"]").indeterminate === true');
 });
 
 it('announces unread notification counts to screen readers', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $actor = User::factory()->create();
+    $owner = browserMember(Role::Owner);
+    $actor = browserMember(Role::Member);
     $owner->notify(new UserRoleChangedNotification($actor, Role::Admin));
     $owner->notify(new UserRoleChangedNotification($actor, Role::Member));
 
@@ -148,7 +147,7 @@ it('announces unread notification counts to screen readers', function () {
 });
 
 it('exposes a level one heading on the dashboard', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     browserLogin($owner)
         ->navigate('/dashboard')

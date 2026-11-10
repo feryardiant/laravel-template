@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\Role;
+use App\Models\Organization;
 use App\Models\User;
+use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\ServerManager;
@@ -75,4 +78,41 @@ function browserLogin(User $user, string $device = 'desktop'): AwaitableWebpage
         ->fill('email', $user->email)
         ->fill('password', 'password')
         ->click('@login-button');
+}
+
+/**
+ * Sign in a user who is a member of the given organization.
+ */
+function actingAsMember(Organization $organization, Role $role = Role::Member, bool $primary = false): User
+{
+    $user = User::factory()
+        ->withPerson()
+        ->memberOf($organization, $role, $primary)
+        ->create();
+
+    test()->actingAs($user);
+
+    session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);
+
+    return $user;
+}
+
+/**
+ * Create a browser-test user who belongs to the test's shared organization.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function browserMember(Role $role = Role::Member, array $attributes = [], bool $verified = true): User
+{
+    $organization = Organization::query()->first() ?? Organization::factory()->create();
+
+    $factory = User::factory()
+        ->withPerson()
+        ->memberOf($organization, $role, $role->isOwner());
+
+    if (! $verified) {
+        $factory = $factory->unverified();
+    }
+
+    return $factory->create($attributes);
 }

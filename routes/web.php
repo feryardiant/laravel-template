@@ -3,15 +3,20 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\NotificationPollerController;
+use App\Http\Controllers\OrganizationSettingsController;
+use App\Http\Controllers\SwitchOrganizationController;
 use App\Http\Controllers\UpdatePreferencesController;
 use App\Http\Controllers\VerifyNewUserEmailController;
+use App\Livewire\Members\Index as MemberIndex;
+use App\Livewire\Members\Show as MemberShow;
 use App\Livewire\Notifications\Index as NotificationIndex;
 use App\Livewire\Settings\Preferences;
 use App\Livewire\Settings\Profile;
 use App\Livewire\Settings\Security;
-use App\Livewire\Users\Index;
-use App\Livewire\Users\Show;
+use App\Livewire\Setup;
 use Illuminate\Support\Facades\Route;
+
+Route::livewire('setup', Setup::class)->name('setup');
 
 Route::redirect('/', 'dashboard');
 
@@ -22,8 +27,13 @@ Route::get('email/verify-new/{id}/{hash}', VerifyNewUserEmailController::class)
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
-    Route::livewire('users', Index::class)->name('users.index');
-    Route::livewire('users/{user}', Show::class)->name('users.show');
+    Route::livewire('members', MemberIndex::class)->name('members.index');
+    Route::livewire('members/{person}', MemberShow::class)->name('members.show');
+
+    Route::post('organizations/{organization}/switch', SwitchOrganizationController::class)
+        ->name('organizations.switch');
+
+    Route::get('org-settings', OrganizationSettingsController::class)->name('org-settings');
 
     Route::livewire('notifications', NotificationIndex::class)->name('notifications.index');
     Route::get('notifications/latest', NotificationPollerController::class)->name('notifications.latest');

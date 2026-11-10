@@ -36,6 +36,7 @@ class Profile extends Component
 
     public function render(): View
     {
+        /** @disregard P1013 */
         return view('livewire.settings.profile')->title(__('Profile settings'));
     }
 
