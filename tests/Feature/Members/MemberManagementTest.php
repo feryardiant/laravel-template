@@ -30,8 +30,8 @@ test('the members page lists only the current organization members', function ()
 
     actingAsMember($organization, Role::Owner);
 
-    $inside = User::factory()->withPerson()->memberOf($organization)->create(['name' => 'Inside Member']);
-    $outside = User::factory()->withPerson()->memberOf(Organization::factory()->create())->create(['name' => 'Outside Member']);
+    $inside = User::factory()->asMemberOf($organization)->create(['name' => 'Inside Member']);
+    $outside = User::factory()->asMemberOf(Organization::factory())->create(['name' => 'Outside Member']);
 
     get(route('members.index'))
         ->assertOk()
@@ -47,8 +47,8 @@ test('the members table shows role labels and verification status', function () 
 
     actingAsMember($organization, Role::Owner);
 
-    User::factory()->withPerson()->memberOf($organization, Role::Admin)->create();
-    User::factory()->unverified()->withPerson()->memberOf($organization, Role::Member)->create();
+    User::factory()->asMemberOf($organization, Role::Admin)->create();
+    User::factory()->unverified()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Index::class)
         ->assertSee('Admin')
@@ -61,7 +61,7 @@ test('members are paginated', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    User::factory()->count(14)->withPerson()->memberOf($organization)->create();
+    User::factory()->count(14)->asMemberOf($organization)->create();
 
     Livewire::test(Index::class)
         ->assertViewHas('members', fn ($members) => $members->count() === 10 && $members->total() === 15)
@@ -74,7 +74,7 @@ test('a member can be viewed by uuid', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    $member = User::factory()->withPerson()->memberOf($organization)->create(['name' => 'Viewable Member']);
+    $member = User::factory()->asMemberOf($organization)->create(['name' => 'Viewable Member']);
 
     get(route('members.show', $member->person))
         ->assertOk()
@@ -86,7 +86,7 @@ test('a member from another organization is not found', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    $outside = User::factory()->withPerson()->memberOf(Organization::factory()->create())->create();
+    $outside = User::factory()->asMemberOf(Organization::factory())->create();
 
     get(route('members.show', $outside->person))->assertNotFound();
 });
@@ -186,7 +186,7 @@ test('editing a member updates the person and the per-organization role', functi
 
     actingAsMember($organization, Role::Owner);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Edit::class, ['person' => $member->person])
         ->set('name', 'Renamed Member')
@@ -228,7 +228,7 @@ test('removing a member keeps the person and credential', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $person = $member->person;
 
     Livewire::test(Index::class)
@@ -245,7 +245,7 @@ test('a plain member cannot remove another member', function () {
 
     actingAsMember($organization, Role::Member);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Index::class)
         ->call('removeMember', $member->person->getKey())
@@ -259,7 +259,7 @@ test('an admin cannot remove an owner', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    $owner = User::factory()->withPerson()->memberOf($organization, Role::Owner)->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
 
     Livewire::test(Index::class)
         ->call('removeMember', $owner->person->getKey())
@@ -283,7 +283,7 @@ test('an admin can remove selected members', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    $members = User::factory()->count(3)->withPerson()->memberOf($organization)->create();
+    $members = User::factory()->count(3)->asMemberOf($organization)->create();
 
     Livewire::test(Index::class)
         ->set('selected', $members->map(fn (User $user) => $user->person->getKey())->all())
@@ -302,7 +302,7 @@ test('a role change promotes within the current organization only', function () 
 
     actingAsMember($organization, Role::Admin);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     app(AddMember::class)->handle($otherOrganization, $member->person, startDate: now(), role: Role::Member);
 
     Livewire::test(Index::class)
@@ -323,7 +323,7 @@ test('a role change dispatches the member role changed event', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Index::class)
         ->call('confirmPromote', $member->person->getKey())
@@ -343,7 +343,7 @@ test('a plain member cannot change roles', function () {
 
     actingAsMember($organization, Role::Member);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Index::class)
         ->call('confirmPromote', $member->person->getKey())
@@ -358,7 +358,7 @@ test('the member detail page shows the membership role', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Admin)->create(['name' => 'Detail Member']);
+    $member = User::factory()->asMemberOf($organization, Role::Admin)->create(['name' => 'Detail Member']);
 
     get(route('members.show', $member->person))
         ->assertOk()
@@ -371,7 +371,7 @@ test('the edit member modal is a floating right-side flyout with a bottom footer
 
     actingAsMember($organization, Role::Admin);
 
-    $member = User::factory()->withPerson()->memberOf($organization)->create();
+    $member = User::factory()->asMemberOf($organization)->create();
 
     Livewire::test(Edit::class, ['person' => $member->person])
         ->assertSeeHtml('data-flux-flyout')
@@ -428,7 +428,7 @@ test('owners and admins see the organization settings item', function () {
 });
 
 test('a user without an organization sees an empty members page', function () {
-    $user = User::factory()->withPerson()->create();
+    $user = User::factory()->withProfile()->create();
 
     actingAs($user);
 
@@ -456,7 +456,7 @@ test('plain members cannot open the organization settings page', function () {
 });
 
 test('the organization settings page is hidden from users without an organization', function () {
-    $user = User::factory()->withPerson()->create();
+    $user = User::factory()->withProfile()->create();
 
     actingAs($user);
 

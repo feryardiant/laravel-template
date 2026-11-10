@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Actions\Organizations\AddMember;
 use App\Enums\Role;
 use App\Models\Organization;
-use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -51,38 +50,36 @@ class UserFactory extends Factory
     /**
      * Attach a person profile to the user.
      */
-    public function withPerson(?Person $person = null): static
-    {
-        return $this->afterCreating(function (User $user) use ($person): void {
-            $person ??= Person::factory()->withoutCredential()->create(['name' => $user->name]);
+    public function withProfile(
+        ?PersonFactory $person = null,
+        OrganizationFactory|Organization|null $asMemberOf = null,
+        ?Role $role = null,
+        bool $isPrimary = false,
+    ): static {
+        if (! $person) {
+            $person = PersonFactory::new()
+                // @phpstan-ignore-next-line
+                ->state(fn (array $attr, ?User $parent): array => [
+                    'name' => $parent?->name ?: $attr['name'],
+                ]);
+        }
 
-            $person->update(['user_id' => $user->getKey()]);
-        });
+        if ($asMemberOf) {
+            $person = $person->asMemberOf($asMemberOf, role: $role, isPrimary: $isPrimary);
+        }
+
+        return $this->has($person, 'person');
     }
 
     /**
      * Add the user as a member of the given organization.
      */
-    public function memberOf(
-        Organization $organization,
+    public function asMemberOf(
+        OrganizationFactory|Organization|null $organization,
         Role $role = Role::Member,
-        bool $primary = false,
+        bool $isPrimary = false,
     ): static {
-        return $this->afterCreating(function (User $user) use ($organization, $role, $primary): void {
-            $person = $user->person()->first()
-                ?? Person::factory()->withoutCredential()->create([
-                    'user_id' => $user->getKey(),
-                    'name' => $user->name,
-                ]);
-
-            app(AddMember::class)->handle(
-                $organization,
-                $person,
-                isPrimary: $primary,
-                startDate: now(),
-                role: $role,
-            );
-        });
+        return $this->withProfile(asMemberOf: $organization, role: $role, isPrimary: $isPrimary);
     }
 
     /**

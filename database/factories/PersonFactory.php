@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Enums\Gender;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
+use App\Enums\Role;
 use App\Models\Address;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use Faker\Provider\Person as FakerPerson;
@@ -30,6 +33,7 @@ class PersonFactory extends Factory
         $fakerGender = $this->getFakerGender($gender);
 
         return [
+            'uuid' => fake()->uuid(),
             'user_id' => User::factory(),
             'name' => fake()->firstName($fakerGender).' '.fake()->lastName($fakerGender),
             'gender' => $gender,
@@ -76,6 +80,23 @@ class PersonFactory extends Factory
     public function withRelative(PersonFactory $relative, PersonRelativeType $type): static
     {
         return $this->hasAttached($relative, ['type' => $type], 'relatives');
+    }
+
+    /**
+     * Add the user as a member of the given organization.
+     */
+    public function asMemberOf(
+        OrganizationFactory|Organization $organization,
+        ?Role $role = null,
+        bool $isPrimary = false,
+    ): static {
+        // @phpstan-ignore-next-line
+        return $this->hasAttached($organization, fn (Person $person) => [
+            'type' => OrganizationRelationshipType::Member,
+            'role' => $role ?: $person->user?->role ?: Role::Member,
+            'is_primary' => $isPrimary ? true : null,
+            'start_date' => now(),
+        ], 'organizationRelationships');
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Database\Factories\OrganizationFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\ServerManager;
@@ -83,11 +84,10 @@ function browserLogin(User $user, string $device = 'desktop'): AwaitableWebpage
 /**
  * Sign in a user who is a member of the given organization.
  */
-function actingAsMember(Organization $organization, Role $role = Role::Member, bool $primary = false): User
+function actingAsMember(OrganizationFactory|Organization $organization, Role $role = Role::Member, bool $primary = false): User
 {
     $user = User::factory()
-        ->withPerson()
-        ->memberOf($organization, $role, $primary)
+        ->asMemberOf($organization, $role, $primary)
         ->create();
 
     test()->actingAs($user);
@@ -106,9 +106,7 @@ function browserMember(Role $role = Role::Member, array $attributes = [], bool $
 {
     $organization = Organization::query()->first() ?? Organization::factory()->create();
 
-    $factory = User::factory()
-        ->withPerson()
-        ->memberOf($organization, $role, $role->isOwner());
+    $factory = User::factory()->asMemberOf($organization, $role, $role->isOwner());
 
     if (! $verified) {
         $factory = $factory->unverified();

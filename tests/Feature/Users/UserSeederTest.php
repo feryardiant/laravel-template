@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Models\Organization;
 use App\Models\User;
+use Tests\TestCase;
 
 test('the database seeder creates users with handles', function () {
+    /** @var TestCase $this */
     $this->seed();
 
     expect(User::query()->orderBy('id')->pluck('handle')->all())

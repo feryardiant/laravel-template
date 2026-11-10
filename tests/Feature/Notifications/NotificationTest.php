@@ -250,7 +250,7 @@ test('notifications can be sorted by received date', function () {
 test('a role change stores exactly one notification', function () {
     $organization = Organization::factory()->create();
     $actor = actingAsMember($organization, Role::Admin);
-    $member = User::factory()->withPerson()->memberOf($organization, Role::Member)->create();
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
     app(ChangeMemberRole::class)->promote($organization, $member->person, $actor);
 

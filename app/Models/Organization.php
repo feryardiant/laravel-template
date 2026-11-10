@@ -107,7 +107,7 @@ class Organization extends Entity implements HasAddress
     {
         return $this->morphedByMany($stakeholder, 'stakeholder', 'organization_relationships', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'role', 'code', 'start_date', 'finish_date');
+            ->withPivot('type', 'code', 'start_date', 'finish_date');
     }
 
     /**
@@ -153,7 +153,7 @@ class Organization extends Entity implements HasAddress
     public function members(): MorphToMany
     {
         return $this->relationships(Person::class)
-            ->withPivot('is_primary')
+            ->withPivot('is_primary', 'role')
             ->wherePivot('type', '=', OrganizationRelationshipType::Member);
     }
 

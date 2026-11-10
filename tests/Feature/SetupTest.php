@@ -12,16 +12,19 @@ use App\Support\Setup as SetupState;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
+use Tests\TestCase;
 
 use function Pest\Laravel\get;
 
 beforeEach(function () {
+    /** @var TestCase $this */
     $this->app->detectEnvironment(fn () => 'production');
 
     Http::fake(['api.pwnedpasswords.com/*' => Http::response('', 200)]);
 });
 
 afterEach(function () {
+    /** @var TestCase $this */
     $this->app->detectEnvironment(fn () => 'testing');
 });
 
@@ -38,6 +41,7 @@ test('setup is required while the seeded user exists and no root tenant does', f
 });
 
 test('setup is skipped in local and testing environments', function () {
+    /** @var TestCase $this */
     $this->app->detectEnvironment(fn () => 'testing');
 
     User::factory()->create(['email' => config('setup.initial_email')]);
