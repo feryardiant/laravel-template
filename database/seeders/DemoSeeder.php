@@ -7,6 +7,8 @@ namespace Database\Seeders;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
 
 class DemoSeeder extends Seeder
@@ -25,18 +27,22 @@ class DemoSeeder extends Seeder
 
     private function createTenants(Organization $root): void
     {
-        $people = Person::factory(5)
-            ->withoutCredential()
+        $customers = User::factory(5)
+            ->withProfile()
+            ->state(new Sequence(fn (Sequence $seq) => [
+                'email' => \sprintf('owner%1$d@customer%1$d.com', $seq->index + 1),
+                'handle' => \sprintf('owner%1$d-cust%1$d', $seq->index + 1),
+            ]))
             ->create();
 
-        foreach ($people as $person) {
+        foreach ($customers as $customer) {
             $org = Organization::factory()
                 ->asTenantOf($root)
                 ->asCustomerOf($root)
-                ->withMember($person, role: Role::Owner, isPrimary: true)
+                ->withMember($customer->person, role: Role::Owner, isPrimary: true)
                 ->create([
-                    'contact_id' => $person->getKey(),
-                    'name' => \sprintf('%s Org', $person->name),
+                    'contact_id' => $customer->person->getKey(),
+                    'name' => \sprintf('%s Org', $customer->name),
                     'summary' => null,
                 ]);
 
