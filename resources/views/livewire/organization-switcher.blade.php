@@ -21,35 +21,22 @@
             </div>
         </div>
 
-        <flux:menu.separator />
-
-        @forelse ($organizations as $organization)
-            <form method="POST" action="{{ route('organizations.switch', $organization) }}" class="w-full">
-                @csrf
-
-                <flux:menu.item
-                    as="button"
-                    type="submit"
-                    class="w-full cursor-pointer"
+        <flux:menu.group :heading="__('Your organizations')">
+            @forelse ($organizations as $organization)
+                <flux:menu.radio
+                    wire:key="organization-switch-{{ $organization->id }}"
+                    wire:click="switchOrganization({{ $organization->id }})"
                     data-test="organization-switch-{{ $organization->id }}"
+                    :checked="$current?->is($organization)"
                 >
-                    <span class="flex items-center gap-2">
-                        <flux:avatar size="sm" :initials="$organization->initials()" />
-                        <span class="truncate">{{ $organization->name }}</span>
-
-                        @if ($current?->is($organization))
-                            <flux:icon.check class="ms-auto size-4" />
-                        @endif
-                    </span>
-                </flux:menu.item>
-            </form>
-        @empty
-            <flux:menu.item disabled>{{ __('No organizations') }}</flux:menu.item>
-        @endforelse
+                    <span class="truncate">{{ $organization->name }}</span>
+                </flux:menu.radio>
+            @empty
+                <flux:menu.item disabled>{{ __('No organizations') }}</flux:menu.item>
+            @endforelse
+        </flux:menu.group>
 
         @if ($role?->isOwner() || $role?->isAdmin())
-            <flux:menu.separator />
-
             <flux:menu.item :href="route('org-settings')" icon="cog" wire:navigate>
                 {{ __('Organization settings') }}
             </flux:menu.item>

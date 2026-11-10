@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Http\Controllers\NotificationPollerController;
 use App\Http\Controllers\OrganizationSettingsController;
-use App\Http\Controllers\SwitchOrganizationController;
 use App\Http\Controllers\UpdatePreferencesController;
 use App\Http\Controllers\VerifyNewUserEmailController;
 use App\Livewire\Members\Index as MemberIndex;
@@ -29,9 +28,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::livewire('members', MemberIndex::class)->name('members.index');
     Route::livewire('members/{person}', MemberShow::class)->name('members.show');
-
-    Route::post('organizations/{organization}/switch', SwitchOrganizationController::class)
-        ->name('organizations.switch');
 
     Route::get('org-settings', OrganizationSettingsController::class)->name('org-settings');
 

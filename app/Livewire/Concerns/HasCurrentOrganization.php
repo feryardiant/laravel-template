@@ -39,6 +39,28 @@ trait HasCurrentOrganization
         return $organization;
     }
 
+    /**
+     * Switch the authenticated user's current organization.
+     */
+    public function switchOrganization(int $organizationId): void
+    {
+        $user = Auth::user();
+
+        abort_unless($user instanceof User, 403);
+
+        $organization = Organization::query()->findOrFail($organizationId);
+
+        abort_unless(app(CurrentOrganization::class)->switch($user, $organization), 403);
+
+        $referer = request()->header('Referer');
+
+        $target = $referer !== null && parse_url($referer, PHP_URL_HOST) === request()->getHost()
+            ? $referer
+            : route('dashboard');
+
+        $this->redirect($target, navigate: true);
+    }
+
     protected function authorizeManager(): void
     {
         $role = $this->currentRole();

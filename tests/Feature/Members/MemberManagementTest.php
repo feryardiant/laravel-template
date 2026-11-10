@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Events\MemberRoleChanged;
 use App\Livewire\Members\Edit;
 use App\Livewire\Members\Index;
+use App\Livewire\OrganizationSwitcher;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -19,7 +20,6 @@ use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
-use function Pest\Laravel\post;
 
 test('guests are redirected from the members page', function () {
     get(route('members.index'))->assertRedirect(route('login'));
@@ -393,7 +393,8 @@ test('the organization switcher lists active memberships and switches the sessio
         ->assertSee('First Org')
         ->assertSee('Second Org');
 
-    post(route('organizations.switch', $second))
+    Livewire::test(OrganizationSwitcher::class)
+        ->call('switchOrganization', $second->getKey())
         ->assertRedirect();
 
     expect(session(CurrentOrganization::SESSION_KEY))->toBe($second->getKey());
@@ -406,7 +407,9 @@ test('switching to an organization the user does not belong to is forbidden', fu
 
     $outside = Organization::factory()->create();
 
-    post(route('organizations.switch', $outside))->assertForbidden();
+    Livewire::test(OrganizationSwitcher::class)
+        ->call('switchOrganization', $outside->getKey())
+        ->assertForbidden();
 
     expect(session(CurrentOrganization::SESSION_KEY))->toBe($organization->getKey());
 });
