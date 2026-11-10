@@ -66,8 +66,8 @@ it('exposes user actions in the mobile overflow menu', function () {
         ->wait(0.3)
         ->click('button[aria-label="Tindakan"]')
         ->wait(0.3)
-        ->assertSee('Tambah anggota')
-        ->assertSee('Hapus anggota terpilih');
+        ->assertSee(__('Add member'))
+        ->assertSee(__('Remove selected members'));
 });
 
 it('keeps the edit flyout actions within the mobile viewport', function () {

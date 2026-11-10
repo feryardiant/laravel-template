@@ -33,10 +33,10 @@ it('renders localized navigation and the today shortcut', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.calendar name="date" with-today />');
 
-    $view->assertSee('Bulan sebelumnya')
-        ->assertSee('Bulan berikutnya')
-        ->assertSee('Tahun')
-        ->assertSee('Hari ini');
+    $view->assertSee(__('ui.calendar.previous-month'))
+        ->assertSee(__('ui.calendar.next-month'))
+        ->assertSee(__('ui.calendar.year'))
+        ->assertSee(__('ui.calendar.today'));
 });
 
 it('renders the invalid state', function () {

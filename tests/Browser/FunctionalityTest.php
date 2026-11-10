@@ -15,7 +15,7 @@ it('lets a verified user sign in and out', function () {
 
     $page = browserLogin($owner)
         ->assertPathIs('/dashboard')
-        ->assertSee('Anggota');
+        ->assertSee(__('Members'));
 
     $page->click('@sidebar-menu-button')
         ->click('[data-flux-sidebar] [data-test="logout-button"]');
@@ -29,10 +29,10 @@ it('hides management actions on your own user detail page', function () {
 
     $page = browserLogin($admin)->navigate("/members/{$admin->person->uuid}");
 
-    $page->assertDontSee('Edit anggota')
-        ->assertDontSee('Jadikan Anggota')
+    $page->assertDontSee(__('Edit member'))
+        ->assertDontSee(__('Demote admin'))
         ->navigate("/members/{$member->person->uuid}")
-        ->assertSee('Edit anggota');
+        ->assertSee(__('Edit member'));
 });
 
 it('lets an owner add a member', function () {
@@ -56,8 +56,8 @@ it('hides management controls from members on mobile', function () {
 
     browserLogin($member, 'mobile')
         ->navigate('/members')
-        ->assertSee('Anggota')
-        ->assertDontSee('Tambah anggota')
+        ->assertSee(__('Members'))
+        ->assertDontSee(__('Add member'))
         ->assertMissing('[aria-label^="Tindakan untuk"]');
 });
 
@@ -69,7 +69,7 @@ it('rejects invalid credentials without signing in', function () {
         ->fill('password', 'wrong-password')
         ->click('@login-button')
         ->assertPathIs('/login')
-        ->assertSee('Kredensial ini tidak cocok dengan catatan kami.');
+        ->assertSee(__('auth.failed'));
 });
 
 it('gates unverified users from verified pages', function () {
@@ -141,7 +141,7 @@ it('updates a user from the edit flyout and discards on escape', function () {
         ->fill('dialog[open] input[name="name"]', 'Nama Baru')
         ->click('dialog[open] button[type="submit"]')
         ->wait(0.8)
-        ->assertSee('Anggota diperbarui.')
+        ->assertSee(__('Member updated.'))
         ->assertSee('Nama Baru')
         ->click('[aria-label="Tindakan untuk Nama Baru"]')
         ->wait(0.3)
@@ -213,7 +213,7 @@ it('shows an empty state when there are no notifications', function () {
 
     browserLogin($member)
         ->navigate('/notifications')
-        ->assertSee('Belum ada notifikasi.');
+        ->assertSee(__('No notifications yet.'));
 });
 
 it('opens a notification, marks it read, and updates the menu count', function () {
@@ -290,7 +290,7 @@ it('lets a user update their own profile', function () {
 
     $page->fill('name', 'Nama Baru')
         ->click('Simpan')
-        ->assertSee('Profil diperbarui.');
+        ->assertSee(__('Profile updated.'));
 
     $page->navigate('/settings/profile')
         ->assertValue('name', 'Nama Baru');
@@ -330,7 +330,7 @@ it('applies the preferred locale to livewire updates', function () {
 
     $page->fill('name', 'English Name')
         ->click('Save')
-        ->assertSee('Profile updated.');
+        ->assertSee(__('Profile updated.', [], 'en'));
 });
 
 it('shows a danger toast when preferences cannot be saved', function () {

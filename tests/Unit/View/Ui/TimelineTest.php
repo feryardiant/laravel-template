@@ -79,9 +79,9 @@ it('announces each item status', function () {
         </x-ui.timeline>
     BLADE);
 
-    $view->assertSee('Selesai')
-        ->assertSee('Sedang berlangsung')
-        ->assertSee('Belum selesai')
+    $view->assertSee(__('ui.timeline.complete'))
+        ->assertSee(__('ui.timeline.current'))
+        ->assertSee(__('ui.timeline.incomplete'))
         ->assertSee('aria-current="step"', false);
 });
 
