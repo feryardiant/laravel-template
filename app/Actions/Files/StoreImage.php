@@ -15,7 +15,7 @@ class StoreImage
      */
     public function handle(UploadedFile $file, string $directory): string
     {
-        $path = $file->store($directory, $this->disk());
+        $path = $file->store($directory);
 
         if ($path === false) {
             throw new RuntimeException('Unable to store the image.');
@@ -45,14 +45,6 @@ class StoreImage
             return;
         }
 
-        Storage::disk($this->disk())->delete($path);
-    }
-
-    /**
-     * Get the configured upload disk.
-     */
-    private function disk(): string
-    {
-        return (string) config('filesystems.default');
+        Storage::disk()->delete($path);
     }
 }
