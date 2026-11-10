@@ -63,7 +63,9 @@ class UserSeeder extends Seeder
             ]))
             ->create(['role' => Role::Member]);
 
-        $this->call(DemoSeeder::class, parameters: ['root' => $root]);
+        if (! \array_key_exists('GITHUB_ACTION', $_SERVER)) {
+            $this->call(DemoSeeder::class, parameters: ['root' => $root]);
+        }
     }
 
     private function initialUsers(): void
