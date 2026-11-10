@@ -1,0 +1,91 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Actions\Contacts\FindContact;
+use App\Actions\Contacts\FindContactCandidate;
+use App\Actions\Contacts\ListContacts;
+use App\Actions\Contacts\SearchContactCandidates;
+use App\Enums\OrganizationRelationshipType;
+use App\Models\Organization;
+use App\Models\Person;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+test('list contacts searches and orders the tenant contacts', function () {
+    $organization = Organization::factory()->create();
+
+    $older = contactIndividual($organization, ['name' => 'Older Match']);
+    $older->forceFill(['created_at' => now()->subDay()])->saveQuietly();
+    contactIndividual($organization, ['name' => 'Newer Match']);
+    contactIndividual($organization, ['name' => 'Unrelated']);
+
+    $contacts = app(ListContacts::class)->handle($organization, 'Match');
+
+    expect($contacts->total())->toBe(2)
+        ->and($contacts->getCollection()
+            ->map(fn ($contact): ?string => $contact->stakeholder?->name)
+            ->all())->toBe(['Newer Match', 'Older Match']);
+});
+
+test('find contact is scoped to the tenant and external relationships', function () {
+    $organization = Organization::factory()->create();
+
+    $person = contactIndividual($organization, ['name' => 'Findable']);
+    $contact = app(FindContact::class)->byUuid($organization, $person->uuid);
+
+    expect($contact->stakeholder?->is($person))->toBeTrue();
+
+    $foreign = contactIndividual(Organization::factory()->create(), ['name' => 'Foreign']);
+
+    expect(fn () => app(FindContact::class)->byUuid($organization, $foreign->uuid))
+        ->toThrow(ModelNotFoundException::class);
+});
+
+test('the candidate search excludes the current tenant and its contacts', function () {
+    $current = Organization::factory()->create();
+    $source = Organization::factory()->create();
+
+    contactIndividual($current, ['name' => 'Candidate Own']);
+    $candidate = contactIndividual($source, ['name' => 'Candidate External']);
+
+    $results = app(SearchContactCandidates::class)->handle($current, 'Candidate');
+
+    expect($results->pluck('name')->all())->toBe(['Candidate External'])
+        ->and($results->first()?->is($candidate))->toBeTrue();
+});
+
+test('the candidate search excludes entities already in the current tenant', function () {
+    $current = Organization::factory()->create();
+    $source = Organization::factory()->create();
+
+    $person = contactIndividual($source, ['name' => 'Shared Candidate']);
+    $current->personCounterparties()->attach($person, ['type' => OrganizationRelationshipType::Customer]);
+
+    $results = app(SearchContactCandidates::class)->handle($current, 'Shared Candidate');
+
+    expect($results)->toBeEmpty();
+});
+
+test('a current tenant contact cannot be resolved as a reusable candidate', function () {
+    $current = Organization::factory()->create();
+
+    $person = contactIndividual($current, ['name' => 'Already Contact']);
+
+    expect(fn () => app(FindContactCandidate::class)->byReference($current, 'individual:'.$person->uuid))
+        ->toThrow(ModelNotFoundException::class);
+});
+
+test('a foreign candidate resolves by reference', function () {
+    $current = Organization::factory()->create();
+    $source = Organization::factory()->create();
+
+    $person = contactIndividual($source, ['name' => 'Reusable']);
+
+    $candidate = app(FindContactCandidate::class)->byReference($current, 'individual:'.$person->uuid);
+
+    expect($candidate)->toBeInstanceOf(Person::class)
+        ->and($candidate->is($person))->toBeTrue();
+});

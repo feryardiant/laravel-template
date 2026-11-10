@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
  *
  * @property ?int $user_id
  * @property string $name
+ * @property null|Gender $gender
  * @property ?string $summary
  * @property-read ?User $user
  * @property-read Collection<int, Person> $relatives

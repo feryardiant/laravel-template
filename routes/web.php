@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\NotificationPollerController;
 use App\Http\Controllers\UpdatePreferencesController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VerifyNewUserEmailController;
+use App\Livewire\Contacts\Index as ContactIndex;
+use App\Livewire\Contacts\View as ContactView;
 use App\Livewire\Members\Index as MemberIndex;
 use App\Livewire\Members\Show as MemberShow;
 use App\Livewire\Notifications\Index as NotificationIndex;
@@ -29,6 +32,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::livewire('members', MemberIndex::class)->name('members.index');
     Route::livewire('members/{person}', MemberShow::class)->name('members.show');
+
+    Route::livewire('contacts', ContactIndex::class)->name('contacts.index');
+    Route::get('contacts/lookup', ContactLookupController::class)
+        ->middleware('throttle:60,1')
+        ->name('contacts.lookup');
+    Route::livewire('contacts/{stakeholder}', ContactView::class)->name('contacts.view');
 
     Route::prefix('org-settings')->group(function () {
         Route::redirect('', 'org-settings/general');

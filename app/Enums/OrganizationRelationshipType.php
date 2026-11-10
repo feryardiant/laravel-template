@@ -71,4 +71,18 @@ enum OrganizationRelationshipType: string
     {
         return \in_array($this, self::externals(), true);
     }
+
+    /**
+     * Get the human-readable label for the relationship type.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Subsidiary => __('Subsidiary'),
+            self::Member => __('Member'),
+            self::Customer => __('Customer'),
+            self::Supplier => __('Supplier'),
+            self::Vendor => __('Vendor'),
+        };
+    }
 }

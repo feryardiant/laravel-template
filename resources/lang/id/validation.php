@@ -199,6 +199,18 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'name' => 'nama',
+        'summary' => 'ringkasan',
+        'code' => 'kode',
+        'role' => 'peran',
+        'type' => 'tipe',
+        'start_date' => 'tanggal mulai',
+        'finish_date' => 'tanggal selesai',
+        'photo' => 'foto',
+        'contact_name' => 'nama narahubung',
+        'contact_gender' => 'jenis kelamin narahubung',
+        'contact_summary' => 'ringkasan narahubung',
+    ],
 
 ];
