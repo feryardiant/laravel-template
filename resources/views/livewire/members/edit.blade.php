@@ -14,6 +14,10 @@
                     <flux:subheading>{{ $person?->name }}</flux:subheading>
                 </div>
 
+                <x-ui.file-upload wire:model="photo" accept="image/*" :label="__('Member Photo')">
+                    <x-ui.file-upload.avatar :url="$photo ?? $this->photoPreviewUrl" shape="rounded" remove="clearPhoto" />
+                </x-ui.file-upload>
+
                 <flux:field>
                     <flux:label>{{ __('Name') }}</flux:label>
                     <flux:input wire:model="name" type="text" required autofocus autocomplete="name" />

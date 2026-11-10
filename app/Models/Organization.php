@@ -10,6 +10,7 @@ use Creasi\Nusa\Models\Concerns\WithAddress;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,7 +33,7 @@ use Illuminate\Support\Str;
  *
  * @implements HasAddress<static>
  */
-#[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id'])]
+#[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
 class Organization extends Entity implements HasAddress
 {
     /** @use HasFactory<OrganizationFactory> */
@@ -75,6 +76,19 @@ class Organization extends Entity implements HasAddress
     public function scopeRootTenant(Builder $query): Builder
     {
         return $query->where('is_tenant', true)->whereNull('root_organization_id');
+    }
+
+    /**
+     * Get the organization's logo URL.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
+            set: fn (?string $value): array => ['logo_url' => $value],
+        );
     }
 
     /**

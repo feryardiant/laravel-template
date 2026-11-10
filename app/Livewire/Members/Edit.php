@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
+use App\Actions\Files\StoreImage;
 use App\Actions\Organizations\ChangeMemberRole;
 use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,10 +23,11 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Edit extends Component
 {
-    use HasCurrentOrganization, ProfileValidationRules;
+    use HasCurrentOrganization, ProfileValidationRules, WithFileUploads;
 
     public ?Person $person = null;
 
@@ -41,6 +44,13 @@ class Edit extends Component
     public bool $createCredential = false;
 
     public int $role = Role::Member->value;
+
+    /**
+     * @var mixed
+     */
+    public $photo = null;
+
+    public ?string $photo_url = null;
 
     /**
      * Mount the component.
@@ -70,7 +80,7 @@ class Edit extends Component
     /**
      * Update the selected member.
      */
-    public function update(): void
+    public function update(StoreImage $storeImage): void
     {
         $organization = $this->requireOrganization();
 
@@ -80,6 +90,10 @@ class Edit extends Component
 
         $this->person = $this->member($this->person->getKey());
         $this->email = Str::lower($this->email);
+
+        $this->validate([
+            'photo' => ['nullable', 'image', 'max:2048'],
+        ]);
 
         $validated = $this->validate([
             'name' => $this->nameRules(),
@@ -104,11 +118,23 @@ class Edit extends Component
             $this->authorizeRole($role);
         }
 
+        $previousPhoto = $this->person->getRawOriginal('photo_url');
+        $photoUrl = $this->photo_url;
+
+        if ($this->photo instanceof UploadedFile) {
+            $photoUrl = $storeImage->replace($this->photo, 'photos', $previousPhoto);
+        } elseif ($previousPhoto !== $this->photo_url) {
+            $storeImage->delete($previousPhoto);
+        }
+
         $emailChanged = false;
         $credentialCreated = false;
 
-        DB::transaction(function () use ($organization, $actor, $validated, $role, $currentRole, &$emailChanged, &$credentialCreated): void {
-            $this->person->update(['name' => $validated['name']]);
+        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, &$emailChanged, &$credentialCreated): void {
+            $this->person->update([
+                'name' => $validated['name'],
+                'photo_url' => $photoUrl,
+            ]);
 
             if ($this->hasCredential) {
                 $user = $this->person->user;
@@ -146,6 +172,8 @@ class Edit extends Component
         });
 
         $this->person = $this->person->fresh(['user']) ?? $this->person;
+        $this->photo = null;
+        $this->photo_url = $photoUrl;
 
         if (($this->hasCredential && $emailChanged) || $credentialCreated) {
             $this->person->user?->notify(new VerifyEmailForNewUser);
@@ -186,10 +214,26 @@ class Edit extends Component
     {
         $this->person = $person->loadMissing('user');
         $this->name = $person->name;
+        $this->photo_url = $person->getRawOriginal('photo_url');
         $this->hasCredential = $person->user_id !== null;
         $this->createCredential = false;
         $this->email = $person->user_id === null ? '' : $person->user->email;
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
+    }
+
+    /**
+     * Clear the pending or stored member photo.
+     */
+    public function clearPhoto(): void
+    {
+        $this->photo = null;
+        $this->photo_url = null;
+    }
+
+    #[Computed]
+    public function photoPreviewUrl(): ?string
+    {
+        return $this->photo_url ? route('uploads', ['path' => $this->photo_url]) : null;
     }
 
     private function member(int $personId): Person

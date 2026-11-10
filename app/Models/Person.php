@@ -12,6 +12,7 @@ use Creasi\Nusa\Contracts\HasAddresses;
 use Creasi\Nusa\Models\Concerns\WithAddresses;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,7 +34,7 @@ use Illuminate\Support\Str;
  *
  * @implements HasAddresses<static>
  */
-#[Fillable(['user_id', 'name', 'gender', 'summary'])]
+#[Fillable(['user_id', 'name', 'gender', 'summary', 'photo_url'])]
 class Person extends Entity implements HasAddresses
 {
     /** @use HasFactory<PersonFactory> */
@@ -123,6 +124,19 @@ class Person extends Entity implements HasAddresses
     public function primaryOrganization(): ?Organization
     {
         return $this->organizations()->wherePivot('is_primary', true)->first();
+    }
+
+    /**
+     * Get the person's photo URL.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
+            set: fn (?string $value): array => ['photo_url' => $value],
+        );
     }
 
     /**

@@ -7,6 +7,7 @@
         <x-slot:avatar>
             <flux:avatar
                 :initials="$current?->initials() ?? ''"
+                :src="$current?->logo_url"
                 size="sm"
             />
         </x-slot:avatar>

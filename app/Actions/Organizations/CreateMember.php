@@ -23,10 +23,11 @@ class CreateMember
         string $name,
         Role $role,
         ?string $email = null,
+        ?string $photoUrl = null,
     ): Person {
         $user = null;
 
-        $person = DB::transaction(function () use ($organization, $name, $role, $email, &$user): Person {
+        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
             if ($email !== null) {
                 $user = app(CreateUser::class)->handle([
                     'name' => $name,
@@ -39,6 +40,7 @@ class CreateMember
             $person = Person::create([
                 'user_id' => $user?->getKey(),
                 'name' => $name,
+                'photo_url' => $photoUrl,
             ]);
 
             app(AddMember::class)->handle(

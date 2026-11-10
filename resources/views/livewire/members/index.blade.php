@@ -148,7 +148,11 @@
                                             ])
                                             aria-hidden="true"
                                         >
-                                            <flux:avatar size="sm" :initials="$member->initials()" />
+                                            <flux:avatar
+                                                size="sm"
+                                                :initials="$member->initials()"
+                                                :src="$member->photo_url"
+                                            />
                                         </span>
 
                                         {{ $member->name }}
@@ -258,6 +262,10 @@
                 <flux:heading id="add-member-heading" size="lg">{{ __('Add member') }}</flux:heading>
                 <flux:subheading>{{ __('Add a person to this organization.') }}</flux:subheading>
             </div>
+
+            <x-ui.file-upload wire:model="photo" accept="image/*" :label="__('Member Photo')">
+                <x-ui.file-upload.avatar :url="$photo" shape="rounded" remove="clearPhoto" />
+            </x-ui.file-upload>
 
             <flux:field>
                 <flux:label>{{ __('Name') }}</flux:label>

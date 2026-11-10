@@ -6,6 +6,9 @@ use App\Enums\Role;
 use App\Livewire\OrgSettings\General;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -87,4 +90,33 @@ it('returns not found without an organization', function () {
     actingAs($user);
 
     get(route('org-settings.general'))->assertNotFound();
+});
+
+it('updates the organization logo', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake('s3');
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->set('logo', UploadedFile::fake()->image('logo.png'))
+        ->call('update')
+        ->assertHasNoErrors();
+
+    $organization->refresh();
+
+    expect($organization->getRawOriginal('logo_url'))->toContain('logos/')
+        ->and(Storage::disk('s3')->allFiles('logos'))->not->toBeEmpty();
+});
+
+it('renders the organization logo in the switcher', function () {
+    $organization = Organization::factory()->create(['logo_url' => 'logos/logo.png']);
+
+    actingAsMember($organization, Role::Owner);
+
+    get(route('dashboard'))
+        ->assertOk()
+        ->assertSee(route('uploads', ['path' => 'logos/logo.png']));
 });

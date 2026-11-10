@@ -2,26 +2,30 @@
     @php($roleColor = $role?->isOwner() ? 'amber' : ($role?->isAdmin() ? 'blue' : 'zinc'))
 
     <div class="flex items-start justify-between gap-4">
-        <div class="relative w-full">
-            <flux:heading size="xl" level="1">
-                {{ $person->name }}
-                @if ($role !== null)
-                    <flux:badge :color="$roleColor">{{ $role->label() }}</flux:badge>
-                @endif
-            </flux:heading>
+        <div class="flex items-center gap-3">
+            <flux:avatar :initials="$person->initials()" :src="$person->photo_url" size="lg" />
 
-            <flux:subheading class="flex flex-wrap items-center gap-2">
-                <span><x-local-time :date="$joinedAt" /></span>
+            <div class="relative w-full">
+                <flux:heading size="xl" level="1">
+                    {{ $person->name }}
+                    @if ($role !== null)
+                        <flux:badge :color="$roleColor">{{ $role->label() }}</flux:badge>
+                    @endif
+                </flux:heading>
 
-                @if ($person->user !== null)
-                    <span>|</span>
-                    <span>{{ $person->user->email }}</span>
-                    <x-verification-badge :user="$person->user" />
-                @else
-                    <span>|</span>
-                    <span>{{ __('No login credential') }}</span>
-                @endif
-            </flux:subheading>
+                <flux:subheading class="flex flex-wrap items-center gap-2">
+                    <span><x-local-time :date="$joinedAt" /></span>
+
+                    @if ($person->user !== null)
+                        <span>|</span>
+                        <span>{{ $person->user->email }}</span>
+                        <x-verification-badge :user="$person->user" />
+                    @else
+                        <span>|</span>
+                        <span>{{ __('No login credential') }}</span>
+                    @endif
+                </flux:subheading>
+            </div>
         </div>
 
         @if ($canManage)

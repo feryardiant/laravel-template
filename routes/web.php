@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\NotificationPollerController;
 use App\Http\Controllers\UpdatePreferencesController;
+use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VerifyNewUserEmailController;
 use App\Livewire\Members\Index as MemberIndex;
 use App\Livewire\Members\Show as MemberShow;
@@ -41,6 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('uploads/{path}', UploadController::class)->where('path', '.*')->name('uploads');
+
     Route::redirect('settings', 'settings/profile');
 
     Route::livewire('settings/profile', Profile::class)->name('profile.edit');

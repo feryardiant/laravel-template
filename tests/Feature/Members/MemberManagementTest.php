@@ -14,8 +14,11 @@ use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 use App\Notifications\VerifyEmailForNewUser;
 use App\Support\CurrentOrganization;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -438,4 +441,56 @@ test('a user without an organization sees an empty members page', function () {
     get(route('members.index'))
         ->assertOk()
         ->assertSee(__('You are not a member of any organization.'));
+});
+
+test('an admin can add a member with a photo', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake('s3');
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Index::class)
+        ->set('name', 'Photo Member')
+        ->set('role', Role::Member->value)
+        ->set('photo', UploadedFile::fake()->image('member.jpg'))
+        ->call('createMember')
+        ->assertHasNoErrors();
+
+    $person = Person::query()->where('name', 'Photo Member')->firstOrFail();
+
+    expect($person->getRawOriginal('photo_url'))->toContain('photos/')
+        ->and(Storage::disk('s3')->allFiles('photos'))->not->toBeEmpty();
+});
+
+test('a member photo can be updated', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake('s3');
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    Livewire::test(Edit::class, ['person' => $member->person])
+        ->set('photo', UploadedFile::fake()->image('updated.jpg'))
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($member->person->fresh()->getRawOriginal('photo_url'))->toContain('photos/');
+});
+
+test('member photos render in the member list', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/member.jpg']);
+
+    get(route('members.index'))
+        ->assertOk()
+        ->assertSee(route('uploads', ['path' => 'photos/member.jpg']));
 });

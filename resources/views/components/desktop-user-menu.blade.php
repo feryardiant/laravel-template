@@ -26,6 +26,8 @@
                     <flux:avatar
                         :name="auth()->user()->name"
                         :initials="auth()->user()->initials()"
+                        :src="auth()->user()->avatar_url"
+                        circle
                         size="sm"
                     />
 
@@ -43,6 +45,8 @@
                 <flux:avatar
                     :name="auth()->user()->name"
                     :initials="auth()->user()->initials()"
+                    :src="auth()->user()->avatar_url"
+                    circle
                 />
                 <div class="grid flex-1 text-start text-sm leading-tight">
                     <flux:heading class="truncate">{{ auth()->user()->name }}</flux:heading>

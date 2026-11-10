@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
+use App\Actions\Files\StoreImage;
 use App\Actions\Organizations\ChangeMemberRole;
 use App\Actions\Organizations\CreateMember;
 use App\Concerns\ProfileValidationRules;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Throwable;
 
@@ -32,7 +35,7 @@ use Throwable;
  */
 class Index extends Component
 {
-    use HasCurrentOrganization, ProfileValidationRules, WithPagination;
+    use HasCurrentOrganization, ProfileValidationRules, WithFileUploads, WithPagination;
 
     public bool $showCreateModal = false;
 
@@ -57,6 +60,11 @@ class Index extends Component
     public int $role = Role::Member->value;
 
     /**
+     * @var mixed
+     */
+    public $photo = null;
+
+    /**
      * @var array<int, int|string>
      */
     public array $selected = [];
@@ -75,13 +83,17 @@ class Index extends Component
     /**
      * Add a person to the current organization.
      */
-    public function createMember(CreateMember $createMember): void
+    public function createMember(CreateMember $createMember, StoreImage $storeImage): void
     {
         $organization = $this->requireOrganization();
 
         $this->authorizeManager();
 
         $this->email = Str::lower($this->email);
+
+        $this->validate([
+            'photo' => ['nullable', 'image', 'max:2048'],
+        ]);
 
         $validated = $this->validate([
             'name' => $this->nameRules(),
@@ -93,6 +105,9 @@ class Index extends Component
 
         $role = Role::from((int) $validated['role']);
         $hasCredential = $this->createCredential;
+        $photoUrl = $this->photo instanceof UploadedFile
+            ? $storeImage->handle($this->photo, 'photos')
+            : null;
 
         $this->authorizeRole($role);
 
@@ -101,9 +116,10 @@ class Index extends Component
             $validated['name'],
             $role,
             $hasCredential ? $validated['email'] : null,
+            $photoUrl,
         );
 
-        $this->reset('name', 'email', 'createCredential', 'showCreateModal');
+        $this->reset('name', 'email', 'createCredential', 'photo', 'showCreateModal');
         $this->role = Role::Member->value;
         $this->resetPage();
 
@@ -113,6 +129,14 @@ class Index extends Component
                 ? __('Member added. A verification email has been sent.')
                 : __('Member added.'),
         );
+    }
+
+    /**
+     * Clear the pending member photo.
+     */
+    public function clearPhoto(): void
+    {
+        $this->photo = null;
     }
 
     public function confirmDelete(int $personId): void

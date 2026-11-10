@@ -73,7 +73,12 @@
                 >
                     <x-slot:avatar>
                         <span class="relative inline-flex">
-                            <flux:avatar :initials="auth()->user()->initials()" size="sm" />
+                            <flux:avatar
+                                :initials="auth()->user()->initials()"
+                                :src="auth()->user()->avatar_url"
+                                circle
+                                size="sm"
+                            />
 
                             <span
                                 x-show="unread > 0"
@@ -91,6 +96,8 @@
                                 <flux:avatar
                                     :name="auth()->user()->name"
                                     :initials="auth()->user()->initials()"
+                                    :src="auth()->user()->avatar_url"
+                                    circle
                                 />
 
                                 <div class="grid flex-1 text-start text-sm leading-tight">

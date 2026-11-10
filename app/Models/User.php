@@ -12,6 +12,7 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -39,7 +40,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $updated_at
  * @property-read ?Person $person
  */
-#[Fillable(['name', 'handle', 'email', 'password', 'role', 'locale', 'timezone'])]
+#[Fillable(['name', 'handle', 'email', 'password', 'role', 'locale', 'timezone', 'avatar_url'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 #[RouteKey('handle')]
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
@@ -145,6 +146,19 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         return $locale === null
             ? (string) config('app.default_locale')
             : $locale->value;
+    }
+
+    /**
+     * Get the user's avatar URL.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
+            set: fn (?string $value): array => ['avatar_url' => $value],
+        );
     }
 
     /**
