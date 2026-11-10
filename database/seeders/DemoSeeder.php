@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
@@ -33,7 +32,7 @@ class DemoSeeder extends Seeder
         foreach ($people as $person) {
             $org = Organization::factory()
                 ->asTenantOf($root)
-                ->asCounterpartyOf($root, OrganizationRelationshipType::Customer)
+                ->asCustomerOf($root)
                 ->withMember($person, role: Role::Owner, isPrimary: true)
                 ->create([
                     'contact_id' => $person->getKey(),
@@ -42,6 +41,7 @@ class DemoSeeder extends Seeder
                 ]);
 
             Person::factory(fake()->numberBetween(2, 5))
+                ->withoutCredential()
                 ->asMemberOf($org, role: Role::Member, isPrimary: true)
                 ->create();
         }

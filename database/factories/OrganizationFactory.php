@@ -135,6 +135,6 @@ class OrganizationFactory extends Factory
             'type' => $type,
             'start_date' => $startDate ?: now(),
             'finish_date' => $finishDate,
-        ]);
+        ], 'organizationCounterparties');
     }
 }
