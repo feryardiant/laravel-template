@@ -54,7 +54,7 @@ class UserFactory extends Factory
         ?PersonFactory $person = null,
         OrganizationFactory|Organization|null $asMemberOf = null,
         ?Role $role = null,
-        bool $isPrimary = false,
+        ?true $isPrimary = null,
     ): static {
         if (! $person) {
             $person = PersonFactory::new()
@@ -77,7 +77,7 @@ class UserFactory extends Factory
     public function asMemberOf(
         OrganizationFactory|Organization|null $organization,
         Role $role = Role::Member,
-        bool $isPrimary = false,
+        ?true $isPrimary = null,
     ): static {
         return $this->withProfile(asMemberOf: $organization, role: $role, isPrimary: $isPrimary);
     }

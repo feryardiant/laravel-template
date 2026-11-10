@@ -88,13 +88,13 @@ class PersonFactory extends Factory
     public function asMemberOf(
         OrganizationFactory|Organization $organization,
         ?Role $role = null,
-        bool $isPrimary = false,
+        ?true $isPrimary = null,
     ): static {
         // @phpstan-ignore-next-line
         return $this->hasAttached($organization, fn (Person $person) => [
             'type' => OrganizationRelationshipType::Member,
             'role' => $role ?: $person->user?->role ?: Role::Member,
-            'is_primary' => $isPrimary ? true : null,
+            'is_primary' => $isPrimary,
             'start_date' => now(),
         ], 'organizationRelationships');
     }

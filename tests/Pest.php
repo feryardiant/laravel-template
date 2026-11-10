@@ -84,10 +84,13 @@ function browserLogin(User $user, string $device = 'desktop'): AwaitableWebpage
 /**
  * Sign in a user who is a member of the given organization.
  */
-function actingAsMember(OrganizationFactory|Organization $organization, Role $role = Role::Member, bool $primary = false): User
-{
+function actingAsMember(
+    OrganizationFactory|Organization $organization,
+    Role $role = Role::Member,
+    ?true $isPrimary = null
+): User {
     $user = User::factory()
-        ->asMemberOf($organization, $role, $primary)
+        ->asMemberOf($organization, $role, $isPrimary)
         ->create();
 
     test()->actingAs($user);
@@ -106,7 +109,7 @@ function browserMember(Role $role = Role::Member, array $attributes = [], bool $
 {
     $organization = Organization::query()->first() ?? Organization::factory()->create();
 
-    $factory = User::factory()->asMemberOf($organization, $role, $role->isOwner());
+    $factory = User::factory()->asMemberOf($organization, $role, $role->isOwner() ?: null);
 
     if (! $verified) {
         $factory = $factory->unverified();

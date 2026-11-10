@@ -64,7 +64,7 @@ class OrganizationFactory extends Factory
     public function withMember(
         PersonFactory|Person|null $member = null,
         Role $role = Role::Member,
-        bool $isPrimary = false,
+        ?true $isPrimary = null,
         ?CarbonInterface $startDate = null,
         ?CarbonInterface $finishDate = null,
     ): static {
