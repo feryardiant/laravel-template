@@ -16,7 +16,11 @@ class Autocomplete extends Component
 {
     public string $state = '';
 
+    public string $stateValue = '';
+
     public string $remoteState = '';
+
+    public string $remoteStateValue = '';
 
     /**
      * Set the local demo value to "New York".

@@ -24,6 +24,7 @@ it('filters local items and selects with the keyboard', function () {
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').value === 'California'")
         ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === 'California'")
+        ->assertScript("document.querySelector('[data-ui-bound=state-value]').textContent.trim() === 'California'")
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [data-ui-option][data-value=California]').hasAttribute('data-active')");
 });
 
@@ -34,6 +35,25 @@ it('reflects a server-side model update', function () {
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').value === 'New York'")
         ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === 'New York'");
+});
+
+it('tracks a selected value separately from the visible label', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $trigger = '[data-ui-demo="autocomplete-remote"] [role="combobox"]';
+
+    $page->click($trigger)
+        ->type($trigger, 'new')
+        ->wait(0.8)
+        ->keys($trigger, ['ArrowDown', 'Enter'])
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state-value]').textContent.trim() === 'NEWJERSEY'")
+        ->type($trigger, 'x')
+        ->wait(0.4)
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state-value]').textContent.trim() === ''")
+        ->click('[data-ui-demo="autocomplete-remote"] button[aria-label="Kosongkan isian"]')
+        ->wait(0.5)
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === ''")
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state-value]').textContent.trim() === ''");
 });
 
 it('loads remote suggestions and selects one', function () {
@@ -49,6 +69,7 @@ it('loads remote suggestions and selects one', function () {
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === 'New Jersey'")
         ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'New Jersey'")
+        ->assertScript("document.querySelector('[data-ui-bound=remote-state-value]').textContent.trim() === 'NEWJERSEY'")
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]')).find((option) => option.dataset.label === 'New Jersey')?.hasAttribute('data-active') === true");
 });
 

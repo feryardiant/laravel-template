@@ -17,6 +17,7 @@
     'containerClass' => null,
     'inputClass' => null,
     'searchUrl' => null,
+    'valueModel' => null,
     'minLength' => 1,
     'debounce' => 300,
     'empty' => null,
@@ -49,6 +50,7 @@
         'disabled' => (bool) $disabled,
         'readonly' => (bool) $readonly,
         'searchUrl' => $searchUrl,
+        'valueModel' => $valueModel,
         'minLength' => (int) $minLength,
         'debounce' => (int) $debounce,
         'empty' => $empty,
@@ -145,7 +147,7 @@
                             role="option"
                             tabindex="-1"
                             data-ui-option
-                            x-bind:data-value="item.label"
+                            x-bind:data-value="item.value ?? item.label"
                             x-bind:data-label="item.label"
                             x-bind:data-selected-label="item.label"
                             x-text="item.label"
