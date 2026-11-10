@@ -15,7 +15,7 @@ class UploadController extends Controller
      */
     public function __invoke(string $path): StreamedResponse
     {
-        $storage = Storage::disk('s3');
+        $storage = Storage::disk();
 
         // The browser never sees this internal presigned URL.
         $presignedUrl = $storage->temporaryUrl($path, now()->addMinutes(60));
