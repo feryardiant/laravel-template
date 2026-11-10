@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\NotificationPollerController;
-use App\Http\Controllers\OrganizationSettingsController;
 use App\Http\Controllers\UpdatePreferencesController;
 use App\Http\Controllers\VerifyNewUserEmailController;
 use App\Livewire\Members\Index as MemberIndex;
 use App\Livewire\Members\Show as MemberShow;
 use App\Livewire\Notifications\Index as NotificationIndex;
+use App\Livewire\OrgSettings;
 use App\Livewire\Settings\Preferences;
 use App\Livewire\Settings\Profile;
 use App\Livewire\Settings\Security;
@@ -29,7 +29,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('members', MemberIndex::class)->name('members.index');
     Route::livewire('members/{person}', MemberShow::class)->name('members.show');
 
-    Route::get('org-settings', OrganizationSettingsController::class)->name('org-settings');
+    Route::prefix('org-settings')->group(function () {
+        Route::redirect('', 'org-settings/general');
+
+        Route::livewire('general', OrgSettings\General::class)->name('org-settings.general');
+    });
 
     Route::livewire('notifications', NotificationIndex::class)->name('notifications.index');
     Route::get('notifications/latest', NotificationPollerController::class)->name('notifications.latest');
