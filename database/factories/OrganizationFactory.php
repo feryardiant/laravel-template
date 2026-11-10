@@ -100,4 +100,41 @@ class OrganizationFactory extends Factory
             ]);
         });
     }
+
+    public function asVendorOf(
+        OrganizationFactory|Organization $organization,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->asCounterpartyOf($organization, OrganizationRelationshipType::Vendor, $startDate, $finishDate);
+    }
+
+    public function asSupplierOf(
+        OrganizationFactory|Organization $organization,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->asCounterpartyOf($organization, OrganizationRelationshipType::Supplier, $startDate, $finishDate);
+    }
+
+    public function asCustomerOf(
+        OrganizationFactory|Organization $organization,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->asCounterpartyOf($organization, OrganizationRelationshipType::Customer, $startDate, $finishDate);
+    }
+
+    public function asCounterpartyOf(
+        OrganizationFactory|Organization $organization,
+        OrganizationRelationshipType $type,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->hasAttached($organization, fn () => [
+            'type' => $type,
+            'start_date' => $startDate ?: now(),
+            'finish_date' => $finishDate,
+        ]);
+    }
 }

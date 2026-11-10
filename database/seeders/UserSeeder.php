@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             'role' => Role::Owner,
         ]);
 
-        $orgganization = Organization::factory()
+        $root = Organization::factory()
             ->asRootTenant()
             ->withMember($owner->person, role: Role::Owner, isPrimary: true)
             ->create([
@@ -48,7 +48,7 @@ class UserSeeder extends Seeder
             ]);
 
         User::factory()
-            ->asMemberOf($orgganization, role: Role::Admin, isPrimary: true)
+            ->asMemberOf($root, role: Role::Admin, isPrimary: true)
             ->create([
                 'email' => 'admin@example.com',
                 'handle' => 'admin',
@@ -56,12 +56,14 @@ class UserSeeder extends Seeder
             ]);
 
         User::factory(3)
-            ->asMemberOf($orgganization, role: Role::Member, isPrimary: true)
+            ->asMemberOf($root, role: Role::Member, isPrimary: true)
             ->state(new Sequence(fn (Sequence $sequence) => [
                 'email' => \sprintf('member%d@example.com', $sequence->index + 1),
                 'handle' => \sprintf('member%d', $sequence->index + 1),
             ]))
             ->create(['role' => Role::Member]);
+
+        $this->call(DemoSeeder::class, parameters: ['root' => $root]);
     }
 
     private function initialUsers(): void
