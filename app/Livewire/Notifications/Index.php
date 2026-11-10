@@ -228,6 +228,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
+        /** @disregard P1013 */
         return view('livewire.notifications.index', [
             'notifications' => $user->notifications()
                 ->reorder('created_at', $this->sortAscending ? 'asc' : 'desc')

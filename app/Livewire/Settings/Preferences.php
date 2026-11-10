@@ -36,6 +36,7 @@ class Preferences extends Component
 
     public function render(): View
     {
+        /** @disregard P1013 */
         return view('livewire.settings.preferences', [
             'locales' => Locale::cases(),
             'timezones' => DateTimeZone::listIdentifiers(DateTimeZone::ALL),

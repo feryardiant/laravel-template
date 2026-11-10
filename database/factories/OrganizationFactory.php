@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Actions\Organizations\AddMember;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Address;
@@ -28,10 +27,27 @@ class OrganizationFactory extends Factory
     public function definition(): array
     {
         return [
+            'uuid' => fake()->uuid(),
             'contact_id' => Person::factory(),
             'name' => fake()->company(),
             'summary' => fake()->sentence(),
         ];
+    }
+
+    public function asRootTenant(): static
+    {
+        return $this->state(fn () => [
+            'is_tenant' => true,
+            'root_organization_id' => null,
+        ]);
+    }
+
+    public function asTenantOf(OrganizationFactory|Organization $root): static
+    {
+        return $this->state(fn () => [
+            'is_tenant' => true,
+            'root_organization_id' => $root instanceof Organization ? $root->id : $root,
+        ]);
     }
 
     /**
@@ -46,22 +62,19 @@ class OrganizationFactory extends Factory
      * Attach a person as a member of the organization.
      */
     public function withMember(
-        ?Person $member = null,
-        bool $isPrimary = false,
+        PersonFactory|Person|null $member = null,
+        Role $role = Role::Member,
+        ?true $isPrimary = null,
         ?CarbonInterface $startDate = null,
         ?CarbonInterface $finishDate = null,
-        Role $role = Role::Member,
     ): static {
-        return $this->afterCreating(function (Organization $organization) use ($member, $isPrimary, $startDate, $finishDate, $role): void {
-            app(AddMember::class)->handle(
-                $organization,
-                $member ?? Person::factory()->create(),
-                $isPrimary,
-                $startDate,
-                $finishDate,
-                $role,
-            );
-        });
+        return $this->hasAttached($member ?? Person::factory(), fn () => [
+            'type' => OrganizationRelationshipType::Member,
+            'role' => $role,
+            'is_primary' => $isPrimary,
+            'start_date' => $startDate ?: now(),
+            'finish_date' => $finishDate,
+        ], 'members');
     }
 
     /**
@@ -86,5 +99,42 @@ class OrganizationFactory extends Factory
                 'finish_date' => $finishDate,
             ]);
         });
+    }
+
+    public function asVendorOf(
+        OrganizationFactory|Organization $organization,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->asCounterpartyOf($organization, OrganizationRelationshipType::Vendor, $startDate, $finishDate);
+    }
+
+    public function asSupplierOf(
+        OrganizationFactory|Organization $organization,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->asCounterpartyOf($organization, OrganizationRelationshipType::Supplier, $startDate, $finishDate);
+    }
+
+    public function asCustomerOf(
+        OrganizationFactory|Organization $organization,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->asCounterpartyOf($organization, OrganizationRelationshipType::Customer, $startDate, $finishDate);
+    }
+
+    public function asCounterpartyOf(
+        OrganizationFactory|Organization $organization,
+        OrganizationRelationshipType $type,
+        ?CarbonInterface $startDate = null,
+        ?CarbonInterface $finishDate = null,
+    ): static {
+        return $this->hasAttached($organization, fn () => [
+            'type' => $type,
+            'start_date' => $startDate ?: now(),
+            'finish_date' => $finishDate,
+        ], 'organizationCounterparties');
     }
 }

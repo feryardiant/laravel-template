@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\Role;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
@@ -31,34 +32,52 @@ class UserSeeder extends Seeder
 
     private function localUsers(): void
     {
-        User::factory()->create([
+        $owner = User::factory()->withProfile()->create([
             'email' => 'owner@example.com',
             'handle' => 'owner',
             'role' => Role::Owner,
         ]);
 
-        User::factory()->create([
-            'email' => 'admin@example.com',
-            'handle' => 'admin',
-            'role' => Role::Admin,
-        ]);
+        $root = Organization::factory()
+            ->asRootTenant()
+            ->withMember($owner->person, role: Role::Owner, isPrimary: true)
+            ->create([
+                'contact_id' => $owner->person->getKey(),
+                'name' => \sprintf('%s Org', $owner->name),
+                'summary' => null,
+            ]);
 
-        User::factory(3)->state(new Sequence(fn (Sequence $sequence) => [
-            'email' => \sprintf('member-%d@example.com', $sequence->index + 1),
-            'handle' => \sprintf('member%d', $sequence->index + 1),
-        ]))->create(['role' => Role::Member]);
+        User::factory()
+            ->asMemberOf($root, role: Role::Admin, isPrimary: true)
+            ->create([
+                'email' => 'admin@example.com',
+                'handle' => 'admin',
+                'role' => Role::Admin,
+            ]);
+
+        User::factory(3)
+            ->asMemberOf($root, role: Role::Member, isPrimary: true)
+            ->state(new Sequence(fn (Sequence $sequence) => [
+                'email' => \sprintf('member%d@example.com', $sequence->index + 1),
+                'handle' => \sprintf('member%d', $sequence->index + 1),
+            ]))
+            ->create(['role' => Role::Member]);
+
+        if (app()->environment('local')) {
+            $this->call(DemoSeeder::class, parameters: ['root' => $root]);
+        }
     }
 
     private function initialUsers(): void
     {
-        (new User)->forceFill([
+        User::forceCreate([
             'name' => \sprintf('%s Owner', config('app.name')),
-            'email' => 'owner@example.com',
+            'email' => config('setup.initial_email'),
             'handle' => 'owner',
             'role' => Role::Owner,
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
-        ])->save();
+        ]);
     }
 }

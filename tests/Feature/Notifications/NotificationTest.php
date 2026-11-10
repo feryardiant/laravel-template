@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Actions\Users\ChangeUserRole;
+use App\Actions\Organizations\ChangeMemberRole;
 use App\Enums\Role;
 use App\Livewire\Notifications\Index;
+use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 use App\Notifications\VerifyEmailForNewUser;
@@ -247,10 +248,11 @@ test('notifications can be sorted by received date', function () {
 });
 
 test('a role change stores exactly one notification', function () {
-    $actor = User::factory()->withRole(Role::Admin)->create();
-    $member = User::factory()->withRole(Role::Member)->create();
+    $organization = Organization::factory()->create();
+    $actor = actingAsMember($organization, Role::Admin);
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    app(ChangeUserRole::class)->promote($member, $actor);
+    app(ChangeMemberRole::class)->promote($organization, $member->person, $actor);
 
     expect($member->notifications()->count())->toBe(1);
 });

@@ -12,12 +12,14 @@ use Creasi\Nusa\Contracts\HasAddresses;
 use Creasi\Nusa\Models\Concerns\WithAddresses;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 
 /**
  * Individual entity and its personal relationships.
@@ -32,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  *
  * @implements HasAddresses<static>
  */
-#[Fillable(['user_id', 'name', 'gender', 'summary'])]
+#[Fillable(['user_id', 'name', 'gender', 'summary', 'photo_url'])]
 class Person extends Entity implements HasAddresses
 {
     /** @use HasFactory<PersonFactory> */
@@ -87,6 +89,66 @@ class Person extends Entity implements HasAddresses
             ->using(OrganizationRelationship::class)
             ->withPivot('type', 'role', 'code', 'start_date', 'finish_date')
             ->as('stakeholder');
+    }
+
+    /**
+     * Get every membership relationship of the person.
+     *
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'stakeholder'>
+     */
+    public function memberships(): MorphToMany
+    {
+        return $this->organizationRelationships()
+            ->wherePivot('type', OrganizationRelationshipType::Member);
+    }
+
+    /**
+     * Get the organizations the person is currently a member of.
+     *
+     * @return MorphToMany<Organization, $this, OrganizationRelationship, 'stakeholder'>
+     */
+    public function organizations(): MorphToMany
+    {
+        $today = now()->toDateString();
+
+        return $this->memberships()
+            ->where(fn ($query) => $query->whereNull('organization_relationships.start_date')
+                ->orWhere('organization_relationships.start_date', '<=', $today))
+            ->where(fn ($query) => $query->whereNull('organization_relationships.finish_date')
+                ->orWhere('organization_relationships.finish_date', '>=', $today));
+    }
+
+    /**
+     * Get the person's primary organization.
+     */
+    public function primaryOrganization(): ?Organization
+    {
+        return $this->organizations()->wherePivot('is_primary', true)->first();
+    }
+
+    /**
+     * Get the person's photo URL.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
+            set: fn (?string $value): array => ['photo_url' => $value],
+        );
+    }
+
+    /**
+     * Get the person's initials.
+     */
+    public function initials(): string
+    {
+        $initials = Str::initials($this->name, true);
+
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
     }
 
     /**

@@ -243,6 +243,7 @@ class Security extends Component
 
     public function render(): View
     {
+        /** @disregard P1013 */
         return view('livewire.settings.security')->title(__('Security settings'));
     }
 }

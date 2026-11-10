@@ -1,37 +1,47 @@
 <div class="flex w-full flex-1 flex-col gap-6">
-    @php($roleColor = $user->role->isOwner() ? 'amber' : ($user->role->isAdmin() ? 'blue' : 'zinc'))
-    @php($canManageUser = ! $user->is(auth()->user()) && auth()->user()->can('update', $user))
+    @php($roleColor = $role?->isOwner() ? 'amber' : ($role?->isAdmin() ? 'blue' : 'zinc'))
 
     <div class="flex items-start justify-between gap-4">
-        <div class="relative w-full">
-            <flux:heading size="xl" level="1">
-                {{ $user->name }}
-                <flux:badge :color="$roleColor">{{ $user->role->label() }}</flux:badge>
-            </flux:heading>
+        <div class="flex items-center gap-3">
+            <flux:avatar :initials="$person->initials()" :src="$person->photo_url" size="lg" />
 
-            <flux:subheading class="flex flex-wrap items-center gap-2">
-                <span><x-local-time :date="$user->created_at" /></span>
-                <span>|</span>
-                <span>{{ $user->email }}</span>
+            <div class="relative w-full">
+                <flux:heading size="xl" level="1">
+                    {{ $person->name }}
+                    @if ($role !== null)
+                        <flux:badge :color="$roleColor">{{ $role->label() }}</flux:badge>
+                    @endif
+                </flux:heading>
 
-                <x-verification-badge :user="$user" />
-            </flux:subheading>
+                <flux:subheading class="flex flex-wrap items-center gap-2">
+                    <span><x-local-time :date="$joinedAt" /></span>
+
+                    @if ($person->user !== null)
+                        <span>|</span>
+                        <span>{{ $person->user->email }}</span>
+                        <x-verification-badge :user="$person->user" />
+                    @else
+                        <span>|</span>
+                        <span>{{ __('No login credential') }}</span>
+                    @endif
+                </flux:subheading>
+            </div>
         </div>
 
-        @if ($canManageUser)
+        @if ($canManage)
             <div class="hidden items-center gap-2 sm:flex">
-                @if ($user->role->isMember())
+                @if ($role?->isMember())
                     <flux:button icon="arrow-up-circle" wire:click="confirmPromote">
                         {{ __('Promote admin') }}
                     </flux:button>
-                @elseif ($user->role->isAdmin())
+                @elseif ($role?->isAdmin())
                     <flux:button icon="arrow-down-circle" wire:click="confirmDemote">
                         {{ __('Demote admin') }}
                     </flux:button>
                 @endif
 
                 <flux:button variant="primary" icon="pencil-square" wire:click="openEdit">
-                    {{ __('Edit user') }}
+                    {{ __('Edit member') }}
                 </flux:button>
             </div>
 
@@ -39,22 +49,22 @@
                 <flux:button
                     icon="ellipsis-horizontal"
                     square
-                    :aria-label="__('Actions for :name', ['name' => $user->name])"
+                    :aria-label="__('Actions for :name', ['name' => $person->name])"
                 />
 
                 <flux:menu>
-                    @if ($user->role->isMember())
+                    @if ($role?->isMember())
                         <flux:menu.item icon="arrow-up-circle" wire:click="confirmPromote">
                             {{ __('Promote admin') }}
                         </flux:menu.item>
-                    @elseif ($user->role->isAdmin())
+                    @elseif ($role?->isAdmin())
                         <flux:menu.item icon="arrow-down-circle" wire:click="confirmDemote">
                             {{ __('Demote admin') }}
                         </flux:menu.item>
                     @endif
 
                     <flux:menu.item icon="pencil-square" wire:click="openEdit">
-                        {{ __('Edit user') }}
+                        {{ __('Edit member') }}
                     </flux:menu.item>
                 </flux:menu>
             </flux:dropdown>
@@ -66,22 +76,27 @@
     <flux:card class="max-w-lg space-y-4">
         <div>
             <flux:text>{{ __('Name') }}</flux:text>
-            <flux:heading>{{ $user->name }}</flux:heading>
+            <flux:heading>{{ $person->name }}</flux:heading>
         </div>
 
         <div>
             <flux:text>{{ __('Email') }}</flux:text>
-            <flux:heading>{{ $user->email }}</flux:heading>
+            <flux:heading>{{ $person->user?->email ?? __('No login credential') }}</flux:heading>
         </div>
 
         <div>
-            <flux:text>{{ __('Registered at') }}</flux:text>
-            <flux:heading><x-local-time :date="$user->created_at" /></flux:heading>
+            <flux:text>{{ __('Role') }}</flux:text>
+            <flux:heading>{{ $role?->label() ?? '—' }}</flux:heading>
+        </div>
+
+        <div>
+            <flux:text>{{ __('Joined at') }}</flux:text>
+            <flux:heading><x-local-time :date="$joinedAt" /></flux:heading>
         </div>
     </flux:card>
 
-    @if ($canManageUser)
-        <livewire:users.edit :user="$user" />
+    @if ($canManage)
+        <livewire:members.edit :person="$person" />
     @endif
 
     <flux:modal
@@ -92,13 +107,13 @@
         <div class="space-y-6">
             <div>
                 <flux:heading id="role-change-heading" size="lg">
-                    {{ $this->roleChangeIsPromotion ? __('Promote user') : __('Demote user') }}
+                    {{ $this->roleChangeIsPromotion ? __('Promote member') : __('Demote member') }}
                 </flux:heading>
 
                 <flux:subheading>
                     {{ $this->roleChangeIsPromotion
-                        ? __('Promote :name to Admin?', ['name' => $user->name])
-                        : __('Demote :name to Member?', ['name' => $user->name]) }}
+                        ? __('Promote :name to Admin?', ['name' => $person->name])
+                        : __('Demote :name to Member?', ['name' => $person->name]) }}
                 </flux:subheading>
             </div>
 

@@ -3,11 +3,10 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
-use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 
 it('keeps the login form usable on mobile', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     $page = visit('/login')->on()->mobile();
 
@@ -20,25 +19,25 @@ it('keeps the login form usable on mobile', function () {
 });
 
 it('opens the mobile navigation', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     $page = browserLogin($member, 'mobile')->assertPathIs('/dashboard');
 
     $page->click('[data-flux-sidebar-toggle]')
-        ->click('Pengguna')
-        ->assertPathIs('/users');
+        ->click('[data-flux-sidebar] a[href$="/members"]')
+        ->assertPathIs('/members');
 });
 
 it('keeps the users page within the mobile viewport', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
+    $owner = browserMember(Role::Owner);
 
     browserLogin($owner, 'mobile')
-        ->navigate('/users')
+        ->navigate('/members')
         ->assertScript('document.documentElement.scrollWidth <= window.innerWidth');
 });
 
 it('reaches notifications from the mobile user menu', function () {
-    $member = User::factory()->create();
+    $member = browserMember(Role::Member);
 
     browserLogin($member, 'mobile')
         ->navigate('/dashboard')
@@ -49,8 +48,8 @@ it('reaches notifications from the mobile user menu', function () {
 });
 
 it('keeps the notifications page within the mobile viewport', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
     browserLogin($owner, 'mobile')
         ->navigate('/notifications')
@@ -58,28 +57,28 @@ it('keeps the notifications page within the mobile viewport', function () {
 });
 
 it('exposes user actions in the mobile overflow menu', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/users');
+    $page = browserLogin($owner, 'mobile')->navigate('/members');
 
     $page->click('ui-checkbox[value]')
         ->wait(0.3)
         ->click('button[aria-label="Tindakan"]')
         ->wait(0.3)
-        ->assertSee('Tambah pengguna')
-        ->assertSee('Hapus pengguna terpilih');
+        ->assertSee('Tambah anggota')
+        ->assertSee('Hapus anggota terpilih');
 });
 
 it('keeps the edit flyout actions within the mobile viewport', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $member = User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/users');
+    $page = browserLogin($owner, 'mobile')->navigate('/members');
 
     $page->click("[aria-label=\"Tindakan untuk {$member->name}\"]")
         ->wait(0.3)
-        ->click('Edit pengguna')
+        ->click('Edit anggota')
         ->wait(0.6)
         ->assertScript('(() => {
             const save = [...document.querySelectorAll("dialog[open] button")]
@@ -96,10 +95,10 @@ it('keeps the edit flyout actions within the mobile viewport', function () {
 });
 
 it('selects users by tapping the checkbox on touch screens', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/users');
+    $page = browserLogin($owner, 'mobile')->navigate('/members');
 
     $page->assertScript('(() => {
         const row = document.querySelector("[data-flux-row]:has(ui-checkbox)");
@@ -116,9 +115,9 @@ it('selects users by tapping the checkbox on touch screens', function () {
 });
 
 it('keeps an unread indicator on touch devices', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Member));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
     $owner->notifications()->latest()->first()->markAsRead();
 
     $page = browserLogin($owner, 'mobile')->navigate('/notifications');
@@ -131,10 +130,10 @@ it('keeps an unread indicator on touch devices', function () {
 });
 
 it('selects a user when tapping the checkbox wrapper', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/users');
+    $page = browserLogin($owner, 'mobile')->navigate('/members');
 
     $page->script(<<<'JS'
         document.querySelector('[data-flux-row]:has(ui-checkbox) span.absolute')
@@ -142,13 +141,13 @@ it('selects a user when tapping the checkbox wrapper', function () {
         JS);
     $page->wait(0.4);
 
-    $page->assertPathIs('/users')
+    $page->assertPathIs('/members')
         ->assertScript('document.querySelector("ui-checkbox[value]").getAttribute("aria-checked") === "true"');
 });
 
 it('selects notifications by tapping the checkbox on touch screens', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
     $page = browserLogin($owner, 'mobile')->navigate('/notifications');
 
@@ -166,11 +165,11 @@ it('selects notifications by tapping the checkbox on touch screens', function ()
 });
 
 it('reveals user selection on hover on desktop', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
 
     browserLogin($owner)
-        ->navigate('/users')
+        ->navigate('/members')
         ->assertScript('getComputedStyle(document.querySelector("ui-checkbox[value]")).opacity === "0"')
         ->hover('[data-flux-row]:has(ui-checkbox)')
         ->wait(0.5)
@@ -178,9 +177,9 @@ it('reveals user selection on hover on desktop', function () {
 });
 
 it('reveals notification selection on hover on desktop', function () {
-    $owner = User::factory()->create();
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
-    $owner->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Member));
+    $owner = browserMember(Role::Member);
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
+    $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
     $owner->notifications()->latest()->first()->markAsRead();
 
     $page = browserLogin($owner)->navigate('/notifications');
@@ -199,7 +198,7 @@ it('reveals notification selection on hover on desktop', function () {
 });
 
 it('switches to light mode and remembers it after navigation', function () {
-    $member = User::factory()->withRole(Role::Member)->create();
+    $member = browserMember(Role::Member);
 
     $page = browserLogin($member)->navigate('/settings/preferences');
 

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Enums\Role;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -43,6 +45,41 @@ class UserFactory extends Factory
     public function withRole(Role $role): static
     {
         return $this->state(fn () => ['role' => $role]);
+    }
+
+    /**
+     * Attach a person profile to the user.
+     */
+    public function withProfile(
+        ?PersonFactory $person = null,
+        OrganizationFactory|Organization|null $asMemberOf = null,
+        ?Role $role = null,
+        ?true $isPrimary = null,
+    ): static {
+        if (! $person) {
+            $person = PersonFactory::new()
+                // @phpstan-ignore-next-line
+                ->state(fn (array $attr, ?User $parent): array => [
+                    'name' => $parent?->name ?: $attr['name'],
+                ]);
+        }
+
+        if ($asMemberOf) {
+            $person = $person->asMemberOf($asMemberOf, role: $role, isPrimary: $isPrimary);
+        }
+
+        return $this->has($person, 'person');
+    }
+
+    /**
+     * Add the user as a member of the given organization.
+     */
+    public function asMemberOf(
+        OrganizationFactory|Organization|null $organization,
+        Role $role = Role::Member,
+        ?true $isPrimary = null,
+    ): static {
+        return $this->withProfile(asMemberOf: $organization, role: $role, isPrimary: $isPrimary);
     }
 
     /**

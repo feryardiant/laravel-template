@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\Role;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -17,6 +18,7 @@ class UserRoleChangedNotification extends Notification
     public function __construct(
         public User $actor,
         public Role $newRole,
+        public ?Organization $organization = null,
     ) {}
 
     /**
@@ -51,7 +53,9 @@ class UserRoleChangedNotification extends Notification
 
     private function subject(): string
     {
-        return __('Your role at :app has changed', ['app' => config('app.name')]);
+        return $this->organization === null
+            ? __('Your role at :app has changed', ['app' => config('app.name')])
+            : __('Your role at :organization has changed', ['organization' => $this->organization->name]);
     }
 
     private function greeting(User $notifiable): string
@@ -61,10 +65,16 @@ class UserRoleChangedNotification extends Notification
 
     private function description(): string
     {
-        return __(':actor just changed your role to :role at :app.', [
-            'actor' => $this->actor->name,
-            'role' => $this->newRole->label(),
-            'app' => config('app.name'),
-        ]);
+        return $this->organization === null
+            ? __(':actor just changed your role to :role at :app.', [
+                'actor' => $this->actor->name,
+                'role' => $this->newRole->label(),
+                'app' => config('app.name'),
+            ])
+            : __(':actor just changed your role to :role at :organization.', [
+                'actor' => $this->actor->name,
+                'role' => $this->newRole->label(),
+                'organization' => $this->organization->name,
+            ]);
     }
 }

@@ -62,6 +62,19 @@ services:
       - ${FORWARD_MAILPIT_APP_PORT:-8025}:8025
       - ${FORWARD_MAILPIT_MAIL_PORT:-1025}:1025
 
+  rustfs:
+    extends:
+      file: scripts/docker/compose.yaml
+      service: rustfs
+    ports:
+      - ${FORWARD_RUSTFS_S3_PORT:-9000}:9000
+      - ${FORWARD_RUSTFS_WEB_PORT:-9001}:9001
+
+  rustfs-init:
+    extends:
+      file: scripts/docker/compose.yaml
+      service: rustfs-init
+
 networks:
   default:
     enable_ipv6: false

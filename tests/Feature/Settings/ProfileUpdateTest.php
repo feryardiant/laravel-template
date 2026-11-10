@@ -5,7 +5,10 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Livewire\Settings\Profile;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -137,4 +140,46 @@ test('an owner can delete their account when another owner exists', function () 
         ->assertHasNoErrors();
 
     expect($owner->fresh())->toBeNull();
+});
+
+test('the user avatar can be uploaded', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    actingAs($user = User::factory()->create());
+
+    Livewire::test(Profile::class)
+        ->set('avatar', UploadedFile::fake()->image('avatar.jpg'))
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
+
+    $user->refresh();
+
+    expect($user->getRawOriginal('avatar_url'))->toContain('avatars/')
+        ->and(Storage::disk()->allFiles('avatars'))->not->toBeEmpty();
+});
+
+test('the user avatar renders as a circle', function () {
+    $user = User::factory()->create(['avatar_url' => 'avatars/avatar.jpg']);
+
+    actingAs($user);
+
+    get(route('dashboard'))
+        ->assertOk()
+        ->assertSee(route('uploads', ['path' => 'avatars/avatar.jpg']))
+        ->assertSeeHtml('data-circle="true"');
+});
+
+test('a non-image avatar is rejected', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    actingAs($user = User::factory()->create());
+
+    Livewire::test(Profile::class)
+        ->set('avatar', UploadedFile::fake()->create('avatar.pdf', 10, 'application/pdf'))
+        ->call('updateProfileInformation')
+        ->assertHasErrors(['avatar']);
+
+    expect($user->fresh()->getRawOriginal('avatar_url'))->toBeNull();
 });

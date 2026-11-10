@@ -32,7 +32,7 @@
             months="2"
             min-range="2"
             max-range="10"
-            :unavailable="[now()->addDays(1)->format('Y-m-d')]"
+            :unavailable="[now()->startOfMonth()->addDays(4)->format('Y-m-d')]"
         />
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">

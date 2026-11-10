@@ -23,8 +23,8 @@ it('can have members', function () {
 
     expect($member)
         ->is($person)->toBeTrue()
-        ->member->type->toBe(OrganizationRelationshipType::Member)
-        ->member->role->toBe(Role::Member);
+        ->pivot->type->toBe(OrganizationRelationshipType::Member)
+        ->pivot->role->toBe(Role::Member);
 });
 
 it('assigns the membership role', function () {
@@ -32,7 +32,7 @@ it('assigns the membership role', function () {
         ->withMember($person = Person::factory()->create(), role: Role::Admin)
         ->create();
 
-    expect($organization->members()->first()->member->role)->toBe(Role::Admin)
+    expect($organization->members()->first()->pivot->role)->toBe(Role::Admin)
         ->and($person->roleIn($organization))->toBe(Role::Admin);
 });
 
@@ -93,7 +93,7 @@ it('promotes an existing member without duplicating them', function () {
     $members = $organization->members()->get();
 
     expect($members)->toHaveCount(1)
-        ->and($members->first()->member->is_primary)->toBeTrue();
+        ->and($members->first()->pivot->is_primary)->toBeTrue();
 });
 
 it('moves a persons primary organization when they join another as primary', function () {
@@ -111,7 +111,7 @@ it('moves a persons primary organization when they join another as primary', fun
 
     expect($primaryOrganizations)->toHaveCount(1)
         ->and($primaryOrganizations->first()->is($otherOrganization))->toBeTrue()
-        ->and($organization->members()->first()->member->is_primary)->toBeNull();
+        ->and($organization->members()->first()->pivot->is_primary)->toBeNull();
 });
 
 it('can join many organizations with only one primary organization', function () {

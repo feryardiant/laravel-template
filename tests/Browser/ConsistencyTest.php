@@ -3,19 +3,18 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
-use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 
 it('uses pointer cursors for controls and default cursors for menu containers', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    $first = User::factory()->withRole(Role::Member)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    $first = browserMember(Role::Member);
+    browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/users');
+    $page = browserLogin($owner)->navigate('/members');
 
-    $page->hover('[data-flux-row]:has(ui-checkbox[value="'.$first->id.'"])')
+    $page->hover('[data-flux-row]:has(ui-checkbox[value="'.$first->person->id.'"])')
         ->wait(0.3)
-        ->click('ui-checkbox[value="'.$first->id.'"]')
+        ->click('ui-checkbox[value="'.$first->person->id.'"]')
         ->wait(0.3)
         ->click('Tindakan')
         ->wait(0.4)
@@ -36,8 +35,8 @@ it('uses pointer cursors for controls and default cursors for menu containers', 
 });
 
 it('mutes read notification titles and descriptions', function () {
-    $owner = User::factory()->create();
-    $actor = User::factory()->create();
+    $owner = browserMember(Role::Member);
+    $actor = browserMember(Role::Member);
 
     $owner->notify(new UserRoleChangedNotification($actor, Role::Admin));
     $owner->notify(new UserRoleChangedNotification($actor, Role::Member));
@@ -85,35 +84,42 @@ it('mutes read notification titles and descriptions', function () {
 });
 
 it('uses localized page titles', function () {
-    $member = User::factory()->create();
+    $member = browserMember(Role::Member);
 
     browserLogin($member)
-        ->navigate('/users')
-        ->assertTitleContains('Pengguna')
+        ->navigate('/members')
+        ->assertTitleContains('Anggota')
         ->navigate('/notifications')
         ->assertTitleContains('Notifikasi')
         ->navigate('/settings/profile')
         ->assertTitleContains('Pengaturan profil');
 });
 
-it('localizes user dates', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->create(['created_at' => '2026-05-05 12:00:00']);
+it('localizes member dates', function () {
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member, ['created_at' => '2026-05-05 12:00:00']);
+
+    $organization = $member->person->memberships()->firstOrFail();
+
+    $member->person->memberships()->updateExistingPivot(
+        $organization->getKey(),
+        ['start_date' => '2026-05-05'],
+    );
 
     browserLogin($owner)
-        ->navigate('/users')
+        ->navigate('/members')
         ->assertSee('05 Mei 2026');
 });
 
 it('labels the new controls in Indonesian', function () {
-    $owner = User::factory()->withRole(Role::Owner)->create();
-    User::factory()->withRole(Role::Member)->create();
+    $owner = browserMember(Role::Owner);
+    browserMember(Role::Member);
 
     browserLogin($owner, 'mobile')
-        ->navigate('/users')
-        ->assertScript('document.querySelector("input[aria-label=\"Pilih semua pengguna\"]") !== null')
+        ->navigate('/members')
+        ->assertScript('document.querySelector("input[aria-label=\"Pilih semua anggota\"]") !== null')
         ->assertScript('(document.querySelector("ui-checkbox[value]").getAttribute("aria-label") || "").startsWith("Pilih ")')
         ->click('button[aria-label="Tindakan"]')
         ->wait(0.3)
-        ->assertSee('Tambah pengguna');
+        ->assertSee('Tambah anggota');
 });

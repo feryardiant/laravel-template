@@ -16,7 +16,7 @@
 
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
+                <livewire:organization-switcher />
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
 
@@ -26,8 +26,8 @@
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
 
-                    <flux:sidebar.item icon="users" :href="route('users.index')" :current="request()->routeIs('users.*')" wire:navigate>
-                        {{ __('Users') }}
+                    <flux:sidebar.item icon="users" :href="route('members.index')" :current="request()->routeIs('members.*')" wire:navigate>
+                        {{ __('Members') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
@@ -73,7 +73,12 @@
                 >
                     <x-slot:avatar>
                         <span class="relative inline-flex">
-                            <flux:avatar :initials="auth()->user()->initials()" size="sm" />
+                            <flux:avatar
+                                :initials="auth()->user()->initials()"
+                                :src="auth()->user()->avatar_url"
+                                circle
+                                size="sm"
+                            />
 
                             <span
                                 x-show="unread > 0"
@@ -91,6 +96,8 @@
                                 <flux:avatar
                                     :name="auth()->user()->name"
                                     :initials="auth()->user()->initials()"
+                                    :src="auth()->user()->avatar_url"
+                                    circle
                                 />
 
                                 <div class="grid flex-1 text-start text-sm leading-tight">
