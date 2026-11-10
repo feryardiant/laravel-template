@@ -9,13 +9,13 @@ use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
 it('streams a private image through the application', function () {
-    Storage::fake('s3');
+    Storage::fake();
 
     $content = 'private-image-content';
 
-    Storage::disk('s3')->put('logos/logo.jpg', $content);
-    Storage::disk('s3')->buildTemporaryUrlsUsing(
-        fn (string $path): string => Storage::disk('s3')->path($path),
+    Storage::disk()->put('logos/logo.jpg', $content);
+    Storage::disk()->buildTemporaryUrlsUsing(
+        fn (string $path): string => Storage::disk()->path($path),
     );
 
     actingAs(User::factory()->create());
@@ -29,7 +29,7 @@ it('streams a private image through the application', function () {
 });
 
 it('requires authentication to stream images', function () {
-    Storage::fake('s3');
+    Storage::fake();
 
     get(route('uploads', ['path' => 'logos/logo.jpg']))
         ->assertRedirect(route('login'));

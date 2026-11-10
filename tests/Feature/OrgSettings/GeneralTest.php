@@ -94,7 +94,7 @@ it('returns not found without an organization', function () {
 
 it('updates the organization logo', function () {
     Storage::fake(FileUploadConfiguration::disk());
-    Storage::fake('s3');
+    Storage::fake();
 
     $organization = Organization::factory()->create();
 
@@ -108,7 +108,7 @@ it('updates the organization logo', function () {
     $organization->refresh();
 
     expect($organization->getRawOriginal('logo_url'))->toContain('logos/')
-        ->and(Storage::disk('s3')->allFiles('logos'))->not->toBeEmpty();
+        ->and(Storage::disk()->allFiles('logos'))->not->toBeEmpty();
 });
 
 it('renders the organization logo in the switcher', function () {

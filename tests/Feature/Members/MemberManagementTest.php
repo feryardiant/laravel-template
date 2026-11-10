@@ -445,7 +445,7 @@ test('a user without an organization sees an empty members page', function () {
 
 test('an admin can add a member with a photo', function () {
     Storage::fake(FileUploadConfiguration::disk());
-    Storage::fake('s3');
+    Storage::fake();
 
     $organization = Organization::factory()->create();
 
@@ -461,12 +461,12 @@ test('an admin can add a member with a photo', function () {
     $person = Person::query()->where('name', 'Photo Member')->firstOrFail();
 
     expect($person->getRawOriginal('photo_url'))->toContain('photos/')
-        ->and(Storage::disk('s3')->allFiles('photos'))->not->toBeEmpty();
+        ->and(Storage::disk()->allFiles('photos'))->not->toBeEmpty();
 });
 
 test('a member photo can be updated', function () {
     Storage::fake(FileUploadConfiguration::disk());
-    Storage::fake('s3');
+    Storage::fake();
 
     $organization = Organization::factory()->create();
 

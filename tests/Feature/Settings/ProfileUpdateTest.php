@@ -144,7 +144,7 @@ test('an owner can delete their account when another owner exists', function () 
 
 test('the user avatar can be uploaded', function () {
     Storage::fake(FileUploadConfiguration::disk());
-    Storage::fake('s3');
+    Storage::fake();
 
     actingAs($user = User::factory()->create());
 
@@ -156,7 +156,7 @@ test('the user avatar can be uploaded', function () {
     $user->refresh();
 
     expect($user->getRawOriginal('avatar_url'))->toContain('avatars/')
-        ->and(Storage::disk('s3')->allFiles('avatars'))->not->toBeEmpty();
+        ->and(Storage::disk()->allFiles('avatars'))->not->toBeEmpty();
 });
 
 test('the user avatar renders as a circle', function () {
@@ -172,7 +172,7 @@ test('the user avatar renders as a circle', function () {
 
 test('a non-image avatar is rejected', function () {
     Storage::fake(FileUploadConfiguration::disk());
-    Storage::fake('s3');
+    Storage::fake();
 
     actingAs($user = User::factory()->create());
 
