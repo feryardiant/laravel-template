@@ -152,3 +152,14 @@ test('subsidiaries must be organizations', function () {
         ['type' => OrganizationRelationshipType::Subsidiary],
     ))->toThrow(InvalidArgumentException::class);
 });
+
+test('an organization factory state attaches a counterparty to the given organization', function () {
+    $root = Organization::factory()->create();
+
+    $customer = Organization::factory()
+        ->asCustomerOf($root)
+        ->create(['name' => 'Customer Org']);
+
+    expect($root->organizationCounterparties()->whereKey($customer->getKey())->exists())->toBeTrue()
+        ->and($customer->organizationCounterparties()->whereKey($root->getKey())->exists())->toBeFalse();
+});
