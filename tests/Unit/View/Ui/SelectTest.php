@@ -34,7 +34,7 @@ it('renders localized clear and disabled states', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.select name="industry" value="web" label="Industry" clearable disabled />');
 
-    $view->assertSee('Kosongkan pilihan')
+    $view->assertSee(__('ui.select.clear'))
         ->assertSee('data-disabled', false)
         ->assertSee('disabled', false)
         // A disabled picker must not submit its hidden value.
@@ -67,7 +67,7 @@ it('falls back to the generic accessible name', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.select />');
 
-    $view->assertSee('aria-label="Pilih"', false);
+    $view->assertSee('aria-label="'.__('ui.common.select').'"', false);
 });
 
 it('renders the invalid state', function () {

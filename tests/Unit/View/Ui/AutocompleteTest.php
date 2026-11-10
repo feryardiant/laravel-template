@@ -35,7 +35,7 @@ it('renders the localized clear action', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.autocomplete name="state" value="Alaska" label="State" clearable />');
 
-    $view->assertSee('Kosongkan isian');
+    $view->assertSee(__('ui.autocomplete.clear'));
 });
 
 it('marks the field invalid when its model has errors', function () {
@@ -59,7 +59,7 @@ it('falls back to the generic accessible name', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.autocomplete />');
 
-    $view->assertSee('aria-label="Pilih"', false);
+    $view->assertSee('aria-label="'.__('ui.common.select').'"', false);
 });
 
 it('renders disabled and invalid states', function () {

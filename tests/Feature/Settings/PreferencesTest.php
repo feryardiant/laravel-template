@@ -17,7 +17,7 @@ test('preferences page is displayed', function () {
     get(route('preferences.edit'))
         ->assertOk()
         ->assertSee('Preferences')
-        ->assertSee('Bahasa Indonesia')
+        ->assertSee(__('Bahasa Indonesia'))
         ->assertSee('Asia/Jakarta');
 
     Livewire::test(Preferences::class)

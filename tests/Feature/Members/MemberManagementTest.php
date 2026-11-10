@@ -55,9 +55,9 @@ test('the members table shows role labels and verification status', function () 
     User::factory()->unverified()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Index::class)
-        ->assertSee('Admin')
-        ->assertSee('Terverifikasi')
-        ->assertSee('Menunggu');
+        ->assertSee(__('Admin'))
+        ->assertSee(__('Verified'))
+        ->assertSee(__('Waiting'));
 });
 
 test('members are paginated', function () {
@@ -429,7 +429,7 @@ test('the member detail page shows the membership role', function () {
     get(route('members.show', $member->person))
         ->assertOk()
         ->assertSee('Detail Member')
-        ->assertSee('Admin');
+        ->assertSee(__('Admin'));
 });
 
 test('the edit member modal is a floating right-side flyout with a bottom footer', function () {

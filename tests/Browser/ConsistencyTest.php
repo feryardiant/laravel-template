@@ -121,5 +121,5 @@ it('labels the new controls in Indonesian', function () {
         ->assertScript('(document.querySelector("ui-checkbox[value]").getAttribute("aria-label") || "").startsWith("Pilih ")')
         ->click('button[aria-label="Tindakan"]')
         ->wait(0.3)
-        ->assertSee('Tambah anggota');
+        ->assertSee(__('Add member'));
 });
