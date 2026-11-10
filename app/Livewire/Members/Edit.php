@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -39,6 +40,7 @@ class Edit extends Component
 
     public string $email = '';
 
+    #[Locked]
     public bool $hasCredential = false;
 
     public bool $createCredential = false;
@@ -50,6 +52,7 @@ class Edit extends Component
      */
     public $photo = null;
 
+    #[Locked]
     public ?string $photo_url = null;
 
     /**
@@ -72,6 +75,7 @@ class Edit extends Component
         $person = $this->member($personId);
 
         $this->authorizeManager();
+        $this->authorizeTarget($person);
         $this->fillFrom($person);
 
         $this->showModal = true;
@@ -111,11 +115,17 @@ class Edit extends Component
         $role = Role::from((int) $validated['role']);
         $currentRole = $this->person->roleIn($organization);
 
+        $this->authorizeTarget($this->person);
+
         if ($role !== $currentRole) {
             abort_if($this->person->user_id === $actor->getKey(), 403);
 
-            $this->authorizeTarget($this->person);
             $this->authorizeRole($role);
+        }
+
+        // Credentials are global: editing an email shared with other organizations would hand them the account.
+        if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+            abort_if($this->person->organizations()->whereKeyNot($organization->getKey())->exists(), 403);
         }
 
         $previousPhoto = $this->person->getRawOriginal('photo_url');

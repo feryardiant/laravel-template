@@ -104,12 +104,12 @@ class Index extends Component
         ]);
 
         $role = Role::from((int) $validated['role']);
+        $this->authorizeRole($role);
+
         $hasCredential = $this->createCredential;
         $photoUrl = $this->photo instanceof UploadedFile
             ? $storeImage->handle($this->photo, 'photos')
             : null;
-
-        $this->authorizeRole($role);
 
         $createMember->handle(
             $organization,

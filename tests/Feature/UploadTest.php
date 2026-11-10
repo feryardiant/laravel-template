@@ -34,3 +34,21 @@ it('requires authentication to stream images', function () {
     get(route('uploads', ['path' => 'logos/logo.jpg']))
         ->assertRedirect(route('login'));
 });
+
+it('only streams image paths', function () {
+    Storage::fake();
+
+    Storage::disk()->put('private/secret.txt', 'secret');
+
+    actingAs(User::factory()->create());
+
+    get(route('uploads', ['path' => 'private/secret.txt']))->assertNotFound();
+});
+
+it('returns not found for a missing image', function () {
+    Storage::fake();
+
+    actingAs(User::factory()->create());
+
+    get(route('uploads', ['path' => 'logos/missing.jpg']))->assertNotFound();
+});

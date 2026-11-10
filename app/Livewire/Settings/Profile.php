@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -32,6 +33,7 @@ class Profile extends Component
      */
     public $avatar = null;
 
+    #[Locked]
     public ?string $avatar_url = null;
 
     /**

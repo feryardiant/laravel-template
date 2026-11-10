@@ -11,6 +11,7 @@ use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -25,6 +26,7 @@ class General extends Component
      */
     public $logo = null;
 
+    #[Locked]
     public ?string $logo_url = null;
 
     /**

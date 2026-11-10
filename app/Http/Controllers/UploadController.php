@@ -15,7 +15,11 @@ class UploadController extends Controller
      */
     public function __invoke(string $path): StreamedResponse
     {
+        abort_unless(preg_match('#^(avatars|photos|logos)/[A-Za-z0-9._-]+$#', $path) === 1, 404);
+
         $storage = Storage::disk();
+
+        abort_unless($storage->exists($path), 404);
 
         // The browser never sees this internal presigned URL.
         $presignedUrl = $storage->temporaryUrl($path, now()->addMinutes(60));

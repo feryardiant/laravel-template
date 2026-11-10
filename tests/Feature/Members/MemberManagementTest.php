@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -224,6 +225,68 @@ test('editing a member can create a credential', function () {
         ->and($person->user->email)->toBe('credential@example.com');
 
     Notification::assertSentTo($person->user, VerifyEmailForNewUser::class);
+});
+
+test('an admin cannot edit an owner', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+
+    Livewire::test(Edit::class, ['person' => $owner->person])
+        ->set('email', 'attacker@example.com')
+        ->call('update')
+        ->assertForbidden();
+
+    expect($owner->fresh()->email)->not->toBe('attacker@example.com');
+});
+
+test('an admin cannot change the email of a credential shared with another organization', function () {
+    $home = Organization::factory()->create();
+    $guest = Organization::factory()->create();
+
+    $member = User::factory()->asMemberOf($home, Role::Owner)->create();
+
+    app(AddMember::class)->handle($guest, $member->person, role: Role::Member);
+
+    actingAsMember($guest, Role::Admin);
+
+    Livewire::test(Edit::class, ['person' => $member->person])
+        ->set('email', 'attacker@example.com')
+        ->call('update')
+        ->assertForbidden();
+
+    expect($member->fresh()->email)->not->toBe('attacker@example.com');
+});
+
+test('an owner can change the email of a member credential', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    Livewire::test(Edit::class, ['person' => $member->person])
+        ->set('email', 'renamed@example.com')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($member->fresh()->email)->toBe('renamed@example.com');
+});
+
+test('the member photo path cannot be changed from the client', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    expect(fn () => Livewire::test(Edit::class, ['person' => $member->person])
+        ->set('photo_url', 'photos/other.jpg'))
+        ->toThrow(CannotUpdateLockedPropertyException::class);
 });
 
 test('removing a member keeps the person and credential', function () {
