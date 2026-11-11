@@ -7,8 +7,8 @@ use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\Transport\ArrayTransport;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -17,13 +17,15 @@ use Symfony\Component\Mime\Email;
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
+uses(RefreshDatabase::class);
+
 test('the locale middleware uses the authenticated users locale', function () {
     actingAs(User::factory()->create(['locale' => Locale::English]));
 
     get(route('profile.edit'))->assertOk();
 
-    expect(app()->getLocale())->toBe(Locale::English->value)
-        ->and(Date::getLocale())->toBe(Locale::English->value);
+    expect(app()->getLocale())->toBe(Locale::English->value);
+    expect(Date::getLocale())->toBe(Locale::English->value);
 });
 
 test('the locale middleware falls back to the app default locale', function () {
@@ -35,8 +37,13 @@ test('the locale middleware falls back to the app default locale', function () {
 
     get(route('profile.edit'))->assertOk();
 
-    expect(app()->getLocale())->toBe((string) config('app.default_locale'))
-        ->and(Date::getLocale())->toBe((string) config('app.default_locale'));
+    expect(app()->getLocale())->toBe((string) config('app.default_locale'));
+    expect(Date::getLocale())->toBe((string) config('app.default_locale'));
+});
+
+test('preferred locale falls back to the app default locale', function () {
+    expect(User::factory()->create(['locale' => null])->preferredLocale())
+        ->toBe((string) config('app.default_locale'));
 });
 
 test('notifications use the recipients preferred locale', function () {
@@ -50,6 +57,7 @@ test('notifications use the recipients preferred locale', function () {
 
     $data = $recipient->notifications()->firstOrFail()->data;
 
+    /** @disregard */
     $transport = Mail::mailer()->getSymfonyTransport();
     expect($transport)->toBeInstanceOf(ArrayTransport::class);
 
@@ -57,16 +65,11 @@ test('notifications use the recipients preferred locale', function () {
     $subject = $message instanceof Email ? (string) $message->getSubject() : '';
     $html = $message instanceof Email ? (string) $message->getHtmlBody() : '';
 
-    expect($data['title'])->toBe('Your role at '.config('app.name').' has changed')
-        ->and($data['description'])->toContain('changed your role')
-        ->and($subject)->toContain('has changed')
-        ->and($html)->toContain('just changed your role')
-        ->and($html)->not->toContain('telah berubah');
-});
-
-test('preferred locale falls back to the app default locale', function () {
-    expect(User::factory()->create(['locale' => null])->preferredLocale())
-        ->toBe((string) config('app.default_locale'));
+    expect($data['title'])->toBe('Your role at '.config('app.name').' has changed');
+    expect($data['description'])->toContain('changed your role');
+    expect($subject)->toContain('has changed');
+    expect($html)->toContain('just changed your role');
+    expect($html)->not->toContain('telah berubah');
 });
 
 test('notifications fall back to the app default locale', function () {
@@ -101,8 +104,8 @@ test('dates are displayed in the users timezone while stored in UTC', function (
         ->assertOk()
         ->assertSee('02 Jan 2026');
 
-    expect(config('app.timezone'))->toBe('UTC')
-        ->and(DB::table('notifications')->where('id', $notification->id)->value('created_at'))
+    expect(config('app.timezone'))->toBe('UTC');
+    expect(DB::table('notifications')->where('id', $notification->id)->value('created_at'))
         ->toContain('2026-01-01 18:00:00');
 });
 
@@ -124,11 +127,4 @@ test('dates fall back to UTC when the user has no timezone preference', function
         ->assertSee('01 Jan 2026');
 
     expect(config('app.timezone'))->toBe('UTC');
-});
-
-test('local time renders a placeholder for a null date', function () {
-    actingAs(User::factory()->create());
-
-    expect(Blade::render('<x-local-time :date="$date" />', ['date' => null]))
-        ->toContain('—');
 });

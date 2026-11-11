@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use App\Enums\Role;
 use App\Models\Organization;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\getJson;
+
+uses(RefreshDatabase::class);
 
 test('guests cannot use the contact lookup', function () {
     getJson(route('contacts.lookup', ['q' => 'acme']))->assertUnauthorized();

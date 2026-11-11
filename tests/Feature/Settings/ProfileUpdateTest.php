@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Livewire\Settings\Profile;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,8 @@ use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+
+uses(RefreshDatabase::class);
 
 test('profile page is displayed', function () {
     actingAs($user = User::factory()->create());
@@ -125,8 +128,8 @@ test('the last owner cannot delete their account', function () {
         ->call('deleteUser')
         ->assertHasErrors(['password']);
 
-    expect($owner->fresh())->not->toBeNull()
-        ->and(Auth::check())->toBeTrue();
+    expect($owner->fresh())->not->toBeNull();
+    expect(Auth::check())->toBeTrue();
 });
 
 test('an owner can delete their account when another owner exists', function () {
@@ -155,8 +158,8 @@ test('the user avatar can be uploaded', function () {
 
     $user->refresh();
 
-    expect($user->getRawOriginal('avatar_url'))->toContain('avatars/')
-        ->and(Storage::disk()->allFiles('avatars'))->not->toBeEmpty();
+    expect($user->getRawOriginal('avatar_url'))->toContain('avatars/');
+    expect(Storage::disk()->allFiles('avatars'))->not->toBeEmpty();
 });
 
 test('the user avatar renders as a circle', function () {

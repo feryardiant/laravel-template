@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
@@ -11,6 +12,8 @@ use Tests\TestCase;
 
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     /** @var TestCase $this */

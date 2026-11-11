@@ -11,7 +11,10 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 test('deleting an individual contact detaches it and soft-deletes the owned person', function () {
     $organization = Organization::factory()->create();
@@ -23,8 +26,8 @@ test('deleting an individual contact detaches it and soft-deletes the owned pers
 
     app(DeleteContact::class)->handle($organization, $relationshipId);
 
-    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull()
-        ->and(Person::withTrashed()->find($person->getKey())?->trashed())->toBeTrue();
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeTrue();
 });
 
 test('deleting a shared contact only detaches the relationship', function () {
@@ -40,12 +43,12 @@ test('deleting a shared contact only detaches the relationship', function () {
 
     app(DeleteContact::class)->handle($owner, $relationshipId);
 
-    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull()
-        ->and(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse()
-        ->and(OrganizationRelationship::query()
-            ->where('organization_id', $other->getKey())
-            ->where('stakeholder_id', $person->getKey())
-            ->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
+    expect(OrganizationRelationship::query()
+        ->where('organization_id', $other->getKey())
+        ->where('stakeholder_id', $person->getKey())
+        ->exists())->toBeTrue();
 });
 
 test('deleting an organization contact removes the organization and its contact person together', function () {
@@ -59,9 +62,9 @@ test('deleting an organization contact removes the organization and its contact 
 
     app(DeleteContact::class)->handle($organization, $relationshipId);
 
-    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull()
-        ->and(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeTrue()
-        ->and(Person::withTrashed()->find($contactPerson?->getKey())?->trashed())->toBeTrue();
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
+    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeTrue();
+    expect(Person::withTrashed()->find($contactPerson?->getKey())?->trashed())->toBeTrue();
 });
 
 test('deleting a tenant organization contact keeps the organization', function () {
@@ -76,8 +79,8 @@ test('deleting a tenant organization contact keeps the organization', function (
 
     app(DeleteContact::class)->handle($organization, $relationshipId);
 
-    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull()
-        ->and(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeFalse();
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
+    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeFalse();
 });
 
 test('deleting a contact removes its stored photo', function () {
@@ -93,6 +96,7 @@ test('deleting a contact removes its stored photo', function () {
 
     app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $person));
 
+    /** @disregard */
     Storage::disk()->assertMissing('photos/delete.jpg');
 });
 
@@ -109,8 +113,8 @@ test('bulk deletion deduplicates the selected ids', function () {
         contactRelationshipId($organization, $second),
     ];
 
-    expect(app(DeleteContacts::class)->handle($organization, [...$ids, ...$ids]))->toBe(2)
-        ->and(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
+    expect(app(DeleteContacts::class)->handle($organization, [...$ids, ...$ids]))->toBe(2);
+    expect(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
 });
 
 test('deleting one imported duplicate keeps the other contact and the entity', function () {
@@ -132,12 +136,12 @@ test('deleting one imported duplicate keeps the other contact and the entity', f
 
     app(DeleteContact::class)->handle($organization, $customerRelationshipId);
 
-    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse()
-        ->and(OrganizationRelationship::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('stakeholder_id', $person->getKey())
-            ->where('type', OrganizationRelationshipType::Supplier)
-            ->exists())->toBeTrue();
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
+    expect(OrganizationRelationship::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_id', $person->getKey())
+        ->where('type', OrganizationRelationshipType::Supplier)
+        ->exists())->toBeTrue();
 });
 
 test('deleting an individual contact keeps a user-linked person', function () {
@@ -163,8 +167,8 @@ test('deleting an individual contact keeps a person the tenant uses as its prima
 
     app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $person));
 
-    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse()
-        ->and($organization->fresh()?->contact_id)->toBe($person->getKey());
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
+    expect($organization->fresh()?->contact_id)->toBe($person->getKey());
 });
 
 test('deleting an organization contact keeps it when its contact person is used elsewhere', function () {
@@ -179,8 +183,8 @@ test('deleting an organization contact keeps it when its contact person is used 
 
     app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $contact));
 
-    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeFalse()
-        ->and(Person::withTrashed()->find($contactPerson?->getKey())?->trashed())->toBeFalse();
+    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeFalse();
+    expect(Person::withTrashed()->find($contactPerson?->getKey())?->trashed())->toBeFalse();
 });
 
 test('deleting an organization contact keeps it when the organization owns relationships', function () {

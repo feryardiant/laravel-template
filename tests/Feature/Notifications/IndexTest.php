@@ -9,12 +9,15 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 use App\Notifications\VerifyEmailForNewUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
+
+uses(RefreshDatabase::class);
 
 test('guests are redirected from the notifications page', function () {
     get(route('notifications.index'))->assertRedirect(route('login'));
@@ -265,9 +268,9 @@ test('role change notifications are stored in the database', function () {
 
     $notification = $user->notifications()->firstOrFail();
 
-    expect($notification->type)->toBe(UserRoleChangedNotification::class)
-        ->and($notification->data['title'])->toBe(__('Your role at :app has changed', ['app' => config('app.name')]))
-        ->and($notification->data['description'])->toContain($actor->name);
+    expect($notification->type)->toBe(UserRoleChangedNotification::class);
+    expect($notification->data['title'])->toBe(__('Your role at :app has changed', ['app' => config('app.name')]));
+    expect($notification->data['description'])->toContain($actor->name);
 });
 
 test('email verification notifications are only sent by email', function () {
@@ -275,8 +278,8 @@ test('email verification notifications are only sent by email', function () {
 
     $user->notify(new VerifyEmailForNewUser);
 
-    expect((new VerifyEmailForNewUser)->via($user))->toBe(['mail'])
-        ->and($user->notifications()->count())->toBe(0);
+    expect((new VerifyEmailForNewUser)->via($user))->toBe(['mail']);
+    expect($user->notifications()->count())->toBe(0);
 });
 
 test('a user notifications are deleted with the account', function () {

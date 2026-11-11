@@ -28,8 +28,8 @@ it('reads the role from the persons membership', function () {
         ->withMember($person, role: Role::Member)
         ->create();
 
-    expect($user->roleIn($ownerOrganization))->toBe(Role::Owner)
-        ->and($user->roleIn($memberOrganization))->toBe(Role::Member);
+    expect($user->roleIn($ownerOrganization))->toBe(Role::Owner);
+    expect($user->roleIn($memberOrganization))->toBe(Role::Member);
 });
 
 it('has no role in an organization the person is not a member of', function () {
@@ -51,6 +51,6 @@ it('ignores memberships that have finished or not started', function () {
         ->withMember($person, role: Role::Owner, startDate: now()->addDay())
         ->create();
 
-    expect($user->roleIn($finished))->toBeNull()
-        ->and($user->roleIn($future))->toBeNull();
+    expect($user->roleIn($finished))->toBeNull();
+    expect($user->roleIn($future))->toBeNull();
 });

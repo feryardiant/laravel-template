@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -10,10 +11,17 @@ use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
 
+uses(RefreshDatabase::class);
+
 test('login screen can be rendered', function () {
     $response = get(route('login'));
 
     $response->assertOk();
+});
+
+test('guests are redirected to the login page', function () {
+    $response = get(route('dashboard'));
+    $response->assertRedirect(route('login'));
 });
 
 test('users can authenticate using the login screen', function () {
