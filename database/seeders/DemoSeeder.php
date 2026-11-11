@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
@@ -27,7 +28,7 @@ class DemoSeeder extends Seeder
 
     private function createTenants(Organization $root): void
     {
-        $customers = User::factory(5)
+        $parties = User::factory(20)
             ->withProfile()
             ->state(new Sequence(fn (Sequence $seq) => [
                 'email' => \sprintf('owner%1$d@customer%1$d.com', $seq->index + 1),
@@ -35,14 +36,26 @@ class DemoSeeder extends Seeder
             ]))
             ->create();
 
-        foreach ($customers as $customer) {
+        foreach ($parties as $party) {
+            $type = fake()->randomElement(OrganizationRelationshipType::externals());
+            $start = now();
+
+            if (fake()->boolean(40)) {
+                $root->personCounterparties()->attach($party->person, [
+                    'type' => $type,
+                    'start_date' => $start,
+                ]);
+
+                continue;
+            }
+
             $org = Organization::factory()
                 ->asTenantOf($root)
-                ->asCustomerOf($root)
-                ->withMember($customer->person, role: Role::Owner, isPrimary: true)
+                ->asCounterpartyOf($root, $type, $start)
+                ->withMember($party->person, role: Role::Owner, isPrimary: true)
                 ->create([
-                    'contact_id' => $customer->person->getKey(),
-                    'name' => \sprintf('%s Org', $customer->name),
+                    'contact_id' => $party->person->getKey(),
+                    'name' => \sprintf('%s Org', $party->name),
                     'summary' => null,
                 ]);
 
