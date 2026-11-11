@@ -7,10 +7,10 @@ use Carbon\Carbon;
 use Flux\DateRange;
 
 it('formats single dates and rejects invalid keys', function () {
-    expect(Value::date('2026-11-08'))->toBe('2026-11-08')
-        ->and(Value::date('2026-02-30'))->toBeNull()
-        ->and(Value::date('08/11/2026'))->toBeNull()
-        ->and(Value::date(null))->toBeNull();
+    expect(Value::date('2026-11-08'))->toBe('2026-11-08');
+    expect(Value::date('2026-02-30'))->toBeNull();
+    expect(Value::date('08/11/2026'))->toBeNull();
+    expect(Value::date(null))->toBeNull();
 });
 
 it('formats Carbon in its own timezone without converting to UTC', function () {
@@ -20,8 +20,8 @@ it('formats Carbon in its own timezone without converting to UTC', function () {
 });
 
 it('normalizes multiple dates and removes duplicates', function () {
-    expect(Value::dates('2026-11-08, 2026-11-09'))->toBe(['2026-11-08', '2026-11-09'])
-        ->and(Value::dates(['2026-11-08', '2026-11-08', 'invalid']))->toBe(['2026-11-08']);
+    expect(Value::dates('2026-11-08, 2026-11-09'))->toBe(['2026-11-08', '2026-11-09']);
+    expect(Value::dates(['2026-11-08', '2026-11-08', 'invalid']))->toBe(['2026-11-08']);
 });
 
 it('normalizes string, array and DateRange ranges', function () {
@@ -41,11 +41,11 @@ it('normalizes string, array and DateRange ranges', function () {
 });
 
 it('normalizes times and rejects invalid values', function () {
-    expect(Value::time('09:30'))->toBe('09:30')
-        ->and(Value::time('09:30:15'))->toBe('09:30')
-        ->and(Value::time('24:00'))->toBeNull()
-        ->and(Value::time('9:30'))->toBeNull()
-        ->and(Value::time(null))->toBeNull();
+    expect(Value::time('09:30'))->toBe('09:30');
+    expect(Value::time('09:30:15'))->toBe('09:30');
+    expect(Value::time('24:00'))->toBeNull();
+    expect(Value::time('9:30'))->toBeNull();
+    expect(Value::time(null))->toBeNull();
 });
 
 it('formats Carbon times in their own timezone without converting to UTC', function () {
@@ -55,8 +55,8 @@ it('formats Carbon times in their own timezone without converting to UTC', funct
 });
 
 it('normalizes multiple times and removes duplicates', function () {
-    expect(Value::times('09:00, 10:30'))->toBe(['09:00', '10:30'])
-        ->and(Value::times(['09:00', '09:00', '10:30', 'invalid']))->toBe(['09:00', '10:30']);
+    expect(Value::times('09:00, 10:30'))->toBe(['09:00', '10:30']);
+    expect(Value::times(['09:00', '09:00', '10:30', 'invalid']))->toBe(['09:00', '10:30']);
 });
 
 it('normalizes a time range by array or slash string', function () {
@@ -84,11 +84,11 @@ it('normalizes unavailable time ranges', function () {
 });
 
 it('normalizes datetimes and date-only values', function () {
-    expect(Value::datetime('2026-11-08T10:30'))->toBe('2026-11-08T10:30')
-        ->and(Value::datetime('2026-11-08 10:30'))->toBe('2026-11-08T10:30')
-        ->and(Value::datetime('2026-11-08'))->toBe('2026-11-08T00:00')
-        ->and(Value::datetime('2026-02-30T10:00'))->toBeNull()
-        ->and(Value::datetime(null))->toBeNull();
+    expect(Value::datetime('2026-11-08T10:30'))->toBe('2026-11-08T10:30');
+    expect(Value::datetime('2026-11-08 10:30'))->toBe('2026-11-08T10:30');
+    expect(Value::datetime('2026-11-08'))->toBe('2026-11-08T00:00');
+    expect(Value::datetime('2026-02-30T10:00'))->toBeNull();
+    expect(Value::datetime(null))->toBeNull();
 });
 
 it('formats Carbon datetimes in their own timezone', function () {
@@ -123,13 +123,13 @@ it('normalizes datetime unavailable entries', function () {
 });
 
 it('normalizes a calendar value by mode', function () {
-    expect(Value::calendar('2026-11-08', 'single'))->toBe('2026-11-08')
-        ->and(Value::calendar(['2026-11-08', '2026-11-09'], 'multiple'))->toBe([
-            '2026-11-08',
-            '2026-11-09',
-        ])
-        ->and(Value::calendar('2026-11-01/2026-11-05', 'range'))->toBe([
-            'start' => '2026-11-01',
-            'end' => '2026-11-05',
-        ]);
+    expect(Value::calendar('2026-11-08', 'single'))->toBe('2026-11-08');
+    expect(Value::calendar(['2026-11-08', '2026-11-09'], 'multiple'))->toBe([
+        '2026-11-08',
+        '2026-11-09',
+    ]);
+    expect(Value::calendar('2026-11-01/2026-11-05', 'range'))->toBe([
+        'start' => '2026-11-01',
+        'end' => '2026-11-05',
+    ]);
 });

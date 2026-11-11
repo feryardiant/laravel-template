@@ -5,11 +5,14 @@ declare(strict_types=1);
 use App\Enums\Locale;
 use App\Livewire\Settings\Preferences;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 use function Pest\Laravel\patchJson;
+
+uses(RefreshDatabase::class);
 
 test('preferences page is displayed', function () {
     actingAs($user = User::factory()->create(['locale' => Locale::English, 'timezone' => 'Asia/Jakarta']));

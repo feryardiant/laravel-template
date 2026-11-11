@@ -163,50 +163,60 @@ it('opens above the trigger and stays anchored while filtering', function () {
     $page = visit('/ui/select')->on()->desktop();
     $trigger = '[data-ui-demo="select-single"] [role="combobox"]';
 
-    $page->assertScript("(() => {
-        document.body.style.paddingTop = '900px';
-        const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-
-        window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
-
-        return true;
-    })()")
-        ->click($trigger)
-        ->wait(0.3)
-        ->assertScript("(() => {
+    $page->assertScript(<<<'JS'
+        (() => {
+            document.body.style.paddingTop = '900px';
             const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
-            const triggerRect = trigger.getBoundingClientRect();
-            const popoverRect = popover.getBoundingClientRect();
 
-            return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
-        })()")
-        ->keys($trigger, ['d', 'e', 's'])
-        ->wait(0.5)
-        ->assertScript("(() => {
-            const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
-            const triggerRect = trigger.getBoundingClientRect();
-            const popoverRect = popover.getBoundingClientRect();
-
-            return Math.abs(triggerRect.top - popoverRect.bottom) <= 6 && popoverRect.height < 100;
-        })()")
-        ->assertScript("(() => {
-            document.body.style.paddingTop = '0';
-            window.scrollTo(0, 0);
-            window.dispatchEvent(new Event('resize'));
+            window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
 
             return true;
-        })()")
+        })()
+        JS)
+        ->click($trigger)
         ->wait(0.3)
-        ->assertScript("(() => {
-            const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
-            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
-            const triggerRect = trigger.getBoundingClientRect();
-            const popoverRect = popover.getBoundingClientRect();
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
+                const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
 
-            return popoverRect.top >= triggerRect.bottom - 1;
-        })()");
+                return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
+            })()
+            JS)
+        ->keys($trigger, ['d', 'e', 's'])
+        ->wait(0.5)
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
+                const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
+
+                return Math.abs(triggerRect.top - popoverRect.bottom) <= 6 && popoverRect.height < 100;
+            })()
+            JS)
+        ->assertScript(<<<'JS'
+            (() => {
+                document.body.style.paddingTop = '0';
+                window.scrollTo(0, 0);
+                window.dispatchEvent(new Event('resize'));
+
+                return true;
+            })()
+            JS)
+        ->wait(0.3)
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
+                const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
+
+                return popoverRect.top >= triggerRect.bottom - 1;
+            })()
+            JS);
 });
 
 it('uses a custom empty message and hides the listbox', function () {
@@ -244,14 +254,16 @@ it('dispatches open, close, change, and clear events', function () {
     $page = visit('/ui/select')->on()->desktop();
     $trigger = '[data-ui-demo="select-single"] [role="combobox"]';
 
-    $page->assertScript("(() => {
-        window.__uiEvents = [];
-        const element = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
+    $page->assertScript(<<<'JS'
+        (() => {
+            window.__uiEvents = [];
+            const element = document.querySelector('[data-ui-demo=select-single] [role=combobox]');
 
-        ['open', 'close', 'change', 'clear'].forEach((name) => element.addEventListener(name, () => window.__uiEvents.push(name)));
+            ['open', 'close', 'change', 'clear'].forEach((name) => element.addEventListener(name, () => window.__uiEvents.push(name)));
 
-        return true;
-    })()")
+            return true;
+        })()
+        JS)
         ->click($trigger)
         ->wait(0.2)
         ->click('[data-ui-demo="select-single"] [data-ui-option][data-value="design"]')
@@ -268,13 +280,15 @@ it('serializes plain form values', function () {
 
     $page->assertScript("document.querySelector('[data-ui-demo=select-plain] input[name=plain_industry]').value === 'design'")
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=select-plain] input[name^=plain_tags]')).map((input) => input.value).join('|') === 'design'")
-        ->assertScript("(() => {
-            const root = document.querySelectorAll('[data-ui-demo=select-plain] [data-ui-select]')[1];
-            root.querySelector('[role=combobox]').focus();
-            root.querySelector('[data-ui-option][data-value=marketing]').click();
+        ->assertScript(<<<'JS'
+            (() => {
+                const root = document.querySelectorAll('[data-ui-demo=select-plain] [data-ui-select]')[1];
+                root.querySelector('[role=combobox]').focus();
+                root.querySelector('[data-ui-option][data-value=marketing]').click();
 
-            return true;
-        })()")
+                return true;
+            })()
+            JS)
         ->wait(0.3)
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=select-plain] input[name^=plain_tags]')).map((input) => input.value).sort().join('|') === 'design|marketing'");
 });
@@ -292,58 +306,68 @@ it('keeps a wide popover inside the mobile viewport', function () {
 
     $page->click('[data-ui-demo="select-wide"] [role="combobox"]')
         ->wait(0.3)
-        ->assertScript("(() => {
-            const trigger = document.querySelector('[data-ui-demo=select-wide] [role=combobox]');
-            const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
-            const rect = popover.getBoundingClientRect();
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=select-wide] [role=combobox]');
+                const popover = trigger.closest('[data-ui-select]').querySelector('[data-ui-popover]');
+                const rect = popover.getBoundingClientRect();
 
-            return rect.left >= 8 && rect.right <= window.innerWidth - 8;
-        })()");
+                return rect.left >= 8 && rect.right <= window.innerWidth - 8;
+            })()
+            JS);
 });
 
 it('centers option content on mobile', function () {
     visit('/ui/select')
         ->on()
         ->mobile()
-        ->assertScript("(() => {
-            document.querySelector('[data-ui-demo=select-single] [role=combobox]').click();
+        ->assertScript(<<<'JS'
+            (() => {
+                document.querySelector('[data-ui-demo=select-single] [role=combobox]').click();
 
-            return true;
-        })()")
+                return true;
+            })()
+            JS)
         ->wait(0.3)
-        ->assertScript("(() => {
-            const option = document.querySelector('[data-ui-demo=select-single] [data-ui-option]');
-            const style = getComputedStyle(option);
+        ->assertScript(<<<'JS'
+            (() => {
+                const option = document.querySelector('[data-ui-demo=select-single] [data-ui-option]');
+                const style = getComputedStyle(option);
 
-            return style.alignItems === 'center' &&
-                Math.round(option.getBoundingClientRect().height) === 44;
-        })()");
+                return style.alignItems === 'center' &&
+                    Math.round(option.getBoundingClientRect().height) === 44;
+            })()
+            JS);
 });
 
 it('keeps pills compact and removes them from a pill click', function () {
     $page = visit('/ui/select')->on()->mobile();
     $pill = '[data-ui-demo=select-pillbox] [data-ui-pill][data-value=design]';
 
-    $page->assertScript("(() => {
-        const root = document.querySelector('[data-ui-demo=select-pillbox]');
-        const pill = root.querySelector('[data-ui-pill][data-value=design]');
-        const button = pill.querySelector('button');
-        const clear = root.querySelector('button[aria-label=\"Kosongkan pilihan\"]');
-        const anchor = root.querySelector('[role=combobox]').closest('[data-flux-control]');
+    $page->assertScript(<<<'JS'
+        (() => {
+            const root = document.querySelector('[data-ui-demo=select-pillbox]');
+            const pill = root.querySelector('[data-ui-pill][data-value=design]');
+            const button = pill.querySelector('button');
+            const clear = root.querySelector('button[aria-label="Kosongkan pilihan"]');
+            const anchor = root.querySelector('[role=combobox]').closest('[data-flux-control]');
 
-        return !button.disabled &&
-            clear !== null &&
-            getComputedStyle(clear).display !== 'none' &&
-            pill.getBoundingClientRect().height < 36 &&
-            anchor.getBoundingClientRect().height >= 44;
-    })()")
+            return !button.disabled &&
+                clear !== null &&
+                getComputedStyle(clear).display !== 'none' &&
+                pill.getBoundingClientRect().height < 36 &&
+                anchor.getBoundingClientRect().height >= 44;
+        })()
+        JS)
         ->click($pill)
         ->wait(0.8)
-        ->assertScript("(() => {
-            const root = document.querySelector('[data-ui-demo=select-pillbox]');
+        ->assertScript(<<<'JS'
+            (() => {
+                const root = document.querySelector('[data-ui-demo=select-pillbox]');
 
-            return root.querySelectorAll('[data-ui-pill]').length === 0 &&
-                getComputedStyle(root.querySelector('button[aria-label=\"Kosongkan pilihan\"]')).display === 'none' &&
-                document.querySelector('[data-ui-bound=tags]').textContent.trim() === '';
-        })()");
+                return root.querySelectorAll('[data-ui-pill]').length === 0 &&
+                    getComputedStyle(root.querySelector('button[aria-label="Kosongkan pilihan"]')).display === 'none' &&
+                    document.querySelector('[data-ui-bound=tags]').textContent.trim() === '';
+            })()
+            JS);
 });

@@ -8,8 +8,11 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\get;
+
+uses(RefreshDatabase::class);
 
 test('the contact view page renders the contact information', function () {
     $organization = Organization::factory()->create();

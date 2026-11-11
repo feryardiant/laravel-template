@@ -98,9 +98,9 @@ it('generates unique ids for duplicate models', function () {
     preg_match_all('/id="(ui-select-[^"]+-trigger)"/', $html, $triggers);
     preg_match_all('/aria-controls="(ui-select-[^"]+-listbox)"/', $html, $controls);
 
-    expect($triggers[1])->toHaveCount(2)
-        ->and(array_unique($triggers[1]))->toHaveCount(2)
-        ->and(array_unique($controls[1]))->toHaveCount(2);
+    expect($triggers[1])->toHaveCount(2);
+    expect(array_unique($triggers[1]))->toHaveCount(2);
+    expect(array_unique($controls[1]))->toHaveCount(2);
 });
 
 it('sits bare inside a Flux field', function () {
@@ -117,6 +117,6 @@ it('sits bare inside a Flux field', function () {
 
     $html = (string) $view;
 
-    expect(substr_count($html, 'Nested field'))->toBe(1)
-        ->and(substr_count($html, 'Outer field description'))->toBe(1);
+    expect(substr_count($html, 'Nested field'))->toBe(1);
+    expect(substr_count($html, 'Outer field description'))->toBe(1);
 });

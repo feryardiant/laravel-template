@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\Locale;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Features;
@@ -11,17 +13,19 @@ use Tests\TestCase;
 
 use function Pest\Laravel\actingAs;
 
+uses(RefreshDatabase::class);
+
 beforeEach(function () {
     /** @var TestCase $this */
     $this->skipUnlessFortifyHas(Features::emailVerification());
 });
 
 test('email verification screen can be rendered', function () {
-    $user = User::factory()->unverified()->create();
+    $user = User::factory()->unverified()->create(['locale' => Locale::Indonesian]);
 
     $response = actingAs($user)->get(route('verification.notice'));
 
-    $response->assertOk();
+    $response->assertOk()->assertSee('verifikasi alamat email');
 });
 
 test('unverified users are redirected to the email verification prompt', function () {

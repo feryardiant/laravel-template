@@ -38,8 +38,8 @@ it('can only have one address', function () {
 it('reports a null relationship type as neither internal nor external', function () {
     $relationship = new OrganizationRelationship(['type' => null]);
 
-    expect($relationship->is_internal)->toBeFalse()
-        ->and($relationship->is_external)->toBeFalse();
+    expect($relationship->is_internal)->toBeFalse();
+    expect($relationship->is_external)->toBeFalse();
 });
 
 it('removes inbound relationships when an organization is force-deleted', function () {
@@ -83,8 +83,8 @@ test('external counterparties can be organizations or people', function (Organiz
     $organization->personCounterparties()->attach($relatedPerson, ['type' => $type]);
 
     expect($organization->organizationCounterparties($type)->get()->pluck('id')->all())
-        ->toContain($relatedOrganization->id)
-        ->and($organization->personCounterparties($type)->get()->pluck('id')->all())
+        ->toContain($relatedOrganization->id);
+    expect($organization->personCounterparties($type)->get()->pluck('id')->all())
         ->toContain($relatedPerson->id);
 })->with([
     'customers' => [OrganizationRelationshipType::Customer],
@@ -111,12 +111,12 @@ it('returns organization and person counterparties together', function () {
     $counterparties = $organization->counterparties();
     $customers = $organization->counterparties(OrganizationRelationshipType::Customer);
 
-    expect($counterparties)->toHaveCount(3)
-        ->and($counterparties->get(0)->is($relatedOrganization))->toBeTrue()
-        ->and($counterparties->get(1)->is($relatedPerson))->toBeTrue()
-        ->and($customers)->toHaveCount(2)
-        ->and($customers->get(0)->is($relatedOrganization))->toBeTrue()
-        ->and($customers->get(1)->is($relatedPerson))->toBeTrue();
+    expect($counterparties)->toHaveCount(3);
+    expect($counterparties->get(0)->is($relatedOrganization))->toBeTrue();
+    expect($counterparties->get(1)->is($relatedPerson))->toBeTrue();
+    expect($customers)->toHaveCount(2);
+    expect($customers->get(0)->is($relatedOrganization))->toBeTrue();
+    expect($customers->get(1)->is($relatedPerson))->toBeTrue();
 });
 
 it('allows counterparty codes to be reused by different organizations only', function () {
@@ -160,6 +160,6 @@ test('an organization factory state attaches a counterparty to the given organiz
         ->asCustomerOf($root)
         ->create(['name' => 'Customer Org']);
 
-    expect($root->organizationCounterparties()->whereKey($customer->getKey())->exists())->toBeTrue()
-        ->and($customer->organizationCounterparties()->whereKey($root->getKey())->exists())->toBeFalse();
+    expect($root->organizationCounterparties()->whereKey($customer->getKey())->exists())->toBeTrue();
+    expect($customer->organizationCounterparties()->whereKey($root->getKey())->exists())->toBeFalse();
 });

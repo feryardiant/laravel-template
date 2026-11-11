@@ -9,10 +9,13 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+
+uses(RefreshDatabase::class);
 
 test('guests are redirected from the contacts page', function () {
     get(route('contacts.index'))->assertRedirect(route('login'));

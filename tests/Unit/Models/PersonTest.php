@@ -31,8 +31,8 @@ it('gets a stable uuid', function () {
 it('can exist without a credential', function () {
     $person = Person::factory()->withoutCredential()->create();
 
-    expect($person->user_id)->toBeNull()
-        ->and($person->user)->toBeNull();
+    expect($person->user_id)->toBeNull();
+    expect($person->user)->toBeNull();
 });
 
 it('allows only one person per credential', function () {
@@ -50,8 +50,8 @@ it('keeps a person and their primary-contact organizations when their credential
 
     $person->user->delete();
 
-    expect($person->fresh()->user_id)->toBeNull()
-        ->and($organization->fresh())->toBeInstanceOf(Organization::class);
+    expect($person->fresh()->user_id)->toBeNull();
+    expect($organization->fresh())->toBeInstanceOf(Organization::class);
 });
 
 it('can have relatives', function () {
@@ -78,8 +78,8 @@ it('can be the primary contact for organizations', function () {
     $person = Person::factory()->create();
     $organization = Organization::factory()->create(['contact_id' => $person->id]);
 
-    expect($organization->primaryContact->is($person))->toBeTrue()
-        ->and($person->primaryContactOrganizations->first()->is($organization))->toBeTrue();
+    expect($organization->primaryContact->is($person))->toBeTrue();
+    expect($person->primaryContactOrganizations->first()->is($organization))->toBeTrue();
 });
 
 it('resolves a primary contact after it is soft-deleted', function () {
@@ -98,8 +98,8 @@ it('gets a new uuid when replicated', function () {
     $replica->save();
 
     expect($replica->uuid)
-        ->not->toBe($person->uuid)
-        ->and($replica->fresh()->uuid)->toBe($replica->uuid);
+        ->not->toBe($person->uuid);
+    expect($replica->fresh()->uuid)->toBe($replica->uuid);
 });
 
 it('prevents deleting a primary contact while organizations reference them', function () {

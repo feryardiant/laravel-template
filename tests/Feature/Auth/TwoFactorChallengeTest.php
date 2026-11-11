@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     /** @var TestCase $this */

@@ -17,6 +17,6 @@ it('formats item sizes and marks invalid items', function () {
     $html = (string) $view;
 
     expect($html)->toContain('1.5 KB')
-        ->toContain('2.0 MB')
-        ->and(substr_count($html, 'data-invalid'))->toBe(1);
+        ->toContain('2.0 MB');
+    expect(substr_count($html, 'data-invalid'))->toBe(1);
 });

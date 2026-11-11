@@ -32,8 +32,8 @@ it('assigns the membership role', function () {
         ->withMember($person = Person::factory()->create(), role: Role::Admin)
         ->create();
 
-    expect($organization->members()->first()->pivot->role)->toBe(Role::Admin)
-        ->and($person->roleIn($organization))->toBe(Role::Admin);
+    expect($organization->members()->first()->pivot->role)->toBe(Role::Admin);
+    expect($person->roleIn($organization))->toBe(Role::Admin);
 });
 
 it('updates the membership role when an existing member is added again', function () {
@@ -43,8 +43,8 @@ it('updates the membership role when an existing member is added again', functio
 
     app(AddMember::class)->handle($organization, $person, role: Role::Owner);
 
-    expect($organization->members()->count())->toBe(1)
-        ->and($person->roleIn($organization))->toBe(Role::Owner);
+    expect($organization->members()->count())->toBe(1);
+    expect($person->roleIn($organization))->toBe(Role::Owner);
 });
 
 it('does not assign a role to non-member relationships', function () {
@@ -78,9 +78,9 @@ it('keeps an existing counterparty relationship when adding a member', function 
 
     app(AddMember::class)->handle($organization, $person);
 
-    expect($organization->members()->whereKey($person->getKey())->exists())->toBeTrue()
-        ->and($organization->personCounterparties(OrganizationRelationshipType::Customer)
-            ->whereKey($person->getKey())->exists())->toBeTrue();
+    expect($organization->members()->whereKey($person->getKey())->exists())->toBeTrue();
+    expect($organization->personCounterparties(OrganizationRelationshipType::Customer)
+        ->whereKey($person->getKey())->exists())->toBeTrue();
 });
 
 it('promotes an existing member without duplicating them', function () {
@@ -92,8 +92,8 @@ it('promotes an existing member without duplicating them', function () {
 
     $members = $organization->members()->get();
 
-    expect($members)->toHaveCount(1)
-        ->and($members->first()->pivot->is_primary)->toBeTrue();
+    expect($members)->toHaveCount(1);
+    expect($members->first()->pivot->is_primary)->toBeTrue();
 });
 
 it('moves a persons primary organization when they join another as primary', function () {
@@ -109,9 +109,9 @@ it('moves a persons primary organization when they join another as primary', fun
         ->wherePivot('is_primary', true)
         ->get();
 
-    expect($primaryOrganizations)->toHaveCount(1)
-        ->and($primaryOrganizations->first()->is($otherOrganization))->toBeTrue()
-        ->and($organization->members()->first()->pivot->is_primary)->toBeNull();
+    expect($primaryOrganizations)->toHaveCount(1);
+    expect($primaryOrganizations->first()->is($otherOrganization))->toBeTrue();
+    expect($organization->members()->first()->pivot->is_primary)->toBeNull();
 });
 
 it('can join many organizations with only one primary organization', function () {
@@ -129,9 +129,9 @@ it('can join many organizations with only one primary organization', function ()
         ->wherePivot('is_primary', true)
         ->get();
 
-    expect($person->organizationRelationships()->wherePivot('type', OrganizationRelationshipType::Member)->count())->toBe(3)
-        ->and($primaries)->toHaveCount(1)
-        ->and($primaries->first()->is($second))->toBeTrue();
+    expect($person->organizationRelationships()->wherePivot('type', OrganizationRelationshipType::Member)->count())->toBe(3);
+    expect($primaries)->toHaveCount(1);
+    expect($primaries->first()->is($second))->toBeTrue();
 
     app(AddMember::class)->handle($second, Person::factory()->create(), isPrimary: true);
     app(AddMember::class)->handle($second, Person::factory()->create(), isPrimary: true);

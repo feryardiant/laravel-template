@@ -9,12 +9,15 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use App\Support\Setup as SetupState;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 use function Pest\Laravel\get;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     /** @var TestCase $this */
@@ -82,17 +85,17 @@ test('setup provisions the root tenant and owner', function () {
     $person = Person::query()->where('user_id', $user->getKey())->firstOrFail();
     $organization = Organization::query()->rootTenant()->firstOrFail();
 
-    expect($user->name)->toBe('Root Owner')
-        ->and($user->email)->toBe('root@example.com')
-        ->and($user->hasVerifiedEmail())->toBeTrue()
-        ->and($organization->name)->toBe("Root Owner's Org")
-        ->and($organization->contact_id)->toBe($person->getKey())
-        ->and($organization->is_tenant)->toBeTrue()
-        ->and($organization->root_organization_id)->toBeNull()
-        ->and($person->roleIn($organization))->toBe(Role::Owner)
-        ->and($person->primaryOrganization()?->is($organization))->toBeTrue()
-        ->and(Auth::id())->toBe($user->getKey())
-        ->and(session(CurrentOrganization::SESSION_KEY))->toBe($organization->getKey());
+    expect($user->name)->toBe('Root Owner');
+    expect($user->email)->toBe('root@example.com');
+    expect($user->hasVerifiedEmail())->toBeTrue();
+    expect($organization->name)->toBe("Root Owner's Org");
+    expect($organization->contact_id)->toBe($person->getKey());
+    expect($organization->is_tenant)->toBeTrue();
+    expect($organization->root_organization_id)->toBeNull();
+    expect($person->roleIn($organization))->toBe(Role::Owner);
+    expect($person->primaryOrganization()?->is($organization))->toBeTrue();
+    expect(Auth::id())->toBe($user->getKey());
+    expect(session(CurrentOrganization::SESSION_KEY))->toBe($organization->getKey());
 });
 
 test('setup rejects the seeded email address', function () {

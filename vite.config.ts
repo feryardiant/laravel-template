@@ -8,10 +8,6 @@ export default defineConfig(({ mode }): UserConfig => {
     const appUrl = new URL(env.APP_URL || 'http://localhost')
     const reporters: TestUserConfig['reporters'] = ['default']
 
-    if (env.GITHUB_ACTIONS === 'true') {
-        reporters.push('github-actions')
-    }
-
     return {
         staged: {
             '*.{css,md,json,js,ts,yaml,yml}': 'vp check --fix',

@@ -11,8 +11,8 @@ it('stores an image and returns its path', function () {
 
     $path = app(StoreImage::class)->handle(UploadedFile::fake()->image('avatar.jpg'), 'avatars');
 
-    expect($path)->toContain('avatars/')
-        ->and(Storage::disk()->exists($path))->toBeTrue();
+    expect($path)->toContain('avatars/');
+    expect(Storage::disk()->exists($path))->toBeTrue();
 });
 
 it('replaces and deletes the previous image', function () {
@@ -23,8 +23,8 @@ it('replaces and deletes the previous image', function () {
     $first = $action->handle(UploadedFile::fake()->image('first.jpg'), 'photos');
     $second = $action->replace(UploadedFile::fake()->image('second.jpg'), 'photos', $first);
 
-    expect(Storage::disk()->exists($first))->toBeFalse()
-        ->and(Storage::disk()->exists($second))->toBeTrue();
+    expect(Storage::disk()->exists($first))->toBeFalse();
+    expect(Storage::disk()->exists($second))->toBeTrue();
 });
 
 it('ignores external image urls when deleting', function () {

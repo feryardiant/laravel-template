@@ -12,10 +12,13 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+
+uses(RefreshDatabase::class);
 
 test('editing a contact updates its per-tenant and shared fields', function () {
     $organization = Organization::factory()->create();
@@ -46,14 +49,14 @@ test('editing a contact updates its per-tenant and shared fields', function () {
     $contactPerson?->refresh();
     $relationship = OrganizationRelationship::query()->findOrFail($relationshipId);
 
-    expect($contact->name)->toBe('Acme Updated')
-        ->and($contact->summary)->toBe('Updated summary')
-        ->and($contactPerson?->name)->toBe('Nara Updated')
-        ->and($contactPerson?->gender)->toBe(Gender::Male)
-        ->and($relationship->code)->toBe('UPDATED-1')
-        ->and($relationship->type)->toBe(OrganizationRelationshipType::Supplier)
-        ->and($relationship->start_date?->toDateString())->toBe('2026-01-01')
-        ->and($relationship->finish_date?->toDateString())->toBe('2026-12-31');
+    expect($contact->name)->toBe('Acme Updated');
+    expect($contact->summary)->toBe('Updated summary');
+    expect($contactPerson?->name)->toBe('Nara Updated');
+    expect($contactPerson?->gender)->toBe(Gender::Male);
+    expect($relationship->code)->toBe('UPDATED-1');
+    expect($relationship->type)->toBe(OrganizationRelationshipType::Supplier);
+    expect($relationship->start_date?->toDateString())->toBe('2026-01-01');
+    expect($relationship->finish_date?->toDateString())->toBe('2026-12-31');
 });
 
 test('editing keeps the contact type even when the client changes it', function () {
@@ -71,8 +74,8 @@ test('editing keeps the contact type even when the client changes it', function 
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($contact->fresh())->toBeInstanceOf(Organization::class)
-        ->and($contact->fresh()?->name)->toBe('Typed Org');
+    expect($contact->fresh())->toBeInstanceOf(Organization::class);
+    expect($contact->fresh()?->name)->toBe('Typed Org');
 });
 
 test('a user-linked contact keeps its shared fields', function () {
@@ -91,8 +94,8 @@ test('a user-linked contact keeps its shared fields', function () {
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($person->fresh()?->name)->toBe('User Linked Shared')
-        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('LINKED-1');
+    expect($person->fresh()?->name)->toBe('User Linked Shared');
+    expect(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('LINKED-1');
 });
 
 test('a shared contact keeps its shared fields and still updates per-tenant fields', function () {
@@ -119,11 +122,11 @@ test('a shared contact keeps its shared fields and still updates per-tenant fiel
 
     $relationship = OrganizationRelationship::query()->findOrFail($relationshipId);
 
-    expect($contact->fresh()?->name)->toBe('Shared Org')
-        ->and($contact->fresh()?->summary)->toBe('Original')
-        ->and($contactPerson?->fresh()?->name)->not->toBe('Tampered Person')
-        ->and($relationship->code)->toBe('SHARED-1')
-        ->and($relationship->type)->toBe(OrganizationRelationshipType::Vendor);
+    expect($contact->fresh()?->name)->toBe('Shared Org');
+    expect($contact->fresh()?->summary)->toBe('Original');
+    expect($contactPerson?->fresh()?->name)->not->toBe('Tampered Person');
+    expect($relationship->code)->toBe('SHARED-1');
+    expect($relationship->type)->toBe(OrganizationRelationshipType::Vendor);
 });
 
 test('editing an individual contact updates the gender', function () {
@@ -159,8 +162,8 @@ test('an existing individual can keep a blank gender on update', function () {
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($person->fresh()?->gender)->toBeNull()
-        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('BLANK-1');
+    expect($person->fresh()?->gender)->toBeNull();
+    expect(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('BLANK-1');
 });
 
 test('a contact photo can be replaced and cleared', function () {
@@ -184,10 +187,12 @@ test('a contact photo can be replaced and cleared', function () {
 
     $newPath = $person->fresh()?->getRawOriginal('photo_url');
 
-    expect($newPath)->toBeString()
-        ->and($newPath)->not->toBe('photos/old.jpg');
+    expect($newPath)->toBeString();
+    expect($newPath)->not->toBe('photos/old.jpg');
 
+    /** @disregard */
     Storage::disk()->assertMissing('photos/old.jpg');
+    /** @disregard */
     Storage::disk()->assertExists($newPath);
 
     Livewire::test(Edit::class)
@@ -197,6 +202,8 @@ test('a contact photo can be replaced and cleared', function () {
         ->assertHasNoErrors();
 
     expect($person->fresh()?->getRawOriginal('photo_url'))->toBeNull();
+
+    /** @disregard */
     Storage::disk()->assertMissing($newPath);
 });
 
@@ -274,9 +281,9 @@ test('a shared contact ignores empty shared fields on save', function () {
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($contact->fresh()?->name)->toBe('Shared Empty')
-        ->and($contact->fresh()?->summary)->toBe('Kept')
-        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('EMPTY-1');
+    expect($contact->fresh()?->name)->toBe('Shared Empty');
+    expect($contact->fresh()?->summary)->toBe('Kept');
+    expect(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('EMPTY-1');
 });
 
 test('a save is rejected when the contact stops being shared after validation', function () {
@@ -305,8 +312,8 @@ test('a save is rejected when the contact stops being shared after validation', 
         validatedSharedFieldsLocked: true,
     ))->toThrow(ValidationException::class);
 
-    expect($contact->fresh()?->name)->toBe('Race Org')
-        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBeNull();
+    expect($contact->fresh()?->name)->toBe('Race Org');
+    expect(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBeNull();
 });
 
 test('an individual edit ignores the contact person summary', function () {

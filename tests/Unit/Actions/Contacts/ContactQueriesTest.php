@@ -24,10 +24,10 @@ test('list contacts searches and orders the tenant contacts', function () {
 
     $contacts = app(ListContacts::class)->handle($organization, 'Match');
 
-    expect($contacts->total())->toBe(2)
-        ->and($contacts->getCollection()
-            ->map(fn ($contact): ?string => $contact->stakeholder?->name)
-            ->all())->toBe(['Newer Match', 'Older Match']);
+    expect($contacts->total())->toBe(2);
+    expect($contacts->getCollection()
+        ->map(fn ($contact): ?string => $contact->stakeholder?->name)
+        ->all())->toBe(['Newer Match', 'Older Match']);
 });
 
 test('find contact is scoped to the tenant and external relationships', function () {
@@ -53,8 +53,8 @@ test('the candidate search excludes the current tenant and its contacts', functi
 
     $results = app(SearchContactCandidates::class)->handle($current, 'Candidate');
 
-    expect($results->pluck('name')->all())->toBe(['Candidate External'])
-        ->and($results->first()?->is($candidate))->toBeTrue();
+    expect($results->pluck('name')->all())->toBe(['Candidate External']);
+    expect($results->first()?->is($candidate))->toBeTrue();
 });
 
 test('the candidate search excludes entities already in the current tenant', function () {
@@ -105,6 +105,6 @@ test('a foreign candidate resolves by reference', function () {
 
     $candidate = app(FindContactCandidate::class)->byReference($current, 'individual:'.$person->uuid);
 
-    expect($candidate)->toBeInstanceOf(Person::class)
-        ->and($candidate->is($person))->toBeTrue();
+    expect($candidate)->toBeInstanceOf(Person::class);
+    expect($candidate->is($person))->toBeTrue();
 });

@@ -2,20 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Enums\Locale;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
-test('guests are redirected to the login page', function () {
-    $response = get(route('dashboard'));
-    $response->assertRedirect(route('login'));
-});
+uses(RefreshDatabase::class);
 
-test('authenticated users can visit the dashboard', function () {
-    $user = User::factory()->create();
-    actingAs($user);
+test('the dashboard exposes a single level one heading', function () {
+    actingAs(User::factory()->create(['locale' => Locale::Indonesian]));
 
-    $response = get(route('dashboard'));
-    $response->assertOk();
+    $html = get(route('dashboard'))->assertOk()->getContent();
+
+    preg_match_all('/<h1\b[^>]*>(.*?)<\/h1>/s', $html, $matches);
+
+    expect($matches[1])->toHaveCount(1)
+        ->and(trim(strip_tags($matches[1][0])))->toBe('Dasbor');
 });

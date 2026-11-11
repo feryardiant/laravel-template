@@ -65,11 +65,10 @@
         ],
         "test": [
             "Composer\\Config::disableProcessTimeout",
-            "@lint",
-            "@check",
-            "@test:unit",
-            "@test:feature",
-            "@test:browser"
+            "@lint @no_additional_args",
+            "@check @no_additional_args",
+            "@php artisan config:clear --ansi @no_additional_args",
+            "@php artisan test @additional_args"
         ],
         "test:unit": [
             "@php artisan config:clear --ansi @no_additional_args",

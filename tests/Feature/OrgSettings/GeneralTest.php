@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Livewire\OrgSettings\General;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
@@ -13,6 +14,8 @@ use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+
+uses(RefreshDatabase::class);
 
 it('renders the current organization name', function () {
     $organization = Organization::factory()->create(['name' => 'Acme Org']);
@@ -107,8 +110,8 @@ it('updates the organization logo', function () {
 
     $organization->refresh();
 
-    expect($organization->getRawOriginal('logo_url'))->toContain('logos/')
-        ->and(Storage::disk()->allFiles('logos'))->not->toBeEmpty();
+    expect($organization->getRawOriginal('logo_url'))->toContain('logos/');
+    expect(Storage::disk()->allFiles('logos'))->not->toBeEmpty();
 });
 
 it('renders the organization logo in the switcher', function () {

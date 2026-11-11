@@ -12,9 +12,12 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+
+uses(RefreshDatabase::class);
 
 test('the index opens the create flyout', function () {
     $organization = Organization::factory()->create();
@@ -90,11 +93,11 @@ test('an admin can create an individual contact', function () {
         ->where('stakeholder_id', $person->getKey())
         ->firstOrFail();
 
-    expect($person->user_id)->toBeNull()
-        ->and($person->gender)->toBe(Gender::Male)
-        ->and($relationship->type)->toBe(OrganizationRelationshipType::Customer)
-        ->and($relationship->code)->toBe('C-001')
-        ->and($relationship->start_date?->toDateString())->toBe(now()->toDateString());
+    expect($person->user_id)->toBeNull();
+    expect($person->gender)->toBe(Gender::Male);
+    expect($relationship->type)->toBe(OrganizationRelationshipType::Customer);
+    expect($relationship->code)->toBe('C-001');
+    expect($relationship->start_date?->toDateString())->toBe(now()->toDateString());
 });
 
 test('an admin can create an organization contact with a contact person', function () {
@@ -116,13 +119,13 @@ test('an admin can create an organization contact with a contact person', functi
     $contact = Organization::query()->where('name', 'Acme Corp')->firstOrFail();
     $contactPerson = Person::query()->where('name', 'Nara Hubung')->firstOrFail();
 
-    expect($contact->contact_id)->toBe($contactPerson->getKey())
-        ->and($contactPerson->gender)->toBe(Gender::Female)
-        ->and($contactPerson->summary)->toBe('Primary contact')
-        ->and(OrganizationRelationship::query()
-            ->where('stakeholder_type', Organization::class)
-            ->where('stakeholder_id', $contact->getKey())
-            ->exists())->toBeTrue();
+    expect($contact->contact_id)->toBe($contactPerson->getKey());
+    expect($contactPerson->gender)->toBe(Gender::Female);
+    expect($contactPerson->summary)->toBe('Primary contact');
+    expect(OrganizationRelationship::query()
+        ->where('stakeholder_type', Organization::class)
+        ->where('stakeholder_id', $contact->getKey())
+        ->exists())->toBeTrue();
 });
 
 test('contact creation validates its required fields', function () {
@@ -234,6 +237,8 @@ test('a contact photo is stored', function () {
     $path = $person->getRawOriginal('photo_url');
 
     expect($path)->toBeString();
+
+    /** @disregard */
     Storage::disk()->assertExists($path);
 });
 
@@ -263,9 +268,9 @@ test('an admin can attach an existing contact from another tenant', function () 
         ->where('organization_id', $target->getKey())
         ->firstOrFail();
 
-    expect($attached->code)->toBe('T-1')
-        ->and(Person::query()->where('name', 'Shared Person')->count())->toBe(1)
-        ->and($relationship)->not->toBeNull();
+    expect($attached->code)->toBe('T-1');
+    expect(Person::query()->where('name', 'Shared Person')->count())->toBe(1);
+    expect($relationship)->not->toBeNull();
 });
 
 test('a failed create removes the uploaded photo', function () {

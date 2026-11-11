@@ -88,39 +88,45 @@ it('shows the empty state for remote searches', function () {
 it('ignores a slower older remote response', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
 
-    $page->assertScript("(() => {
-        window.__pending = {};
-        window.fetch = (url) => new Promise((resolve) => {
-            window.__pending[new URL(url, location.origin).searchParams.get('q')] = (labels) => resolve({
-                ok: true,
-                json: async () => labels,
+    $page->assertScript(<<<'JS'
+        (() => {
+            window.__pending = {};
+            window.fetch = (url) => new Promise((resolve) => {
+                window.__pending[new URL(url, location.origin).searchParams.get('q')] = (labels) => resolve({
+                    ok: true,
+                    json: async () => labels,
+                });
             });
-        });
 
-        const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
-        input.focus();
-        input.value = 'older';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-
-        return true;
-    })()")
-        ->wait(0.4)
-        ->assertScript("typeof window.__pending.older === 'function'")
-        ->assertScript("(() => {
             const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
-            input.value = 'newer';
+            input.focus();
+            input.value = 'older';
             input.dispatchEvent(new Event('input', { bubbles: true }));
 
             return true;
-        })()")
+        })()
+        JS)
+        ->wait(0.4)
+        ->assertScript("typeof window.__pending.older === 'function'")
+        ->assertScript(<<<'JS'
+            (() => {
+                const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+                input.value = 'newer';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+
+                return true;
+            })()
+            JS)
         ->wait(0.4)
         ->assertScript("typeof window.__pending.newer === 'function'")
-        ->assertScript("(() => {
-            window.__pending.newer(['Newer result']);
-            window.__pending.older(['Older result']);
+        ->assertScript(<<<'JS'
+            (() => {
+                window.__pending.newer(['Newer result']);
+                window.__pending.older(['Older result']);
 
-            return true;
-        })()")
+                return true;
+            })()
+            JS)
         ->wait(0.4)
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]:not([hidden])')).map((option) => option.dataset.label).join('|') === 'Newer result'");
 });
@@ -128,31 +134,35 @@ it('ignores a slower older remote response', function () {
 it('drops a remote response that completes after clearing', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
 
-    $page->assertScript("(() => {
-        window.__pending = {};
-        window.fetch = (url) => new Promise((resolve) => {
-            window.__pending[new URL(url, location.origin).searchParams.get('q')] = (labels) => resolve({
-                ok: true,
-                json: async () => labels,
+    $page->assertScript(<<<'JS'
+        (() => {
+            window.__pending = {};
+            window.fetch = (url) => new Promise((resolve) => {
+                window.__pending[new URL(url, location.origin).searchParams.get('q')] = (labels) => resolve({
+                    ok: true,
+                    json: async () => labels,
+                });
             });
-        });
 
-        const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
-        input.focus();
-        input.value = 'new';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+            const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+            input.focus();
+            input.value = 'new';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
 
-        return true;
-    })()")
+            return true;
+        })()
+        JS)
         ->wait(0.4)
         ->assertScript("typeof window.__pending.new === 'function'")
         ->click('[data-ui-demo="autocomplete-remote"] button[aria-label="Kosongkan isian"]')
         ->wait(0.2)
-        ->assertScript("(() => {
-            window.__pending.new(['Stale result']);
+        ->assertScript(<<<'JS'
+            (() => {
+                window.__pending.new(['Stale result']);
 
-            return true;
-        })()")
+                return true;
+            })()
+            JS)
         ->wait(0.4)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === ''")
         ->assertScript("document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]:not([hidden])').length === 0");
@@ -205,34 +215,40 @@ it('opens above the trigger and stays anchored while filtering', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
     $trigger = '[data-ui-demo="autocomplete-local"] [role="combobox"]';
 
-    $page->assertScript("(() => {
-        document.body.style.paddingTop = '900px';
-        const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+    $page->assertScript(<<<'JS'
+        (() => {
+            document.body.style.paddingTop = '900px';
+            const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
 
-        window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
+            window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
 
-        return true;
-    })()")
+            return true;
+        })()
+        JS)
         ->click($trigger)
         ->wait(0.3)
-        ->assertScript("(() => {
-            const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
-            const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
-            const triggerRect = trigger.getBoundingClientRect();
-            const popoverRect = popover.getBoundingClientRect();
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+                const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
 
-            return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
-        })()")
+                return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
+            })()
+            JS)
         ->type($trigger, 'cal')
         ->wait(0.5)
-        ->assertScript("(() => {
-            const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
-            const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
-            const triggerRect = trigger.getBoundingClientRect();
-            const popoverRect = popover.getBoundingClientRect();
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+                const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
 
-            return Math.abs(triggerRect.top - popoverRect.bottom) <= 6 && popoverRect.height < 100;
-        })()");
+                return Math.abs(triggerRect.top - popoverRect.bottom) <= 6 && popoverRect.height < 100;
+            })()
+            JS);
 });
 
 it('skips disabled local items during keyboard navigation', function () {
@@ -248,20 +264,22 @@ it('skips disabled local items during keyboard navigation', function () {
 it('discards results when the query changes before the debounce fires', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
 
-    $page->assertScript("(() => {
-        const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+    $page->assertScript(<<<'JS'
+        (() => {
+            const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
 
-        input.focus();
-        input.value = 'new';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-
-        setTimeout(() => {
-            input.value = 'zzz';
+            input.focus();
+            input.value = 'new';
             input.dispatchEvent(new Event('input', { bubbles: true }));
-        }, 50);
 
-        return true;
-    })()")
+            setTimeout(() => {
+                input.value = 'zzz';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }, 50);
+
+            return true;
+        })()
+        JS)
         ->wait(0.8)
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [data-ui-option]:not([hidden])')).length === 0")
         ->assertScript("Array.from(document.querySelectorAll('[data-ui-demo=autocomplete-remote] [role=status]')).some((element) => element.textContent.trim() === 'Tidak ada hasil' && getComputedStyle(element).display !== 'none')");
@@ -271,40 +289,46 @@ it('flips above when remote results expand near the bottom', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
     $trigger = '[data-ui-demo="autocomplete-remote"] [role="combobox"]';
 
-    $page->assertScript("(() => {
-        document.body.style.paddingTop = '900px';
-        const trigger = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+    $page->assertScript(<<<'JS'
+        (() => {
+            document.body.style.paddingTop = '900px';
+            const trigger = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
 
-        window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
+            window.scrollTo(0, trigger.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 120));
 
-        return true;
-    })()")
+            return true;
+        })()
+        JS)
         ->click($trigger)
         ->wait(0.2)
         ->type($trigger, 'new')
         ->wait(0.8)
-        ->assertScript("(() => {
-            const trigger = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
-            const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
-            const triggerRect = trigger.getBoundingClientRect();
-            const popoverRect = popover.getBoundingClientRect();
+        ->assertScript(<<<'JS'
+            (() => {
+                const trigger = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+                const popover = trigger.closest('[data-ui-autocomplete]').querySelector('[data-ui-popover]');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
 
-            return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
-        })()");
+                return popover.matches(':popover-open') && popoverRect.bottom <= triggerRect.top + 1;
+            })()
+            JS);
 });
 
 it('dispatches change and clear events', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
     $trigger = '[data-ui-demo="autocomplete-local"] [role="combobox"]';
 
-    $page->assertScript("(() => {
-        window.__uiEvents = [];
-        const element = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
+    $page->assertScript(<<<'JS'
+        (() => {
+            window.__uiEvents = [];
+            const element = document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]');
 
-        ['open', 'close', 'change', 'clear'].forEach((name) => element.addEventListener(name, () => window.__uiEvents.push(name)));
+            ['open', 'close', 'change', 'clear'].forEach((name) => element.addEventListener(name, () => window.__uiEvents.push(name)));
 
-        return true;
-    })()")
+            return true;
+        })()
+        JS)
         ->click($trigger)
         ->type($trigger, 'cal')
         ->wait(0.3)
@@ -323,16 +347,18 @@ it('does not commit a stale suggestion while a new remote query is loading', fun
         ->keys($trigger, ['ArrowDown', 'Enter'])
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'New Jersey'")
-        ->assertScript("(() => {
-            const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
+        ->assertScript(<<<'JS'
+            (() => {
+                const input = document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]');
 
-            input.focus();
-            input.value = 'zzz';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                input.focus();
+                input.value = 'zzz';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
-            return true;
-        })()")
+                return true;
+            })()
+            JS)
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [role=combobox]').value === 'zzz'")
         ->assertScript("document.querySelector('[data-ui-bound=remote-state]').textContent.trim() === 'zzz'");
