@@ -112,6 +112,20 @@ test('bulk deletion deduplicates the selected ids', function () {
         ->and(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
 });
 
+test('deleting an individual contact keeps a person the tenant uses as its primary contact', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Tenant Primary Contact']);
+    $organization->update(['contact_id' => $person->getKey()]);
+
+    app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $person));
+
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse()
+        ->and($organization->fresh()?->contact_id)->toBe($person->getKey());
+});
+
 test('deleting an organization contact keeps it when its contact person is used elsewhere', function () {
     $organization = Organization::factory()->create();
 

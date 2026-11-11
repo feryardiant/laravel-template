@@ -27,19 +27,37 @@ class DeleteContact
 
         abort_if($stakeholder === null, 404);
 
-        $removeOwned = ! $contact->isShared();
         $paths = [];
 
-        if ($removeOwned) {
-            $paths = $stakeholder instanceof Organization
-                ? [
-                    $stakeholder->getRawOriginal('logo_url'),
-                    $stakeholder->primaryContact?->getRawOriginal('photo_url'),
-                ]
-                : [$stakeholder->getRawOriginal('photo_url')];
-        }
+        DB::transaction(function () use ($tenant, $contact, $stakeholder, &$paths): void {
+            // Serialize with a concurrent reuse of the same entity.
+            $stakeholder->newQuery()
+                ->whereKey($stakeholder->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        DB::transaction(function () use ($tenant, $contact, $removeOwned, $stakeholder): void {
+            if ($stakeholder instanceof Organization) {
+                $contactPerson = $stakeholder->primaryContact;
+
+                if ($contactPerson !== null) {
+                    $contactPerson->newQuery()
+                        ->whereKey($contactPerson->getKey())
+                        ->lockForUpdate()
+                        ->firstOrFail();
+                }
+            }
+
+            $removeOwned = ! $contact->isShared();
+
+            if ($removeOwned) {
+                $paths = $stakeholder instanceof Organization
+                    ? [
+                        $stakeholder->getRawOriginal('logo_url'),
+                        $stakeholder->primaryContact?->getRawOriginal('photo_url'),
+                    ]
+                    : [$stakeholder->getRawOriginal('photo_url')];
+            }
+
             OrganizationRelationship::query()
                 ->forOrganization($tenant)
                 ->external()

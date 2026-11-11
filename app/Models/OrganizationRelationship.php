@@ -157,8 +157,8 @@ class OrganizationRelationship extends MorphPivot
                 return true;
             }
 
-            // Referenced as another organization's primary contact.
-            if ($stakeholder->primaryContactOrganizations()->whereKeyNot($this->organization_id)->exists()) {
+            // Referenced as any organization's primary contact.
+            if ($stakeholder->primaryContactOrganizations()->exists()) {
                 return true;
             }
         }

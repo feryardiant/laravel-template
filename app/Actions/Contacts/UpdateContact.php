@@ -46,7 +46,26 @@ class UpdateContact
             : null;
 
         try {
-            DB::transaction(function () use ($tenant, $contact, $data, $role, $shared, $stakeholder, $newPhoto, $removePhoto, $column): void {
+            DB::transaction(function () use ($tenant, $contact, $data, $role, &$shared, $stakeholder, $newPhoto, $removePhoto, $column): void {
+                // Serialize with a concurrent reuse of the same entity.
+                $stakeholder->newQuery()
+                    ->whereKey($stakeholder->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($stakeholder instanceof Organization) {
+                    $contactPerson = $stakeholder->primaryContact;
+
+                    if ($contactPerson !== null) {
+                        $contactPerson->newQuery()
+                            ->whereKey($contactPerson->getKey())
+                            ->lockForUpdate()
+                            ->firstOrFail();
+                    }
+                }
+
+                $shared = $contact->isShared();
+
                 OrganizationRelationship::query()
                     ->forOrganization($tenant)
                     ->external()
@@ -91,7 +110,15 @@ class UpdateContact
             throw $exception;
         }
 
-        if (! $shared && ($newPhoto !== null || $removePhoto)) {
+        if ($shared) {
+            if ($newPhoto !== null) {
+                app(StoreImage::class)->delete($newPhoto);
+            }
+
+            return;
+        }
+
+        if ($newPhoto !== null || $removePhoto) {
             app(StoreImage::class)->delete($previous);
         }
     }
