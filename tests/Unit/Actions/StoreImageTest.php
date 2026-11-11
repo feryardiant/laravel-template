@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Files\StoreImage;
+use App\Actions\StoreImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 

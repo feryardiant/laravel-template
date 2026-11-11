@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\ChangeMemberRole;
+use App\Actions\Memberships\ChangeMemberRole;
 use App\Enums\Role;
 use App\Livewire\Notifications\Index;
 use App\Models\Organization;

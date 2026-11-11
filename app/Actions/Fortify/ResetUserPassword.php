@@ -30,6 +30,7 @@ class ResetUserPassword implements ResetsUserPasswords
         ])->save();
 
         Auth::login($user);
+
         session()->regenerate();
     }
 }

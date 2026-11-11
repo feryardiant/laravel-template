@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Memberships;
 
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;

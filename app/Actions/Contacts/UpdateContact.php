@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Files\StoreImage;
+use App\Actions\StoreImage;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
@@ -18,6 +18,13 @@ use Throwable;
 
 class UpdateContact
 {
+    public function __construct(
+        private StoreImage $storeImage,
+        private FindContact $findContact,
+    ) {
+        // .
+    }
+
     /**
      * Update a tenant contact.
      *
@@ -34,7 +41,7 @@ class UpdateContact
         bool $removePhoto = false,
         bool $validatedSharedFieldsLocked = false,
     ): void {
-        $contact = app(FindContact::class)->byId($tenant, $contactId);
+        $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
         abort_if($stakeholder === null, 404);
@@ -45,7 +52,7 @@ class UpdateContact
         $previous = null;
 
         $newPhoto = ! $validatedSharedFieldsLocked && ! $shared && $photo instanceof UploadedFile
-            ? app(StoreImage::class)->handle($photo, 'photos')
+            ? $this->storeImage->handle($photo, 'photos')
             : null;
 
         try {
@@ -118,7 +125,7 @@ class UpdateContact
             });
         } catch (Throwable $exception) {
             if ($newPhoto !== null) {
-                app(StoreImage::class)->delete($newPhoto);
+                $this->storeImage->delete($newPhoto);
             }
 
             throw $exception;
@@ -126,14 +133,14 @@ class UpdateContact
 
         if ($shared) {
             if ($newPhoto !== null) {
-                app(StoreImage::class)->delete($newPhoto);
+                $this->storeImage->delete($newPhoto);
             }
 
             return;
         }
 
         if ($newPhoto !== null || $removePhoto) {
-            app(StoreImage::class)->delete($previous);
+            $this->storeImage->delete($previous);
         }
     }
 

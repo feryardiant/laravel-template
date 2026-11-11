@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\AddMember;
+use App\Actions\Memberships\CreateMember;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -41,7 +41,7 @@ it('updates the membership role when an existing member is added again', functio
         ->withMember($person = Person::factory()->create(), role: Role::Member)
         ->create();
 
-    app(AddMember::class)->handle($organization, $person, role: Role::Owner);
+    app(CreateMember::class)->attach($organization, $person, role: Role::Owner);
 
     expect($organization->members()->count())->toBe(1);
     expect($person->roleIn($organization))->toBe(Role::Owner);
@@ -64,8 +64,8 @@ it('does not duplicate a membership when added twice', function () {
     $organization = Organization::factory()->create();
     $person = Person::factory()->create();
 
-    app(AddMember::class)->handle($organization, $person);
-    app(AddMember::class)->handle($organization, $person);
+    app(CreateMember::class)->attach($organization, $person);
+    app(CreateMember::class)->attach($organization, $person);
 
     expect($organization->members()->count())->toBe(1);
 });
@@ -76,7 +76,7 @@ it('keeps an existing counterparty relationship when adding a member', function 
         ->withCounterparty($person, OrganizationRelationshipType::Customer)
         ->create();
 
-    app(AddMember::class)->handle($organization, $person);
+    app(CreateMember::class)->attach($organization, $person);
 
     expect($organization->members()->whereKey($person->getKey())->exists())->toBeTrue();
     expect($organization->personCounterparties(OrganizationRelationshipType::Customer)
@@ -88,7 +88,7 @@ it('promotes an existing member without duplicating them', function () {
         ->withMember($person = Person::factory()->create())
         ->create();
 
-    app(AddMember::class)->handle($organization, $person, isPrimary: true);
+    app(CreateMember::class)->attach($organization, $person, isPrimary: true);
 
     $members = $organization->members()->get();
 
@@ -101,8 +101,8 @@ it('moves a persons primary organization when they join another as primary', fun
     $organization = Organization::factory()->create();
     $otherOrganization = Organization::factory()->create();
 
-    app(AddMember::class)->handle($organization, $person, isPrimary: true);
-    app(AddMember::class)->handle($otherOrganization, $person, isPrimary: true);
+    app(CreateMember::class)->attach($organization, $person, isPrimary: true);
+    app(CreateMember::class)->attach($otherOrganization, $person, isPrimary: true);
 
     $primaryOrganizations = $person->organizationRelationships()
         ->wherePivot('type', OrganizationRelationshipType::Member)
@@ -120,9 +120,9 @@ it('can join many organizations with only one primary organization', function ()
     $second = Organization::factory()->create();
     $third = Organization::factory()->create();
 
-    app(AddMember::class)->handle($first, $person);
-    app(AddMember::class)->handle($second, $person, isPrimary: true);
-    app(AddMember::class)->handle($third, $person);
+    app(CreateMember::class)->attach($first, $person);
+    app(CreateMember::class)->attach($second, $person, isPrimary: true);
+    app(CreateMember::class)->attach($third, $person);
 
     $primaries = $person->organizationRelationships()
         ->wherePivot('type', OrganizationRelationshipType::Member)
@@ -133,8 +133,8 @@ it('can join many organizations with only one primary organization', function ()
     expect($primaries)->toHaveCount(1);
     expect($primaries->first()->is($second))->toBeTrue();
 
-    app(AddMember::class)->handle($second, Person::factory()->create(), isPrimary: true);
-    app(AddMember::class)->handle($second, Person::factory()->create(), isPrimary: true);
+    app(CreateMember::class)->attach($second, Person::factory()->create(), isPrimary: true);
+    app(CreateMember::class)->attach($second, Person::factory()->create(), isPrimary: true);
 
     expect($second->members()->wherePivot('is_primary', true)->count())->toBe(3);
 });
@@ -143,7 +143,7 @@ test('members must be people', function () {
     $organization = Organization::factory()->create();
     $person = Person::factory()->create();
 
-    app(AddMember::class)->handle($organization, $person);
+    app(CreateMember::class)->attach($organization, $person);
 
     expect($organization->members->first()->is($person))->toBeTrue();
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Actions\Setup\ProvisionTenant;
+use App\Actions\ProvisionTenant;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Support\Setup as SetupState;

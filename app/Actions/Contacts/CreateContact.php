@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Files\StoreImage;
+use App\Actions\StoreImage;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
@@ -18,6 +18,13 @@ use Throwable;
 
 class CreateContact
 {
+    public function __construct(
+        private StoreImage $storeImage,
+        private FindContactCandidate $findContact,
+    ) {
+        // .
+    }
+
     /**
      * Create a contact for the tenant.
      *
@@ -31,7 +38,7 @@ class CreateContact
 
         if (\is_string($reference) && $reference !== '') {
             DB::transaction(function () use ($tenant, $reference, $role, $data): void {
-                $stakeholder = app(FindContactCandidate::class)->byReference($tenant, $reference);
+                $stakeholder = $this->findContact->byReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
                 $stakeholder->newQuery()
@@ -39,7 +46,7 @@ class CreateContact
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $this->assertNotAlreadyContact($tenant, $stakeholder);
+                $this->assertExists($tenant, $stakeholder);
                 $this->attach($tenant, $stakeholder, $role, $data);
             });
 
@@ -47,7 +54,7 @@ class CreateContact
         }
 
         $photoPath = $photo instanceof UploadedFile
-            ? app(StoreImage::class)->handle($photo, 'photos')
+            ? $this->storeImage->handle($photo, 'photos')
             : null;
 
         try {
@@ -60,7 +67,7 @@ class CreateContact
             });
         } catch (Throwable $exception) {
             if ($photoPath !== null) {
-                app(StoreImage::class)->delete($photoPath);
+                $this->storeImage->delete($photoPath);
             }
 
             throw $exception;
@@ -143,7 +150,7 @@ class CreateContact
         return $gender === null || $gender === '' ? null : Gender::from((string) $gender);
     }
 
-    private function assertNotAlreadyContact(Organization $tenant, Organization|Person $stakeholder): void
+    private function assertExists(Organization $tenant, Organization|Person $stakeholder): void
     {
         $exists = OrganizationRelationship::query()
             ->forOrganization($tenant)

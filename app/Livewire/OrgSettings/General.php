@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Files\StoreImage;
+use App\Actions\StoreImage;
 use App\Concerns\ProfileValidationRules;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use Flux\Flux;

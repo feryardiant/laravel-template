@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
-use App\Actions\Files\StoreImage;
-use App\Actions\Organizations\ChangeMemberRole;
-use App\Actions\Organizations\CreateMember;
+use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\CreateMember;
+use App\Actions\StoreImage;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;

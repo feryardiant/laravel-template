@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Files\StoreImage;
+use App\Actions\StoreImage;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Illuminate\Support\Facades\DB;
 
 class DeleteContact
 {
+    public function __construct(
+        private StoreImage $storeImage,
+        private FindContact $findContact,
+    ) {
+        // .
+    }
+
     /**
      * Delete a tenant contact.
      *
@@ -22,7 +29,7 @@ class DeleteContact
      */
     public function handle(Organization $tenant, int $contactId, bool $cleanupFiles = true): array
     {
-        $contact = app(FindContact::class)->byId($tenant, $contactId);
+        $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
         abort_if($stakeholder === null, 404);
@@ -79,10 +86,44 @@ class DeleteContact
 
         if ($cleanupFiles) {
             foreach ($paths as $path) {
-                app(StoreImage::class)->delete($path);
+                $this->storeImage->delete($path);
             }
         }
 
         return $paths;
+    }
+
+    /**
+     * Delete several tenant contacts in one transaction.
+     *
+     * @param  array<int, int|string>  $contactIds
+     */
+    public function handleBulk(Organization $tenant, array $contactIds): int
+    {
+        $ids = array_values(array_unique(array_map('intval', $contactIds)));
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        $paths = [];
+        $deleted = 0;
+
+        DB::transaction(function () use ($tenant, $ids, &$paths, &$deleted): void {
+            foreach ($ids as $id) {
+                $paths = array_merge(
+                    $paths,
+                    $this->handle($tenant, $id, cleanupFiles: false),
+                );
+
+                $deleted++;
+            }
+        });
+
+        foreach ($paths as $path) {
+            $this->storeImage->delete($path);
+        }
+
+        return $deleted;
     }
 }

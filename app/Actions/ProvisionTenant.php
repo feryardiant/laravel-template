@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Setup;
+namespace App\Actions;
 
-use App\Actions\Organizations\AddMember;
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class ProvisionTenant
 {
+    public function __construct(private CreateMember $addMember)
+    {
+        // .
+    }
+
     /**
      * Turn the seeded placeholder user into the root tenant owner.
      */
@@ -44,7 +49,7 @@ class ProvisionTenant
                 'root_organization_id' => null,
             ]);
 
-            app(AddMember::class)->handle(
+            $this->addMember->attach(
                 $organization,
                 $person,
                 isPrimary: true,

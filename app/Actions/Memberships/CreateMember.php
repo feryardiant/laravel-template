@@ -2,22 +2,77 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Memberships;
 
+use App\Actions\Users\CreateUser;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
+use App\Notifications\VerifyEmailForNewUser;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
-class AddMember
+class CreateMember
 {
+    public function __construct(
+        private CreateUser $createUser,
+    ) {
+        // .
+    }
+
+    /**
+     * Create a person, optional credential, and organization membership.
+     */
+    public function handle(
+        Organization $organization,
+        string $name,
+        Role $role,
+        ?string $email = null,
+        ?string $photoUrl = null,
+    ): Person {
+        $user = null;
+
+        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
+            if ($email !== null) {
+                $user = $this->createUser->handle([
+                    'name' => $name,
+                    'email' => Str::lower($email),
+                    'role' => Role::Member,
+                    'password' => Str::random(16),
+                ]);
+            }
+
+            $person = Person::create([
+                'user_id' => $user?->getKey(),
+                'name' => $name,
+                'photo_url' => $photoUrl,
+            ]);
+
+            $this->attach(
+                $organization,
+                $person,
+                startDate: now(),
+                role: $role,
+            );
+
+            return $person;
+        });
+
+        if ($user instanceof User) {
+            $user->notify(new VerifyEmailForNewUser);
+        }
+
+        return $person;
+    }
+
     /**
      * Add a person as a member of the organization.
      */
-    public function handle(
+    public function attach(
         Organization $organization,
         Person $member,
         bool $isPrimary = false,

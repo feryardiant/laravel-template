@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\DeleteContact;
-use App\Actions\Contacts\DeleteContacts;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -113,7 +112,7 @@ test('bulk deletion deduplicates the selected ids', function () {
         contactRelationshipId($organization, $second),
     ];
 
-    expect(app(DeleteContacts::class)->handle($organization, [...$ids, ...$ids]))->toBe(2);
+    expect(app(DeleteContact::class)->handleBulk($organization, [...$ids, ...$ids]))->toBe(2);
     expect(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
 });
 
@@ -211,7 +210,7 @@ test('bulk deletion rolls back when one contact cannot be resolved', function ()
     $contact = contactIndividual($organization, ['name' => 'Rollback Contact']);
     $relationshipId = contactRelationshipId($organization, $contact);
 
-    expect(fn () => app(DeleteContacts::class)->handle($organization, [$relationshipId, 999999]))
+    expect(fn () => app(DeleteContact::class)->handleBulk($organization, [$relationshipId, 999999]))
         ->toThrow(ModelNotFoundException::class);
 
     expect(OrganizationRelationship::query()->find($relationshipId))->not->toBeNull();
