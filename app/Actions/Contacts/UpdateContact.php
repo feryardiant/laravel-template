@@ -39,19 +39,22 @@ class UpdateContact
         $role = $this->role($data);
         $shared = $contact->isShared();
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
-        $previous = $stakeholder->getRawOriginal($column);
+        $previous = null;
 
         $newPhoto = ! $shared && $photo instanceof UploadedFile
             ? app(StoreImage::class)->handle($photo, 'photos')
             : null;
 
         try {
-            DB::transaction(function () use ($tenant, $contact, $data, $role, &$shared, $stakeholder, $newPhoto, $removePhoto, $column): void {
+            DB::transaction(function () use ($tenant, $contact, $data, $role, &$shared, $stakeholder, $newPhoto, $removePhoto, $column, &$previous): void {
                 // Serialize with a concurrent reuse or credential change.
                 $stakeholder = $stakeholder->newQuery()
                     ->whereKey($stakeholder->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                $previousRaw = $stakeholder->getRawOriginal($column);
+                $previous = \is_string($previousRaw) ? $previousRaw : null;
 
                 if ($stakeholder instanceof Organization) {
                     $contactPerson = $stakeholder->primaryContact()->lockForUpdate()->first();

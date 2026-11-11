@@ -113,6 +113,33 @@ test('bulk deletion deduplicates the selected ids', function () {
         ->and(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
 });
 
+test('deleting one imported duplicate keeps the other contact and the entity', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Duplicate Import']);
+    $organization->personCounterparties(OrganizationRelationshipType::Supplier)->attach($person, [
+        'type' => OrganizationRelationshipType::Supplier,
+    ]);
+
+    $customerRelationshipId = (int) OrganizationRelationship::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_type', $person->getMorphClass())
+        ->where('stakeholder_id', $person->getKey())
+        ->where('type', OrganizationRelationshipType::Customer)
+        ->value('id');
+
+    app(DeleteContact::class)->handle($organization, $customerRelationshipId);
+
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse()
+        ->and(OrganizationRelationship::query()
+            ->where('organization_id', $organization->getKey())
+            ->where('stakeholder_id', $person->getKey())
+            ->where('type', OrganizationRelationshipType::Supplier)
+            ->exists())->toBeTrue();
+});
+
 test('deleting an individual contact keeps a user-linked person', function () {
     $organization = Organization::factory()->create();
 

@@ -152,6 +152,16 @@ class OrganizationRelationship extends MorphPivot
             return false;
         }
 
+        // Another relationship for the same stakeholder (including imported
+        // duplicates in this tenant) keeps the entity in use.
+        if (static::query()
+            ->where('stakeholder_type', $stakeholder->getMorphClass())
+            ->where('stakeholder_id', $stakeholder->getKey())
+            ->whereKeyNot($this->getKey())
+            ->exists()) {
+            return true;
+        }
+
         if ($stakeholder instanceof Person) {
             if ($stakeholder->user_id !== null) {
                 return true;
