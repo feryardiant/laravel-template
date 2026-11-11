@@ -30,23 +30,18 @@ class DeleteContact
         $paths = [];
 
         DB::transaction(function () use ($tenant, $contact, $stakeholder, &$paths): void {
-            // Serialize with a concurrent reuse of the same entity.
-            $stakeholder->newQuery()
+            // Serialize with a concurrent reuse or credential change.
+            $stakeholder = $stakeholder->newQuery()
                 ->whereKey($stakeholder->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if ($stakeholder instanceof Organization) {
-                $contactPerson = $stakeholder->primaryContact;
-
-                if ($contactPerson !== null) {
-                    $contactPerson->newQuery()
-                        ->whereKey($contactPerson->getKey())
-                        ->lockForUpdate()
-                        ->firstOrFail();
-                }
+                $contactPerson = $stakeholder->primaryContact()->lockForUpdate()->first();
+                $stakeholder->setRelation('primaryContact', $contactPerson);
             }
 
+            $contact->setRelation('stakeholder', $stakeholder);
             $removeOwned = ! $contact->isShared();
 
             if ($removeOwned) {

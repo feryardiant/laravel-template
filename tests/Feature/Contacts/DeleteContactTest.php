@@ -9,6 +9,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Storage;
 
@@ -110,6 +111,19 @@ test('bulk deletion deduplicates the selected ids', function () {
 
     expect(app(DeleteContacts::class)->handle($organization, [...$ids, ...$ids]))->toBe(2)
         ->and(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
+});
+
+test('deleting an individual contact keeps a user-linked person', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'User Linked']);
+    $person->update(['user_id' => User::factory()->create()->getKey()]);
+
+    app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $person));
+
+    expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
 });
 
 test('deleting an individual contact keeps a person the tenant uses as its primary contact', function () {

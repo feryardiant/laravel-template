@@ -9,6 +9,7 @@ use App\Livewire\Contacts\Edit;
 use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -69,6 +70,26 @@ test('editing keeps the contact type even when the client changes it', function 
 
     expect($contact->fresh())->toBeInstanceOf(Organization::class)
         ->and($contact->fresh()?->name)->toBe('Typed Org');
+});
+
+test('a user-linked contact keeps its shared fields', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'User Linked Shared']);
+    $person->update(['user_id' => User::factory()->create()->getKey()]);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->set('name', 'Tampered Linked Name')
+        ->set('code', 'LINKED-1')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()?->name)->toBe('User Linked Shared')
+        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('LINKED-1');
 });
 
 test('a shared contact keeps its shared fields and still updates per-tenant fields', function () {
