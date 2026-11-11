@@ -30,11 +30,18 @@ class CreateContact
         $reference = $data['reference'] ?? null;
 
         if (\is_string($reference) && $reference !== '') {
-            $stakeholder = app(FindContactCandidate::class)->byReference($tenant, $reference);
+            DB::transaction(function () use ($tenant, $reference, $role, $data): void {
+                $stakeholder = app(FindContactCandidate::class)->byReference($tenant, $reference);
 
-            $this->assertNotAlreadyContact($tenant, $stakeholder);
+                // Lock the shared entity so concurrent reuse cannot attach it twice.
+                $stakeholder->newQuery()
+                    ->whereKey($stakeholder->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            DB::transaction(fn () => $this->attach($tenant, $stakeholder, $role, $data));
+                $this->assertNotAlreadyContact($tenant, $stakeholder);
+                $this->attach($tenant, $stakeholder, $role, $data);
+            });
 
             return;
         }

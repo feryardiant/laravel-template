@@ -9,6 +9,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Storage;
 
 test('deleting an individual contact detaches it and soft-deletes the owned person', function () {
@@ -109,4 +110,50 @@ test('bulk deletion deduplicates the selected ids', function () {
 
     expect(app(DeleteContacts::class)->handle($organization, [...$ids, ...$ids]))->toBe(2)
         ->and(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
+});
+
+test('deleting an organization contact keeps it when its contact person is used elsewhere', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Referenced Person Org']);
+    $contactPerson = $contact->primaryContact;
+
+    Organization::factory()->create(['contact_id' => $contactPerson?->getKey()]);
+
+    app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $contact));
+
+    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeFalse()
+        ->and(Person::withTrashed()->find($contactPerson?->getKey())?->trashed())->toBeFalse();
+});
+
+test('deleting an organization contact keeps it when the organization owns relationships', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Relationship Owner']);
+    $contact->members()->attach(Person::factory()->withoutCredential()->create(), [
+        'type' => OrganizationRelationshipType::Member,
+        'start_date' => now(),
+    ]);
+
+    app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $contact));
+
+    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeFalse();
+});
+
+test('bulk deletion rolls back when one contact cannot be resolved', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Rollback Contact']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    expect(fn () => app(DeleteContacts::class)->handle($organization, [$relationshipId, 999999]))
+        ->toThrow(ModelNotFoundException::class);
+
+    expect(OrganizationRelationship::query()->find($relationshipId))->not->toBeNull();
 });

@@ -195,7 +195,7 @@ test('a plain member cannot create, update or delete contacts', function () {
         ->assertForbidden();
 
     Livewire::test(Index::class)
-        ->assertDontSee('Select all contacts');
+        ->assertDontSee(__('Select all contacts'));
 
     expect(OrganizationRelationship::query()
         ->where('stakeholder_id', $contact->getKey())
@@ -220,7 +220,7 @@ test('a user without an organization sees the empty state', function () {
 
     get(route('contacts.index'))
         ->assertOk()
-        ->assertSee('Anda bukan anggota organisasi mana pun.');
+        ->assertSee(__('You are not a member of any organization.'));
 });
 
 test('select all toggles the current page rows', function () {

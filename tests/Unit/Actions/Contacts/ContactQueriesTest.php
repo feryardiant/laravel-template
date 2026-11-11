@@ -69,6 +69,25 @@ test('the candidate search excludes entities already in the current tenant', fun
     expect($results)->toBeEmpty();
 });
 
+test('the candidate search is ordered and limited before merging', function () {
+    $current = Organization::factory()->create();
+    $source = Organization::factory()->create();
+
+    foreach (range(1, 12) as $index) {
+        contactIndividual($source, ['name' => \sprintf('Candidate %02d', $index)]);
+    }
+
+    $results = app(SearchContactCandidates::class)->handle($current, 'Candidate', 5);
+
+    expect($results->pluck('name')->all())->toBe([
+        'Candidate 01',
+        'Candidate 02',
+        'Candidate 03',
+        'Candidate 04',
+        'Candidate 05',
+    ]);
+});
+
 test('a current tenant contact cannot be resolved as a reusable candidate', function () {
     $current = Organization::factory()->create();
 

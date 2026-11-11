@@ -46,6 +46,7 @@ class SearchContactCandidates
                     ->select('stakeholder_id'),
             )
             ->whereLike('name', "%{$term}%")
+            ->orderBy('name')
             ->limit($limit)
             ->get();
 
@@ -67,6 +68,7 @@ class SearchContactCandidates
                     ->select('stakeholder_id'),
             )
             ->whereLike('name', "%{$term}%")
+            ->orderBy('name')
             ->limit($limit)
             ->get();
 

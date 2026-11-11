@@ -13,6 +13,8 @@
     'clearable' => false,
     'disabled' => false,
     'readonly' => false,
+    'required' => false,
+    'autofocus' => false,
     'invalid' => null,
     'containerClass' => null,
     'inputClass' => null,
@@ -98,6 +100,8 @@
                 :invalid="$invalid"
                 :disabled="$disabled"
                 :readonly="$readonly"
+                :required="$required ?: null"
+                :autofocus="$autofocus ?: null"
                 class:input="{{ $inputClasses }}"
                 x-bind:value="query"
                 x-on:input="onInput($event)"

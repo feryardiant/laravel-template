@@ -37,7 +37,7 @@ test('the contact view page renders the contact information', function () {
         ->assertOk()
         ->assertSee('Acme View')
         ->assertSee('VIEW-1')
-        ->assertSee('Pemasok')
+        ->assertSee(OrganizationRelationshipType::Supplier->label())
         ->assertSee('View Contact Person')
         ->assertSee('Contact summary');
 });

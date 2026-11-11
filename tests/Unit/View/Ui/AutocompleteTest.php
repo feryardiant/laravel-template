@@ -24,6 +24,14 @@ it('renders a labeled combobox and its local items', function () {
         ->assertSee('California');
 });
 
+it('forwards required and autofocus to the input', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.autocomplete label="Name" required autofocus />');
+
+    $view->assertSee('required', false)
+        ->assertSee('autofocus', false);
+});
+
 it('renders a plain hidden field for the selected value', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.autocomplete name="state" value="Alaska" label="State" />');

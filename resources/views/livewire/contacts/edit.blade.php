@@ -43,11 +43,13 @@
                         :min-length="2"
                         :debounce="300"
                         clearable
+                        required
+                        autofocus
                     />
                 @else
                     <flux:field>
                         <flux:label>{{ __('Name') }}</flux:label>
-                        <flux:input wire:model="name" type="text" :disabled="$this->sharedFieldsLocked" autocomplete="off" />
+                        <flux:input wire:model="name" type="text" :disabled="$this->sharedFieldsLocked" required autocomplete="off" />
                         <flux:error name="name" />
                     </flux:field>
                 @endif

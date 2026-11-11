@@ -115,9 +115,9 @@
                             {{ __('Name') }}
                         </span>
                     </flux:table.column>
-                    <flux:table.column class="w-1/4">{{ __('Contact person') }}</flux:table.column>
-                    <flux:table.column align="end" class="w-[15%]">{{ __('Registered at') }}</flux:table.column>
-                    <flux:table.column align="center">{{ __('Actions') }}</flux:table.column>
+                    <flux:table.column class="w-2/12">{{ __('Contact person') }}</flux:table.column>
+                    <flux:table.column align="end" class="w-2/12">{{ __('Registered at') }}</flux:table.column>
+                    <flux:table.column align="center" class="w-1/12">{{ __('Actions') }}</flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -189,7 +189,7 @@
                                 @endif
                             </flux:table.cell>
 
-                            <flux:table.cell align="end" class="w-1/12 whitespace-nowrap">
+                            <flux:table.cell align="end" class="w-2/12 whitespace-nowrap">
                                 <x-local-time :date="$stakeholder->created_at" />
                             </flux:table.cell>
 
@@ -205,6 +205,15 @@
                                     />
 
                                     <flux:menu>
+                                        @if ($canManage)
+                                            <flux:menu.item
+                                                icon="pencil-square"
+                                                wire:click="editContact({{ $contact->id }})"
+                                            >
+                                                {{ __('Edit contact') }}
+                                            </flux:menu.item>
+                                        @endif
+
                                         <flux:menu.item
                                             icon="eye"
                                             :href="route('contacts.view', ['stakeholder' => $stakeholder])"

@@ -6,6 +6,7 @@ use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Contacts\Edit;
+use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Illuminate\Http\UploadedFile;
@@ -178,6 +179,58 @@ test('a plain member cannot open the edit flyout', function () {
     Livewire::test(Edit::class)
         ->call('openEdit', $relationshipId)
         ->assertForbidden();
+});
+
+test('the actions menu can open the edit flyout with the keyboard', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Keyboard Edit']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    Livewire::test(Index::class)
+        ->call('editContact', $relationshipId)
+        ->assertDispatched('edit-contact', contactId: $relationshipId);
+});
+
+test('a shared contact ignores empty shared fields on save', function () {
+    $owner = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    actingAsMember($owner, Role::Admin);
+
+    $contact = contactOrganization($owner, ['name' => 'Shared Empty', 'summary' => 'Kept']);
+    $relationshipId = contactRelationshipId($owner, $contact);
+    $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer]);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->set('name', '')
+        ->set('summary', '')
+        ->set('contact_name', '')
+        ->set('code', 'EMPTY-1')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contact->fresh()?->name)->toBe('Shared Empty')
+        ->and($contact->fresh()?->summary)->toBe('Kept')
+        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('EMPTY-1');
+});
+
+test('an individual edit ignores the contact person summary', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Individual Contact']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->set('contact_summary', str_repeat('x', 300))
+        ->call('save')
+        ->assertHasNoErrors();
 });
 
 test('the edit flyout is a floating right-side flyout with a bottom footer', function () {

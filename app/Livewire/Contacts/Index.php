@@ -58,6 +58,15 @@ class Index extends Component
         $this->dispatch('create-contact');
     }
 
+    public function editContact(int $contactId): void
+    {
+        $contact = app(FindContact::class)->byId($this->requireOrganization(), $contactId);
+
+        Gate::authorize('updateContact', $contact->stakeholder);
+
+        $this->dispatch('edit-contact', contactId: $contactId);
+    }
+
     public function confirmDelete(int $contactId, string $name): void
     {
         $this->deletingContactId = $contactId;

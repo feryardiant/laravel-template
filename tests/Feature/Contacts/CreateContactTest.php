@@ -36,6 +36,35 @@ test('typing a new name keeps the selected organization type', function () {
         ->assertSet('type', 'organization');
 });
 
+test('selecting a candidate locks shared fields and typing unlocks them', function () {
+    $source = Organization::factory()->create();
+    $target = Organization::factory()->create();
+
+    $person = contactIndividual($source, ['name' => 'Locked Candidate', 'summary' => 'Shared summary']);
+
+    actingAsMember($target, Role::Admin);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('selectedEntity', 'individual:'.$person->uuid)
+        ->assertSet('name', 'Locked Candidate')
+        ->assertSet('summary', 'Shared summary')
+        ->set('name', 'New Name')
+        ->assertSet('selectedEntity', null)
+        ->assertSet('summary', '');
+});
+
+test('an invalid candidate reference is discarded', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('selectedEntity', 'individual:not-a-real-uuid')
+        ->assertSet('selectedEntity', null);
+});
+
 test('an admin can create an individual contact', function () {
     $organization = Organization::factory()->create();
 

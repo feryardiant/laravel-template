@@ -194,9 +194,11 @@ class Edit extends Component
             Gate::authorize('createContact', Organization::class);
         }
 
-        $this->validate([
-            'photo' => ['nullable', 'image', 'max:2048'],
-        ]);
+        if (! $this->sharedFieldsLocked) {
+            $this->validate([
+                'photo' => ['nullable', 'image', 'max:2048'],
+            ]);
+        }
 
         $this->validate($this->rules($organization));
 
@@ -312,8 +314,6 @@ class Edit extends Component
         }
 
         $rules = [
-            'name' => $this->nameRules(),
-            'summary' => ['nullable', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:255', $code],
             'role' => [
                 'required',
@@ -322,8 +322,12 @@ class Edit extends Component
             ],
             'start_date' => ['required', 'date'],
             'finish_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'contact_summary' => ['nullable', 'string', 'max:255'],
         ];
+
+        if (! $this->sharedFieldsLocked) {
+            $rules['name'] = $this->nameRules();
+            $rules['summary'] = ['nullable', 'string', 'max:255'];
+        }
 
         if ($this->contactId === null) {
             $rules['type'] = ['required', Rule::in(['individual', 'organization'])];
@@ -332,6 +336,7 @@ class Edit extends Component
         if ($this->isOrganizationType && ! $this->sharedFieldsLocked) {
             $rules['contact_name'] = ['required', 'string', 'max:255'];
             $rules['contact_gender'] = ['required', Rule::enum(Gender::class)];
+            $rules['contact_summary'] = ['nullable', 'string', 'max:255'];
         }
 
         return $rules;
