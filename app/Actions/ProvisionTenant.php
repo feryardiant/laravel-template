@@ -12,7 +12,7 @@ use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
 
-class ProvisionTenant
+final class ProvisionTenant
 {
     public function __construct(private CreateMember $addMember)
     {
@@ -61,5 +61,18 @@ class ProvisionTenant
 
             return $user;
         });
+    }
+
+    /**
+     * Determine whether the first-install setup flow is still required.
+     */
+    public function isRequired(): bool
+    {
+        if (app()->environment(['local', 'testing'])) {
+            return false;
+        }
+
+        return Organization::query()->rootTenant()->doesntExist()
+            && User::query()->where('email', config('setup.initial_email'))->exists();
     }
 }

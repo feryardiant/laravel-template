@@ -7,7 +7,6 @@ namespace App\Livewire;
 use App\Actions\ProvisionTenant;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
-use App\Support\Setup as SetupState;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -29,9 +28,9 @@ class Setup extends Component
     /**
      * Redirect away once setup has already been completed.
      */
-    public function mount(): void
+    public function mount(ProvisionTenant $provisioning): void
     {
-        if (! SetupState::required()) {
+        if (! $provisioning->isRequired()) {
             $this->redirectRoute('dashboard', navigate: true);
         }
     }
@@ -39,9 +38,9 @@ class Setup extends Component
     /**
      * Provision the first credential and root tenant organization.
      */
-    public function setup(ProvisionTenant $provisionTenant): void
+    public function setup(ProvisionTenant $provisioning): void
     {
-        abort_unless(SetupState::required(), 403);
+        abort_unless($provisioning->isRequired(), 403);
 
         $this->email = Str::lower($this->email);
 
@@ -54,7 +53,7 @@ class Setup extends Component
             'password' => $this->passwordRules(),
         ]);
 
-        $user = $provisionTenant->handle(
+        $user = $provisioning->handle(
             $validated['name'],
             Str::lower($validated['email']),
             $validated['password'],
