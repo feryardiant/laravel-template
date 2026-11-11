@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\UpdateContact;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -10,6 +11,7 @@ use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -252,6 +254,53 @@ test('an individual edit ignores the contact person summary', function () {
         ->set('contact_summary', str_repeat('x', 300))
         ->call('save')
         ->assertHasNoErrors();
+});
+
+test('a failed update removes the new photo and keeps the previous one', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $first = contactIndividual($organization, ['name' => 'First Photo']);
+    $first->update(['photo_url' => 'photos/first.jpg']);
+    OrganizationRelationship::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_type', $first->getMorphClass())
+        ->where('stakeholder_id', $first->getKey())
+        ->update(['code' => 'DUP-UPDATE']);
+
+    $second = contactIndividual($organization, ['name' => 'Second Photo']);
+    $second->update(['photo_url' => 'photos/second.jpg']);
+    $secondRelationshipId = contactRelationshipId($organization, $second);
+
+    Storage::disk()->put('photos/first.jpg', 'first');
+    Storage::disk()->put('photos/second.jpg', 'second');
+
+    $data = [
+        'name' => 'Second Photo',
+        'summary' => null,
+        'code' => 'DUP-UPDATE',
+        'role' => OrganizationRelationshipType::Customer,
+        'start_date' => now()->toDateString(),
+        'finish_date' => null,
+        'contact_name' => null,
+        'contact_gender' => null,
+        'contact_summary' => null,
+    ];
+
+    expect(fn () => app(UpdateContact::class)->handle(
+        $organization,
+        $secondRelationshipId,
+        $data,
+        UploadedFile::fake()->image('rollback.jpg'),
+    ))->toThrow(QueryException::class);
+
+    expect(Storage::disk()->allFiles('photos'))->toEqualCanonicalizing([
+        'photos/first.jpg',
+        'photos/second.jpg',
+    ]);
 });
 
 test('the edit flyout is a floating right-side flyout with a bottom footer', function () {

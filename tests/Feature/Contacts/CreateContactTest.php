@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\CreateContact;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -10,6 +11,7 @@ use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -247,6 +249,43 @@ test('an admin can attach an existing contact from another tenant', function () 
     expect($attached->code)->toBe('T-1')
         ->and(Person::query()->where('name', 'Shared Person')->count())->toBe(1)
         ->and($relationship)->not->toBeNull();
+});
+
+test('a failed create removes the uploaded photo', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $existing = contactIndividual($organization, ['name' => 'Existing Code']);
+
+    OrganizationRelationship::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_type', $existing->getMorphClass())
+        ->where('stakeholder_id', $existing->getKey())
+        ->update(['code' => 'DUP-CREATE']);
+
+    $data = [
+        'name' => 'Rollback Create',
+        'summary' => null,
+        'code' => 'DUP-CREATE',
+        'role' => OrganizationRelationshipType::Customer,
+        'type' => 'individual',
+        'start_date' => now()->toDateString(),
+        'finish_date' => null,
+        'contact_name' => null,
+        'contact_gender' => null,
+        'contact_summary' => null,
+    ];
+
+    expect(fn () => app(CreateContact::class)->handle(
+        $organization,
+        $data,
+        UploadedFile::fake()->image('rollback.jpg'),
+    ))->toThrow(QueryException::class);
+
+    expect(Storage::disk()->allFiles('photos'))->toBe([]);
 });
 
 test('a contact already in the tenant list cannot be selected for reuse', function () {

@@ -223,6 +223,27 @@ test('a user without an organization sees the empty state', function () {
         ->assertSee(__('You are not a member of any organization.'));
 });
 
+test('refreshing after an edit clears a stale selection', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $contact = contactIndividual($organization, ['name' => 'Selected Contact']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    $component = Livewire::test(Index::class)
+        ->set('search', 'Selected')
+        ->set('selected', [$relationshipId]);
+
+    $contact->update(['name' => 'Renamed Contact']);
+
+    $component
+        ->call('refreshContacts')
+        ->assertSet('selected', [])
+        ->assertSet('allSelected', false)
+        ->assertSet('someSelected', false);
+});
+
 test('select all toggles the current page rows', function () {
     $organization = Organization::factory()->create();
 

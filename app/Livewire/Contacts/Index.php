@@ -185,6 +185,8 @@ class Index extends Component
     #[On('contact-updated')]
     public function refreshContacts(): void
     {
+        $this->clearSelection();
+        $this->selectionKey++;
         unset($this->contacts);
     }
 
