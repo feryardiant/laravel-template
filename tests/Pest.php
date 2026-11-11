@@ -10,7 +10,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Database\Factories\OrganizationFactory;
-use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\ServerManager;
 use Tests\TestCase;
 
@@ -63,19 +62,6 @@ function assertNoBackendErrors(): void
     expect($throwable)->toBeNull(
         'The last backend request threw: '.($throwable?->getMessage() ?? 'unknown'),
     );
-}
-
-/**
- * Sign in through the real login form, optionally on a given viewport.
- */
-function browserLogin(User $user, string $device = 'desktop'): AwaitableWebpage
-{
-    return visit('/login')
-        ->on()
-        ->{$device}()
-        ->fill('email', $user->email)
-        ->fill('password', 'password')
-        ->click('@login-button');
 }
 
 /**

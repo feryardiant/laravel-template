@@ -6,14 +6,17 @@ use App\Enums\Locale;
 use App\Enums\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
+use function Pest\Laravel\actingAs;
+
 uses(RefreshDatabase::class);
 
 describe('accessibilities', function () {
     it('has no serious accessibility issues on the preferences page', function (string $device) {
         $owner = browserMember(Role::Owner);
 
-        browserLogin($owner, $device)
-            ->navigate('/settings/preferences')
+        actingAs($owner);
+
+        visit('/settings/preferences')->on()->{$device}()
             ->assertNoAccessibilityIssues()
             ->assertNoJavaScriptErrors();
     })->with(['desktop', 'mobile']);
@@ -23,7 +26,9 @@ describe('usabilities', function () {
     it('switches to light mode and remembers it after navigation', function () {
         $member = browserMember(Role::Member);
 
-        $page = browserLogin($member)->navigate('/settings/preferences');
+        actingAs($member);
+
+        $page = visit('/settings/preferences');
 
         $page->click('Terang')
             ->wait(0.5)
@@ -38,7 +43,9 @@ describe('usabilities', function () {
 it('lets a user update their own profile', function () {
     $member = browserMember(Role::Member);
 
-    $page = browserLogin($member)->navigate('/settings/profile');
+    actingAs($member);
+
+    $page = visit('/settings/profile');
 
     $page->fill('name', 'Nama Baru')
         ->click('Simpan')
@@ -51,7 +58,9 @@ it('lets a user update their own profile', function () {
 it('updates locale and offers to reload the page', function () {
     $member = browserMember(Role::Member);
 
-    $page = browserLogin($member)->navigate('/settings/preferences');
+    actingAs($member);
+
+    $page = visit('/settings/preferences');
 
     $page->click('Bahasa Inggris')
         ->assertSee('Preferensi Anda telah diperbarui.')
@@ -66,7 +75,9 @@ it('updates locale and offers to reload the page', function () {
 it('keeps the latest rapid preference selection', function () {
     $member = browserMember(Role::Member);
 
-    $page = browserLogin($member)->navigate('/settings/preferences');
+    actingAs($member);
+
+    $page = visit('/settings/preferences');
 
     $page->click('Bahasa Inggris')
         ->click('Bahasa Indonesia')
@@ -78,7 +89,9 @@ it('keeps the latest rapid preference selection', function () {
 it('applies the preferred locale to livewire updates', function () {
     $member = browserMember(Role::Member, ['locale' => Locale::English]);
 
-    $page = browserLogin($member)->navigate('/settings/profile');
+    actingAs($member);
+
+    $page = visit('/settings/profile');
 
     $page->fill('name', 'English Name')
         ->click('Save')
@@ -88,7 +101,9 @@ it('applies the preferred locale to livewire updates', function () {
 it('shows a danger toast when preferences cannot be saved', function () {
     $member = browserMember(Role::Member, ['locale' => Locale::English]);
 
-    $page = browserLogin($member)->navigate('/settings/preferences');
+    actingAs($member);
+
+    $page = visit('/settings/preferences');
 
     $page->script(<<<'JS'
         const select = document.querySelector('[x-model=timezone]');
@@ -104,7 +119,9 @@ it('shows a danger toast when preferences cannot be saved', function () {
 it('updates timezone and offers to reload the page', function () {
     $member = browserMember(Role::Member, ['timezone' => null]);
 
-    $page = browserLogin($member)->navigate('/settings/preferences');
+    actingAs($member);
+
+    $page = visit('/settings/preferences');
 
     $page->select('[x-model=timezone]', 'Asia/Jakarta')
         ->assertSee('Preferensi Anda telah diperbarui.')

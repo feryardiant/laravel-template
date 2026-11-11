@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Enums\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
+use function Pest\Laravel\actingAs;
+
 uses(RefreshDatabase::class);
 
 describe('accessibilities', function () {
@@ -12,15 +14,6 @@ describe('accessibilities', function () {
         visit('/login')
             ->on()
             ->{$device}()
-            ->assertNoAccessibilityIssues()
-            ->assertNoJavaScriptErrors();
-    })->with(['desktop', 'mobile']);
-
-    it('has no serious accessibility issues on the users page', function (string $device) {
-        $owner = browserMember(Role::Owner);
-
-        browserLogin($owner, $device)
-            ->navigate('/members')
             ->assertNoAccessibilityIssues()
             ->assertNoJavaScriptErrors();
     })->with(['desktop', 'mobile']);
@@ -43,7 +36,9 @@ describe('accessibilities', function () {
     it('moves focus into a modal and back to its trigger', function () {
         $owner = browserMember(Role::Owner);
 
-        $page = browserLogin($owner)->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members');
 
         $page->click('Tambah anggota')
             ->wait(0.3)

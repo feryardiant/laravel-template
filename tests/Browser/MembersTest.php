@@ -5,15 +5,29 @@ declare(strict_types=1);
 use App\Enums\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
+use function Pest\Laravel\actingAs;
+
 uses(RefreshDatabase::class);
 
 describe('accessibilities', function () {
+    it('has no serious accessibility issues on the users page', function (string $device) {
+        $owner = browserMember(Role::Owner);
+
+        actingAs($owner);
+
+        visit('/members')
+            ->on()->{$device}()
+            ->assertNoAccessibilityIssues()
+            ->assertNoJavaScriptErrors();
+    })->with(['desktop', 'mobile']);
+
     it('has no serious accessibility issues on the user detail page', function () {
         $owner = browserMember(Role::Owner);
         $member = browserMember(Role::Member);
 
-        browserLogin($owner)
-            ->navigate("/members/{$member->person->uuid}")
+        actingAs($owner);
+
+        visit("/members/{$member->person->uuid}")
             ->assertNoAccessibilityIssues()
             ->assertNoJavaScriptErrors();
     });
@@ -21,8 +35,9 @@ describe('accessibilities', function () {
     it('exposes the users table sort direction', function () {
         $owner = browserMember(Role::Owner);
 
-        browserLogin($owner)
-            ->navigate('/members')
+        actingAs($owner);
+
+        visit('/members')
             ->assertScript('document.querySelector("[aria-sort]")?.getAttribute("aria-sort") === "descending"')
             ->click('Bergabung pada')
             ->wait(0.4)
@@ -34,7 +49,9 @@ describe('accessibilities', function () {
         $first = browserMember(Role::Member);
         browserMember(Role::Member);
 
-        $page = browserLogin($owner)->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members');
 
         $page->click('input[aria-label="Pilih semua anggota"]')
             ->wait(0.4)
@@ -51,8 +68,9 @@ describe('consistencies', function () {
         $owner = browserMember(Role::Owner);
         browserMember(Role::Member);
 
-        browserLogin($owner, 'mobile')
-            ->navigate('/members')
+        actingAs($owner);
+
+        visit('/members')->on()->mobile()
             ->assertScript('document.querySelector("input[aria-label=\"Pilih semua anggota\"]") !== null')
             ->assertScript('(document.querySelector("ui-checkbox[value]").getAttribute("aria-label") || "").startsWith("Pilih ")')
             ->click('button[aria-label="Tindakan"]')
@@ -65,7 +83,9 @@ describe('consistencies', function () {
         $first = browserMember(Role::Member);
         browserMember(Role::Member);
 
-        $page = browserLogin($owner)->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members');
 
         $page->hover('[data-flux-row]:has(ui-checkbox[value="'.$first->person->id.'"])')
             ->wait(0.3)
@@ -94,8 +114,9 @@ describe('usabilities', function () {
     it('keeps the users page within the mobile viewport', function () {
         $owner = browserMember(Role::Owner);
 
-        browserLogin($owner, 'mobile')
-            ->navigate('/members')
+        actingAs($owner);
+
+        visit('/members')->on()->mobile()
             ->assertScript('document.documentElement.scrollWidth <= window.innerWidth');
     });
 
@@ -103,7 +124,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Owner);
         browserMember(Role::Member);
 
-        $page = browserLogin($owner, 'mobile')->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members')->on()->mobile();
 
         $page->click('ui-checkbox[value]')
             ->wait(0.3)
@@ -117,7 +140,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Owner);
         $member = browserMember(Role::Member);
 
-        $page = browserLogin($owner, 'mobile')->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members')->on()->mobile();
 
         $page->click("[aria-label=\"Tindakan untuk {$member->name}\"]")
             ->wait(0.3)
@@ -143,7 +168,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Owner);
         browserMember(Role::Member);
 
-        $page = browserLogin($owner, 'mobile')->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members')->on()->mobile();
 
         $page->assertScript(<<<'JS'
             (() => {
@@ -165,7 +192,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Owner);
         browserMember(Role::Member);
 
-        $page = browserLogin($owner, 'mobile')->navigate('/members');
+        actingAs($owner);
+
+        $page = visit('/members')->on()->mobile();
 
         $page->script(<<<'JS'
             document.querySelector('[data-flux-row]:has(ui-checkbox) span.absolute')
@@ -181,8 +210,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Owner);
         browserMember(Role::Member);
 
-        browserLogin($owner)
-            ->navigate('/members')
+        actingAs($owner);
+
+        visit('/members')
             ->assertScript('getComputedStyle(document.querySelector("ui-checkbox[value]")).opacity === "0"')
             ->hover('[data-flux-row]:has(ui-checkbox)')
             ->wait(0.5)
@@ -192,7 +222,9 @@ describe('usabilities', function () {
     it('opens the mobile navigation', function () {
         $member = browserMember(Role::Member);
 
-        $page = browserLogin($member, 'mobile')->assertPathIs('/dashboard');
+        actingAs($member);
+
+        $page = visit('/dashboard')->on()->mobile();
 
         $page->click('[data-flux-sidebar-toggle]')
             ->click('[data-flux-sidebar] a[href$="/members"]')
@@ -204,7 +236,9 @@ it('hides management actions on your own user detail page', function () {
     $admin = browserMember(Role::Admin);
     $member = browserMember(Role::Member);
 
-    $page = browserLogin($admin)->navigate("/members/{$admin->person->uuid}");
+    actingAs($admin);
+
+    $page = visit("/members/{$admin->person->uuid}");
 
     $page->assertDontSee(__('Edit member'))
         ->assertDontSee(__('Demote admin'))
@@ -215,7 +249,9 @@ it('hides management actions on your own user detail page', function () {
 it('lets an owner add a member', function () {
     $owner = browserMember(Role::Owner);
 
-    $page = browserLogin($owner)->navigate('/members');
+    actingAs($owner);
+
+    $page = visit('/members');
 
     $page->click('Tambah anggota')
         ->fill('name', 'Budi Santoso')
@@ -231,8 +267,9 @@ it('lets an owner add a member', function () {
 it('hides management controls from members on mobile', function () {
     $member = browserMember(Role::Member);
 
-    browserLogin($member, 'mobile')
-        ->navigate('/members')
+    actingAs($member);
+
+    visit('/members')->on()->mobile()
         ->assertSee(__('Members'))
         ->assertDontSee(__('Add member'))
         ->assertMissing('[aria-label^="Tindakan untuk"]');
@@ -243,8 +280,9 @@ it('prevents admins from managing owners', function () {
     $owner = browserMember(Role::Owner);
     $member = browserMember(Role::Member);
 
-    browserLogin($admin)
-        ->navigate('/members')
+    actingAs($admin);
+
+    visit('/members')
         ->assertMissing("[aria-label=\"Tindakan untuk {$owner->name}\"]")
         ->assertPresent("[aria-label=\"Tindakan untuk {$member->name}\"]")
         ->assertMissing("[aria-label=\"Tindakan untuk {$admin->name}\"]");
@@ -255,7 +293,9 @@ it('deletes selected users in one batch', function () {
     $first = browserMember(Role::Member);
     $second = browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/members');
+    actingAs($owner);
+
+    $page = visit('/members')->on()->mobile();
 
     $page->click('input[aria-label="Pilih semua anggota"]')
         ->wait(0.5)
@@ -276,7 +316,9 @@ it('clears the user selection when sorting', function () {
     browserMember(Role::Member);
     browserMember(Role::Member);
 
-    $page = browserLogin($owner, 'mobile')->navigate('/members');
+    actingAs($owner);
+
+    $page = visit('/members')->on()->mobile();
 
     $page->click('input[aria-label="Pilih semua anggota"]')
         ->wait(0.4)
@@ -290,7 +332,9 @@ it('updates a user from the edit flyout and discards on escape', function () {
     $owner = browserMember(Role::Owner);
     $member = browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/members');
+    actingAs($owner);
+
+    $page = visit('/members');
 
     $page->click("[aria-label=\"Tindakan untuk {$member->name}\"]")
         ->wait(0.3)
@@ -316,7 +360,9 @@ it('navigates from a user row but not from its selection control', function () {
     $owner = browserMember(Role::Owner);
     $member = browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/members');
+    actingAs($owner);
+
+    $page = visit('/members');
 
     $page->click('[data-flux-row]:has(ui-checkbox[value="'.$member->person->id.'"]) [data-flux-cell]:nth-child(2)')
         ->assertPathIs("/members/{$member->person->uuid}");
@@ -334,7 +380,9 @@ it('does not navigate when selecting text in a user row', function () {
     $owner = browserMember(Role::Owner);
     browserMember(Role::Member);
 
-    $page = browserLogin($owner)->navigate('/members');
+    actingAs($owner);
+
+    $page = visit('/members');
 
     $page->script(<<<'JS'
         const cell = document.querySelector('[data-flux-row]:has(ui-checkbox) [data-flux-cell]:nth-child(2)');

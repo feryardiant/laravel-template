@@ -6,6 +6,8 @@ use App\Enums\Role;
 use App\Notifications\UserRoleChangedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
+use function Pest\Laravel\actingAs;
+
 uses(RefreshDatabase::class);
 
 describe('accessibilities', function () {
@@ -15,8 +17,9 @@ describe('accessibilities', function () {
         $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
         $owner->notifications()->latest()->first()->markAsRead();
 
-        browserLogin($owner, $device)
-            ->navigate('/notifications')
+        actingAs($owner);
+
+        visit('/notifications')->on()->{$device}()
             ->assertNoAccessibilityIssues()
             ->assertNoJavaScriptErrors();
     })->with(['desktop', 'mobile']);
@@ -25,7 +28,9 @@ describe('accessibilities', function () {
         $owner = browserMember(Role::Owner);
         $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
-        $page = browserLogin($owner)->navigate('/notifications');
+        actingAs($owner);
+
+        $page = visit('/notifications');
 
         $page->click('[data-flux-row] button[wire\:click\.stop]:not([role="checkbox"])')
             ->wait(0.5)
@@ -50,7 +55,9 @@ describe('accessibilities', function () {
         $owner->notify(new UserRoleChangedNotification($actor, Role::Admin));
         $owner->notify(new UserRoleChangedNotification($actor, Role::Member));
 
-        $page = browserLogin($owner)->navigate('/notifications');
+        actingAs($owner);
+
+        $page = visit('/notifications');
 
         $page->assertScript('[...document.querySelectorAll("[role=status]")].some((el) => el.textContent.includes("2"))')
             ->click('button[aria-label="Pilih semua notifikasi"]')
@@ -70,8 +77,9 @@ describe('consistencies', function () {
         $owner->notify(new UserRoleChangedNotification($actor, Role::Member));
         $owner->notifications()->latest()->first()->markAsRead();
 
-        browserLogin($owner)
-            ->navigate('/notifications')
+        actingAs($owner);
+
+        visit('/notifications')
             ->assertScript(<<<'JS'
                 (() => {
                     const luminance = (color) => {
@@ -116,8 +124,9 @@ describe('usabilities', function () {
     it('reaches notifications from the mobile user menu', function () {
         $member = browserMember(Role::Member);
 
-        browserLogin($member, 'mobile')
-            ->navigate('/dashboard')
+        actingAs($member);
+
+        visit('/dashboard')->on()->mobile()
             ->click('header button[aria-haspopup]')
             ->wait(0.3)
             ->click('header a[href$="/notifications"]')
@@ -128,8 +137,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Member);
         $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
-        browserLogin($owner, 'mobile')
-            ->navigate('/notifications')
+        actingAs($owner);
+
+        visit('/notifications')->on()->mobile()
             ->assertScript('document.documentElement.scrollWidth <= window.innerWidth');
     });
 
@@ -139,7 +149,9 @@ describe('usabilities', function () {
         $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
         $owner->notifications()->latest()->first()->markAsRead();
 
-        $page = browserLogin($owner, 'mobile')->navigate('/notifications');
+        actingAs($owner);
+
+        $page = visit('/notifications')->on()->mobile();
 
         $page->assertScript(<<<'JS'
             (() => {
@@ -154,7 +166,9 @@ describe('usabilities', function () {
         $owner = browserMember(Role::Member);
         $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
-        $page = browserLogin($owner, 'mobile')->navigate('/notifications');
+        actingAs($owner);
+
+        $page = visit('/notifications')->on()->mobile();
 
         $page->assertScript(<<<'JS'
             (() => {
@@ -177,7 +191,9 @@ describe('usabilities', function () {
         $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
         $owner->notifications()->latest()->first()->markAsRead();
 
-        $page = browserLogin($owner)->navigate('/notifications');
+        actingAs($owner);
+
+        $page = visit('/notifications');
 
         $page->assertScript('[...document.querySelectorAll("[data-flux-row]")].every((row) => getComputedStyle(row).cursor === "pointer")')
             ->hover('[data-flux-row]:has(button[aria-label*="Belum dibaca"])')
@@ -196,8 +212,9 @@ describe('usabilities', function () {
 it('shows an empty state when there are no notifications', function () {
     $member = browserMember(Role::Member);
 
-    browserLogin($member)
-        ->navigate('/notifications')
+    actingAs($member);
+
+    visit('/notifications')
         ->assertSee(__('No notifications yet.'));
 });
 
@@ -205,7 +222,9 @@ it('opens a notification, marks it read, and updates the menu count', function (
     $owner = browserMember(Role::Member);
     $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
-    $page = browserLogin($owner)->navigate('/notifications');
+    actingAs($owner);
+
+    $page = visit('/notifications');
 
     $page->assertScript('[...document.querySelectorAll("[role=status]")].some((el) => el.textContent.includes("1"))')
         ->click('[data-flux-row] button[wire\:click\.stop]:not([role="checkbox"])')
@@ -226,8 +245,9 @@ it('opens a notification from a deep link', function () {
 
     $notification = $owner->notifications()->firstOrFail();
 
-    browserLogin($owner)
-        ->navigate("/notifications?open={$notification->id}")
+    actingAs($owner);
+
+    visit("/notifications?open={$notification->id}")
         ->wait(0.5)
         ->assertScript('document.querySelector("dialog[open]") !== null')
         ->assertScript('window.location.search === ""');
@@ -240,7 +260,9 @@ it('marks selected notifications read and unread in bulk', function () {
     $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
     $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Member));
 
-    $page = browserLogin($owner, 'mobile')->navigate('/notifications');
+    actingAs($owner);
+
+    $page = visit('/notifications')->on()->mobile();
 
     $page->click('button[aria-label="Pilih semua notifikasi"]')
         ->wait(0.4)
@@ -258,7 +280,9 @@ it('shows a toast when a new notification arrives', function () {
     $owner = browserMember(Role::Member);
     $owner->notify(new UserRoleChangedNotification(browserMember(Role::Member), Role::Admin));
 
-    $page = browserLogin($owner)->navigate('/dashboard');
+    actingAs($owner);
+
+    $page = visit('/dashboard');
 
     $page->wait(1);
 
