@@ -125,6 +125,43 @@ test('a shared contact keeps its shared fields and still updates per-tenant fiel
         ->and($relationship->type)->toBe(OrganizationRelationshipType::Vendor);
 });
 
+test('editing an individual contact updates the gender', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Gender Person', 'gender' => null]);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->assertSet('gender', null)
+        ->set('gender', Gender::Female->value)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()?->gender)->toBe(Gender::Female);
+});
+
+test('an existing individual can keep a blank gender on update', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Blank Gender', 'gender' => null]);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->assertSet('gender', null)
+        ->set('code', 'BLANK-1')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()?->gender)->toBeNull()
+        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('BLANK-1');
+});
+
 test('a contact photo can be replaced and cleared', function () {
     Storage::fake();
 

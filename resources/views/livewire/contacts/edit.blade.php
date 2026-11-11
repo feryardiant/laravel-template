@@ -91,6 +91,21 @@
                     <flux:description>{{ __('The contact type cannot be changed after creation.') }}</flux:description>
                 @endif
 
+                @if (! $this->isOrganizationType)
+                    <flux:radio.group
+                        wire:model="gender"
+                        :label="__('Gender')"
+                        class="flex flex-wrap gap-x-6"
+                        :disabled="$this->sharedFieldsLocked"
+                    >
+                        @foreach (\App\Enums\Gender::cases() as $gender)
+                            <flux:radio :value="$gender->value" :label="$gender->label()" />
+                        @endforeach
+
+                        <flux:error name="gender" />
+                    </flux:radio.group>
+                @endif
+
                 <x-ui.date-picker
                     wire:model.live="start_date"
                     :label="__('Start date')"

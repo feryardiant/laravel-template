@@ -14,6 +14,7 @@ use App\Enums\OrganizationRelationshipType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -50,6 +51,8 @@ class Edit extends Component
     public string $name = '';
 
     public string $summary = '';
+
+    public ?string $gender = null;
 
     public string $code = '';
 
@@ -90,6 +93,7 @@ class Edit extends Component
             'type',
             'name',
             'summary',
+            'gender',
             'code',
             'role',
             'start_date',
@@ -151,6 +155,7 @@ class Edit extends Component
         $this->type = $this->reusedType;
         $this->name = $entity->name;
         $this->summary = (string) $entity->summary;
+        $this->gender = $entity instanceof Person ? $entity->gender?->value : null;
         $this->photo = null;
         $this->photo_url = $entity->getRawOriginal($entity instanceof Organization ? 'logo_url' : 'photo_url');
 
@@ -205,6 +210,7 @@ class Edit extends Component
         $data = [
             'name' => $this->name,
             'summary' => $this->summary !== '' ? $this->summary : null,
+            'gender' => $this->gender,
             'code' => $this->code !== '' ? $this->code : null,
             'role' => OrganizationRelationshipType::from($this->role),
             'start_date' => $this->start_date,
@@ -333,6 +339,12 @@ class Edit extends Component
             $rules['type'] = ['required', Rule::in(['individual', 'organization'])];
         }
 
+        if (! $this->isOrganizationType && ! $this->sharedFieldsLocked) {
+            $rules['gender'] = $this->contactId === null
+                ? ['required', Rule::enum(Gender::class)]
+                : ['nullable', Rule::enum(Gender::class)];
+        }
+
         if ($this->isOrganizationType && ! $this->sharedFieldsLocked) {
             $rules['contact_name'] = ['required', 'string', 'max:255'];
             $rules['contact_gender'] = ['required', Rule::enum(Gender::class)];
@@ -353,6 +365,7 @@ class Edit extends Component
         $this->type = $contact->isOrganization() ? 'organization' : 'individual';
         $this->name = $stakeholder->name;
         $this->summary = (string) $stakeholder->summary;
+        $this->gender = $stakeholder instanceof Person ? $stakeholder->gender?->value : null;
         $this->code = (string) $contact->code;
         $role = $contact->type;
         $this->role = ($role instanceof OrganizationRelationshipType ? $role : OrganizationRelationshipType::Customer)->value;
@@ -383,6 +396,7 @@ class Edit extends Component
         $this->reusedType = null;
         $this->reusedName = null;
         $this->summary = '';
+        $this->gender = null;
         $this->photo = null;
         $this->photo_url = null;
         $this->contact_name = '';

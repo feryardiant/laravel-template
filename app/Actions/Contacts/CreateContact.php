@@ -111,6 +111,7 @@ class CreateContact
     {
         return Person::create([
             'name' => $data['name'],
+            'gender' => $this->gender($data['gender'] ?? null),
             'summary' => $data['summary'] ?? null,
             'photo_url' => $photoPath,
         ]);

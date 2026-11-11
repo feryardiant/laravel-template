@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -40,6 +41,21 @@ test('the contact view page renders the contact information', function () {
         ->assertSee(OrganizationRelationshipType::Supplier->label())
         ->assertSee('View Contact Person')
         ->assertSee('Contact summary');
+});
+
+test('the contact view page shows an individual gender', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Member);
+
+    $person = contactIndividual($organization, [
+        'name' => 'Gendered Individual',
+        'gender' => Gender::Female,
+    ]);
+
+    get(route('contacts.view', ['stakeholder' => $person]))
+        ->assertOk()
+        ->assertSee(__('Female'));
 });
 
 test('a contact from another organization is not found', function () {

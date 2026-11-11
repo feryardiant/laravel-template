@@ -9,6 +9,7 @@ use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -83,6 +84,10 @@ class UpdateContact
                     'name' => $data['name'],
                     'summary' => $data['summary'] ?? null,
                 ];
+
+                if ($stakeholder instanceof Person) {
+                    $attributes['gender'] = $this->gender($data['gender'] ?? null);
+                }
 
                 if ($newPhoto !== null) {
                     $attributes[$column] = $newPhoto;

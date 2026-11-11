@@ -79,6 +79,7 @@ test('an admin can create an individual contact', function () {
         ->assertSet('start_date', now()->format('Y-m-d'))
         ->set('name', 'Jane Doe')
         ->set('summary', 'An individual counterparty')
+        ->set('gender', Gender::Male->value)
         ->set('code', 'C-001')
         ->call('save')
         ->assertHasNoErrors();
@@ -90,7 +91,7 @@ test('an admin can create an individual contact', function () {
         ->firstOrFail();
 
     expect($person->user_id)->toBeNull()
-        ->and($person->gender)->toBeNull()
+        ->and($person->gender)->toBe(Gender::Male)
         ->and($relationship->type)->toBe(OrganizationRelationshipType::Customer)
         ->and($relationship->code)->toBe('C-001')
         ->and($relationship->start_date?->toDateString())->toBe(now()->toDateString());
@@ -146,10 +147,23 @@ test('a finish date before the start date is rejected', function () {
     Livewire::test(Edit::class)
         ->call('openCreate')
         ->set('name', 'Invalid Date')
+        ->set('gender', Gender::Male->value)
         ->set('start_date', '2026-05-10')
         ->set('finish_date', '2026-05-01')
         ->call('save')
         ->assertHasErrors('finish_date');
+});
+
+test('an individual contact requires a gender on create', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('name', 'No Gender')
+        ->call('save')
+        ->assertHasErrors('gender');
 });
 
 test('an organization contact requires contact person details', function () {
@@ -173,6 +187,7 @@ test('an invalid role is rejected', function () {
     Livewire::test(Edit::class)
         ->call('openCreate')
         ->set('name', 'Bad Role')
+        ->set('gender', Gender::Male->value)
         ->set('role', OrganizationRelationshipType::Member->value)
         ->call('save')
         ->assertHasErrors('role');
@@ -194,6 +209,7 @@ test('a contact code is unique per tenant', function () {
     Livewire::test(Edit::class)
         ->call('openCreate')
         ->set('name', 'Duplicate Code')
+        ->set('gender', Gender::Male->value)
         ->set('code', 'DUP-1')
         ->call('save')
         ->assertHasErrors('code');
@@ -209,6 +225,7 @@ test('a contact photo is stored', function () {
     Livewire::test(Edit::class)
         ->call('openCreate')
         ->set('name', 'Photo Contact')
+        ->set('gender', Gender::Male->value)
         ->set('photo', UploadedFile::fake()->image('photo.jpg'))
         ->call('save')
         ->assertHasNoErrors();

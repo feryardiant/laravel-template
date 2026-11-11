@@ -29,6 +29,13 @@
             <flux:heading>{{ $isOrganization ? __('Organization') : __('Individual') }}</flux:heading>
         </div>
 
+        @if (! $isOrganization)
+            <div>
+                <flux:text>{{ __('Gender') }}</flux:text>
+                <flux:heading>{{ $stakeholder->gender?->label() ?? '—' }}</flux:heading>
+            </div>
+        @endif
+
         <div>
             <flux:text>{{ __('Code') }}</flux:text>
             <flux:heading>{{ $contact->code ?: '—' }}</flux:heading>
