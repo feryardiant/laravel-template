@@ -16,7 +16,11 @@ class Autocomplete extends Component
 {
     public string $state = '';
 
+    public string $stateValue = '';
+
     public string $remoteState = '';
+
+    public string $remoteStateValue = '';
 
     /**
      * Set the local demo value to "New York".
@@ -24,6 +28,7 @@ class Autocomplete extends Component
     public function setState(): void
     {
         $this->state = 'New York';
+        $this->stateValue = 'New York';
     }
 
     public function render(): View

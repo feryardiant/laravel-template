@@ -9,6 +9,7 @@
     <section data-ui-demo="autocomplete-local" class="space-y-2">
         <x-ui.autocomplete
             wire:model.live="state"
+            value-model="stateValue"
             label="State of residence"
             placeholder="Start typing..."
             icon="magnifying-glass"
@@ -28,6 +29,7 @@
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Bound value: <span data-ui-bound="state">{{ $state }}</span>
+            · Selected value: <span data-ui-bound="state-value">{{ $stateValue }}</span>
         </p>
 
         <flux:button size="sm" wire:click="setState">Set New York</flux:button>
@@ -36,6 +38,7 @@
     <section data-ui-demo="autocomplete-remote" class="space-y-2">
         <x-ui.autocomplete
             wire:model.live="remoteState"
+            value-model="remoteStateValue"
             label="Remote state search"
             placeholder="Type a state..."
             icon="magnifying-glass"
@@ -47,6 +50,7 @@
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Bound value: <span data-ui-bound="remote-state">{{ $remoteState }}</span>
+            · Selected value: <span data-ui-bound="remote-state-value">{{ $remoteStateValue }}</span>
         </p>
     </section>
 

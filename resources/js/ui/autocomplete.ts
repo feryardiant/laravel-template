@@ -12,6 +12,8 @@ export interface AutocompleteConfig {
     readonly: boolean
     /** When set, enables remote suggestions from `GET {searchUrl}?q=` */
     searchUrl: string | null
+    /** Optional Livewire property that receives the selected option's value. */
+    valueModel: string | null
     minLength: number
     debounce: number
     empty: string
@@ -25,6 +27,7 @@ export interface AutocompleteConfig {
 /** Normalized remote autocomplete result. */
 export interface RemoteItem {
     label: string
+    value?: string
 }
 
 /**
@@ -67,6 +70,7 @@ export interface Autocomplete {
     fetchRemote: () => Promise<void>
     focusTrigger: () => void
     write: () => void
+    writeValue: (value: string) => void
     dispatch: (name: string) => void
 }
 
@@ -82,9 +86,10 @@ function normalizeRemote(data: unknown): RemoteItem[] {
 
         if (typeof item === 'object' && item !== null && 'label' in item) {
             const label = (item as { label: unknown }).label
+            const value = (item as { value?: unknown }).value
 
             if (typeof label === 'string') {
-                return [{ label }]
+                return [typeof value === 'string' ? { label, value } : { label }]
             }
         }
 
@@ -218,6 +223,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
             this.query = (event.target as HTMLInputElement).value
             this.write()
+            this.writeValue('')
 
             if (config.searchUrl !== null && this.query.length < config.minLength) {
                 this.closePopover()
@@ -344,6 +350,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
             this.query = item.label
             this.write()
+            this.writeValue(item.value ?? item.label)
             this.closePopover()
             this.focusTrigger()
         },
@@ -361,6 +368,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
             this.query = option.selectedLabel
             this.write()
+            this.writeValue(option.value)
             this.closePopover()
             this.focusTrigger()
         },
@@ -385,6 +393,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             this.results = []
             this.emptyVisible = false
             this.write()
+            this.writeValue('')
             this.dispatch('clear')
             this.closePopover()
             this.focusTrigger()
@@ -570,6 +579,14 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         write() {
             writeModel(wire, config.model, config.live, this.query, formInput())
             this.dispatch('change')
+        },
+
+        writeValue(value: string) {
+            if (config.valueModel === null) {
+                return
+            }
+
+            writeModel(wire, config.valueModel, config.live, value, null)
         },
 
         dispatch(name) {

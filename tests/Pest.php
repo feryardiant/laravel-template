@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Database\Factories\OrganizationFactory;
@@ -98,6 +101,63 @@ function actingAsMember(
     session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);
 
     return $user;
+}
+
+/**
+ * Create an Organization contact for the given tenant.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function contactOrganization(
+    Organization $tenant,
+    array $attributes = [],
+    OrganizationRelationshipType $type = OrganizationRelationshipType::Customer,
+): Organization {
+    $contactPerson = Person::factory()->withoutCredential()->create();
+
+    $organization = Organization::factory()->create([
+        'contact_id' => $contactPerson->getKey(),
+        ...$attributes,
+    ]);
+
+    $tenant->organizationCounterparties($type)->attach($organization, [
+        'type' => $type,
+        'start_date' => now(),
+    ]);
+
+    return $organization;
+}
+
+/**
+ * Create an Individual contact for the given tenant.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function contactIndividual(
+    Organization $tenant,
+    array $attributes = [],
+    OrganizationRelationshipType $type = OrganizationRelationshipType::Customer,
+): Person {
+    $person = Person::factory()->withoutCredential()->create($attributes);
+
+    $tenant->personCounterparties($type)->attach($person, [
+        'type' => $type,
+        'start_date' => now(),
+    ]);
+
+    return $person;
+}
+
+/**
+ * Resolve the relationship id for a contact of the tenant.
+ */
+function contactRelationshipId(Organization $organization, Organization|Person $stakeholder): int
+{
+    return (int) OrganizationRelationship::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_type', $stakeholder->getMorphClass())
+        ->where('stakeholder_id', $stakeholder->getKey())
+        ->value('id');
 }
 
 /**

@@ -73,5 +73,11 @@ Route::get('autocomplete/search', function (Request $request) {
         fn (string $state): bool => $query === '' || str_contains(strtolower($state), strtolower($query)),
     ));
 
-    return response()->json($results);
+    return response()->json(array_map(
+        fn (string $state): array => [
+            'label' => $state,
+            'value' => strtoupper(str_replace(' ', '', $state)),
+        ],
+        $results,
+    ));
 })->name('ui.autocomplete.search');

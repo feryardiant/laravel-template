@@ -131,10 +131,14 @@ class OrganizationFactory extends Factory
         ?CarbonInterface $startDate = null,
         ?CarbonInterface $finishDate = null,
     ): static {
-        return $this->hasAttached($organization, fn () => [
-            'type' => $type,
-            'start_date' => $startDate ?: now(),
-            'finish_date' => $finishDate,
-        ], 'organizationCounterparties');
+        return $this->afterCreating(function (Organization $counterparty) use ($organization, $type, $startDate, $finishDate): void {
+            $tenant = $organization instanceof Organization ? $organization : $organization->createOne();
+
+            $tenant->organizationCounterparties($type)->attach($counterparty, [
+                'type' => $type,
+                'start_date' => $startDate ?: now(),
+                'finish_date' => $finishDate,
+            ]);
+        });
     }
 }
