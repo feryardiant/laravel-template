@@ -30,7 +30,10 @@ describe('usabilities', function () {
 
         $page = visit('/settings/preferences');
 
-        $page->click('Terang')
+        $page->click('Gelap')
+            ->wait(0.5)
+            ->assertScript('document.documentElement.classList.contains("dark")')
+            ->click('Terang')
             ->wait(0.5)
             ->assertScript('! document.documentElement.classList.contains("dark")');
 

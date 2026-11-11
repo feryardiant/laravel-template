@@ -353,7 +353,12 @@ it('updates a user from the edit flyout and discards on escape', function () {
         ->keys('dialog[open] input[name="name"]', 'Escape')
         ->wait(0.5)
         ->assertSee('Nama Baru')
-        ->assertDontSee('Nama Dibatalkan');
+        ->assertDontSee('Nama Dibatalkan')
+        ->click('[aria-label="Tindakan untuk Nama Baru"]')
+        ->wait(0.3)
+        ->click('Edit anggota')
+        ->wait(0.5)
+        ->assertValue('dialog[open] input[name="name"]', 'Nama Baru');
 });
 
 it('navigates from a user row but not from its selection control', function () {

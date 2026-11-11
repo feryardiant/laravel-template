@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Locale;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -11,7 +12,7 @@ use function Pest\Laravel\get;
 uses(RefreshDatabase::class);
 
 test('the dashboard exposes a single level one heading', function () {
-    actingAs(User::factory()->create());
+    actingAs(User::factory()->create(['locale' => Locale::Indonesian]));
 
     $html = get(route('dashboard'))->assertOk()->getContent();
 

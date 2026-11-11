@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Locale;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +21,7 @@ beforeEach(function () {
 });
 
 test('email verification screen can be rendered', function () {
-    $user = User::factory()->unverified()->create();
+    $user = User::factory()->unverified()->create(['locale' => Locale::Indonesian]);
 
     $response = actingAs($user)->get(route('verification.notice'));
 
