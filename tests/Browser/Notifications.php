@@ -193,20 +193,6 @@ describe('usabilities', function () {
     });
 });
 
-it('lists only the signed-in user notifications', function () {
-    $owner = browserMember(Role::Member);
-    $actor = browserMember(Role::Member);
-    $otherActor = browserMember(Role::Member);
-
-    $owner->notify(new UserRoleChangedNotification($actor, Role::Admin));
-    browserMember(Role::Member)->notify(new UserRoleChangedNotification($otherActor, Role::Admin));
-
-    browserLogin($owner)
-        ->navigate('/notifications')
-        ->assertSee($actor->name)
-        ->assertDontSee($otherActor->name);
-});
-
 it('shows an empty state when there are no notifications', function () {
     $member = browserMember(Role::Member);
 

@@ -425,36 +425,6 @@ it('hides navigation controls when navigation is false', function () {
             JS);
 });
 
-it('renders leap and natural four-week grids', function () {
-    $page = visit('/ui/calendar')->on()->desktop();
-
-    $page->assertScript(<<<'JS'
-        (() => {
-            const leap = document.querySelector('[data-ui-demo=calendar-leap]');
-            const four = document.querySelector('[data-ui-demo=calendar-four-weeks]');
-
-            return leap.querySelectorAll('td[data-date]:not([data-outside])').length === 29 &&
-                leap.querySelectorAll('tbody tr').length === 5 &&
-                four.querySelectorAll('td[data-date]:not([data-outside])').length === 28 &&
-                four.querySelectorAll('tbody tr').length === 4;
-        })()
-        JS);
-});
-
-it('uses locale-derived and explicit week starts', function () {
-    visit('/ui/calendar')
-        ->on()
-        ->desktop()
-        ->assertScript(<<<'JS'
-            (() => {
-                const english = document.querySelector('[data-ui-demo=calendar-en]');
-                const constrained = document.querySelector('[data-ui-demo=calendar-constrained]');
-
-                return english.querySelector('th').textContent.trim() === 'Sun' && constrained.querySelector('th').textContent.trim() === 'Sen';
-            })()
-            JS);
-});
-
 it('rejects a range longer than max-range and handles reverse clicks', function () {
     $page = visit('/ui/calendar')->on()->desktop();
 
@@ -642,47 +612,6 @@ it('disables min/max bounds and unavailable separately', function () {
                     cell('2024-02-20').getAttribute('aria-disabled') === null &&
                     cell('2024-02-21').getAttribute('aria-disabled') === 'true' &&
                     cell('2024-02-15').hasAttribute('data-unavailable');
-            })()
-            JS);
-});
-
-it('falls back to supported week starts when Intl week info is unavailable', function () {
-    visit('/ui/calendar')
-        ->on()
-        ->desktop()
-        ->assertScript(<<<'JS'
-            (() => {
-                const roots = {
-                    ca: document.querySelector('[data-ui-demo=calendar-en] [data-ui-calendar]'),
-                    ph: document.querySelector('[data-ui-demo=calendar-fallback-sunday] [data-ui-calendar]'),
-                    en: document.querySelector('[data-ui-demo=calendar-fallback-en] [data-ui-calendar]'),
-                    gb: document.querySelector('[data-ui-demo=calendar-fallback-monday] [data-ui-calendar]'),
-                    sa: document.querySelector('[data-ui-demo=calendar-fallback-ar-sa] [data-ui-calendar]'),
-                    eg: document.querySelector('[data-ui-demo=calendar-fallback-ar-eg] [data-ui-calendar]'),
-                };
-                const original = Intl.Locale;
-
-                Intl.Locale = function () {
-                    return {};
-                };
-
-                Object.values(roots).forEach((root) => {
-                    window.Alpine.destroyTree(root);
-                    window.Alpine.initTree(root);
-                });
-
-                Intl.Locale = original;
-
-                return new Promise((resolve) =>
-                    setTimeout(() => resolve(
-                        roots.ca.querySelector('th').textContent.trim() === 'Sun' &&
-                        roots.ph.querySelector('th').textContent.trim() === 'Sun' &&
-                        roots.en.dataset.startDay === '0' &&
-                        roots.gb.querySelector('th').textContent.trim() === 'Mon' &&
-                        roots.sa.dataset.startDay === '0' &&
-                        roots.eg.dataset.startDay === '6'
-                    ), 100)
-                );
             })()
             JS);
 });

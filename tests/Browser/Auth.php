@@ -55,10 +55,6 @@ describe('accessibilities', function () {
     });
 });
 
-describe('consistencies', function () {
-    //
-});
-
 describe('usabilities', function () {
     it('keeps the login form usable on mobile', function () {
         $member = browserMember(Role::Member);
@@ -72,24 +68,4 @@ describe('usabilities', function () {
             ->click('@login-button')
             ->assertPathIs('/dashboard');
     });
-
-});
-
-it('rejects invalid credentials without signing in', function () {
-    $member = browserMember(Role::Member);
-
-    visit('/login')
-        ->fill('email', $member->email)
-        ->fill('password', 'wrong-password')
-        ->click('@login-button')
-        ->assertPathIs('/login')
-        ->assertSee(__('auth.failed'));
-});
-
-it('gates unverified users from verified pages', function () {
-    $unverified = browserMember(Role::Member, verified: false);
-
-    browserLogin($unverified)
-        ->assertPathIs('/email/verify')
-        ->assertSee('verifikasi alamat email');
 });

@@ -24,7 +24,7 @@ test('email verification screen can be rendered', function () {
 
     $response = actingAs($user)->get(route('verification.notice'));
 
-    $response->assertOk();
+    $response->assertOk()->assertSee('verifikasi alamat email');
 });
 
 test('unverified users are redirected to the email verification prompt', function () {
