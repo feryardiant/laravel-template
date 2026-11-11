@@ -12,6 +12,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Throwable;
 
@@ -31,6 +32,7 @@ class UpdateContact
         array $data,
         ?UploadedFile $photo = null,
         bool $removePhoto = false,
+        bool $validatedSharedFieldsLocked = false,
     ): void {
         $contact = app(FindContact::class)->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
@@ -42,12 +44,12 @@ class UpdateContact
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
         $previous = null;
 
-        $newPhoto = ! $shared && $photo instanceof UploadedFile
+        $newPhoto = ! $validatedSharedFieldsLocked && ! $shared && $photo instanceof UploadedFile
             ? app(StoreImage::class)->handle($photo, 'photos')
             : null;
 
         try {
-            DB::transaction(function () use ($tenant, $contact, $data, $role, &$shared, $stakeholder, $newPhoto, $removePhoto, $column, &$previous): void {
+            DB::transaction(function () use ($tenant, $contact, $data, $role, &$shared, $stakeholder, $newPhoto, $removePhoto, $column, &$previous, $validatedSharedFieldsLocked): void {
                 // Serialize with a concurrent reuse or credential change.
                 $stakeholder = $stakeholder->newQuery()
                     ->whereKey($stakeholder->getKey())
@@ -64,6 +66,15 @@ class UpdateContact
 
                 $contact->setRelation('stakeholder', $stakeholder);
                 $shared = $contact->isShared();
+
+                // The form skipped shared-field validation while the entity was
+                // locked; if that changed meanwhile, reject instead of writing
+                // values the request never validated.
+                if ($validatedSharedFieldsLocked && ! $shared) {
+                    throw ValidationException::withMessages([
+                        'name' => __('The contact changed. Reopen it and try again.'),
+                    ]);
+                }
 
                 OrganizationRelationship::query()
                     ->forOrganization($tenant)

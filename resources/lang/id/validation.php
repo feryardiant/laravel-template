@@ -208,6 +208,7 @@ return [
         'start_date' => 'tanggal mulai',
         'finish_date' => 'tanggal selesai',
         'photo' => 'foto',
+        'gender' => 'jenis kelamin',
         'contact_name' => 'nama narahubung',
         'contact_gender' => 'jenis kelamin narahubung',
         'contact_summary' => 'ringkasan narahubung',

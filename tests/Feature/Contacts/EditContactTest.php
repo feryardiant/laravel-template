@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
 test('editing a contact updates its per-tenant and shared fields', function () {
@@ -276,6 +277,36 @@ test('a shared contact ignores empty shared fields on save', function () {
     expect($contact->fresh()?->name)->toBe('Shared Empty')
         ->and($contact->fresh()?->summary)->toBe('Kept')
         ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('EMPTY-1');
+});
+
+test('a save is rejected when the contact stops being shared after validation', function () {
+    $owner = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    actingAsMember($owner, Role::Admin);
+
+    $contact = contactOrganization($owner, ['name' => 'Race Org']);
+    $relationshipId = contactRelationshipId($owner, $contact);
+    $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer]);
+
+    // The other tenant detaches after the form validated with locked fields.
+    $other->organizationCounterparties()->detach($contact);
+
+    expect(fn () => app(UpdateContact::class)->handle(
+        $owner,
+        $relationshipId,
+        [
+            'name' => '',
+            'summary' => null,
+            'code' => 'RACE-1',
+            'role' => OrganizationRelationshipType::Customer,
+            'start_date' => now()->toDateString(),
+        ],
+        validatedSharedFieldsLocked: true,
+    ))->toThrow(ValidationException::class);
+
+    expect($contact->fresh()?->name)->toBe('Race Org')
+        ->and(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBeNull();
 });
 
 test('an individual edit ignores the contact person summary', function () {

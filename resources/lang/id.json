@@ -283,6 +283,7 @@
     "Contact deleted.": "Kontak dihapus.",
     ":count contacts deleted successfully.": ":count kontak berhasil dihapus.",
     "Failed to save the contact.": "Gagal menyimpan kontak.",
+    "The contact changed. Reopen it and try again.": "Kontak telah berubah. Buka ulang lalu coba lagi.",
     "Failed to delete the contact.": "Gagal menghapus kontak.",
     "Failed to delete the selected contacts.": "Gagal menghapus kontak terpilih."
 }

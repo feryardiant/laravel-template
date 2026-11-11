@@ -20,7 +20,7 @@ class ContactLookupController extends Controller
      */
     public function __invoke(Request $request, SearchContactCandidates $search): JsonResponse
     {
-        Gate::authorize('viewAnyContact', Organization::class);
+        Gate::authorize('createContact', Organization::class);
 
         $user = $request->user();
         $organization = $user instanceof User ? app(CurrentOrganization::class)->get($user) : null;

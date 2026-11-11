@@ -11,10 +11,18 @@ test('guests cannot use the contact lookup', function () {
     getJson(route('contacts.lookup', ['q' => 'acme']))->assertUnauthorized();
 });
 
-test('the lookup returns contacts registered by other tenants', function () {
+test('members cannot use the contact lookup', function () {
     $current = Organization::factory()->create();
 
     actingAsMember($current, Role::Member);
+
+    getJson(route('contacts.lookup', ['q' => 'acme']))->assertForbidden();
+});
+
+test('the lookup returns contacts registered by other tenants', function () {
+    $current = Organization::factory()->create();
+
+    actingAsMember($current, Role::Admin);
 
     $source = Organization::factory()->create();
     $person = contactIndividual($source, ['name' => 'Lookup Person']);
@@ -38,7 +46,7 @@ test('the lookup returns contacts registered by other tenants', function () {
 test('the lookup excludes the current tenant its contacts and the tenant itself', function () {
     $current = Organization::factory()->create(['name' => 'Lookup Current']);
 
-    actingAsMember($current, Role::Member);
+    actingAsMember($current, Role::Admin);
 
     contactIndividual($current, ['name' => 'Lookup Own']);
 
@@ -50,7 +58,7 @@ test('the lookup excludes the current tenant its contacts and the tenant itself'
 test('the lookup requires a search term', function () {
     $current = Organization::factory()->create();
 
-    actingAsMember($current, Role::Member);
+    actingAsMember($current, Role::Admin);
 
     getJson(route('contacts.lookup'))->assertOk()->assertJson([]);
 });

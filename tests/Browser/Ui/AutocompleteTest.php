@@ -34,7 +34,8 @@ it('reflects a server-side model update', function () {
     $page->click('Set New York')
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-local] [role=combobox]').value === 'New York'")
-        ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === 'New York'");
+        ->assertScript("document.querySelector('[data-ui-bound=state]').textContent.trim() === 'New York'")
+        ->assertScript("document.querySelector('[data-ui-bound=state-value]').textContent.trim() === 'New York'");
 });
 
 it('tracks a selected value separately from the visible label', function () {

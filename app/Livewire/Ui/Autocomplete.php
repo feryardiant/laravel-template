@@ -28,6 +28,7 @@ class Autocomplete extends Component
     public function setState(): void
     {
         $this->state = 'New York';
+        $this->stateValue = 'New York';
     }
 
     public function render(): View
