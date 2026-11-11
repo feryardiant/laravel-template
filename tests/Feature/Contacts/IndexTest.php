@@ -72,6 +72,21 @@ test('organization rows show their contact person and individuals show a dash', 
         ->assertSee('Solo Person');
 });
 
+test('the contacts table shows the tenant code', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $contact = contactIndividual($organization, ['name' => 'Coded Contact']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update(['code' => 'CT-42']);
+
+    Livewire::test(Index::class)
+        ->assertSee('Coded Contact')
+        ->assertSee('CT-42');
+});
+
 test('contacts are paginated', function () {
     $organization = Organization::factory()->create();
 

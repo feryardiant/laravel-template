@@ -89,7 +89,7 @@
         >
             <flux:table :paginate="$contacts">
                 <flux:table.columns>
-                    <flux:table.column class="w-7/12">
+                    <flux:table.column class="w-5/12">
                         <span class="inline-flex items-center gap-2">
                             @if ($canDeleteAny)
                                 <label class="relative -m-1.5 inline-flex shrink-0 cursor-pointer items-center justify-center p-1.5">
@@ -115,6 +115,7 @@
                             {{ __('Name') }}
                         </span>
                     </flux:table.column>
+                    <flux:table.column class="w-2/12">{{ __('Code') }}</flux:table.column>
                     <flux:table.column class="w-2/12">{{ __('Contact person') }}</flux:table.column>
                     <flux:table.column align="end" class="w-2/12">{{ __('Registered at') }}</flux:table.column>
                     <flux:table.column align="center" class="w-1/12">{{ __('Actions') }}</flux:table.column>
@@ -134,7 +135,7 @@
                             class="group/row cursor-pointer hover:bg-zinc-100/60 dark:hover:bg-zinc-700/30"
                             x-on:click="{{ $rowClick }}"
                         >
-                            <flux:table.cell class="w-7/12">
+                            <flux:table.cell class="w-5/12">
                                 <span class="relative inline-flex items-center gap-2">
                                     <a
                                         href="{{ route('contacts.view', ['stakeholder' => $stakeholder]) }}"
@@ -179,6 +180,10 @@
                                         </span>
                                     @endif
                                 </span>
+                            </flux:table.cell>
+
+                            <flux:table.cell class="w-2/12">
+                                {{ $contact->code ?: '—' }}
                             </flux:table.cell>
 
                             <flux:table.cell class="w-2/12">
