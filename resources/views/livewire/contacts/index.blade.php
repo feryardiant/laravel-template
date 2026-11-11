@@ -161,6 +161,10 @@
                                     </a>
 
                                     <flux:badge size="sm" color="zinc">
+                                        {{ $contact->type->label() }}
+                                    </flux:badge>
+
+                                    <flux:badge size="sm" color="zinc">
                                         {{ $isOrganization ? __('Organization') : __('Individual') }}
                                     </flux:badge>
 
