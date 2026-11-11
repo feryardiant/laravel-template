@@ -123,18 +123,20 @@ describe('usabilities', function () {
             ->wait(0.3)
             ->click('Edit anggota')
             ->wait(0.6)
-            ->assertScript('(() => {
-                const save = [...document.querySelectorAll("dialog[open] button")]
-                    .find((el) => el.textContent.trim() === "Simpan");
+            ->assertScript(<<<'JS'
+                (() => {
+                    const save = [...document.querySelectorAll("dialog[open] button")]
+                        .find((el) => el.textContent.trim() === "Simpan");
 
-                if (!save) {
-                    return false;
-                }
+                    if (!save) {
+                        return false;
+                    }
 
-                const rect = save.getBoundingClientRect();
+                    const rect = save.getBoundingClientRect();
 
-                return rect.top >= 0 && rect.bottom <= window.innerHeight;
-            })()');
+                    return rect.top >= 0 && rect.bottom <= window.innerHeight;
+                })()
+                JS);
     });
 
     it('selects users by tapping the checkbox on touch screens', function () {
@@ -143,15 +145,17 @@ describe('usabilities', function () {
 
         $page = browserLogin($owner, 'mobile')->navigate('/members');
 
-        $page->assertScript('(() => {
-            const row = document.querySelector("[data-flux-row]:has(ui-checkbox)");
-            const checkbox = row.querySelector("ui-checkbox[value]");
-            const avatar = row.querySelector("a span[aria-hidden=\"true\"]");
+        $page->assertScript(<<<'JS'
+            (() => {
+                const row = document.querySelector("[data-flux-row]:has(ui-checkbox)");
+                const checkbox = row.querySelector("ui-checkbox[value]");
+                const avatar = row.querySelector("a span[aria-hidden=\"true\"]");
 
-            return getComputedStyle(checkbox).opacity === "1"
-                && getComputedStyle(checkbox).pointerEvents === "auto"
-                && getComputedStyle(avatar).opacity === "0";
-        })()')
+                return getComputedStyle(checkbox).opacity === "1"
+                    && getComputedStyle(checkbox).pointerEvents === "auto"
+                    && getComputedStyle(avatar).opacity === "0";
+            })()
+            JS)
             ->click('ui-checkbox[value]')
             ->wait(0.4)
             ->assertScript('document.querySelector("ui-checkbox[value]").getAttribute("aria-checked") === "true"');

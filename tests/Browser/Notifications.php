@@ -29,13 +29,15 @@ describe('accessibilities', function () {
 
         $page->click('[data-flux-row] button[wire\:click\.stop]:not([role="checkbox"])')
             ->wait(0.5)
-            ->assertScript('(() => {
-                const dialog = document.querySelector("dialog[open]");
+            ->assertScript(<<<'JS'
+                (() => {
+                    const dialog = document.querySelector("dialog[open]");
 
-                return !!dialog
-                    && !!document.getElementById(dialog.getAttribute("aria-labelledby"))
-                    && document.activeElement.closest("dialog") === dialog;
-            })()')
+                    return !!dialog
+                        && !!document.getElementById(dialog.getAttribute("aria-labelledby"))
+                        && document.activeElement.closest("dialog") === dialog;
+                })()
+                JS)
             ->keys('dialog[open]', 'Escape')
             ->wait(0.5)
             ->assertScript('document.querySelectorAll("dialog[open]").length === 0')
@@ -139,11 +141,13 @@ describe('usabilities', function () {
 
         $page = browserLogin($owner, 'mobile')->navigate('/notifications');
 
-        $page->assertScript('(() => {
-            const dots = [...document.querySelectorAll("[data-unread-dot]")];
+        $page->assertScript(<<<'JS'
+            (() => {
+                const dots = [...document.querySelectorAll("[data-unread-dot]")];
 
-            return dots.length === 1 && getComputedStyle(dots[0]).display !== "none";
-        })()');
+                return dots.length === 1 && getComputedStyle(dots[0]).display !== "none";
+            })()
+            JS);
     });
 
     it('selects notifications by tapping the checkbox on touch screens', function () {
@@ -152,14 +156,16 @@ describe('usabilities', function () {
 
         $page = browserLogin($owner, 'mobile')->navigate('/notifications');
 
-        $page->assertScript('(() => {
-            const checkbox = document.querySelector("button[aria-label^=\"Pilih notifikasi\"]");
-            const envelope = checkbox.parentElement.querySelector("svg");
+        $page->assertScript(<<<'JS'
+            (() => {
+                const checkbox = document.querySelector("button[aria-label^=\"Pilih notifikasi\"]");
+                const envelope = checkbox.parentElement.querySelector("svg");
 
-            return getComputedStyle(checkbox).opacity === "1"
-                && getComputedStyle(checkbox).pointerEvents === "auto"
-                && getComputedStyle(envelope).opacity === "0";
-        })()')
+                return getComputedStyle(checkbox).opacity === "1"
+                    && getComputedStyle(checkbox).pointerEvents === "auto"
+                    && getComputedStyle(envelope).opacity === "0";
+            })()
+            JS)
             ->click('button[aria-label^="Pilih notifikasi"]')
             ->wait(0.4)
             ->assertScript('document.querySelector("button[aria-label^=\"Pilih notifikasi\"]").getAttribute("aria-checked") === "true"');
@@ -218,11 +224,13 @@ it('opens a notification, marks it read, and updates the menu count', function (
     $page->assertScript('[...document.querySelectorAll("[role=status]")].some((el) => el.textContent.includes("1"))')
         ->click('[data-flux-row] button[wire\:click\.stop]:not([role="checkbox"])')
         ->wait(0.6)
-        ->assertScript('(() => {
-            const dialog = document.querySelector("dialog[open]");
+        ->assertScript(<<<'JS'
+            (() => {
+                const dialog = document.querySelector("dialog[open]");
 
-            return !!dialog && dialog.textContent.includes("Peran Anda di");
-        })()')
+                return !!dialog && dialog.textContent.includes("Peran Anda di");
+            })()
+            JS)
         ->assertScript('[...document.querySelectorAll("[role=status]")].some((el) => el.textContent.includes("Tidak ada notifikasi belum dibaca"))');
 });
 

@@ -12,9 +12,11 @@ it('exposes a level one heading on the dashboard', function () {
 
     browserLogin($owner)
         ->navigate('/dashboard')
-        ->assertScript('(() => {
-            const headings = [...document.querySelectorAll("h1")];
+        ->assertScript(<<<'JS'
+            (() => {
+                const headings = [...document.querySelectorAll("h1")];
 
-            return headings.length === 1 && headings[0].textContent.trim() === "Dasbor";
-        })()');
+                return headings.length === 1 && headings[0].textContent.trim() === "Dasbor";
+            })()
+            JS);
 });
