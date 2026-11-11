@@ -10,7 +10,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Database\Factories\OrganizationFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\ServerManager;
 use Tests\TestCase;
@@ -26,12 +25,7 @@ use Tests\TestCase;
 |
 */
 
-pest()->extend(TestCase::class)
-    // ->use(RefreshDatabase::class)
-    ->in('Feature', 'Browser');
-
-pest()->extend(TestCase::class)
-    ->in('Unit');
+pest()->extend(TestCase::class)->in('Feature', 'Browser', 'Unit');
 
 pest()->browser()->timeout(10_000);
 
