@@ -19,17 +19,17 @@
     "devDependencies": {
         "@commitlint/cli": "^21.2.4",
         "@commitlint/config-conventional": "^21.2.4",
-        "@laravel/passkeys": "^0.4.0",
-        "@tailwindcss/vite": "^4.3.4",
+        "@laravel/passkeys": "^0.4.1",
+        "@tailwindcss/vite": "^4.3.5",
         "@types/alpinejs": "^3.17.0",
         "@types/node": "^24.19.2",
-        "concurrently": "^10.0.6",
+        "concurrently": "^10.0.7",
         "fontaine": "^1.0.3",
-        "laravel-vite-plugin": "^3.2.0",
-        "playwright": "^1.64.1",
+        "laravel-vite-plugin": "^3.2.1",
+        "playwright": "^1.65.0",
         "typescript": "^7.0.2",
-        "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
-        "vite-plus": "1.4.0"
+        "vite": "npm:@voidzero-dev/vite-plus-core@1.5.1",
+        "vite-plus": "1.5.1"
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.5",
@@ -38,7 +38,7 @@
         "lightningcss-linux-x64-gnu": "^1.29.1"
     },
     "overrides": {
-        "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0"
+        "vite": "npm:@voidzero-dev/vite-plus-core@1.5.1"
     },
     "commitlint": {
         "extends": [
@@ -53,7 +53,7 @@
         },
         "runtime": {
             "name": "node",
-            "version": "^24 || ^26",
+            "version": "^24.11.0 || >=26.0.0",
             "onFail": "download"
         }
     },
