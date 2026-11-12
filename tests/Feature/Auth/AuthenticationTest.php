@@ -45,11 +45,11 @@ test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
     $response = post(route('login.store'), [
-        'email' => $user->email,
+        'handle' => $user->handle,
         'password' => 'wrong-password',
     ]);
 
-    $response->assertSessionHasErrorsIn('email');
+    $response->assertSessionHasErrorsIn('handle');
 
     $this->assertGuest();
 });
