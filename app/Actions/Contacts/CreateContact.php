@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\StoreImage;
-use App\Enums\Gender;
+use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -16,8 +16,10 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Throwable;
 
-class CreateContact
+final class CreateContact
 {
+    use ToManageEntities;
+
     public function __construct(
         private StoreImage $storeImage,
         private FindContactCandidate $findContact,
@@ -60,8 +62,20 @@ class CreateContact
         try {
             DB::transaction(function () use ($tenant, $data, $role, $photoPath): void {
                 $stakeholder = ($data['type'] ?? 'individual') === 'organization'
-                    ? $this->createOrganization($data, $photoPath)
-                    : $this->createIndividual($data, $photoPath);
+                    ? $this->createOrganization(
+                        name: $data['name'],
+                        contactName: $data['contact_name'],
+                        contactGender: $data['contact_gender'] ?? null,
+                        contactSummary: $data['contact_summary'] ?? null,
+                        summary: $data['summary'] ?? null,
+                        logoPath: $photoPath,
+                    )
+                    : $this->createIndividual(
+                        name: $data['name'],
+                        gender: $data['gender'] ?? null,
+                        summary: $data['summary'] ?? null,
+                        photoPath: $photoPath,
+                    );
 
                 $this->attach($tenant, $stakeholder, $role, $data);
             });
@@ -95,38 +109,6 @@ class CreateContact
     /**
      * @param  array<string, mixed>  $data
      */
-    private function createOrganization(array $data, ?string $photoPath): Organization
-    {
-        $contactPerson = Person::create([
-            'name' => $data['contact_name'],
-            'gender' => $this->gender($data['contact_gender'] ?? null),
-            'summary' => $data['contact_summary'] ?? null,
-        ]);
-
-        return Organization::create([
-            'contact_id' => $contactPerson->getKey(),
-            'name' => $data['name'],
-            'summary' => $data['summary'] ?? null,
-            'logo_url' => $photoPath,
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function createIndividual(array $data, ?string $photoPath): Person
-    {
-        return Person::create([
-            'name' => $data['name'],
-            'gender' => $this->gender($data['gender'] ?? null),
-            'summary' => $data['summary'] ?? null,
-            'photo_url' => $photoPath,
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
     private function role(array $data): OrganizationRelationshipType
     {
         $role = $data['role'] ?? null;
@@ -139,15 +121,6 @@ class CreateContact
         }
 
         return $role;
-    }
-
-    private function gender(mixed $gender): ?Gender
-    {
-        if ($gender instanceof Gender) {
-            return $gender;
-        }
-
-        return $gender === null || $gender === '' ? null : Gender::from((string) $gender);
     }
 
     private function assertExists(Organization $tenant, Organization|Person $stakeholder): void

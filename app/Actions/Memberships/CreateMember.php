@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
-use App\Actions\Users\CreateUser;
+use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -14,15 +14,10 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
-class CreateMember
+final class CreateMember
 {
-    public function __construct(
-        private CreateUser $createUser,
-    ) {
-        // .
-    }
+    use ToManageEntities;
 
     /**
      * Create a person, optional credential, and organization membership.
@@ -37,20 +32,8 @@ class CreateMember
         $user = null;
 
         $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
-            if ($email !== null) {
-                $user = $this->createUser->handle([
-                    'name' => $name,
-                    'email' => Str::lower($email),
-                    'role' => Role::Member,
-                    'password' => Str::random(16),
-                ]);
-            }
-
-            $person = Person::create([
-                'user_id' => $user?->getKey(),
-                'name' => $name,
-                'photo_url' => $photoUrl,
-            ]);
+            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl);
+            $user = $person->user;
 
             $this->attach(
                 $organization,

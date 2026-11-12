@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ProvisionTenant
 {
-    public function __construct(private CreateMember $addMember)
+    public function __construct(private CreateMember $membership)
     {
         // .
     }
@@ -49,7 +49,7 @@ final class ProvisionTenant
                 'root_organization_id' => null,
             ]);
 
-            $this->addMember->attach(
+            $this->membership->attach(
                 $organization,
                 $person,
                 isPrimary: true,

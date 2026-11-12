@@ -18,6 +18,8 @@ final class CreateUser
      */
     public function handle(array $attributes): User
     {
+        $attributes['email'] = Str::lower($attributes['email']);
+
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
                 return User::create($attributes);
