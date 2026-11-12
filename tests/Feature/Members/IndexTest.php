@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\AddMember;
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Events\MemberRoleChanged;
 use App\Livewire\Members\Index;
@@ -116,7 +116,7 @@ test('a role change promotes within the current organization only', function () 
     actingAsMember($organization, Role::Admin);
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
-    app(AddMember::class)->handle($otherOrganization, $member->person, startDate: now(), role: Role::Member);
+    app(CreateMember::class)->attach($otherOrganization, $member->person, startDate: now(), role: Role::Member);
 
     Livewire::test(Index::class)
         ->call('confirmPromote', $member->person->getKey())

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
-use App\Actions\Organizations\ChangeMemberRole;
+use App\Actions\Memberships\ChangeMemberRole;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;

@@ -4,20 +4,27 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Files\StoreImage;
-use App\Enums\Gender;
-use App\Enums\OrganizationRelationshipType;
+use App\Actions\FileStorage;
+use App\Concerns\ToManageEntities;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 use Throwable;
 
-class UpdateContact
+final class UpdateContact
 {
+    use ToManageEntities;
+
+    public function __construct(
+        private FileStorage $fileStorage,
+        private FindContact $findContact,
+    ) {
+        // .
+    }
+
     /**
      * Update a tenant contact.
      *
@@ -34,18 +41,18 @@ class UpdateContact
         bool $removePhoto = false,
         bool $validatedSharedFieldsLocked = false,
     ): void {
-        $contact = app(FindContact::class)->byId($tenant, $contactId);
+        $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
         abort_if($stakeholder === null, 404);
 
-        $role = $this->role($data);
+        $role = $this->ensureExternalRole($data['role'] ?? null);
         $shared = $contact->isShared();
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
         $previous = null;
 
         $newPhoto = ! $validatedSharedFieldsLocked && ! $shared && $photo instanceof UploadedFile
-            ? app(StoreImage::class)->handle($photo, 'photos')
+            ? $this->fileStorage->handle($photo, 'photos')
             : null;
 
         try {
@@ -97,7 +104,7 @@ class UpdateContact
                 ];
 
                 if ($stakeholder instanceof Person) {
-                    $attributes['gender'] = $this->gender($data['gender'] ?? null);
+                    $attributes['gender'] = $data['gender'] ?? null;
                 }
 
                 if ($newPhoto !== null) {
@@ -111,14 +118,14 @@ class UpdateContact
                 if ($stakeholder instanceof Organization) {
                     $stakeholder->primaryContact?->update([
                         'name' => $data['contact_name'],
-                        'gender' => $this->gender($data['contact_gender'] ?? null),
+                        'gender' => $data['contact_gender'] ?? null,
                         'summary' => $data['contact_summary'] ?? null,
                     ]);
                 }
             });
         } catch (Throwable $exception) {
             if ($newPhoto !== null) {
-                app(StoreImage::class)->delete($newPhoto);
+                $this->fileStorage->delete($newPhoto);
             }
 
             throw $exception;
@@ -126,40 +133,14 @@ class UpdateContact
 
         if ($shared) {
             if ($newPhoto !== null) {
-                app(StoreImage::class)->delete($newPhoto);
+                $this->fileStorage->delete($newPhoto);
             }
 
             return;
         }
 
         if ($newPhoto !== null || $removePhoto) {
-            app(StoreImage::class)->delete($previous);
+            $this->fileStorage->delete($previous);
         }
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function role(array $data): OrganizationRelationshipType
-    {
-        $role = $data['role'] ?? null;
-        $role = $role instanceof OrganizationRelationshipType
-            ? $role
-            : OrganizationRelationshipType::from((string) $role);
-
-        if (! $role->isExternal()) {
-            throw new InvalidArgumentException('Invalid contact role.');
-        }
-
-        return $role;
-    }
-
-    private function gender(mixed $gender): ?Gender
-    {
-        if ($gender instanceof Gender) {
-            return $gender;
-        }
-
-        return $gender === null || $gender === '' ? null : Gender::from((string) $gender);
     }
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Files\StoreImage;
-use App\Enums\Gender;
+use App\Actions\FileStorage;
+use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -13,11 +13,19 @@ use App\Models\Person;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 use Throwable;
 
-class CreateContact
+final class CreateContact
 {
+    use ToManageEntities;
+
+    public function __construct(
+        private FileStorage $fileStorage,
+        private FindContact $findContact,
+    ) {
+        // .
+    }
+
     /**
      * Create a contact for the tenant.
      *
@@ -25,13 +33,13 @@ class CreateContact
      */
     public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null): void
     {
-        $role = $this->role($data);
+        $role = $this->ensureExternalRole($data['role'] ?? null);
 
         $reference = $data['reference'] ?? null;
 
         if (\is_string($reference) && $reference !== '') {
             DB::transaction(function () use ($tenant, $reference, $role, $data): void {
-                $stakeholder = app(FindContactCandidate::class)->byReference($tenant, $reference);
+                $stakeholder = $this->findContact->byReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
                 $stakeholder->newQuery()
@@ -47,20 +55,32 @@ class CreateContact
         }
 
         $photoPath = $photo instanceof UploadedFile
-            ? app(StoreImage::class)->handle($photo, 'photos')
+            ? $this->fileStorage->handle($photo, 'photos')
             : null;
 
         try {
             DB::transaction(function () use ($tenant, $data, $role, $photoPath): void {
                 $stakeholder = ($data['type'] ?? 'individual') === 'organization'
-                    ? $this->createOrganization($data, $photoPath)
-                    : $this->createIndividual($data, $photoPath);
+                    ? $this->createOrganization(
+                        name: $data['name'],
+                        contactName: $data['contact_name'],
+                        contactGender: $data['contact_gender'] ?? null,
+                        contactSummary: $data['contact_summary'] ?? null,
+                        summary: $data['summary'] ?? null,
+                        logoPath: $photoPath,
+                    )
+                    : $this->createIndividual(
+                        name: $data['name'],
+                        gender: $data['gender'] ?? null,
+                        summary: $data['summary'] ?? null,
+                        photoPath: $photoPath,
+                    );
 
                 $this->attach($tenant, $stakeholder, $role, $data);
             });
         } catch (Throwable $exception) {
             if ($photoPath !== null) {
-                app(StoreImage::class)->delete($photoPath);
+                $this->fileStorage->delete($photoPath);
             }
 
             throw $exception;
@@ -83,64 +103,6 @@ class CreateContact
             'start_date' => $data['start_date'] ?? null,
             'finish_date' => $data['finish_date'] ?? null,
         ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function createOrganization(array $data, ?string $photoPath): Organization
-    {
-        $contactPerson = Person::create([
-            'name' => $data['contact_name'],
-            'gender' => $this->gender($data['contact_gender'] ?? null),
-            'summary' => $data['contact_summary'] ?? null,
-        ]);
-
-        return Organization::create([
-            'contact_id' => $contactPerson->getKey(),
-            'name' => $data['name'],
-            'summary' => $data['summary'] ?? null,
-            'logo_url' => $photoPath,
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function createIndividual(array $data, ?string $photoPath): Person
-    {
-        return Person::create([
-            'name' => $data['name'],
-            'gender' => $this->gender($data['gender'] ?? null),
-            'summary' => $data['summary'] ?? null,
-            'photo_url' => $photoPath,
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function role(array $data): OrganizationRelationshipType
-    {
-        $role = $data['role'] ?? null;
-        $role = $role instanceof OrganizationRelationshipType
-            ? $role
-            : OrganizationRelationshipType::from((string) $role);
-
-        if (! $role->isExternal()) {
-            throw new InvalidArgumentException('Invalid contact role.');
-        }
-
-        return $role;
-    }
-
-    private function gender(mixed $gender): ?Gender
-    {
-        if ($gender instanceof Gender) {
-            return $gender;
-        }
-
-        return $gender === null || $gender === '' ? null : Gender::from((string) $gender);
     }
 
     private function assertNotAlreadyContact(Organization $tenant, Organization|Person $stakeholder): void

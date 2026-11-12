@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\AddMember;
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Livewire\OrganizationSwitcher;
 use App\Models\Organization;
@@ -19,7 +19,7 @@ test('the organization switcher lists active memberships and switches the sessio
     $second = Organization::factory()->create(['name' => 'Second Org']);
 
     $user = actingAsMember($first, Role::Member);
-    app(AddMember::class)->handle($second, $user->person, startDate: now(), role: Role::Member);
+    app(CreateMember::class)->attach($second, $user->person, startDate: now(), role: Role::Member);
 
     get(route('dashboard'))
         ->assertOk()

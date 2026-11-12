@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Actions\ProvisionTenant;
 use App\Enums\Role;
 use App\Livewire\Setup;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
-use App\Support\Setup as SetupState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -32,15 +32,17 @@ afterEach(function () {
 });
 
 test('setup is required while the seeded user exists and no root tenant does', function () {
-    expect(SetupState::required())->toBeFalse();
+    $provisioning = app(ProvisionTenant::class);
+
+    expect($provisioning->isRequired())->toBeFalse();
 
     User::factory()->create(['email' => config('setup.initial_email')]);
 
-    expect(SetupState::required())->toBeTrue();
+    expect($provisioning->isRequired())->toBeTrue();
 
     Organization::factory()->create(['is_tenant' => true, 'root_organization_id' => null]);
 
-    expect(SetupState::required())->toBeFalse();
+    expect($provisioning->isRequired())->toBeFalse();
 });
 
 test('setup is skipped in local and testing environments', function () {
@@ -49,7 +51,7 @@ test('setup is skipped in local and testing environments', function () {
 
     User::factory()->create(['email' => config('setup.initial_email')]);
 
-    expect(SetupState::required())->toBeFalse();
+    expect(app(ProvisionTenant::class)->isRequired())->toBeFalse();
 });
 
 test('the app redirects to setup while pending', function () {

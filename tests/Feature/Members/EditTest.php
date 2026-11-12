@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\AddMember;
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Livewire\Members\Edit;
 use App\Models\Organization;
@@ -45,7 +45,7 @@ test('editing a member can create a credential', function () {
     actingAsMember($organization, Role::Owner);
 
     $person = Person::factory()->withoutCredential()->create();
-    app(AddMember::class)->handle($organization, $person, startDate: now());
+    app(CreateMember::class)->attach($organization, $person, startDate: now());
 
     Livewire::test(Edit::class, ['person' => $person])
         ->set('createCredential', true)
@@ -82,7 +82,7 @@ test('an admin cannot change the email of a credential shared with another organ
 
     $member = User::factory()->asMemberOf($home, Role::Owner)->create();
 
-    app(AddMember::class)->handle($guest, $member->person, role: Role::Member);
+    app(CreateMember::class)->attach($guest, $member->person, role: Role::Member);
 
     actingAsMember($guest, Role::Admin);
 

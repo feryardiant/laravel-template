@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Memberships;
 
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -12,7 +12,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 
-class ChangeMemberRole
+final class ChangeMemberRole
 {
     public function promote(Organization $organization, Person $person, User $actor): bool
     {
@@ -84,9 +84,8 @@ class ChangeMemberRole
     private function updateRole(Organization $organization, Person $person, Role $role): void
     {
         OrganizationRelationship::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('stakeholder_type', $person->getMorphClass())
-            ->where('stakeholder_id', $person->getKey())
+            ->forOrganization($organization)
+            ->whereStakeholder($person)
             ->where('type', OrganizationRelationshipType::Member)
             ->update(['role' => $role]);
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Files\StoreImage;
+use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use Flux\Flux;
@@ -47,7 +47,7 @@ class General extends Component
     /**
      * Update the current organization's name.
      */
-    public function update(StoreImage $storeImage): void
+    public function update(FileStorage $fileStorage): void
     {
         $organization = $this->currentOrganization();
 
@@ -68,12 +68,12 @@ class General extends Component
         $previousLogo = $organization->getRawOriginal('logo_url');
 
         if ($this->logo instanceof UploadedFile) {
-            $path = $storeImage->replace($this->logo, 'logos', $previousLogo);
+            $path = $fileStorage->replace($this->logo, 'logos', $previousLogo);
             $organization->logo_url = $path;
             $this->logo = null;
             $this->logo_url = $path;
         } elseif ($previousLogo !== $this->logo_url) {
-            $storeImage->delete($previousLogo);
+            $fileStorage->delete($previousLogo);
             $organization->logo_url = $this->logo_url;
         }
 

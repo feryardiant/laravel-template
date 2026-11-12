@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\NotificationPollerController;
+use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\UpdatePreferencesController;
-use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VerifyNewUserEmailController;
 use App\Livewire\Contacts\Index as ContactIndex;
 use App\Livewire\Contacts\View as ContactView;
@@ -51,7 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('uploads/{path}', UploadController::class)->where('path', '.*')->name('uploads');
+    Route::get('uploads/{path}', StoredFileController::class)->where('path', '.*')->name('uploads');
 
     Route::redirect('settings', 'settings/profile');
 

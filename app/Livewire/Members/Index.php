@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
-use App\Actions\Files\StoreImage;
-use App\Actions\Organizations\ChangeMemberRole;
-use App\Actions\Organizations\CreateMember;
+use App\Actions\FileStorage;
+use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\CreateMember;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -83,7 +83,7 @@ class Index extends Component
     /**
      * Add a person to the current organization.
      */
-    public function createMember(CreateMember $createMember, StoreImage $storeImage): void
+    public function createMember(CreateMember $createMember, FileStorage $fileStorage): void
     {
         $organization = $this->requireOrganization();
 
@@ -108,7 +108,7 @@ class Index extends Component
 
         $hasCredential = $this->createCredential;
         $photoUrl = $this->photo instanceof UploadedFile
-            ? $storeImage->handle($this->photo, 'photos')
+            ? $fileStorage->handle($this->photo, 'photos')
             : null;
 
         $createMember->handle(

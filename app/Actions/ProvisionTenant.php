@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Setup;
+namespace App\Actions;
 
-use App\Actions\Organizations\AddMember;
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
@@ -12,8 +12,13 @@ use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
 
-class ProvisionTenant
+final class ProvisionTenant
 {
+    public function __construct(private CreateMember $membership)
+    {
+        // .
+    }
+
     /**
      * Turn the seeded placeholder user into the root tenant owner.
      */
@@ -44,7 +49,7 @@ class ProvisionTenant
                 'root_organization_id' => null,
             ]);
 
-            app(AddMember::class)->handle(
+            $this->membership->attach(
                 $organization,
                 $person,
                 isPrimary: true,
@@ -56,5 +61,18 @@ class ProvisionTenant
 
             return $user;
         });
+    }
+
+    /**
+     * Determine whether the first-install setup flow is still required.
+     */
+    public function isRequired(): bool
+    {
+        if (app()->environment(['local', 'testing'])) {
+            return false;
+        }
+
+        return Organization::query()->rootTenant()->doesntExist()
+            && User::query()->where('email', config('setup.initial_email'))->exists();
     }
 }

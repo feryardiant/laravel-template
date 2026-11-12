@@ -6,7 +6,6 @@ namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\FindContact;
-use App\Actions\Contacts\FindContactCandidate;
 use App\Actions\Contacts\UpdateContact;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Gender;
@@ -138,7 +137,7 @@ class Edit extends Component
         }
 
         try {
-            $entity = app(FindContactCandidate::class)->byReference($this->requireOrganization(), $reference);
+            $entity = app(FindContact::class)->byReference($this->requireOrganization(), $reference);
         } catch (Throwable) {
             $this->resetReuse();
 

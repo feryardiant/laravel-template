@@ -128,6 +128,16 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
+     * @return Attribute<?Gender, Gender|string|null>
+     */
+    protected function gender(): Attribute
+    {
+        return Attribute::make(
+            set: fn (Gender|string|null $value): array => ['gender' => filled($value) ? $value : null],
+        );
+    }
+
+    /**
      * Get the person's photo URL.
      *
      * @return Attribute<?string, ?string>
@@ -160,10 +170,8 @@ class Person extends Entity implements HasAddresses
         $today = now()->toDateString();
 
         return OrganizationRelationship::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('stakeholder_type', $this->getMorphClass())
-            ->where('stakeholder_id', $this->getKey())
-            ->where('type', OrganizationRelationshipType::Member)
+            ->forOrganization($organization)
+            ->whereStakeholder($this, OrganizationRelationshipType::Member)
             ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
             ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
             ->first()

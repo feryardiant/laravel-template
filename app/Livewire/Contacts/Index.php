@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\DeleteContact;
-use App\Actions\Contacts\DeleteContacts;
 use App\Actions\Contacts\FindContact;
 use App\Actions\Contacts\ListContacts;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -112,7 +111,7 @@ class Index extends Component
         Flux::toast(variant: 'success', text: __('Contact deleted.'));
     }
 
-    public function deleteSelectedConfirmed(DeleteContacts $deleteContacts): void
+    public function deleteSelectedConfirmed(DeleteContact $deleteContacts): void
     {
         $organization = $this->requireOrganization();
 
@@ -128,7 +127,7 @@ class Index extends Component
         }
 
         try {
-            $count = $deleteContacts->handle($organization, $ids);
+            $count = $deleteContacts->handleBulk($organization, $ids);
         } catch (Throwable $exception) {
             report($exception);
 

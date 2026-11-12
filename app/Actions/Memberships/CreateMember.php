@@ -2,22 +2,60 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Memberships;
 
+use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
+use App\Notifications\VerifyEmailForNewUser;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
-class AddMember
+final class CreateMember
 {
+    use ToManageEntities;
+
+    /**
+     * Create a person, optional credential, and organization membership.
+     */
+    public function handle(
+        Organization $organization,
+        string $name,
+        Role $role,
+        ?string $email = null,
+        ?string $photoUrl = null,
+    ): Person {
+        $user = null;
+
+        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
+            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl);
+            $user = $person->user;
+
+            $this->attach(
+                $organization,
+                $person,
+                startDate: now(),
+                role: $role,
+            );
+
+            return $person;
+        });
+
+        if ($user instanceof User) {
+            $user->notify(new VerifyEmailForNewUser);
+        }
+
+        return $person;
+    }
+
     /**
      * Add a person as a member of the organization.
      */
-    public function handle(
+    public function attach(
         Organization $organization,
         Person $member,
         bool $isPrimary = false,

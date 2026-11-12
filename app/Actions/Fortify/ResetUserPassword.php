@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 
-class ResetUserPassword implements ResetsUserPasswords
+final class ResetUserPassword implements ResetsUserPasswords
 {
     use PasswordValidationRules;
 
@@ -30,6 +30,7 @@ class ResetUserPassword implements ResetsUserPasswords
         ])->save();
 
         Auth::login($user);
+
         session()->regenerate();
     }
 }

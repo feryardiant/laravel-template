@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\DeleteContact;
-use App\Actions\Contacts\DeleteContacts;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -45,9 +44,8 @@ test('deleting a shared contact only detaches the relationship', function () {
 
     expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
     expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
-    expect(OrganizationRelationship::query()
-        ->where('organization_id', $other->getKey())
-        ->where('stakeholder_id', $person->getKey())
+    expect(OrganizationRelationship::forOrganization($other)
+        ->whereStakeholder($person)
         ->exists())->toBeTrue();
 });
 
@@ -113,7 +111,7 @@ test('bulk deletion deduplicates the selected ids', function () {
         contactRelationshipId($organization, $second),
     ];
 
-    expect(app(DeleteContacts::class)->handle($organization, [...$ids, ...$ids]))->toBe(2);
+    expect(app(DeleteContact::class)->handleBulk($organization, [...$ids, ...$ids]))->toBe(2);
     expect(OrganizationRelationship::query()->whereKey($ids)->exists())->toBeFalse();
 });
 
@@ -127,20 +125,15 @@ test('deleting one imported duplicate keeps the other contact and the entity', f
         'type' => OrganizationRelationshipType::Supplier,
     ]);
 
-    $customerRelationshipId = (int) OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_type', $person->getMorphClass())
-        ->where('stakeholder_id', $person->getKey())
-        ->where('type', OrganizationRelationshipType::Customer)
+    $customerRelationshipId = (int) OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($person, OrganizationRelationshipType::Customer)
         ->value('id');
 
     app(DeleteContact::class)->handle($organization, $customerRelationshipId);
 
     expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
-    expect(OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_id', $person->getKey())
-        ->where('type', OrganizationRelationshipType::Supplier)
+    expect(OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($person, OrganizationRelationshipType::Supplier)
         ->exists())->toBeTrue();
 });
 
@@ -211,7 +204,7 @@ test('bulk deletion rolls back when one contact cannot be resolved', function ()
     $contact = contactIndividual($organization, ['name' => 'Rollback Contact']);
     $relationshipId = contactRelationshipId($organization, $contact);
 
-    expect(fn () => app(DeleteContacts::class)->handle($organization, [$relationshipId, 999999]))
+    expect(fn () => app(DeleteContact::class)->handleBulk($organization, [$relationshipId, 999999]))
         ->toThrow(ModelNotFoundException::class);
 
     expect(OrganizationRelationship::query()->find($relationshipId))->not->toBeNull();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Actions\Users\CreateUser;
 use App\Enums\Locale;
 use App\Enums\Role;
 use Database\Factories\UserFactory;
@@ -52,37 +53,13 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     {
         static::creating(function (User $user): void {
             if (blank($user->handle)) {
-                $user->handle = static::generateHandle($user->email);
+                $user->handle = CreateUser::generateHandle($user->email);
             }
         });
 
         static::deleting(function (User $user): void {
             $user->notifications()->delete();
         });
-    }
-
-    /**
-     * Generate a valid, unique handle from the given seed.
-     */
-    public static function generateHandle(string $seed): string
-    {
-        $base = Str::substr(
-            Str::lower(preg_replace('/[^a-z0-9]+/i', '', Str::before($seed, '@')) ?? ''),
-            0,
-            12,
-        );
-
-        if (Str::length($base) < 4) {
-            $base .= Str::lower(Str::random(4 - Str::length($base)));
-        }
-
-        $handle = $base;
-
-        while (static::query()->where('handle', $handle)->exists()) {
-            $handle = Str::substr($base, 0, 10).Str::lower(Str::random(5));
-        }
-
-        return $handle;
     }
 
     /**

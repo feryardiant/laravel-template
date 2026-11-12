@@ -122,10 +122,7 @@ test('an admin can create an organization contact with a contact person', functi
     expect($contact->contact_id)->toBe($contactPerson->getKey());
     expect($contactPerson->gender)->toBe(Gender::Female);
     expect($contactPerson->summary)->toBe('Primary contact');
-    expect(OrganizationRelationship::query()
-        ->where('stakeholder_type', Organization::class)
-        ->where('stakeholder_id', $contact->getKey())
-        ->exists())->toBeTrue();
+    expect(OrganizationRelationship::whereStakeholder($contact)->exists())->toBeTrue();
 });
 
 test('contact creation validates its required fields', function () {
@@ -203,10 +200,8 @@ test('a contact code is unique per tenant', function () {
 
     $contact = contactIndividual($organization, ['name' => 'Existing']);
 
-    OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_type', Person::class)
-        ->where('stakeholder_id', $contact->getKey())
+    OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($contact)
         ->update(['code' => 'DUP-1']);
 
     Livewire::test(Edit::class)
@@ -247,9 +242,7 @@ test('an admin can attach an existing contact from another tenant', function () 
     $target = Organization::factory()->create();
 
     $person = contactIndividual($source, ['name' => 'Shared Person', 'summary' => 'Shared summary']);
-    $relationship = OrganizationRelationship::query()
-        ->where('stakeholder_id', $person->getKey())
-        ->value('id');
+    $relationship = OrganizationRelationship::whereStakeholder($person)->value('id');
 
     actingAsMember($target, Role::Admin);
 
@@ -262,10 +255,8 @@ test('an admin can attach an existing contact from another tenant', function () 
         ->call('save')
         ->assertHasNoErrors();
 
-    $attached = OrganizationRelationship::query()
-        ->where('stakeholder_id', $person->getKey())
-        ->where('stakeholder_type', Person::class)
-        ->where('organization_id', $target->getKey())
+    $attached = OrganizationRelationship::forOrganization($target)
+        ->whereStakeholder($person)
         ->firstOrFail();
 
     expect($attached->code)->toBe('T-1');
@@ -282,10 +273,8 @@ test('a failed create removes the uploaded photo', function () {
 
     $existing = contactIndividual($organization, ['name' => 'Existing Code']);
 
-    OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_type', $existing->getMorphClass())
-        ->where('stakeholder_id', $existing->getKey())
+    OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($existing)
         ->update(['code' => 'DUP-CREATE']);
 
     $data = [

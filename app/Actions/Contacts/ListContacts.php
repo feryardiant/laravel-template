@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class ListContacts
+final class ListContacts
 {
     /**
      * Paginate the tenant's external contacts.
