@@ -47,7 +47,7 @@ final class CreateContact
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $this->assertExists($tenant, $stakeholder);
+                $this->assertNotAlreadyContact($tenant, $stakeholder);
                 $this->attach($tenant, $stakeholder, $role, $data);
             });
 
@@ -105,7 +105,7 @@ final class CreateContact
         ]);
     }
 
-    private function assertExists(Organization $tenant, Organization|Person $stakeholder): void
+    private function assertNotAlreadyContact(Organization $tenant, Organization|Person $stakeholder): void
     {
         $exists = OrganizationRelationship::query()
             ->forOrganization($tenant)

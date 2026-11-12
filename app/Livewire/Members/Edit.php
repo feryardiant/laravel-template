@@ -164,12 +164,11 @@ class Edit extends Component
 
                 $user->save();
             } elseif ($this->createCredential) {
-                $user = app(CreateUser::class)->handle([
-                    'name' => $validated['name'],
-                    'email' => $this->email,
-                    'role' => Role::Member,
-                    'password' => Str::random(16),
-                ]);
+                $user = app(CreateUser::class)->handle(
+                    name: $validated['name'],
+                    email: $this->email,
+                    password: Str::random(16),
+                );
 
                 $this->person->update(['user_id' => $user->getKey()]);
 

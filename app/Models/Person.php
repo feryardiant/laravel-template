@@ -127,6 +127,9 @@ class Person extends Entity implements HasAddresses
         return $this->organizations()->wherePivot('is_primary', true)->first();
     }
 
+    /**
+     * @return Attribute<?Gender, Gender|string|null>
+     */
     protected function gender(): Attribute
     {
         return Attribute::make(

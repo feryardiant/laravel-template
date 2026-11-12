@@ -12,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 /**
- * AddMember action tests.
+ * CreateMember action tests.
  */
 it('can have members', function () {
     $organization = Organization::factory()

@@ -127,6 +127,10 @@ class OrganizationRelationship extends MorphPivot
         return $query->whereIn('type', OrganizationRelationshipType::externals());
     }
 
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
     public function scopeWhereStakeholder(
         Builder $query,
         Organization|Person $entity,

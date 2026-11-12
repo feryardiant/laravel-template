@@ -7,7 +7,6 @@ namespace App\Concerns;
 use App\Actions\Users\CreateUser;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
-use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Support\Str;
@@ -40,12 +39,11 @@ trait ToManageEntities
         ?string $photoPath = null,
         ?string $summary = null,
     ): Person {
-        $user = $email ? app(CreateUser::class)->handle([
-            'name' => $name,
-            'email' => $email,
-            'role' => Role::Member,
-            'password' => Str::random(16),
-        ]) : null;
+        $user = $email ? app(CreateUser::class)->handle(
+            name: $name,
+            email: $email,
+            password: Str::random(16),
+        ) : null;
 
         return Person::create([
             'user_id' => $user?->getKey(),
@@ -56,7 +54,7 @@ trait ToManageEntities
         ]);
     }
 
-    private function ensureExternalRole(OrganizationRelationshipType|string|null $role)
+    private function ensureExternalRole(OrganizationRelationshipType|string|null $role): OrganizationRelationshipType
     {
         $role = $this->role($role);
 
