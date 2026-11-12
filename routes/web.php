@@ -43,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::redirect('', 'org-settings/general');
 
         Route::livewire('general', OrgSettings\General::class)->name('org-settings.general');
+        Route::livewire('features', OrgSettings\Features::class)->name('org-settings.features');
     });
 
     Route::livewire('notifications', NotificationIndex::class)->name('notifications.index');

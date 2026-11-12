@@ -7,14 +7,11 @@ namespace App\Concerns;
 use App\Actions\Users\CreateUser;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
-use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-
-use function Illuminate\Support\now;
 
 trait ToManageEntities
 {
@@ -35,13 +32,6 @@ trait ToManageEntities
             'name' => $name,
             'summary' => $summary,
             'logo_url' => $logoPath,
-        ]);
-
-        $organization->members()->attach($contactPerson, [
-            'type' => OrganizationRelationshipType::Member,
-            'role' => Role::Owner,
-            'is_primary' => true,
-            'start_date' => now(),
         ]);
 
         return $organization;

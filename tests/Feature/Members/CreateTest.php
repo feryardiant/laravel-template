@@ -59,7 +59,9 @@ test('an admin can add a member with an invite credential', function () {
     expect($user->email_verified_at)->toBeNull();
     expect($person->roleIn($organization))->toBe(Role::Member);
 
-    Notification::assertSentTo($user, VerifyEmailForNewUser::class);
+    Notification::assertSentTo($user, VerifyEmailForNewUser::class, function (VerifyEmailForNewUser $notification) use ($user): bool {
+        return str_contains((string) $notification->toMail($user)->render(), $user->handle);
+    });
 });
 
 test('an admin cannot assign the owner role', function () {

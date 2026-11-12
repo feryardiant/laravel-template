@@ -10,6 +10,7 @@
         "creasi/laravel-nusa": "^0.2.2",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
+        "laravel/pennant": "^1.27",
         "laravel/tinker": "^3.0",
         "league/flysystem-aws-s3-v3": "^3.35",
         "livewire/blaze": "^1.0",

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\DeleteContact;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -208,4 +209,21 @@ test('bulk deletion rolls back when one contact cannot be resolved', function ()
         ->toThrow(ModelNotFoundException::class);
 
     expect(OrganizationRelationship::query()->find($relationshipId))->not->toBeNull();
+});
+
+test('deleting an organization contact created from the contact form removes the organization', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = app(CreateContact::class)->handle($organization, [
+        'type' => 'organization',
+        'name' => 'Form Created Org',
+        'contact_name' => 'Form Contact',
+        'role' => OrganizationRelationshipType::Customer,
+    ]);
+
+    app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $contact));
+
+    expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeTrue();
 });
