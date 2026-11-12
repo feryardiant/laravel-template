@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\StoreImage;
+use App\Actions\FileStorage;
 use App\Concerns\ToManageEntities;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -19,7 +19,7 @@ final class UpdateContact
     use ToManageEntities;
 
     public function __construct(
-        private StoreImage $storeImage,
+        private FileStorage $fileStorage,
         private FindContact $findContact,
     ) {
         // .
@@ -52,7 +52,7 @@ final class UpdateContact
         $previous = null;
 
         $newPhoto = ! $validatedSharedFieldsLocked && ! $shared && $photo instanceof UploadedFile
-            ? $this->storeImage->handle($photo, 'photos')
+            ? $this->fileStorage->handle($photo, 'photos')
             : null;
 
         try {
@@ -125,7 +125,7 @@ final class UpdateContact
             });
         } catch (Throwable $exception) {
             if ($newPhoto !== null) {
-                $this->storeImage->delete($newPhoto);
+                $this->fileStorage->delete($newPhoto);
             }
 
             throw $exception;
@@ -133,14 +133,14 @@ final class UpdateContact
 
         if ($shared) {
             if ($newPhoto !== null) {
-                $this->storeImage->delete($newPhoto);
+                $this->fileStorage->delete($newPhoto);
             }
 
             return;
         }
 
         if ($newPhoto !== null || $removePhoto) {
-            $this->storeImage->delete($previous);
+            $this->fileStorage->delete($previous);
         }
     }
 }

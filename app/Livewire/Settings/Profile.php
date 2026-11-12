@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings;
 
-use App\Actions\StoreImage;
+use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
 use Flux\Flux;
@@ -56,7 +56,7 @@ class Profile extends Component
     /**
      * Update the profile information for the currently authenticated user.
      */
-    public function updateProfileInformation(StoreImage $storeImage): void
+    public function updateProfileInformation(FileStorage $fileStorage): void
     {
         /** @var User */
         $user = Auth::user();
@@ -74,12 +74,12 @@ class Profile extends Component
         $previousAvatar = $user->getRawOriginal('avatar_url');
 
         if ($this->avatar instanceof UploadedFile) {
-            $path = $storeImage->replace($this->avatar, 'avatars', $previousAvatar);
+            $path = $fileStorage->replace($this->avatar, 'avatars', $previousAvatar);
             $user->avatar_url = $path;
             $this->avatar = null;
             $this->avatar_url = $path;
         } elseif ($previousAvatar !== $this->avatar_url) {
-            $storeImage->delete($previousAvatar);
+            $fileStorage->delete($previousAvatar);
             $user->avatar_url = $this->avatar_url;
         }
 

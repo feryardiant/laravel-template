@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
+use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
-use App\Actions\StoreImage;
 use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
@@ -84,7 +84,7 @@ class Edit extends Component
     /**
      * Update the selected member.
      */
-    public function update(StoreImage $storeImage): void
+    public function update(FileStorage $fileStorage): void
     {
         $organization = $this->requireOrganization();
 
@@ -132,9 +132,9 @@ class Edit extends Component
         $photoUrl = $this->photo_url;
 
         if ($this->photo instanceof UploadedFile) {
-            $photoUrl = $storeImage->replace($this->photo, 'photos', $previousPhoto);
+            $photoUrl = $fileStorage->replace($this->photo, 'photos', $previousPhoto);
         } elseif ($previousPhoto !== $this->photo_url) {
-            $storeImage->delete($previousPhoto);
+            $fileStorage->delete($previousPhoto);
         }
 
         $emailChanged = false;

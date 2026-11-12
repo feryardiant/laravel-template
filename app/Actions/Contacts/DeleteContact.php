@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\StoreImage;
+use App\Actions\FileStorage;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 final class DeleteContact
 {
     public function __construct(
-        private StoreImage $storeImage,
+        private FileStorage $fileStorage,
         private FindContact $findContact,
     ) {
         // .
@@ -86,7 +86,7 @@ final class DeleteContact
 
         if ($cleanupFiles) {
             foreach ($paths as $path) {
-                $this->storeImage->delete($path);
+                $this->fileStorage->delete($path);
             }
         }
 
@@ -121,7 +121,7 @@ final class DeleteContact
         });
 
         foreach ($paths as $path) {
-            $this->storeImage->delete($path);
+            $this->fileStorage->delete($path);
         }
 
         return $deleted;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\StoreImage;
+use App\Actions\FileStorage;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
@@ -20,7 +20,7 @@ final class CreateContact
     use ToManageEntities;
 
     public function __construct(
-        private StoreImage $storeImage,
+        private FileStorage $fileStorage,
         private FindContact $findContact,
     ) {
         // .
@@ -55,7 +55,7 @@ final class CreateContact
         }
 
         $photoPath = $photo instanceof UploadedFile
-            ? $this->storeImage->handle($photo, 'photos')
+            ? $this->fileStorage->handle($photo, 'photos')
             : null;
 
         try {
@@ -80,7 +80,7 @@ final class CreateContact
             });
         } catch (Throwable $exception) {
             if ($photoPath !== null) {
-                $this->storeImage->delete($photoPath);
+                $this->fileStorage->delete($photoPath);
             }
 
             throw $exception;
