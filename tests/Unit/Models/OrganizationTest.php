@@ -52,10 +52,7 @@ it('removes inbound relationships when an organization is force-deleted', functi
 
     $organization->forceDelete();
 
-    expect(OrganizationRelationship::query()
-        ->where('stakeholder_type', Organization::class)
-        ->where('stakeholder_id', $organization->id)
-        ->exists())->toBeFalse();
+    expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeFalse();
 });
 
 it('keeps inbound relationships when an organization is soft-deleted', function () {
@@ -68,10 +65,7 @@ it('keeps inbound relationships when an organization is soft-deleted', function 
 
     $organization->delete();
 
-    expect(OrganizationRelationship::query()
-        ->where('stakeholder_type', Organization::class)
-        ->where('stakeholder_id', $organization->id)
-        ->exists())->toBeTrue();
+    expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeTrue();
 });
 
 test('external counterparties can be organizations or people', function (OrganizationRelationshipType $type) {

@@ -44,9 +44,8 @@ test('deleting a shared contact only detaches the relationship', function () {
 
     expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
     expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
-    expect(OrganizationRelationship::query()
-        ->where('organization_id', $other->getKey())
-        ->where('stakeholder_id', $person->getKey())
+    expect(OrganizationRelationship::forOrganization($other)
+        ->whereStakeholder($person)
         ->exists())->toBeTrue();
 });
 
@@ -126,20 +125,15 @@ test('deleting one imported duplicate keeps the other contact and the entity', f
         'type' => OrganizationRelationshipType::Supplier,
     ]);
 
-    $customerRelationshipId = (int) OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_type', $person->getMorphClass())
-        ->where('stakeholder_id', $person->getKey())
-        ->where('type', OrganizationRelationshipType::Customer)
+    $customerRelationshipId = (int) OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($person, OrganizationRelationshipType::Customer)
         ->value('id');
 
     app(DeleteContact::class)->handle($organization, $customerRelationshipId);
 
     expect(Person::withTrashed()->find($person->getKey())?->trashed())->toBeFalse();
-    expect(OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_id', $person->getKey())
-        ->where('type', OrganizationRelationshipType::Supplier)
+    expect(OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($person, OrganizationRelationshipType::Supplier)
         ->exists())->toBeTrue();
 });
 

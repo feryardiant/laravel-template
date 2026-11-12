@@ -133,10 +133,8 @@ function contactIndividual(
  */
 function contactRelationshipId(Organization $organization, Organization|Person $stakeholder): int
 {
-    return (int) OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_type', $stakeholder->getMorphClass())
-        ->where('stakeholder_id', $stakeholder->getKey())
+    return (int) OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($stakeholder)
         ->value('id');
 }
 

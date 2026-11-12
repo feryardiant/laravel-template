@@ -340,10 +340,8 @@ test('a failed update removes the new photo and keeps the previous one', functio
 
     $first = contactIndividual($organization, ['name' => 'First Photo']);
     $first->update(['photo_url' => 'photos/first.jpg']);
-    OrganizationRelationship::query()
-        ->where('organization_id', $organization->getKey())
-        ->where('stakeholder_type', $first->getMorphClass())
-        ->where('stakeholder_id', $first->getKey())
+    OrganizationRelationship::forOrganization($organization)
+        ->whereStakeholder($first)
         ->update(['code' => 'DUP-UPDATE']);
 
     $second = contactIndividual($organization, ['name' => 'Second Photo']);

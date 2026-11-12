@@ -84,9 +84,8 @@ class ChangeMemberRole
     private function updateRole(Organization $organization, Person $person, Role $role): void
     {
         OrganizationRelationship::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('stakeholder_type', $person->getMorphClass())
-            ->where('stakeholder_id', $person->getKey())
+            ->forOrganization($organization)
+            ->whereStakeholder($person)
             ->where('type', OrganizationRelationshipType::Member)
             ->update(['role' => $role]);
     }

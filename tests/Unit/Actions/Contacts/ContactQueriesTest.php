@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\FindContact;
-use App\Actions\Contacts\FindContactCandidate;
 use App\Actions\Contacts\ListContacts;
 use App\Actions\Contacts\SearchContactCandidates;
 use App\Enums\OrganizationRelationshipType;
@@ -93,7 +92,7 @@ test('a current tenant contact cannot be resolved as a reusable candidate', func
 
     $person = contactIndividual($current, ['name' => 'Already Contact']);
 
-    expect(fn () => app(FindContactCandidate::class)->byReference($current, 'individual:'.$person->uuid))
+    expect(fn () => app(FindContact::class)->byReference($current, 'individual:'.$person->uuid))
         ->toThrow(ModelNotFoundException::class);
 });
 
@@ -103,7 +102,7 @@ test('a foreign candidate resolves by reference', function () {
 
     $person = contactIndividual($source, ['name' => 'Reusable']);
 
-    $candidate = app(FindContactCandidate::class)->byReference($current, 'individual:'.$person->uuid);
+    $candidate = app(FindContact::class)->byReference($current, 'individual:'.$person->uuid);
 
     expect($candidate)->toBeInstanceOf(Person::class);
     expect($candidate->is($person))->toBeTrue();

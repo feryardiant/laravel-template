@@ -31,6 +31,10 @@ use InvalidArgumentException;
  * @property-read bool $is_internal
  * @property-read bool $is_external
  * @property-read Organization|Person|null $stakeholder
+ *
+ * @method static Builder<static> whereStakeholder(Organization|Person $entity)
+ * @method static Builder<static> forOrganization(Organization $organization)
+ * @method static Builder<static> external()
  */
 class OrganizationRelationship extends MorphPivot
 {
@@ -121,6 +125,22 @@ class OrganizationRelationship extends MorphPivot
     public function scopeExternal(Builder $query): Builder
     {
         return $query->whereIn('type', OrganizationRelationshipType::externals());
+    }
+
+    public function scopeWhereStakeholder(
+        Builder $query,
+        Organization|Person $entity,
+        ?OrganizationRelationshipType $type = null
+    ): Builder {
+        $query
+            ->where('stakeholder_type', $entity->getMorphClass())
+            ->where('stakeholder_id', $entity->getKey());
+
+        if ($type) {
+            $query->where('type', $type);
+        }
+
+        return $query;
     }
 
     /**

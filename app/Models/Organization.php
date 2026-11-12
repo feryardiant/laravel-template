@@ -61,8 +61,7 @@ class Organization extends Entity implements HasAddress
 
         static::forceDeleting(function (Organization $organization): void {
             OrganizationRelationship::query()
-                ->where('stakeholder_type', $organization->getMorphClass())
-                ->where('stakeholder_id', $organization->getKey())
+                ->whereStakeholder($organization)
                 ->delete();
         });
     }

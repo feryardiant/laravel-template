@@ -21,7 +21,7 @@ final class CreateContact
 
     public function __construct(
         private StoreImage $storeImage,
-        private FindContactCandidate $findContact,
+        private FindContact $findContact,
     ) {
         // .
     }
