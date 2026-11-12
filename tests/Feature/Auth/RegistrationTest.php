@@ -7,7 +7,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
-use App\Support\Registration;
+use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
 use Tests\TestCase;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings;
 
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Support\Registration;
+use App\Support\Feature\Registration;
 use Flux\Flux;
 use Livewire\Component;
 

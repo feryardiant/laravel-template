@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Support;
+namespace App\Support\Feature;
 
 use App\Models\Organization;
 use Laravel\Pennant\Feature;

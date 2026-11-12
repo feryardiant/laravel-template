@@ -6,7 +6,7 @@ use App\Enums\Role;
 use App\Livewire\OrgSettings\Features;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\Registration;
+use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
