@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\Contacts\SearchContactCandidates;
+use App\Actions\Contacts\SearchContact;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -18,7 +18,7 @@ class ContactLookupController extends Controller
     /**
      * Return contact candidates for the Name autocomplete.
      */
-    public function __invoke(Request $request, SearchContactCandidates $search): JsonResponse
+    public function __invoke(Request $request, SearchContact $search): JsonResponse
     {
         Gate::authorize('createContact', Organization::class);
 
