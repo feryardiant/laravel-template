@@ -80,7 +80,7 @@ test('new users register as members with a tenant organization owned by their pe
 
     $organization = $person->organizations()->firstOrFail();
 
-    expect($organization->name)->toBe('John Doe Org')
+    expect($organization->name)->toBe(__('Organization for :name', ['name' => 'John Doe']))
         ->and($organization->is_tenant)->toBeTrue()
         ->and($organization->root_organization_id)->toBe($root->getKey())
         ->and($user->roleIn($organization))->toBe(Role::Owner);

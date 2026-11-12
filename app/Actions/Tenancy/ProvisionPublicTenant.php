@@ -30,7 +30,7 @@ final class ProvisionPublicTenant
         }
 
         $organization = $this->createContact->handle($root, [
-            'name' => \sprintf('%s Org', $user->name),
+            'name' => __('Organization for :name', ['name' => $user->name]),
             'role' => OrganizationRelationshipType::Customer,
             'type' => 'organization',
             'start_date' => now(),
