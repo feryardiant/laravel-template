@@ -46,6 +46,21 @@
             <flux:heading>{{ $contact->type?->label() ?? '—' }}</flux:heading>
         </div>
 
+        @php
+            $statusColor = match ($contact->status) {
+                \App\Enums\RelationshipStatus::Active => 'green',
+                \App\Enums\RelationshipStatus::Scheduled => 'amber',
+                \App\Enums\RelationshipStatus::Expired => 'zinc',
+            };
+        @endphp
+
+        <div>
+            <flux:text>{{ __('Status') }}</flux:text>
+            <flux:badge size="sm" :color="$statusColor">
+                {{ $contact->status->label() }}
+            </flux:badge>
+        </div>
+
         <div>
             <flux:text>{{ __('Start date') }}</flux:text>
             <flux:heading>{{ $contact->start_date?->format('Y-m-d') ?? '—' }}</flux:heading>

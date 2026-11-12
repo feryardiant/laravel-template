@@ -305,5 +305,9 @@
     "Click the button below to verify your email address.": "Klik tombol di bawah untuk memverifikasi alamat email Anda.",
     "Verify email address": "Verifikasi alamat email",
     "Home": "Beranda",
-    "You're not part of an organization yet.": "Anda belum tergabung dalam organisasi."
+    "You're not part of an organization yet.": "Anda belum tergabung dalam organisasi.",
+    "Status": "Status",
+    "Scheduled": "Terjadwal",
+    "Active": "Aktif",
+    "Expired": "Berakhir"
 }

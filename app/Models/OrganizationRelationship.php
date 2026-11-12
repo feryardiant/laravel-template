@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipStatus;
 use App\Enums\Role;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,8 +27,7 @@ use InvalidArgumentException;
  * @property null|string $remark
  * @property null|CarbonImmutable $start_date
  * @property null|CarbonImmutable $finish_date
- * @property-read null|bool $is_started
- * @property-read null|bool $is_finished
+ * @property-read RelationshipStatus $status
  * @property-read bool $is_internal
  * @property-read bool $is_external
  * @property-read Organization|Person|null $stakeholder
@@ -255,18 +255,28 @@ class OrganizationRelationship extends MorphPivot
     }
 
     /**
-     * @return Attribute<null|bool, never>
+     * Get the relationship status derived from its dates.
+     *
+     * @return Attribute<RelationshipStatus, never>
      */
-    public function isStarted(): Attribute
+    public function status(): Attribute
     {
-        return Attribute::get(fn () => $this->start_date?->isPast());
+        return Attribute::get(fn (): RelationshipStatus => $this->resolveStatus());
     }
 
     /**
-     * @return Attribute<null|bool, never>
+     * Resolve the status from the relationship's date window.
      */
-    public function isFinished(): Attribute
+    private function resolveStatus(): RelationshipStatus
     {
-        return Attribute::get(fn () => $this->finish_date?->isPast());
+        if ($this->finish_date?->lt(today()) === true) {
+            return RelationshipStatus::Expired;
+        }
+
+        if ($this->start_date?->gt(today()) === true) {
+            return RelationshipStatus::Scheduled;
+        }
+
+        return RelationshipStatus::Active;
     }
 }
