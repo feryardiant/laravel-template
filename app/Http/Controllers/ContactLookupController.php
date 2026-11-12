@@ -12,6 +12,7 @@ use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class ContactLookupController extends Controller
 {
@@ -31,11 +32,23 @@ class ContactLookupController extends Controller
 
         $results = $search->handle($organization, trim((string) $request->query('q', '')))
             ->map(fn (Organization|Person $entity): array => [
-                'label' => $entity->name,
+                'label' => $this->candidateLabel($entity),
                 'value' => ($entity instanceof Organization ? 'organization' : 'individual').':'.$entity->uuid,
             ])
             ->values();
 
         return response()->json($results);
+    }
+
+    /**
+     * Disambiguate candidates that share a name.
+     */
+    private function candidateLabel(Organization|Person $entity): string
+    {
+        $hint = filled($entity->summary)
+            ? Str::limit($entity->summary, 40)
+            : '#'.Str::substr($entity->uuid, 0, 8);
+
+        return $entity->name.' — '.$hint;
     }
 }

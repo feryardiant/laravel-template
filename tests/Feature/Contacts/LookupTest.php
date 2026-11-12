@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Models\Organization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 
 use function Pest\Laravel\getJson;
 
@@ -28,8 +29,8 @@ test('the lookup returns contacts registered by other tenants', function () {
     actingAsMember($current, Role::Admin);
 
     $source = Organization::factory()->create();
-    $person = contactIndividual($source, ['name' => 'Lookup Person']);
-    $contact = contactOrganization($source, ['name' => 'Lookup Org']);
+    $person = contactIndividual($source, ['name' => 'Lookup Person', 'summary' => null]);
+    $contact = contactOrganization($source, ['name' => 'Lookup Org', 'summary' => 'Vendor of record']);
 
     $response = getJson(route('contacts.lookup', ['q' => 'Lookup']))
         ->assertOk()
@@ -38,12 +39,31 @@ test('the lookup returns contacts registered by other tenants', function () {
     $payload = $response->json();
 
     expect($payload)->toContain([
-        'label' => 'Lookup Org',
+        'label' => 'Lookup Org — Vendor of record',
         'value' => 'organization:'.$contact->uuid,
     ])->toContain([
-        'label' => 'Lookup Person',
+        'label' => 'Lookup Person — #'.Str::substr($person->uuid, 0, 8),
         'value' => 'individual:'.$person->uuid,
     ]);
+});
+
+test('the lookup disambiguates candidates that share a name', function () {
+    $current = Organization::factory()->create();
+
+    actingAsMember($current, Role::Admin);
+
+    $source = Organization::factory()->create();
+
+    contactOrganization($source, ['name' => 'Same Name', 'summary' => 'First summary']);
+    contactOrganization($source, ['name' => 'Same Name', 'summary' => 'Second summary']);
+
+    $labels = array_column(
+        getJson(route('contacts.lookup', ['q' => 'Same Name']))->assertOk()->assertJsonCount(2)->json(),
+        'label',
+    );
+
+    expect($labels)->toContain('Same Name — First summary')
+        ->toContain('Same Name — Second summary');
 });
 
 test('the lookup excludes the current tenant its contacts and the tenant itself', function () {
