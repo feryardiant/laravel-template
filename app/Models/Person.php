@@ -127,6 +127,13 @@ class Person extends Entity implements HasAddresses
         return $this->organizations()->wherePivot('is_primary', true)->first();
     }
 
+    protected function gender(): Attribute
+    {
+        return Attribute::make(
+            set: fn (Gender|string|null $value): array => ['gender' => filled($value) ? $value : null],
+        );
+    }
+
     /**
      * Get the person's photo URL.
      *

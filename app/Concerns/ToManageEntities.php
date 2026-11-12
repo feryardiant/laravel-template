@@ -48,7 +48,7 @@ trait ToManageEntities
         return Person::create([
             'user_id' => $user?->getKey(),
             'name' => $name,
-            'gender' => filled($gender) ? $gender : null,
+            'gender' => $gender,
             'summary' => $summary,
             'photo_url' => $photoPath,
         ]);

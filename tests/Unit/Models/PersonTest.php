@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Gender;
 use App\Enums\PersonRelativeType;
 use App\Models\Address;
 use App\Models\Organization;
@@ -33,6 +34,14 @@ it('can exist without a credential', function () {
 
     expect($person->user_id)->toBeNull();
     expect($person->user)->toBeNull();
+});
+
+it('handles gender enum cast', function () {
+    $factory = Person::factory()->withoutCredential();
+
+    expect($factory->create(['gender' => ''])->gender)->toBeNull();
+    expect($factory->create(['gender' => null])->gender)->toBeNull();
+    expect($factory->create(['gender' => 'M'])->gender)->toBe(Gender::Male);
 });
 
 it('allows only one person per credential', function () {

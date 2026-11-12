@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\StoreImage;
-use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -104,7 +103,7 @@ class UpdateContact
                 ];
 
                 if ($stakeholder instanceof Person) {
-                    $attributes['gender'] = $this->gender($data['gender'] ?? null);
+                    $attributes['gender'] = $data['gender'] ?? null;
                 }
 
                 if ($newPhoto !== null) {
@@ -118,7 +117,7 @@ class UpdateContact
                 if ($stakeholder instanceof Organization) {
                     $stakeholder->primaryContact?->update([
                         'name' => $data['contact_name'],
-                        'gender' => $this->gender($data['contact_gender'] ?? null),
+                        'gender' => $data['contact_gender'] ?? null,
                         'summary' => $data['contact_summary'] ?? null,
                     ]);
                 }
@@ -159,14 +158,5 @@ class UpdateContact
         }
 
         return $role;
-    }
-
-    private function gender(mixed $gender): ?Gender
-    {
-        if ($gender instanceof Gender) {
-            return $gender;
-        }
-
-        return $gender === null || $gender === '' ? null : Gender::from((string) $gender);
     }
 }
