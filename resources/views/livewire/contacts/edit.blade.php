@@ -91,7 +91,7 @@
                     <flux:description>{{ __('The contact type cannot be changed after creation.') }}</flux:description>
                 @endif
 
-                @if (! $this->isOrganizationType)
+                @if (! $this->isOrganizationType && $genderEnabled)
                     <flux:radio.group
                         wire:model="gender"
                         :label="__('Gender')"
@@ -134,18 +134,20 @@
                             <flux:error name="contact_name" />
                         </flux:field>
 
-                        <flux:radio.group
-                            wire:model="contact_gender"
-                            :label="__('Gender')"
-                            class="flex flex-wrap gap-x-6"
-                            :disabled="$this->sharedFieldsLocked"
-                        >
-                            @foreach (\App\Enums\Gender::cases() as $gender)
-                                <flux:radio :value="$gender->value" :label="$gender->label()" />
-                            @endforeach
+                        @if ($genderEnabled)
+                            <flux:radio.group
+                                wire:model="contact_gender"
+                                :label="__('Gender')"
+                                class="flex flex-wrap gap-x-6"
+                                :disabled="$this->sharedFieldsLocked"
+                            >
+                                @foreach (\App\Enums\Gender::cases() as $gender)
+                                    <flux:radio :value="$gender->value" :label="$gender->label()" />
+                                @endforeach
 
-                            <flux:error name="contact_gender" />
-                        </flux:radio.group>
+                                <flux:error name="contact_gender" />
+                            </flux:radio.group>
+                        @endif
 
                         <flux:field>
                             <flux:label>{{ __('Summary') }}</flux:label>

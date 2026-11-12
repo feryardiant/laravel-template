@@ -8,6 +8,7 @@ use App\Actions\Contacts\FindContact;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Support\Feature\ContactGender;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
@@ -38,6 +39,7 @@ class View extends Component
             'stakeholder' => $stakeholder,
             'isOrganization' => $this->contact->isOrganization(),
             'contactPerson' => $stakeholder instanceof Organization ? $stakeholder->primaryContact : null,
+            'showGender' => ContactGender::enabled($this->currentOrganization()),
         ])->title(__('Contact details'));
     }
 }

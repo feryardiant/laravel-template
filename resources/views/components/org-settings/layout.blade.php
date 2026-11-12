@@ -4,7 +4,7 @@
     <div class="me-10 w-full pb-4 md:w-[220px]">
         <flux:navlist aria-label="{{ __('Organization settings') }}">
             <flux:navlist.item :href="route('org-settings.general')" wire:navigate>{{ __('General') }}</flux:navlist.item>
-            @if ($organization?->isRootTenant())
+            @if ($organization !== null)
                 <flux:navlist.item :href="route('org-settings.features')" wire:navigate>{{ __('Features') }}</flux:navlist.item>
             @endif
         </flux:navlist>

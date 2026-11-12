@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Livewire\OrgSettings\Features;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\Feature\ContactGender;
 use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -21,6 +22,7 @@ it('toggles registration for the root tenant', function () {
     actingAsMember($root, Role::Owner);
 
     Livewire::test(Features::class)
+        ->assertSet('isRootTenant', true)
         ->assertSet('registration', false)
         ->set('registration', true)
         ->assertHasNoErrors();
@@ -35,26 +37,67 @@ it('toggles registration for the root tenant', function () {
     expect(Registration::enabled())->toBeFalse();
 });
 
-it('shows the features tab only to the root tenant', function () {
+it('toggles contact gender for any tenant', function () {
     $root = Organization::factory()->asRootTenant()->create();
     $tenant = Organization::factory()->asTenantOf($root)->create();
+
+    actingAsMember($tenant, Role::Owner);
+
+    Livewire::test(Features::class)
+        ->assertSet('isRootTenant', false)
+        ->assertSet('contactGender', false)
+        ->set('contactGender', true)
+        ->assertHasNoErrors();
+
+    expect(ContactGender::enabled($tenant))->toBeTrue();
+
+    Livewire::test(Features::class)
+        ->assertSet('contactGender', true)
+        ->set('contactGender', false)
+        ->assertHasNoErrors();
+
+    expect(ContactGender::enabled($tenant))->toBeFalse();
+});
+
+it('shows the features tab for every tenant', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $tenant = Organization::factory()->asTenantOf($root)->create();
+
+    actingAsMember($tenant, Role::Owner);
+
+    get(route('org-settings.general'))->assertSee(__('Features'));
+});
+
+it('keeps the registration switch root only', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $tenant = Organization::factory()->asTenantOf($root)->create();
+
+    actingAsMember($tenant, Role::Owner);
+
+    get(route('org-settings.features'))
+        ->assertOk()
+        ->assertSee(__('Gender field in contact'))
+        ->assertDontSee(__('Public registration'));
 
     actingAsMember($root, Role::Owner);
 
-    get(route('org-settings.general'))->assertSee(__('Features'));
-
-    actingAsMember($tenant, Role::Owner);
-
-    get(route('org-settings.general'))->assertDontSee(__('Features'));
+    get(route('org-settings.features'))
+        ->assertOk()
+        ->assertSee(__('Gender field in contact'))
+        ->assertSee(__('Public registration'));
 });
 
-it('is not available to non-root tenants', function () {
+it('forbids non-root managers from toggling registration', function () {
     $root = Organization::factory()->asRootTenant()->create();
     $tenant = Organization::factory()->asTenantOf($root)->create();
 
     actingAsMember($tenant, Role::Owner);
 
-    get(route('org-settings.features'))->assertNotFound();
+    Livewire::test(Features::class)
+        ->set('registration', true)
+        ->assertNotFound();
+
+    expect(Registration::enabled())->toBeFalse();
 });
 
 it('is not available without an organization', function () {
@@ -63,10 +106,10 @@ it('is not available without an organization', function () {
     get(route('org-settings.features'))->assertNotFound();
 });
 
-it('forbids plain members of the root tenant', function () {
-    $root = Organization::factory()->asRootTenant()->create();
+it('forbids plain members', function () {
+    $organization = Organization::factory()->create();
 
-    actingAsMember($root, Role::Member);
+    actingAsMember($organization, Role::Member);
 
     Livewire::test(Features::class)->assertForbidden();
 });

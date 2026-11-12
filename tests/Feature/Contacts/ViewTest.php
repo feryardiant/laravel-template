@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Support\Feature\ContactGender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\get;
@@ -49,6 +50,8 @@ test('the contact view page shows an individual gender', function () {
 
     actingAsMember($organization, Role::Member);
 
+    ContactGender::activate($organization);
+
     $person = contactIndividual($organization, [
         'name' => 'Gendered Individual',
         'gender' => Gender::Female,
@@ -57,6 +60,22 @@ test('the contact view page shows an individual gender', function () {
     get(route('contacts.view', ['stakeholder' => $person]))
         ->assertOk()
         ->assertSee(__('Female'));
+});
+
+test('the contact view page hides the gender when the feature is off', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Member);
+
+    $person = contactIndividual($organization, [
+        'name' => 'Ungendered Individual',
+        'gender' => Gender::Female,
+    ]);
+
+    get(route('contacts.view', ['stakeholder' => $person]))
+        ->assertOk()
+        ->assertDontSee(__('Gender'))
+        ->assertDontSee(__('Female'));
 });
 
 test('a contact from another organization is not found', function () {

@@ -29,7 +29,7 @@
             <flux:heading>{{ $isOrganization ? __('Organization') : __('Individual') }}</flux:heading>
         </div>
 
-        @if (! $isOrganization)
+        @if (! $isOrganization && $showGender)
             <div>
                 <flux:text>{{ __('Gender') }}</flux:text>
                 <flux:heading>{{ $stakeholder->gender?->label() ?? '—' }}</flux:heading>
@@ -87,10 +87,12 @@
                 <flux:heading>{{ $contactPerson?->name ?? '—' }}</flux:heading>
             </div>
 
-            <div>
-                <flux:text>{{ __('Gender') }}</flux:text>
-                <flux:heading>{{ $contactPerson?->gender?->label() ?? '—' }}</flux:heading>
-            </div>
+            @if ($showGender)
+                <div>
+                    <flux:text>{{ __('Gender') }}</flux:text>
+                    <flux:heading>{{ $contactPerson?->gender?->label() ?? '—' }}</flux:heading>
+                </div>
+            @endif
 
             <div>
                 <flux:text>{{ __('Summary') }}</flux:text>

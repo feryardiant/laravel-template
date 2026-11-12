@@ -298,7 +298,7 @@
     "Registration enabled.": "Pendaftaran diaktifkan.",
     "Registration disabled.": "Pendaftaran dinonaktifkan.",
     "Features": "Fitur",
-    "Control platform-wide features": "Kelola fitur untuk seluruh platform",
+    "Control platform and workspace features": "Kelola fitur untuk platform dan ruang kerja",
     "Public registration": "Pendaftaran publik",
     "Allow visitors to create an account and a tenant organization.": "Izinkan pengunjung membuat akun dan organisasi tenant.",
     "Organization for :name": "Organisasi untuk :name",
@@ -309,5 +309,9 @@
     "Status": "Status",
     "Scheduled": "Terjadwal",
     "Active": "Aktif",
-    "Expired": "Berakhir"
+    "Expired": "Berakhir",
+    "Contact gender enabled.": "Kolom jenis kelamin pada kontak diaktifkan.",
+    "Contact gender disabled.": "Kolom jenis kelamin pada kontak dinonaktifkan.",
+    "Gender field in contact": "Kolom jenis kelamin pada kontak",
+    "Show this field in contacts form.": "Tampilkan kolom ini pada formulir kontak."
 }
