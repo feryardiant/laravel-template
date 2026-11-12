@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\StoreImage;
-use App\Enums\OrganizationRelationshipType;
+use App\Concerns\ToManageEntities;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 use Throwable;
 
 class UpdateContact
 {
+    use ToManageEntities;
+
     public function __construct(
         private StoreImage $storeImage,
         private FindContact $findContact,
@@ -45,7 +46,7 @@ class UpdateContact
 
         abort_if($stakeholder === null, 404);
 
-        $role = $this->role($data);
+        $role = $this->ensureExternalRole($data['role'] ?? null);
         $shared = $contact->isShared();
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
         $previous = null;
@@ -141,22 +142,5 @@ class UpdateContact
         if ($newPhoto !== null || $removePhoto) {
             $this->storeImage->delete($previous);
         }
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function role(array $data): OrganizationRelationshipType
-    {
-        $role = $data['role'] ?? null;
-        $role = $role instanceof OrganizationRelationshipType
-            ? $role
-            : OrganizationRelationshipType::from((string) $role);
-
-        if (! $role->isExternal()) {
-            throw new InvalidArgumentException('Invalid contact role.');
-        }
-
-        return $role;
     }
 }

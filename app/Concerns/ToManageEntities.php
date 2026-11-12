@@ -6,10 +6,12 @@ namespace App\Concerns;
 
 use App\Actions\Users\CreateUser;
 use App\Enums\Gender;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 trait ToManageEntities
 {
@@ -52,5 +54,23 @@ trait ToManageEntities
             'summary' => $summary,
             'photo_url' => $photoPath,
         ]);
+    }
+
+    private function ensureExternalRole(OrganizationRelationshipType|string|null $role)
+    {
+        $role = $this->role($role);
+
+        if (! $role->isExternal()) {
+            throw new InvalidArgumentException('Invalid contact role.');
+        }
+
+        return $role;
+    }
+
+    private function role(OrganizationRelationshipType|string|null $role): OrganizationRelationshipType
+    {
+        return $role instanceof OrganizationRelationshipType
+            ? $role
+            : OrganizationRelationshipType::from((string) $role);
     }
 }

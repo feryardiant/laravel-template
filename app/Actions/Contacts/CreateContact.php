@@ -13,7 +13,6 @@ use App\Models\Person;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 use Throwable;
 
 final class CreateContact
@@ -34,7 +33,7 @@ final class CreateContact
      */
     public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null): void
     {
-        $role = $this->role($data);
+        $role = $this->ensureExternalRole($data['role'] ?? null);
 
         $reference = $data['reference'] ?? null;
 
@@ -104,23 +103,6 @@ final class CreateContact
             'start_date' => $data['start_date'] ?? null,
             'finish_date' => $data['finish_date'] ?? null,
         ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function role(array $data): OrganizationRelationshipType
-    {
-        $role = $data['role'] ?? null;
-        $role = $role instanceof OrganizationRelationshipType
-            ? $role
-            : OrganizationRelationshipType::from((string) $role);
-
-        if (! $role->isExternal()) {
-            throw new InvalidArgumentException('Invalid contact role.');
-        }
-
-        return $role;
     }
 
     private function assertExists(Organization $tenant, Organization|Person $stakeholder): void
