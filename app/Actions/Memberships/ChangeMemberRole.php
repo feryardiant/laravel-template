@@ -12,7 +12,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 
-class ChangeMemberRole
+final class ChangeMemberRole
 {
     public function promote(Organization $organization, Person $person, User $actor): bool
     {

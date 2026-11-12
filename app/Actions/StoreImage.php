@@ -8,7 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
-class StoreImage
+final class StoreImage
 {
     /**
      * Store an uploaded image and return its object path.

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class FindContact
+final class FindContact
 {
     /**
      * Resolve a contact by its stakeholder UUID.

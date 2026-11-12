@@ -9,7 +9,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
 
-class SearchContact
+final class SearchContact
 {
     /**
      * Find existing external counterparties that match the given name.

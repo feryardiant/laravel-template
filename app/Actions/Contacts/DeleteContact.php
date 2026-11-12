@@ -9,7 +9,7 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Illuminate\Support\Facades\DB;
 
-class DeleteContact
+final class DeleteContact
 {
     public function __construct(
         private StoreImage $storeImage,

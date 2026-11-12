@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
-class UpdateContact
+final class UpdateContact
 {
     use ToManageEntities;
 
