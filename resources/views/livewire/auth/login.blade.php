@@ -18,7 +18,7 @@
                 required
                 autofocus
                 autocomplete="username"
-                placeholder="username"
+                :placeholder="__('Username')"
             />
 
             <!-- Password -->
