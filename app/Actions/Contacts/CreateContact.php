@@ -7,6 +7,7 @@ namespace App\Actions\Contacts;
 use App\Actions\FileStorage;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
+use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -31,14 +32,14 @@ final class CreateContact
      *
      * @param  array<string, mixed>  $data
      */
-    public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null): void
+    public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null): Entity
     {
         $role = $this->ensureExternalRole($data['role'] ?? null);
 
         $reference = $data['reference'] ?? null;
 
         if (\is_string($reference) && $reference !== '') {
-            DB::transaction(function () use ($tenant, $reference, $role, $data): void {
+            return DB::transaction(function () use ($tenant, $reference, $role, $data): Entity {
                 $stakeholder = $this->findContact->byReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
@@ -49,9 +50,9 @@ final class CreateContact
 
                 $this->assertNotAlreadyContact($tenant, $stakeholder);
                 $this->attach($tenant, $stakeholder, $role, $data);
-            });
 
-            return;
+                return $stakeholder;
+            });
         }
 
         $photoPath = $photo instanceof UploadedFile
@@ -59,10 +60,11 @@ final class CreateContact
             : null;
 
         try {
-            DB::transaction(function () use ($tenant, $data, $role, $photoPath): void {
+            return DB::transaction(function () use ($tenant, $data, $role, $photoPath): Entity {
                 $stakeholder = ($data['type'] ?? 'individual') === 'organization'
                     ? $this->createOrganization(
                         name: $data['name'],
+                        user: $data['user'] ?? null,
                         contactName: $data['contact_name'],
                         contactGender: $data['contact_gender'] ?? null,
                         contactSummary: $data['contact_summary'] ?? null,
@@ -71,12 +73,15 @@ final class CreateContact
                     )
                     : $this->createIndividual(
                         name: $data['name'],
+                        user: $data['user'] ?? null,
                         gender: $data['gender'] ?? null,
                         summary: $data['summary'] ?? null,
                         photoPath: $photoPath,
                     );
 
                 $this->attach($tenant, $stakeholder, $role, $data);
+
+                return $stakeholder;
             });
         } catch (Throwable $exception) {
             if ($photoPath !== null) {

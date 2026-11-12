@@ -7,10 +7,14 @@ namespace App\Concerns;
 use App\Actions\Users\CreateUser;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\User;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+
+use function Illuminate\Support\now;
 
 trait ToManageEntities
 {
@@ -21,15 +25,26 @@ trait ToManageEntities
         ?string $logoPath = null,
         Gender|string|null $contactGender = null,
         ?string $contactSummary = null,
+        ?User $user = null,
     ): Organization {
-        $contactPerson = $this->createIndividual($contactName, $contactGender, summary: $contactSummary);
+        $contactPerson = $this->createIndividual($contactName, $contactGender, summary: $contactSummary, user: $user);
 
-        return Organization::create([
+        /** @var Organization $organization */
+        $organization = Organization::create([
             'contact_id' => $contactPerson->getKey(),
             'name' => $name,
             'summary' => $summary,
             'logo_url' => $logoPath,
         ]);
+
+        $organization->members()->attach($contactPerson, [
+            'type' => OrganizationRelationshipType::Member,
+            'role' => Role::Owner,
+            'is_primary' => true,
+            'start_date' => now(),
+        ]);
+
+        return $organization;
     }
 
     public function createIndividual(
@@ -38,12 +53,15 @@ trait ToManageEntities
         ?string $email = null,
         ?string $photoPath = null,
         ?string $summary = null,
+        ?User $user = null,
     ): Person {
-        $user = $email ? app(CreateUser::class)->handle(
-            name: $name,
-            email: $email,
-            password: Str::random(16),
-        ) : null;
+        if (! $user && $email) {
+            $user = app(CreateUser::class)->handle(
+                name: $name,
+                email: $email,
+                password: Str::random(16),
+            );
+        }
 
         return Person::create([
             'user_id' => $user?->getKey(),

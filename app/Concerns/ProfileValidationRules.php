@@ -16,11 +16,11 @@ trait ProfileValidationRules
      *
      * @return array<string, array<int, Unique|ValidationRule|array<mixed>|string>>
      */
-    protected function profileRules(?int $userId = null): array
+    protected function profileRules(?int $userId = null, bool $forRegistration = false): array
     {
         return [
             'name' => $this->nameRules(),
-            'handle' => $this->handleRules($userId),
+            'handle' => $this->handleRules($userId, $forRegistration),
             'email' => $this->emailRules($userId),
         ];
     }
@@ -40,10 +40,9 @@ trait ProfileValidationRules
      *
      * @return array<int, Unique|ValidationRule|array<mixed>|string>
      */
-    protected function handleRules(?int $userId = null): array
+    protected function handleRules(?int $userId = null, bool $forRegistration = false): array
     {
-        return [
-            'required',
+        $rules = [
             'string',
             'lowercase',
             'alpha_num',
@@ -53,6 +52,8 @@ trait ProfileValidationRules
                 ? Rule::unique(User::class, 'handle')
                 : Rule::unique(User::class, 'handle')->ignore($userId),
         ];
+
+        return $forRegistration ? $rules : ['required', ...$rules];
     }
 
     /**

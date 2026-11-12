@@ -31,6 +31,8 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, Organization> $subsidiaries
  * @property-read Collection<int, Person> $members
  *
+ * @method static Builder<static> rootTenant()
+ *
  * @implements HasAddress<static>
  */
 #[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
