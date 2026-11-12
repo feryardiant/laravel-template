@@ -34,7 +34,6 @@ test('editing a member updates the person and the per-organization role', functi
 
     expect($member->person->fresh()->name)->toBe('Renamed Member');
     expect($member->person->roleIn($organization))->toBe(Role::Admin);
-    expect($member->fresh()->role)->toBe(Role::Member);
 });
 
 test('editing a member can create a credential', function () {

@@ -27,7 +27,6 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int $id
  * @property string $name
  * @property string $handle
- * @property Role $role
  * @property string $email
  * @property Locale|null $locale
  * @property string|null $timezone
@@ -41,7 +40,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $updated_at
  * @property-read ?Person $person
  */
-#[Fillable(['name', 'handle', 'email', 'password', 'role', 'locale', 'timezone', 'avatar_url'])]
+#[Fillable(['name', 'handle', 'email', 'password', 'locale', 'timezone', 'avatar_url'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 #[RouteKey('handle')]
 class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
@@ -70,7 +69,6 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     protected function casts(): array
     {
         return [
-            'role' => Role::class,
             'locale' => Locale::class,
             'email_verified_at' => 'datetime',
             'password' => 'hashed',

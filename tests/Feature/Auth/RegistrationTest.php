@@ -69,8 +69,6 @@ test('new users register as members with a tenant organization owned by their pe
 
     $user = User::query()->where('email', 'test@example.com')->firstOrFail();
 
-    expect($user->role)->toBe(Role::Member);
-
     $response->assertSessionHas('status', fn (string $status) => str_contains($status, $user->handle));
 
     $person = $user->person;

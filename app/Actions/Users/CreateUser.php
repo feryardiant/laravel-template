@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Users;
 
-use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Str;
@@ -15,14 +14,13 @@ final class CreateUser
     /**
      * Create a user and retry when a generated handle loses a race.
      */
-    public function handle(string $name, string $email, string $password, ?string $handle = null, Role $role = Role::Member): User
+    public function handle(string $name, string $email, string $password, ?string $handle = null): User
     {
         $attributes = [
             'name' => $name,
             'handle' => $handle,
             'email' => Str::lower($email),
             'password' => $password,
-            'role' => $role,
         ];
 
         for ($attempt = 0; $attempt < 3; $attempt++) {

@@ -55,7 +55,6 @@ test('an admin can add a member with an invite credential', function () {
 
     expect($user)->not->toBeNull();
     expect($user->email)->toBe('invited@example.com');
-    expect($user->role)->toBe(Role::Member);
     expect($user->email_verified_at)->toBeNull();
     expect($person->roleIn($organization))->toBe(Role::Member);
 

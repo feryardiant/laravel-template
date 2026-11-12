@@ -72,7 +72,6 @@ test('the setup page renders while pending', function () {
 test('setup provisions the root tenant and owner', function () {
     $seeded = User::factory()->create([
         'email' => config('setup.initial_email'),
-        'role' => Role::Owner,
     ]);
 
     Livewire::test(Setup::class)
