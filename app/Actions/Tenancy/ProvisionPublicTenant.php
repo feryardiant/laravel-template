@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions;
+namespace App\Actions\Tenancy;
 
 use App\Actions\Contacts\CreateContact;
 use App\Enums\OrganizationRelationshipType;

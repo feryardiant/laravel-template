@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Fortify;
 
-use App\Actions\ProvisionPublicTenant;
+use App\Actions\Tenancy\ProvisionPublicTenant;
 use App\Actions\Users\CreateUser;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
