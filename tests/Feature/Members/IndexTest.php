@@ -91,6 +91,29 @@ test('members are paginated', function () {
         ->assertViewHas('members', fn ($members) => $members->count() === 5);
 });
 
+test('members can be searched by name and email', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    User::factory()->asMemberOf($organization)->create([
+        'name' => 'Alice Wonder',
+        'email' => 'alice@example.com',
+    ]);
+    User::factory()->asMemberOf($organization)->create([
+        'name' => 'Bob Builder',
+        'email' => 'bob@example.com',
+    ]);
+
+    Livewire::test(Index::class)
+        ->set('search', 'alice')
+        ->assertSee('Alice Wonder')
+        ->assertDontSee('Bob Builder')
+        ->set('search', 'bob@example')
+        ->assertSee('Bob Builder')
+        ->assertDontSee('Alice Wonder');
+});
+
 test('an owner can assign the owner role', function () {
     $organization = Organization::factory()->create();
 
