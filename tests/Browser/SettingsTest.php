@@ -134,3 +134,16 @@ it('updates timezone and offers to reload the page', function () {
 
     expect($member->refresh()->timezone)->toBe('Asia/Jakarta');
 });
+
+it('persists the appearance preference', function () {
+    $member = browserMember(Role::Member);
+
+    actingAs($member);
+
+    $page = visit('/settings/preferences');
+
+    $page->click('Gelap')
+        ->assertSee('Preferensi Anda telah diperbarui.');
+
+    expect($member->refresh()->preferences)->toBe(['appearance' => 'dark']);
+});

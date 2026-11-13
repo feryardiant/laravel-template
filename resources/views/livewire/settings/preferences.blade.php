@@ -4,14 +4,17 @@
         locale: @js($locale),
         timezone: @js($timezone),
         saved: {
+            appearance: $flux.appearance,
             locale: @js($locale),
             timezone: @js($timezone),
         },
         queues: {
+            appearance: [],
             locale: [],
             timezone: [],
         },
         busy: {
+            appearance: false,
             locale: false,
             timezone: false,
         },
@@ -64,7 +67,9 @@
                     },
                 });
             } catch (error) {
-                if (this[key] === value) {
+                if (key === 'appearance') {
+                    this.$flux.appearance = this.saved.appearance;
+                } else if (this[key] === value) {
                     this[key] = this.saved[key];
                 }
 
