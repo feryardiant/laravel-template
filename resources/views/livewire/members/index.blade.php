@@ -278,11 +278,14 @@
                 <x-ui.file-upload.avatar :url="$photo" shape="rounded" remove="clearPhoto" />
             </x-ui.file-upload>
 
-            <flux:field>
-                <flux:label>{{ __('Name') }}</flux:label>
-                <flux:input wire:model="name" type="text" required autofocus autocomplete="off" />
-                <flux:error name="name" />
-            </flux:field>
+            <flux:input
+                wire:model="name"
+                type="text"
+                :label="__('Name')"
+                required
+                autofocus
+                autocomplete="off"
+            />
 
             <flux:radio.group wire:model="role" :label="__('Role')" class="flex flex-wrap gap-x-6">
                 @foreach ($this->roles as $roleOption)
@@ -292,17 +295,20 @@
                 <flux:error name="role" />
             </flux:radio.group>
 
-            <flux:field>
-                <flux:checkbox wire:model.live="createCredential" :label="__('Create login credential')" />
-                <flux:description>{{ __('An invitation email will be sent so they can set their password.') }}</flux:description>
-            </flux:field>
+            <flux:checkbox
+                wire:model.live="createCredential"
+                :label="__('Create login credential')"
+                :description="__('An invitation email will be sent so they can set their password.')"
+            />
 
             @if ($createCredential)
-                <flux:field>
-                    <flux:label>{{ __('Email') }}</flux:label>
-                    <flux:input wire:model="email" type="email" required autocomplete="off" />
-                    <flux:error name="email" />
-                </flux:field>
+                <flux:input
+                    wire:model="email"
+                    type="email"
+                    :label="__('Email')"
+                    required
+                    autocomplete="off"
+                />
             @endif
 
             <div class="flex items-center justify-between">

@@ -18,11 +18,14 @@
                     <x-ui.file-upload.avatar :url="$photo ?? $this->photoPreviewUrl" shape="rounded" remove="clearPhoto" />
                 </x-ui.file-upload>
 
-                <flux:field>
-                    <flux:label>{{ __('Name') }}</flux:label>
-                    <flux:input wire:model="name" type="text" required autofocus autocomplete="name" />
-                    <flux:error name="name" />
-                </flux:field>
+                <flux:input
+                    wire:model="name"
+                    type="text"
+                    :label="__('Name')"
+                    required
+                    autofocus
+                    autocomplete="name"
+                />
 
                 <flux:radio.group wire:model="role" :label="__('Role')" class="flex flex-wrap gap-x-6">
                     @foreach ($this->roles as $roleOption)
@@ -33,24 +36,29 @@
                 </flux:radio.group>
 
                 @if ($hasCredential)
-                    <flux:field>
-                        <flux:label>{{ __('Email') }}</flux:label>
-                        <flux:input wire:model="email" type="email" required autocomplete="email" />
-                        <flux:description>{{ __('Changing the email address sends a new verification email.') }}</flux:description>
-                        <flux:error name="email" />
-                    </flux:field>
+                    <flux:input
+                        wire:model="email"
+                        type="email"
+                        :label="__('Email')"
+                        :description="__('Changing the email address sends a new verification email.')"
+                        required
+                        autocomplete="email"
+                    />
                 @else
-                    <flux:field>
-                        <flux:checkbox wire:model.live="createCredential" :label="__('Create login credential')" />
-                        <flux:description>{{ __('An invitation email will be sent so they can set their password.') }}</flux:description>
-                    </flux:field>
+                    <flux:checkbox
+                        wire:model.live="createCredential"
+                        :label="__('Create login credential')"
+                        :description="__('An invitation email will be sent so they can set their password.')"
+                    />
 
                     @if ($createCredential)
-                        <flux:field>
-                            <flux:label>{{ __('Email') }}</flux:label>
-                            <flux:input wire:model="email" type="email" required autocomplete="email" />
-                            <flux:error name="email" />
-                        </flux:field>
+                        <flux:input
+                            wire:model="email"
+                            type="email"
+                            :label="__('Email')"
+                            required
+                            autocomplete="email"
+                        />
                     @endif
                 @endif
             </div>
