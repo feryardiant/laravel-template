@@ -8,6 +8,7 @@ use App\Events\MemberRemoved;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 final class LeaveOrganization
 {
@@ -44,7 +45,11 @@ final class LeaveOrganization
             return false;
         }
 
-        event(new MemberRemoved($organization, $person, null, ! $person->organizations()->exists()));
+        try {
+            event(new MemberRemoved($organization, $person, null, ! $person->organizations()->exists()));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         return true;
     }

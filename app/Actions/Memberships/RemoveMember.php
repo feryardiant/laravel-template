@@ -10,6 +10,7 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 final class RemoveMember
 {
@@ -35,12 +36,16 @@ final class RemoveMember
         DB::transaction(fn () => $organization->members()->detach($persons->modelKeys()));
 
         foreach ($persons as $person) {
-            event(new MemberRemoved(
-                $organization,
-                $person,
-                $actor,
-                ! $person->organizations()->exists(),
-            ));
+            try {
+                event(new MemberRemoved(
+                    $organization,
+                    $person,
+                    $actor,
+                    ! $person->organizations()->exists(),
+                ));
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
     }
 }
