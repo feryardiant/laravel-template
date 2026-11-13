@@ -20,7 +20,9 @@ class UserRoleChangedNotification extends Notification implements ShouldQueue
         public User $actor,
         public Role $newRole,
         public ?Organization $organization = null,
-    ) {}
+    ) {
+        $this->afterCommit = true;
+    }
 
     /**
      * @return array<int, string>

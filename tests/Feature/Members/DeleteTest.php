@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Livewire\Members\Index;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
+use App\Notifications\MemberLeftNotification;
+use App\Notifications\MembershipRemovedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -81,4 +85,81 @@ test('an admin can remove selected members', function () {
 
     expect($organization->members()->whereKey($members->map(fn (User $user) => $user->person->getKey()))->count())->toBe(0);
     expect(Person::query()->whereKey($members->map(fn (User $user) => $user->person->getKey()))->count())->toBe(3);
+});
+
+test('removing a member notifies them once', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Owner);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    Livewire::test(Index::class)
+        ->call('removeMember', $member->person->getKey())
+        ->assertHasNoErrors();
+
+    Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1);
+    Notification::assertSentTo(
+        $member,
+        MembershipRemovedNotification::class,
+        fn (MembershipRemovedNotification $notification): bool => $notification->organization->is($organization)
+            && $notification->actor?->is($actor) === true
+            && $notification->lastMembership === true,
+    );
+});
+
+test('a manager removal does not notify the owners', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Admin);
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    Livewire::test(Index::class)
+        ->call('removeMember', $member->person->getKey())
+        ->assertHasNoErrors();
+
+    Notification::assertNotSentTo($actor, MemberLeftNotification::class);
+    Notification::assertNotSentTo($owner, MemberLeftNotification::class);
+});
+
+test('removing a person without a credential notifies nobody', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $person = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $person);
+
+    Livewire::test(Index::class)
+        ->call('removeMember', $person->getKey())
+        ->assertHasNoErrors();
+
+    expect($organization->members()->whereKey($person->getKey())->exists())->toBeFalse();
+    Notification::assertNothingSent();
+});
+
+test('removing selected members notifies each credentialed member', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $members = User::factory()->count(3)->asMemberOf($organization)->create();
+    $credentialless = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $credentialless);
+
+    Livewire::test(Index::class)
+        ->set('selected', $members->map(fn (User $user) => $user->person->getKey())->push($credentialless->getKey())->all())
+        ->call('deleteSelected')
+        ->assertHasNoErrors();
+
+    $members->each(fn (User $member) => Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1));
+    Notification::assertCount(3);
 });

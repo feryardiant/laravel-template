@@ -313,5 +313,19 @@
     "Contact gender enabled.": "Kolom jenis kelamin pada kontak diaktifkan.",
     "Contact gender disabled.": "Kolom jenis kelamin pada kontak dinonaktifkan.",
     "Gender field in contact": "Kolom jenis kelamin pada kontak",
-    "Show this field in contacts form.": "Tampilkan kolom ini pada formulir kontak."
+    "Show this field in contacts form.": "Tampilkan kolom ini pada formulir kontak.",
+    "Leave :organization?": "Keluar dari :organization?",
+    "Leave organization": "Keluar dari organisasi",
+    "Manage your membership in the current organization": "Kelola keanggotaan Anda di organisasi saat ini",
+    "Remove your membership from this organization": "Hapus keanggotaan Anda dari organisasi ini",
+    "You are no longer a member of any organization.": "Anda tidak lagi menjadi anggota organisasi mana pun.",
+    "You cannot leave while you are the last owner.": "Anda tidak dapat keluar selama Anda satu-satunya pemilik.",
+    "You left :organization": "Anda keluar dari :organization",
+    "You left :organization.": "Anda keluar dari :organization.",
+    "You were removed from :organization": "Anda dihapus dari :organization",
+    "You will lose access to this organization. An owner or admin can add you back later.": "Anda akan kehilangan akses ke organisasi ini. Pemilik atau admin dapat menambahkan Anda kembali nanti.",
+    "Your role": "Peran Anda",
+    ":actor removed you from :organization.": ":actor menghapus Anda dari :organization.",
+    "Member left :organization": "Anggota keluar dari :organization",
+    ":name left :organization.": ":name keluar dari :organization."
 }

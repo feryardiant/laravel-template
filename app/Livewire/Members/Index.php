@@ -7,6 +7,7 @@ namespace App\Livewire\Members;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Memberships\RemoveMember;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -19,7 +20,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -153,9 +153,9 @@ class Index extends Component
         $this->showBatchDeleteModal = true;
     }
 
-    public function deleteSelectedConfirmed(): void
+    public function deleteSelectedConfirmed(RemoveMember $removeMember): void
     {
-        $this->deleteSelected();
+        $this->deleteSelected($removeMember);
 
         $this->reset('showBatchDeleteModal');
     }
@@ -239,13 +239,13 @@ class Index extends Component
     /**
      * Remove the member awaiting confirmation.
      */
-    public function deleteConfirmed(): void
+    public function deleteConfirmed(RemoveMember $removeMember): void
     {
         $person = $this->deletingPerson();
 
         abort_if($person === null, 404);
 
-        $this->removeMember($person->getKey());
+        $this->removeMember($person->getKey(), $removeMember);
 
         $this->reset('showDeleteModal', 'deletingPersonId');
     }
@@ -253,7 +253,7 @@ class Index extends Component
     /**
      * Remove the given person from the current organization.
      */
-    public function removeMember(int $personId): void
+    public function removeMember(int $personId, RemoveMember $removeMember): void
     {
         $organization = $this->requireOrganization();
 
@@ -265,7 +265,11 @@ class Index extends Component
 
         $this->authorizeTarget($person);
 
-        $organization->members()->detach($person->getKey());
+        $actor = Auth::user();
+
+        abort_unless($actor instanceof User, 403);
+
+        $removeMember->handle($organization, $person, $actor);
         $this->resetPage();
 
         Flux::toast(variant: 'success', text: __('Member removed.'));
@@ -352,11 +356,15 @@ class Index extends Component
     /**
      * Remove the selected members from the current organization.
      */
-    public function deleteSelected(): void
+    public function deleteSelected(RemoveMember $removeMember): void
     {
         $organization = $this->requireOrganization();
 
         $this->authorizeManager();
+
+        $actor = Auth::user();
+
+        abort_unless($actor instanceof User, 403);
 
         $pageIds = $this->members->pluck('id')->all();
         $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
@@ -372,11 +380,9 @@ class Index extends Component
         $removed = false;
 
         try {
-            if ($persons->isNotEmpty()) {
-                DB::transaction(fn () => $organization->members()->detach($persons->pluck('id')->all()));
+            $removeMember->handleMany($organization, $persons, $actor);
 
-                $removed = true;
-            }
+            $removed = true;
         } catch (Throwable $exception) {
             report($exception);
 

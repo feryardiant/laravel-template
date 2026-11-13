@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\RemoveMember;
 use App\Enums\Role;
 use App\Livewire\Notifications\Index;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\MemberLeftNotification;
+use App\Notifications\MembershipRemovedNotification;
 use App\Notifications\UserRoleChangedNotification;
 use App\Notifications\VerifyEmailForNewUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -271,6 +274,65 @@ test('role change notifications are stored in the database', function () {
     expect($notification->type)->toBe(UserRoleChangedNotification::class);
     expect($notification->data['title'])->toBe(__('Your role at :app has changed', ['app' => config('app.name')]));
     expect($notification->data['description'])->toContain($actor->name);
+});
+
+test('a member removal stores one notification for the removed user', function () {
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Owner);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    app(RemoveMember::class)->handle($organization, $member->person, $actor);
+
+    expect($member->notifications()->count())->toBe(1);
+
+    $notification = $member->notifications()->firstOrFail();
+
+    expect($notification->type)->toBe(MembershipRemovedNotification::class);
+    expect($notification->data['title'])->toBe(__('You were removed from :organization', ['organization' => $organization->name]));
+    expect($notification->data['description'])->toBe(__(':actor removed you from :organization.', [
+        'actor' => $actor->name,
+        'organization' => $organization->name,
+    ]));
+});
+
+test('a removal notification renders in the inbox', function () {
+    $organization = Organization::factory()->create();
+    $actor = User::factory()->create();
+    $user = User::factory()->create();
+
+    $user->notify(new MembershipRemovedNotification($organization, $actor, lastMembership: true));
+
+    actingAs($user);
+
+    get(route('notifications.index'))
+        ->assertOk()
+        ->assertSee(__('You were removed from :organization', ['organization' => $organization->name]))
+        ->assertSee(__(':actor removed you from :organization.', [
+            'actor' => $actor->name,
+            'organization' => $organization->name,
+        ]));
+
+    Livewire::test(Index::class)
+        ->call('openNotification', $user->notifications()->firstOrFail()->id)
+        ->assertSee(__('You are no longer a member of any organization.'));
+});
+
+test('a member-left notification renders in the inbox', function () {
+    $organization = Organization::factory()->create();
+    $user = User::factory()->create();
+
+    $user->notify(new MemberLeftNotification($organization, 'Jane Doe'));
+
+    actingAs($user);
+
+    get(route('notifications.index'))
+        ->assertOk()
+        ->assertSee(__('Member left :organization', ['organization' => $organization->name]))
+        ->assertSee(__(':name left :organization.', [
+            'name' => 'Jane Doe',
+            'organization' => $organization->name,
+        ]));
 });
 
 test('email verification notifications are only sent by email', function () {
