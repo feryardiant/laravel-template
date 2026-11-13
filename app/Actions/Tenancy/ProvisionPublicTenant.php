@@ -9,6 +9,7 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 final class ProvisionPublicTenant
@@ -30,7 +31,7 @@ final class ProvisionPublicTenant
         }
 
         $organization = $this->createContact->handle($root, [
-            'name' => __('Organization for :name', ['name' => $user->name]),
+            'name' => Str::limit(__('Organization for :name', ['name' => $user->name]), 255, ''),
             'role' => OrganizationRelationshipType::Customer,
             'type' => 'organization',
             'start_date' => now(),

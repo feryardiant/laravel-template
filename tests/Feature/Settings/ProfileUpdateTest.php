@@ -193,3 +193,21 @@ test('a non-image avatar is rejected', function () {
 
     expect($user->fresh()->getRawOriginal('avatar_url'))->toBeNull();
 });
+
+test('a deleted owner does not count toward the last owner guard', function () {
+    $organization = Organization::factory()->create();
+
+    $deleted = User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner, isPrimary: true)->create();
+
+    $deleted->delete();
+
+    actingAs($owner);
+
+    Livewire::test('settings.delete-user-form')
+        ->set('password', 'password')
+        ->call('deleteUser')
+        ->assertHasErrors(['password']);
+
+    expect($owner->fresh())->not->toBeNull();
+});

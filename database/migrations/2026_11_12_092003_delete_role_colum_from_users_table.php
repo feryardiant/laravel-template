@@ -12,7 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::dropColumns('users', ['role']);
+        if (Schema::hasColumn('users', 'role')) {
+            Schema::dropColumns('users', ['role']);
+        }
     }
 
     /**
@@ -20,6 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // doing nothing.
+        // Irreversible by design: the guarded up() keeps rollback + migrate safe.
     }
 };

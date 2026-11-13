@@ -9,7 +9,9 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Actions\Logout;
 use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -67,11 +69,13 @@ class DeleteUserForm extends Component
                 ->where('organization_id', $organizationId)
                 ->where('type', OrganizationRelationshipType::Member->value)
                 ->where('role', Role::Owner->value)
+                ->whereHasMorph('stakeholder', [Person::class], fn (Builder $query): Builder => $query->whereHas('user'))
                 ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
                 ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
-                ->count();
+                ->lockForUpdate()
+                ->get();
 
-            if ($owners === 1) {
+            if ($owners->count() === 1) {
                 return true;
             }
         }

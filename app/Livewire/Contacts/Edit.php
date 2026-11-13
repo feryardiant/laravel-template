@@ -201,6 +201,8 @@ class Edit extends Component
     {
         $organization = $this->requireOrganization();
 
+        $this->genderEnabled = ContactGender::enabled($organization);
+
         if ($this->contactId !== null) {
             abort_if($this->contact === null, 404);
             Gate::authorize('updateContact', $this->contact->stakeholder);

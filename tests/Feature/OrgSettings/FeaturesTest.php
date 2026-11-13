@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\Features;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\CurrentOrganization;
 use App\Support\Feature\ContactGender;
 use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -98,6 +100,30 @@ it('forbids non-root managers from toggling registration', function () {
         ->assertNotFound();
 
     expect(Registration::enabled())->toBeFalse();
+});
+
+it('rejects a stale page after the current organization changes', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $tenantA = Organization::factory()->asTenantOf($root)->create();
+    $tenantB = Organization::factory()->asTenantOf($root)->create();
+
+    $user = User::factory()->withProfile()->create();
+    app(CreateMember::class)->attach($tenantA, $user->person, isPrimary: true, role: Role::Owner);
+    app(CreateMember::class)->attach($tenantB, $user->person, role: Role::Owner);
+
+    $this->actingAs($user);
+
+    session([CurrentOrganization::SESSION_KEY => $tenantA->getKey()]);
+
+    $component = Livewire::test(Features::class);
+
+    session([CurrentOrganization::SESSION_KEY => $tenantB->getKey()]);
+
+    $component
+        ->set('contactGender', true)
+        ->assertStatus(409);
+
+    expect(ContactGender::enabled($tenantB))->toBeFalse();
 });
 
 it('is not available without an organization', function () {

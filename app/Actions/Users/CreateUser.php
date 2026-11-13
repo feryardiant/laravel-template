@@ -6,6 +6,7 @@ namespace App\Actions\Users;
 
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -25,7 +26,7 @@ final class CreateUser
 
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
-                return User::create($attributes);
+                return DB::transaction(fn (): User => User::create($attributes));
             } catch (UniqueConstraintViolationException $exception) {
                 if ($attempt === 2) {
                     throw $exception;

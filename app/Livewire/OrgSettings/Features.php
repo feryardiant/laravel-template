@@ -22,6 +22,9 @@ class Features extends Component
     #[Locked]
     public bool $isRootTenant = false;
 
+    #[Locked]
+    public ?int $organizationId = null;
+
     /**
      * Mount the component.
      */
@@ -33,6 +36,7 @@ class Features extends Component
 
         $this->authorizeManager();
 
+        $this->organizationId = $organization->getKey();
         $this->isRootTenant = $organization->isRootTenant();
         $this->registration = $this->isRootTenant && Registration::enabled();
         $this->contactGender = ContactGender::enabled($organization);
@@ -46,6 +50,7 @@ class Features extends Component
         $organization = $this->currentOrganization();
 
         abort_if($organization === null || ! $organization->isRootTenant(), 404);
+        abort_if($organization->getKey() !== $this->organizationId, 409);
 
         $this->authorizeManager();
 
@@ -69,6 +74,7 @@ class Features extends Component
         $organization = $this->currentOrganization();
 
         abort_if($organization === null, 404);
+        abort_if($organization->getKey() !== $this->organizationId, 409);
 
         $this->authorizeManager();
 

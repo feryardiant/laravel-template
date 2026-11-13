@@ -11,6 +11,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class ProvisionTenant
 {
@@ -44,7 +45,7 @@ final class ProvisionTenant
 
             $organization = Organization::create([
                 'contact_id' => $person->getKey(),
-                'name' => \sprintf("%s's Org", $name),
+                'name' => Str::limit(\sprintf("%s's Org", $name), 255, ''),
                 'is_tenant' => true,
                 'root_organization_id' => null,
             ]);

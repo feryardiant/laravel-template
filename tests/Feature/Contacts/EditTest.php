@@ -451,3 +451,25 @@ test('the edit flyout is a floating right-side flyout with a bottom footer', fun
         ->assertSeeHtml('min-h-[calc(100dvh-5rem)]')
         ->assertSeeHtml('mt-auto');
 });
+
+test('the gender flag is refreshed before saving', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    ContactGender::activate($organization);
+
+    $person = contactIndividual($organization, ['name' => 'Refresh Gender', 'gender' => Gender::Female]);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    $component = Livewire::test(Edit::class)->call('openEdit', $relationshipId);
+
+    ContactGender::deactivate($organization);
+
+    $component
+        ->set('gender', Gender::Male->value)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()?->gender)->toBe(Gender::Female);
+});

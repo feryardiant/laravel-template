@@ -49,7 +49,7 @@ test('users can not authenticate with invalid password', function () {
         'password' => 'wrong-password',
     ]);
 
-    $response->assertSessionHasErrorsIn('handle');
+    $response->assertSessionHasErrors(['handle']);
 
     $this->assertGuest();
 });
