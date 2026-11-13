@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\ProvisionTenant;
+use App\Actions\Tenancy\ProvisionTenant;
 use App\Enums\Role;
 use App\Livewire\Setup;
 use App\Models\Organization;
@@ -72,7 +72,6 @@ test('the setup page renders while pending', function () {
 test('setup provisions the root tenant and owner', function () {
     $seeded = User::factory()->create([
         'email' => config('setup.initial_email'),
-        'role' => Role::Owner,
     ]);
 
     Livewire::test(Setup::class)

@@ -23,9 +23,9 @@ describe('accessibilities', function () {
 
         $page = visit('/login');
 
-        $page->assertScript('document.activeElement.name === "email"')
-            ->typeSlowly('email', $owner->email)
-            ->keys('input[name="email"]', 'Tab')
+        $page->assertScript('document.activeElement.name === "handle"')
+            ->typeSlowly('handle', $owner->handle)
+            ->keys('input[name="handle"]', 'Tab')
             ->assertScript('document.activeElement.name === "password"')
             ->typeSlowly('password', 'password')
             ->keys('input[name="password"]', 'Enter');
@@ -58,7 +58,7 @@ describe('usabilities', function () {
 
         $page->assertScript('document.documentElement.scrollWidth <= window.innerWidth');
 
-        $page->fill('email', $member->email)
+        $page->fill('handle', $member->handle)
             ->fill('password', 'password')
             ->click('@login-button')
             ->assertPathIs('/dashboard');

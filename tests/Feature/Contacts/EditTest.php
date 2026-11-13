@@ -10,7 +10,9 @@ use App\Livewire\Contacts\Edit;
 use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use App\Models\User;
+use App\Support\Feature\ContactGender;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -24,6 +26,8 @@ test('editing a contact updates its per-tenant and shared fields', function () {
     $organization = Organization::factory()->create();
 
     actingAsMember($organization, Role::Admin);
+
+    ContactGender::activate($organization);
 
     $contact = contactOrganization($organization, ['name' => 'Acme Corp']);
     $contactPerson = $contact->primaryContact;
@@ -134,6 +138,8 @@ test('editing an individual contact updates the gender', function () {
 
     actingAsMember($organization, Role::Admin);
 
+    ContactGender::activate($organization);
+
     $person = contactIndividual($organization, ['name' => 'Gender Person', 'gender' => null]);
     $relationshipId = contactRelationshipId($organization, $person);
 
@@ -152,6 +158,8 @@ test('an existing individual can keep a blank gender on update', function () {
 
     actingAsMember($organization, Role::Admin);
 
+    ContactGender::activate($organization);
+
     $person = contactIndividual($organization, ['name' => 'Blank Gender', 'gender' => null]);
     $relationshipId = contactRelationshipId($organization, $person);
 
@@ -164,6 +172,61 @@ test('an existing individual can keep a blank gender on update', function () {
 
     expect($person->fresh()?->gender)->toBeNull();
     expect(OrganizationRelationship::query()->findOrFail($relationshipId)->code)->toBe('BLANK-1');
+});
+
+test('the gender field is hidden when the feature is off', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->assertDontSee(__('Gender'));
+});
+
+test('the gender field is shown when the feature is on', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    ContactGender::activate($organization);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->assertSee(__('Gender'));
+});
+
+test('editing a contact preserves gender when the feature is off', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Preserved Gender', 'gender' => Gender::Female]);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->set('name', 'Renamed Gender')
+        ->set('summary', 'Updated')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()?->gender)->toBe(Gender::Female);
+});
+
+test('a hidden gender is not submitted when the feature is off', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('name', 'No Gender Field')
+        ->set('gender', Gender::Male->value)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(Person::query()->where('name', 'No Gender Field')->firstOrFail()->gender)->toBeNull();
 });
 
 test('a contact photo can be replaced and cleared', function () {
@@ -387,4 +450,26 @@ test('the edit flyout is a floating right-side flyout with a bottom footer', fun
         ->assertSeeHtml('rounded-xl')
         ->assertSeeHtml('min-h-[calc(100dvh-5rem)]')
         ->assertSeeHtml('mt-auto');
+});
+
+test('the gender flag is refreshed before saving', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    ContactGender::activate($organization);
+
+    $person = contactIndividual($organization, ['name' => 'Refresh Gender', 'gender' => Gender::Female]);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    $component = Livewire::test(Edit::class)->call('openEdit', $relationshipId);
+
+    ContactGender::deactivate($organization);
+
+    $component
+        ->set('gender', Gender::Male->value)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()?->gender)->toBe(Gender::Female);
 });

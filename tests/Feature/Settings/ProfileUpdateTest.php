@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\Role;
 use App\Livewire\Settings\Profile;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -121,7 +122,10 @@ test('correct password must be provided to delete account', function () {
 });
 
 test('the last owner cannot delete their account', function () {
-    actingAs($owner = User::factory()->withRole(Role::Owner)->create());
+    $organization = Organization::factory()->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner, isPrimary: true)->create();
+
+    actingAs($owner);
 
     Livewire::test('settings.delete-user-form')
         ->set('password', 'password')
@@ -133,9 +137,12 @@ test('the last owner cannot delete their account', function () {
 });
 
 test('an owner can delete their account when another owner exists', function () {
-    User::factory()->withRole(Role::Owner)->create();
+    $organization = Organization::factory()->create();
 
-    actingAs($owner = User::factory()->withRole(Role::Owner)->create());
+    User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner, isPrimary: true)->create();
+
+    actingAs($owner);
 
     Livewire::test('settings.delete-user-form')
         ->set('password', 'password')
@@ -185,4 +192,22 @@ test('a non-image avatar is rejected', function () {
         ->assertHasErrors(['avatar']);
 
     expect($user->fresh()->getRawOriginal('avatar_url'))->toBeNull();
+});
+
+test('a deleted owner does not count toward the last owner guard', function () {
+    $organization = Organization::factory()->create();
+
+    $deleted = User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner, isPrimary: true)->create();
+
+    $deleted->delete();
+
+    actingAs($owner);
+
+    Livewire::test('settings.delete-user-form')
+        ->set('password', 'password')
+        ->call('deleteUser')
+        ->assertHasErrors(['password']);
+
+    expect($owner->fresh())->not->toBeNull();
 });

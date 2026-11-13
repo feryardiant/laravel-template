@@ -35,7 +35,6 @@ class UserSeeder extends Seeder
         $owner = User::factory()->withProfile()->create([
             'email' => 'owner@example.com',
             'handle' => 'owner',
-            'role' => Role::Owner,
         ]);
 
         $root = Organization::factory()
@@ -52,7 +51,6 @@ class UserSeeder extends Seeder
             ->create([
                 'email' => 'admin@example.com',
                 'handle' => 'admin',
-                'role' => Role::Admin,
             ]);
 
         User::factory(3)
@@ -61,7 +59,7 @@ class UserSeeder extends Seeder
                 'email' => \sprintf('member%d@example.com', $sequence->index + 1),
                 'handle' => \sprintf('member%d', $sequence->index + 1),
             ]))
-            ->create(['role' => Role::Member]);
+            ->create();
 
         if (app()->environment('local')) {
             $this->call(DemoSeeder::class, parameters: ['root' => $root]);
@@ -74,7 +72,6 @@ class UserSeeder extends Seeder
             'name' => \sprintf('%s Owner', config('app.name')),
             'email' => config('setup.initial_email'),
             'handle' => 'owner',
-            'role' => Role::Owner,
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),

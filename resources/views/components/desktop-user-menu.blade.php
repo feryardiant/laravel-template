@@ -1,3 +1,8 @@
+@props([
+    'position' => 'bottom',
+    'align' => 'end',
+])
+
 @php($unreadNotifications = auth()->user()->unreadNotifications()->count())
 
 <div
@@ -15,7 +20,7 @@
             : {{ \Illuminate\Support\Js::from(__('No unread notifications')) }}"
     ></span>
 
-    <flux:dropdown position="bottom" align="start" class="w-full">
+    <flux:dropdown :position="$position" :align="$align" class="w-full">
         <flux:sidebar.profile
             :name="auth()->user()->name"
             icon:trailing="chevrons-up-down"

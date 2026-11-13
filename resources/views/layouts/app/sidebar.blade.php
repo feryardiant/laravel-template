@@ -23,7 +23,7 @@
             <flux:sidebar.nav>
                 <flux:sidebar.group class="grid">
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
+                        {{ __('Home') }}
                     </flux:sidebar.item>
 
                     <flux:sidebar.item icon="users" :href="route('members.index')" :current="request()->routeIs('members.*')" wire:navigate>
@@ -44,7 +44,7 @@
                 </flux:sidebar.item> --}}
             </flux:sidebar.nav>
 
-            <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
+            <x-desktop-user-menu class="hidden lg:block" position="top" align="start" :name="auth()->user()->name" />
         </flux:sidebar>
 
         <!-- Mobile User Menu -->

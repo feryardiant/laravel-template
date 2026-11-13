@@ -103,8 +103,8 @@ final class UpdateContact
                     'summary' => $data['summary'] ?? null,
                 ];
 
-                if ($stakeholder instanceof Person) {
-                    $attributes['gender'] = $data['gender'] ?? null;
+                if ($stakeholder instanceof Person && \array_key_exists('gender', $data)) {
+                    $attributes['gender'] = $data['gender'];
                 }
 
                 if ($newPhoto !== null) {
@@ -116,11 +116,16 @@ final class UpdateContact
                 $stakeholder->update($attributes);
 
                 if ($stakeholder instanceof Organization) {
-                    $stakeholder->primaryContact?->update([
+                    $contactAttributes = [
                         'name' => $data['contact_name'],
-                        'gender' => $data['contact_gender'] ?? null,
                         'summary' => $data['contact_summary'] ?? null,
-                    ]);
+                    ];
+
+                    if (\array_key_exists('contact_gender', $data)) {
+                        $contactAttributes['gender'] = $data['contact_gender'];
+                    }
+
+                    $stakeholder->primaryContact?->update($contactAttributes);
                 }
             });
         } catch (Throwable $exception) {

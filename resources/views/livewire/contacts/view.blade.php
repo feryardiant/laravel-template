@@ -29,7 +29,7 @@
             <flux:heading>{{ $isOrganization ? __('Organization') : __('Individual') }}</flux:heading>
         </div>
 
-        @if (! $isOrganization)
+        @if (! $isOrganization && $showGender)
             <div>
                 <flux:text>{{ __('Gender') }}</flux:text>
                 <flux:heading>{{ $stakeholder->gender?->label() ?? '—' }}</flux:heading>
@@ -44,6 +44,21 @@
         <div>
             <flux:text>{{ __('Role') }}</flux:text>
             <flux:heading>{{ $contact->type?->label() ?? '—' }}</flux:heading>
+        </div>
+
+        @php
+            $statusColor = match ($contact->status) {
+                \App\Enums\RelationshipStatus::Active => 'green',
+                \App\Enums\RelationshipStatus::Scheduled => 'amber',
+                \App\Enums\RelationshipStatus::Expired => 'zinc',
+            };
+        @endphp
+
+        <div>
+            <flux:text>{{ __('Status') }}</flux:text>
+            <flux:badge size="sm" :color="$statusColor">
+                {{ $contact->status->label() }}
+            </flux:badge>
         </div>
 
         <div>
@@ -72,10 +87,12 @@
                 <flux:heading>{{ $contactPerson?->name ?? '—' }}</flux:heading>
             </div>
 
-            <div>
-                <flux:text>{{ __('Gender') }}</flux:text>
-                <flux:heading>{{ $contactPerson?->gender?->label() ?? '—' }}</flux:heading>
-            </div>
+            @if ($showGender)
+                <div>
+                    <flux:text>{{ __('Gender') }}</flux:text>
+                    <flux:heading>{{ $contactPerson?->gender?->label() ?? '—' }}</flux:heading>
+                </div>
+            @endif
 
             <div>
                 <flux:text>{{ __('Summary') }}</flux:text>

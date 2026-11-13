@@ -14,6 +14,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -81,10 +82,15 @@ class Edit extends Component
 
     public string $contact_summary = '';
 
+    #[Locked]
+    public bool $genderEnabled = false;
+
     #[On('create-contact')]
     public function openCreate(): void
     {
         Gate::authorize('createContact', Organization::class);
+
+        $this->genderEnabled = ContactGender::enabled($this->currentOrganization());
 
         $this->reset(
             'contactId',
@@ -118,9 +124,13 @@ class Edit extends Component
     #[On('edit-contact')]
     public function openEdit(int $contactId): void
     {
-        $contact = app(FindContact::class)->byId($this->requireOrganization(), $contactId);
+        $organization = $this->requireOrganization();
+
+        $contact = app(FindContact::class)->byId($organization, $contactId);
 
         Gate::authorize('updateContact', $contact->stakeholder);
+
+        $this->genderEnabled = ContactGender::enabled($organization);
 
         $this->fillFrom($contact);
         $this->showModal = true;
@@ -191,6 +201,8 @@ class Edit extends Component
     {
         $organization = $this->requireOrganization();
 
+        $this->genderEnabled = ContactGender::enabled($organization);
+
         if ($this->contactId !== null) {
             abort_if($this->contact === null, 404);
             Gate::authorize('updateContact', $this->contact->stakeholder);
@@ -211,15 +223,18 @@ class Edit extends Component
         $data = [
             'name' => $this->name,
             'summary' => $this->summary !== '' ? $this->summary : null,
-            'gender' => $this->gender,
             'code' => $this->code !== '' ? $this->code : null,
             'role' => OrganizationRelationshipType::from($this->role),
             'start_date' => $this->start_date,
             'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
             'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
-            'contact_gender' => $this->contact_gender,
             'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
         ];
+
+        if ($this->genderEnabled) {
+            $data['gender'] = $this->gender;
+            $data['contact_gender'] = $this->contact_gender;
+        }
 
         if ($this->contactId === null) {
             $data['type'] = $this->isOrganizationType ? 'organization' : 'individual';
@@ -341,7 +356,7 @@ class Edit extends Component
             $rules['type'] = ['required', Rule::in(['individual', 'organization'])];
         }
 
-        if (! $this->isOrganizationType && ! $sharedFieldsLocked) {
+        if (! $this->isOrganizationType && ! $sharedFieldsLocked && $this->genderEnabled) {
             $rules['gender'] = $this->contactId === null
                 ? ['required', Rule::enum(Gender::class)]
                 : ['nullable', Rule::enum(Gender::class)];
@@ -349,8 +364,11 @@ class Edit extends Component
 
         if ($this->isOrganizationType && ! $sharedFieldsLocked) {
             $rules['contact_name'] = ['required', 'string', 'max:255'];
-            $rules['contact_gender'] = ['required', Rule::enum(Gender::class)];
             $rules['contact_summary'] = ['nullable', 'string', 'max:255'];
+
+            if ($this->genderEnabled) {
+                $rules['contact_gender'] = ['required', Rule::enum(Gender::class)];
+            }
         }
 
         return $rules;

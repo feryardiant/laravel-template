@@ -4,6 +4,10 @@
             {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
         </flux:text>
 
+        <flux:text class="text-center font-medium">
+            {{ __('Your username is :handle.', ['handle' => auth()->user()?->handle]) }}
+        </flux:text>
+
         @if (session('status') == 'verification-link-sent')
             <flux:text class="text-center font-medium !dark:text-green-400 !text-green-600">
                 {{ __('A new verification link has been sent to the email address you provided during registration.') }}

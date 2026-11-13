@@ -31,6 +31,8 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, Organization> $subsidiaries
  * @property-read Collection<int, Person> $members
  *
+ * @method static Builder<static> rootTenant()
+ *
  * @implements HasAddress<static>
  */
 #[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
@@ -75,6 +77,14 @@ class Organization extends Entity implements HasAddress
     public function scopeRootTenant(Builder $query): Builder
     {
         return $query->where('is_tenant', true)->whereNull('root_organization_id');
+    }
+
+    /**
+     * Determine whether the organization is the root tenant.
+     */
+    public function isRootTenant(): bool
+    {
+        return $this->is_tenant && $this->root_organization_id === null;
     }
 
     /**

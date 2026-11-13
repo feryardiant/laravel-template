@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Users;
 
-use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -15,18 +15,18 @@ final class CreateUser
     /**
      * Create a user and retry when a generated handle loses a race.
      */
-    public function handle(string $name, string $email, string $password, Role $role = Role::Member): User
+    public function handle(string $name, string $email, string $password, ?string $handle = null): User
     {
         $attributes = [
             'name' => $name,
+            'handle' => $handle,
             'email' => Str::lower($email),
             'password' => $password,
-            'role' => $role,
         ];
 
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
-                return User::create($attributes);
+                return DB::transaction(fn (): User => User::create($attributes));
             } catch (UniqueConstraintViolationException $exception) {
                 if ($attempt === 2) {
                     throw $exception;

@@ -261,7 +261,7 @@ test('a role change stores exactly one notification', function () {
 });
 
 test('role change notifications are stored in the database', function () {
-    $actor = User::factory()->withRole(Role::Admin)->create();
+    $actor = User::factory()->create();
     $user = User::factory()->create();
 
     $user->notify(new UserRoleChangedNotification($actor, Role::Admin));
