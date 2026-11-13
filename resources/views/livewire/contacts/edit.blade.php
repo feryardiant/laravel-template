@@ -47,34 +47,29 @@
                         autofocus
                     />
                 @else
-                    <flux:field>
-                        <flux:label>{{ __('Name') }}</flux:label>
-                        <flux:input wire:model="name" type="text" :disabled="$this->sharedFieldsLocked" required autocomplete="off" />
-                        <flux:error name="name" />
-                    </flux:field>
+                    <flux:input
+                        wire:model="name"
+                        type="text"
+                        :label="__('Name')"
+                        :disabled="$this->sharedFieldsLocked"
+                        required
+                        autocomplete="off"
+                    />
                 @endif
 
-                <flux:field>
-                    <flux:label>{{ __('Code') }}</flux:label>
-                    <flux:input wire:model="code" type="text" autocomplete="off" />
-                    <flux:error name="code" />
-                </flux:field>
+                <flux:input wire:model="code" type="text" :label="__('Code')" autocomplete="off" />
 
-                <flux:field>
-                    <flux:label>{{ __('Summary') }}</flux:label>
-                    <flux:textarea wire:model="summary" :disabled="$this->sharedFieldsLocked" />
-                    <flux:error name="summary" />
-                </flux:field>
+                <flux:textarea
+                    wire:model="summary"
+                    :label="__('Summary')"
+                    :disabled="$this->sharedFieldsLocked"
+                />
 
-                <flux:field>
-                    <flux:label>{{ __('Role') }}</flux:label>
-                    <flux:select wire:model="role">
-                        @foreach ($this->roles as $roleOption)
-                            <option value="{{ $roleOption->value }}">{{ $roleOption->label() }}</option>
-                        @endforeach
-                    </flux:select>
-                    <flux:error name="role" />
-                </flux:field>
+                <flux:select wire:model="role" :label="__('Role')">
+                    @foreach ($this->roles as $roleOption)
+                        <option value="{{ $roleOption->value }}">{{ $roleOption->label() }}</option>
+                    @endforeach
+                </flux:select>
 
                 <flux:radio.group
                     wire:model.live="type"
@@ -128,11 +123,12 @@
                             <flux:separator variant="subtle" class="mt-2" />
                         </div>
 
-                        <flux:field>
-                            <flux:label>{{ __('Name') }}</flux:label>
-                            <flux:input wire:model="contact_name" type="text" :disabled="$this->sharedFieldsLocked" />
-                            <flux:error name="contact_name" />
-                        </flux:field>
+                        <flux:input
+                            wire:model="contact_name"
+                            type="text"
+                            :label="__('Name')"
+                            :disabled="$this->sharedFieldsLocked"
+                        />
 
                         @if ($genderEnabled)
                             <flux:radio.group
@@ -149,11 +145,11 @@
                             </flux:radio.group>
                         @endif
 
-                        <flux:field>
-                            <flux:label>{{ __('Summary') }}</flux:label>
-                            <flux:textarea wire:model="contact_summary" :disabled="$this->sharedFieldsLocked" />
-                            <flux:error name="contact_summary" />
-                        </flux:field>
+                        <flux:textarea
+                            wire:model="contact_summary"
+                            :label="__('Summary')"
+                            :disabled="$this->sharedFieldsLocked"
+                        />
                     </flux:card>
                 @endif
             </div>
