@@ -92,6 +92,7 @@
                     x-data
                     variant="segmented"
                     x-model="$flux.appearance"
+                    x-on:change="save('appearance', $event.target.value)"
                     aria-labelledby="appearance-heading"
                     aria-describedby="appearance-description"
                 >

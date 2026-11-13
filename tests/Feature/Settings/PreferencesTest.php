@@ -42,6 +42,7 @@ test('locale can be updated without changing the timezone', function () {
     actingAs($user = User::factory()->create([
         'locale' => Locale::Indonesian,
         'timezone' => 'Asia/Jakarta',
+        'preferences' => ['appearance' => 'dark'],
     ]));
 
     patchJson(route('preferences.update'), ['locale' => Locale::English->value])
@@ -51,7 +52,8 @@ test('locale can be updated without changing the timezone', function () {
 
     expect($user->refresh())
         ->locale->toBe(Locale::English)
-        ->timezone->toBe('Asia/Jakarta');
+        ->timezone->toBe('Asia/Jakarta')
+        ->preferences->toBe(['appearance' => 'dark']);
 });
 
 test('timezone can be updated without changing the locale', function () {
@@ -70,6 +72,33 @@ test('timezone can be updated without changing the locale', function () {
         ->timezone->toBe('America/New_York');
 });
 
+test('appearance can be updated without changing other preferences', function () {
+    actingAs($user = User::factory()->create([
+        'locale' => Locale::English,
+        'timezone' => 'Asia/Jakarta',
+        'preferences' => ['appearance' => 'light', 'sidebar' => 'collapsed'],
+    ]));
+
+    patchJson(route('preferences.update'), ['appearance' => 'dark'])
+        ->assertOk()
+        ->assertJsonPath('locale', Locale::English->value)
+        ->assertJsonPath('timezone', 'Asia/Jakarta')
+        ->assertJsonPath('appearance', 'dark');
+
+    expect($user->refresh())
+        ->locale->toBe(Locale::English)
+        ->timezone->toBe('Asia/Jakarta')
+        ->preferences->toBe(['appearance' => 'dark', 'sidebar' => 'collapsed']);
+});
+
+test('the saved appearance is applied on page load', function () {
+    actingAs(User::factory()->create(['preferences' => ['appearance' => 'dark']]));
+
+    get(route('dashboard'))
+        ->assertOk()
+        ->assertSee("window.Flux.applyAppearance('dark')", false);
+});
+
 test('invalid preferences are rejected', function () {
     actingAs($user = User::factory()->create([
         'locale' => Locale::Indonesian,
@@ -83,6 +112,10 @@ test('invalid preferences are rejected', function () {
     patchJson(route('preferences.update'), ['timezone' => 'Mars/Phobos'])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('timezone');
+
+    patchJson(route('preferences.update'), ['appearance' => 'sepia'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('appearance');
 
     expect($user->refresh())
         ->locale->toBe(Locale::Indonesian)
