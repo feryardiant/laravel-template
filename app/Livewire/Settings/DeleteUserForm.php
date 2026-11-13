@@ -63,6 +63,7 @@ class DeleteUserForm extends Component
         $today = now()->toDateString();
         $organizationIds = $person->organizations()
             ->wherePivot('role', Role::Owner->value)
+            ->orderBy('organizations.id')
             ->pluck('organizations.id');
 
         foreach ($organizationIds as $organizationId) {
