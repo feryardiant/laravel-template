@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace App\Livewire\Settings;
 
 use App\Concerns\PasswordValidationRules;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Actions\Logout;
 use App\Models\Organization;
-use App\Models\OrganizationRelationship;
-use App\Models\Person;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -60,7 +56,6 @@ class DeleteUserForm extends Component
             return false;
         }
 
-        $today = now()->toDateString();
         $organizationIds = $person->organizations()
             ->wherePivot('role', Role::Owner->value)
             ->orderBy('organizations.id')
@@ -69,18 +64,9 @@ class DeleteUserForm extends Component
         foreach ($organizationIds as $organizationId) {
             // Serialize concurrent account deletions for this organization; the
             // count below then starts from a fresh snapshot.
-            Organization::query()->whereKey($organizationId)->lockForUpdate()->firstOrFail();
+            $organization = Organization::query()->whereKey($organizationId)->lockForUpdate()->firstOrFail();
 
-            $owners = OrganizationRelationship::query()
-                ->where('organization_id', $organizationId)
-                ->where('type', OrganizationRelationshipType::Member->value)
-                ->where('role', Role::Owner->value)
-                ->whereHasMorph('stakeholder', [Person::class], fn (Builder $query): Builder => $query->whereHas('user'))
-                ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
-                ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
-                ->count();
-
-            if ($owners === 1) {
+            if ($organization->activeOwnerCount() === 1) {
                 return true;
             }
         }

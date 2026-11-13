@@ -13,6 +13,7 @@ use App\Livewire\Members\Index as MemberIndex;
 use App\Livewire\Members\Show as MemberShow;
 use App\Livewire\Notifications\Index as NotificationIndex;
 use App\Livewire\OrgSettings;
+use App\Livewire\Settings\Organizations;
 use App\Livewire\Settings\Preferences;
 use App\Livewire\Settings\Profile;
 use App\Livewire\Settings\Security;
@@ -62,6 +63,10 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('settings/preferences', Preferences::class)->name('preferences.edit');
     Route::patch('settings/preferences', UpdatePreferencesController::class)->name('preferences.update');
+
+    Route::livewire('settings/organization', Organizations::class)
+        ->middleware(['password.confirm'])
+        ->name('organization.edit');
 
     Route::livewire('settings/security', Security::class)
         ->middleware(['password.confirm'])

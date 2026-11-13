@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\Role;
 use Creasi\Nusa\Contracts\HasAddress;
 use Creasi\Nusa\Models\Concerns\WithAddress;
 use Database\Factories\OrganizationFactory;
@@ -168,6 +169,23 @@ class Organization extends Entity implements HasAddress
     {
         return $this->organizationCounterparties(...$type)->get()
             ->concat($this->personCounterparties(...$type)->get());
+    }
+
+    /**
+     * Count the owners who can currently sign in to the organization.
+     */
+    public function activeOwnerCount(): int
+    {
+        $today = now()->toDateString();
+
+        return $this->members()
+            ->wherePivot('role', Role::Owner->value)
+            ->whereHas('user')
+            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.start_date')
+                ->orWhere('organization_relationships.start_date', '<=', $today))
+            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.finish_date')
+                ->orWhere('organization_relationships.finish_date', '>=', $today))
+            ->count();
     }
 
     /**
