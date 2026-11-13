@@ -11,8 +11,10 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -150,6 +152,22 @@ test('a role change promotes within the current organization only', function () 
     expect($member->person->roleIn($otherOrganization))->toBe(Role::Member);
 
     Notification::assertSentTo($member, UserRoleChangedNotification::class);
+});
+
+test('role change notifications are queued', function () {
+    Queue::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    Livewire::test(Index::class)
+        ->call('confirmPromote', $member->person->getKey())
+        ->call('changeRoleConfirmed');
+
+    Queue::assertPushed(SendQueuedNotifications::class);
 });
 
 test('a role change dispatches the member role changed event', function () {
