@@ -8,10 +8,11 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class UserRoleChangedNotification extends Notification
+class UserRoleChangedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

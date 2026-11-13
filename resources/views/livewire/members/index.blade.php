@@ -73,8 +73,19 @@
             <flux:text class="mt-2">{{ __('You are not a member of any organization.') }}</flux:text>
         </flux:card>
     @else
+        <div class="flex justify-end">
+            <flux:input
+                type="search"
+                wire:model.live.debounce.300ms="search"
+                icon="magnifying-glass"
+                :placeholder="__('Search members...')"
+                :aria-label="__('Search members')"
+                class="sm:max-w-xs"
+            />
+        </div>
+
         <flux:checkbox.group
-            wire:key="members-{{ $members->currentPage() }}-{{ $sortDirection }}-{{ $selectionKey }}"
+            wire:key="members-{{ $members->currentPage() }}-{{ $sortDirection }}-{{ $search }}-{{ $selectionKey }}"
             wire:model.live="selected"
         >
             <flux:table :paginate="$members">

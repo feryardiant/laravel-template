@@ -13,3 +13,13 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.ts'])
 @fluxAppearance
+
+@auth
+    @php($appearance = auth()->user()->preferences['appearance'] ?? null)
+
+    @if ($appearance !== null)
+        <script>
+            window.Flux.applyAppearance(@js($appearance))
+        </script>
+    @endif
+@endauth

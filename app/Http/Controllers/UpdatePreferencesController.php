@@ -23,15 +23,26 @@ class UpdatePreferencesController extends Controller
         $validated = $request->validate([
             'locale' => ['sometimes', 'required', Rule::enum(Locale::class)],
             'timezone' => ['sometimes', 'required', 'timezone'],
+            'appearance' => ['sometimes', 'required', Rule::in(['light', 'dark', 'system'])],
         ]);
 
         abort_if($validated === [], 422, __('No preference provided.'));
 
-        $user->update($validated);
+        if (isset($validated['appearance'])) {
+            $user->preferences = [
+                ...($user->preferences ?? []),
+                'appearance' => $validated['appearance'],
+            ];
+
+            unset($validated['appearance']);
+        }
+
+        $user->fill($validated)->save();
 
         return response()->json([
             'locale' => $user->locale?->value,
             'timezone' => $user->timezone,
+            'appearance' => $user->preferences['appearance'] ?? null,
         ]);
     }
 }

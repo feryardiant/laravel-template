@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Actions\Users\CreateUser;
+use App\Casts\AsUserPreference;
 use App\Enums\Locale;
 use App\Enums\Role;
 use Database\Factories\UserFactory;
@@ -30,6 +31,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $email
  * @property Locale|null $locale
  * @property string|null $timezone
+ * @property array<string, mixed>|null $preferences
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
@@ -70,6 +72,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     {
         return [
             'locale' => Locale::class,
+            'preferences' => AsUserPreference::class,
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];

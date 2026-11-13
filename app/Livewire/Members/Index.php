@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -79,6 +80,8 @@ class Index extends Component
      * @var 'asc'|'desc'
      */
     public string $sortDirection = 'desc';
+
+    public string $search = '';
 
     /**
      * Add a person to the current organization.
@@ -314,6 +317,13 @@ class Index extends Component
         $this->someSelected = false;
     }
 
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+        $this->updatedPage();
+        $this->selectionKey++;
+    }
+
     public function updatedSelected(): void
     {
         $pageIds = $this->selectablePageIds();
@@ -415,8 +425,14 @@ class Index extends Component
             return new LengthAwarePaginator([], 0, 10);
         }
 
+        $term = trim($this->search);
+
         return $organization->members()
             ->with('user')
+            ->when($term !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($term): void {
+                $query->whereLike('people.name', "%{$term}%")
+                    ->orWhereHas('user', fn (Builder $query): Builder => $query->whereLike('users.email', "%{$term}%"));
+            }))
             ->orderBy('organization_relationships.start_date', $this->sortDirection)
             ->orderBy('people.id')
             ->paginate(10);
