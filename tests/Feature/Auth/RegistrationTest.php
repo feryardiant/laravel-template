@@ -132,7 +132,25 @@ test('a long name is truncated in the generated organization name', function () 
     expect(mb_strlen($organization->name))->toBeLessThanOrEqual(255);
 });
 
+test('an array-valued email fails validation instead of crashing', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+
+    Registration::activate($root);
+
+    post(route('register.store'), [
+        'name' => 'Array Email',
+        'email' => ['test@example.com'],
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertSessionHasErrors('email');
+
+    expect(User::query()->where('email', 'test@example.com')->exists())->toBeFalse();
+});
+
 test('the verification screen shows the generated handle', function () {
+    /** @var TestCase $this */
+    $this->skipUnlessFortifyHas(Features::emailVerification());
+
     $root = Organization::factory()->asRootTenant()->create();
 
     Registration::activate($root);
@@ -152,6 +170,9 @@ test('the verification screen shows the generated handle', function () {
 });
 
 test('the verification mail includes the generated handle', function () {
+    /** @var TestCase $this */
+    $this->skipUnlessFortifyHas(Features::emailVerification());
+
     Notification::fake();
 
     $root = Organization::factory()->asRootTenant()->create();

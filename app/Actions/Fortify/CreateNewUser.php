@@ -21,11 +21,11 @@ class CreateNewUser implements CreatesNewUsers
     /**
      * Validate and create a newly registered user.
      *
-     * @param  array<string, string>  $input
+     * @param  array<string, mixed>  $input
      */
     public function create(array $input): User
     {
-        if (isset($input['email'])) {
+        if (\is_string($input['email'] ?? null)) {
             $input['email'] = Str::lower($input['email']);
         }
 
@@ -35,7 +35,11 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         return DB::transaction(function () use ($input): User {
-            $user = app(CreateUser::class)->handle($input['name'], $input['email'], $input['password']);
+            $user = app(CreateUser::class)->handle(
+                (string) $input['name'],
+                (string) $input['email'],
+                (string) $input['password'],
+            );
 
             app(ProvisionPublicTenant::class)->handle($user);
 

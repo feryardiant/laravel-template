@@ -8,6 +8,7 @@ use App\Concerns\PasswordValidationRules;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Actions\Logout;
+use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
@@ -65,6 +66,10 @@ class DeleteUserForm extends Component
             ->pluck('organizations.id');
 
         foreach ($organizationIds as $organizationId) {
+            // Serialize concurrent account deletions for this organization; the
+            // count below then starts from a fresh snapshot.
+            Organization::query()->whereKey($organizationId)->lockForUpdate()->firstOrFail();
+
             $owners = OrganizationRelationship::query()
                 ->where('organization_id', $organizationId)
                 ->where('type', OrganizationRelationshipType::Member->value)
@@ -72,10 +77,9 @@ class DeleteUserForm extends Component
                 ->whereHasMorph('stakeholder', [Person::class], fn (Builder $query): Builder => $query->whereHas('user'))
                 ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
                 ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
-                ->lockForUpdate()
-                ->get();
+                ->count();
 
-            if ($owners->count() === 1) {
+            if ($owners === 1) {
                 return true;
             }
         }
