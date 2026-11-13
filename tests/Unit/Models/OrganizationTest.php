@@ -35,6 +35,13 @@ it('can only have one address', function () {
         ->toThrow(QueryException::class);
 });
 
+it('can only have one root tenant', function () {
+    Organization::factory()->asRootTenant()->create();
+
+    expect(fn () => Organization::factory()->asRootTenant()->create())
+        ->toThrow(QueryException::class);
+});
+
 it('reports a null relationship type as neither internal nor external', function () {
     $relationship = new OrganizationRelationship(['type' => null]);
 
