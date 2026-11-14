@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -92,6 +95,25 @@ class Show extends Component
     public function refreshMember(): void
     {
         $this->person->refresh();
+    }
+
+    /**
+     * The membership's full stint history.
+     *
+     * @return Collection<int, OrganizationRelationshipPeriod>
+     */
+    #[Computed]
+    public function history(): Collection
+    {
+        return OrganizationRelationshipPeriod::query()
+            ->where('organization_id', $this->requireOrganization()->getKey())
+            ->where('stakeholder_type', (new Person)->getMorphClass())
+            ->where('stakeholder_id', $this->person->getKey())
+            ->where('type', OrganizationRelationshipType::Member)
+            ->with('actor')
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
     }
 
     #[Computed]

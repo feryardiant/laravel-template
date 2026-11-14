@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -20,6 +21,11 @@ final class CreateMember
 {
     use ToManageEntities;
 
+    public function __construct(private RelationshipTimeline $timeline)
+    {
+        // .
+    }
+
     /**
      * Create a person, optional credential, and organization membership.
      */
@@ -29,6 +35,7 @@ final class CreateMember
         Role $role,
         ?string $email = null,
         ?string $photoUrl = null,
+        ?User $actor = null,
     ): Person {
         if ($role->isOwner()) {
             throw new InvalidArgumentException('Owner is assigned by transferring ownership.');
@@ -36,7 +43,7 @@ final class CreateMember
 
         $user = null;
 
-        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
+        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, $actor, &$user): Person {
             $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl, owner: $organization);
             $user = $person->user;
 
@@ -45,6 +52,7 @@ final class CreateMember
                 $person,
                 startDate: now(),
                 role: $role,
+                actor: $actor,
             );
 
             return $person;
@@ -67,6 +75,7 @@ final class CreateMember
         ?CarbonInterface $startDate = null,
         ?CarbonInterface $finishDate = null,
         Role $role = Role::Member,
+        ?User $actor = null,
     ): void {
         DB::transaction(function () use ($organization, $member, $isPrimary, $startDate, $finishDate, $role): void {
             $member->newQuery()
@@ -108,6 +117,14 @@ final class CreateMember
                     'finish_date' => $finishDate,
                 ],
             );
+
+            $relationship = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->whereStakeholder($member)
+                ->where('type', OrganizationRelationshipType::Member)
+                ->firstOrFail();
+
+            $this->timeline->open($relationship);
         });
     }
 }

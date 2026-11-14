@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
+use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Events\MemberRemoved;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +20,11 @@ use Throwable;
 
 final class RemoveMember
 {
+    public function __construct(private RelationshipTimeline $timeline)
+    {
+        // .
+    }
+
     /**
      * Remove a person from the organization.
      */
@@ -58,6 +67,19 @@ final class RemoveMember
                 ->reject(
                     fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
                 );
+
+            if ($removed->isNotEmpty()) {
+                $relationships = OrganizationRelationship::query()
+                    ->forOrganization($organization)
+                    ->where('stakeholder_type', (new Person)->getMorphClass())
+                    ->whereIn('stakeholder_id', $removed->modelKeys())
+                    ->where('type', OrganizationRelationshipType::Member)
+                    ->get();
+
+                foreach ($relationships as $relationship) {
+                    $this->timeline->close($relationship, RelationshipPeriodReason::Removed, $actor);
+                }
+            }
 
             $organization->members()->detach($removed->modelKeys());
 

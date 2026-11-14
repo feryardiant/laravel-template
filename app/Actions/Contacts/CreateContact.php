@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\FileStorage;
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +26,7 @@ final class CreateContact
     public function __construct(
         private FileStorage $fileStorage,
         private FindContact $findContact,
+        private RelationshipTimeline $timeline,
     ) {
         // .
     }
@@ -32,14 +36,14 @@ final class CreateContact
      *
      * @param  array<string, mixed>  $data
      */
-    public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null): Entity
+    public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null, ?User $actor = null): Entity
     {
         $role = $this->ensureExternalRole($data['role'] ?? null);
 
         $reference = $data['reference'] ?? null;
 
         if (\is_string($reference) && $reference !== '') {
-            return DB::transaction(function () use ($tenant, $reference, $role, $data): Entity {
+            return DB::transaction(function () use ($tenant, $reference, $role, $data, $actor): Entity {
                 $stakeholder = $this->findContact->byReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
@@ -64,12 +68,16 @@ final class CreateContact
                         ]);
                     }
 
+                    $this->timeline->close($existing, RelationshipPeriodReason::Renewed, $actor);
+
                     $existing->update([
                         'code' => $data['code'] ?? null,
                         'type' => $role,
                         'start_date' => $data['start_date'] ?? null,
                         'finish_date' => null,
                     ]);
+
+                    $this->timeline->open($existing->refresh());
 
                     return $stakeholder;
                 }
@@ -135,5 +143,14 @@ final class CreateContact
             'start_date' => $data['start_date'] ?? null,
             'finish_date' => $data['finish_date'] ?? null,
         ]);
+
+        $relationship = OrganizationRelationship::query()
+            ->forOrganization($tenant)
+            ->external()
+            ->whereStakeholder($stakeholder)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->timeline->open($relationship);
     }
 }

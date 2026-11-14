@@ -18,6 +18,7 @@ use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -254,6 +255,8 @@ class Edit extends Component
         }
 
         try {
+            $actor = Auth::user();
+
             if ($this->contactId !== null) {
                 $updateContact->handle(
                     $organization,
@@ -262,6 +265,7 @@ class Edit extends Component
                     $this->photo instanceof UploadedFile ? $this->photo : null,
                     $this->photo_url === null,
                     $sharedFieldsLocked,
+                    $actor,
                 );
 
                 $message = __('Contact updated.');
@@ -270,6 +274,7 @@ class Edit extends Component
                     $organization,
                     $data,
                     $this->photo instanceof UploadedFile ? $this->photo : null,
+                    $actor,
                 );
 
                 $message = __('Contact created.');

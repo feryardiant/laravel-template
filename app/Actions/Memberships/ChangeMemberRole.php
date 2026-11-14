@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
 use App\Events\MemberRoleChanged;
 use App\Models\ApprovalRequest;
@@ -17,6 +19,11 @@ use App\Models\User;
 
 final class ChangeMemberRole
 {
+    public function __construct(private RelationshipTimeline $timeline)
+    {
+        // .
+    }
+
     public function promote(Organization $organization, Person $person, User $actor): bool
     {
         return $this->change($organization, $person, $actor, Role::Member, Role::Admin);
@@ -46,7 +53,7 @@ final class ChangeMemberRole
             return false;
         }
 
-        $this->updateRole($organization, $person, $newRole);
+        $this->updateRole($organization, $person, $newRole, $actor);
 
         event(new MemberRoleChanged($organization, $person, $actor, $currentRole, $newRole));
 
@@ -88,13 +95,27 @@ final class ChangeMemberRole
         return ! $newRole->isOwner();
     }
 
-    private function updateRole(Organization $organization, Person $person, Role $role): void
+    private function updateRole(Organization $organization, Person $person, Role $role, User $actor): void
     {
+        $relationship = OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->whereStakeholder($person)
+            ->where('type', OrganizationRelationshipType::Member)
+            ->first();
+
+        if ($relationship !== null) {
+            $this->timeline->close($relationship, RelationshipPeriodReason::RoleChanged, $actor);
+        }
+
         OrganizationRelationship::query()
             ->forOrganization($organization)
             ->whereStakeholder($person)
             ->where('type', OrganizationRelationshipType::Member)
             ->update(['role' => $role]);
+
+        if ($relationship !== null) {
+            $this->timeline->open($relationship->refresh(), today());
+        }
 
         // A role change invalidates an admin's pending request to leave.
         ApprovalRequest::query()

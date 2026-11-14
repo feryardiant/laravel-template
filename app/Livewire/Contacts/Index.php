@@ -13,6 +13,7 @@ use App\Models\OrganizationRelationship;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -91,7 +92,7 @@ class Index extends Component
         Gate::authorize('deleteContact', $contact->stakeholder);
 
         try {
-            $deleteContact->handle($organization, $contact->getKey());
+            $deleteContact->handle($organization, $contact->getKey(), actor: Auth::user());
         } catch (Throwable $exception) {
             report($exception);
 
@@ -127,7 +128,7 @@ class Index extends Component
         }
 
         try {
-            $count = $deleteContacts->handleBulk($organization, $ids);
+            $count = $deleteContacts->handleBulk($organization, $ids, Auth::user());
         } catch (Throwable $exception) {
             report($exception);
 

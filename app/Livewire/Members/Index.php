@@ -121,6 +121,7 @@ class Index extends Component
             $role,
             $hasCredential ? $validated['email'] : null,
             $photoUrl,
+            Auth::user(),
         );
 
         $this->reset('name', 'email', 'createCredential', 'photo', 'showCreateModal');

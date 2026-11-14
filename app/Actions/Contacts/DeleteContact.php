@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\FileStorage;
+use App\Actions\Relationships\RelationshipTimeline;
+use App\Enums\RelationshipPeriodReason;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 final class DeleteContact
@@ -14,6 +17,7 @@ final class DeleteContact
     public function __construct(
         private FileStorage $fileStorage,
         private FindContact $findContact,
+        private RelationshipTimeline $timeline,
     ) {
         // .
     }
@@ -27,7 +31,7 @@ final class DeleteContact
      *
      * @return list<string>
      */
-    public function handle(Organization $tenant, int $contactId, bool $cleanupFiles = true): array
+    public function handle(Organization $tenant, int $contactId, bool $cleanupFiles = true, ?User $actor = null): array
     {
         $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
@@ -36,7 +40,7 @@ final class DeleteContact
 
         $paths = [];
 
-        DB::transaction(function () use ($tenant, $contact, $stakeholder, &$paths): void {
+        DB::transaction(function () use ($tenant, $contact, $stakeholder, $actor, &$paths): void {
             // Serialize with a concurrent reuse or credential change.
             $stakeholder = $stakeholder->newQuery()
                 ->withTrashed()
@@ -60,6 +64,8 @@ final class DeleteContact
                     ]
                     : [$stakeholder->getRawOriginal('photo_url')];
             }
+
+            $this->timeline->close($contact, RelationshipPeriodReason::Deleted, $actor);
 
             OrganizationRelationship::query()
                 ->forOrganization($tenant)
@@ -99,7 +105,7 @@ final class DeleteContact
      *
      * @param  array<int, int|string>  $contactIds
      */
-    public function handleBulk(Organization $tenant, array $contactIds): int
+    public function handleBulk(Organization $tenant, array $contactIds, ?User $actor = null): int
     {
         $ids = array_values(array_unique(array_map('intval', $contactIds)));
 
@@ -110,11 +116,11 @@ final class DeleteContact
         $paths = [];
         $deleted = 0;
 
-        DB::transaction(function () use ($tenant, $ids, &$paths, &$deleted): void {
+        DB::transaction(function () use ($tenant, $ids, $actor, &$paths, &$deleted): void {
             foreach ($ids as $id) {
                 $paths = array_merge(
                     $paths,
-                    $this->handle($tenant, $id, cleanupFiles: false),
+                    $this->handle($tenant, $id, cleanupFiles: false, actor: $actor),
                 );
 
                 $deleted++;

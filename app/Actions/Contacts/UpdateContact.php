@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\FileStorage;
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +23,7 @@ final class UpdateContact
     public function __construct(
         private FileStorage $fileStorage,
         private FindContact $findContact,
+        private RelationshipTimeline $timeline,
     ) {
         // .
     }
@@ -40,6 +43,7 @@ final class UpdateContact
         ?UploadedFile $photo = null,
         bool $removePhoto = false,
         bool $validatedSharedFieldsLocked = false,
+        ?User $actor = null,
     ): void {
         $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
@@ -93,6 +97,9 @@ final class UpdateContact
                         'start_date' => $data['start_date'] ?? null,
                         'finish_date' => $data['finish_date'] ?? null,
                     ]);
+
+                $contact->refresh();
+                $this->timeline->sync($contact);
 
                 if ($locked) {
                     return;

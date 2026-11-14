@@ -102,6 +102,8 @@
         </div>
     </flux:card>
 
+    <x-relationship-history :periods="$this->history" />
+
     @if ($canManage)
         <livewire:members.edit :person="$person" />
     @endif

@@ -89,6 +89,8 @@
         </div>
     </flux:card>
 
+    <x-relationship-history :periods="$this->history" />
+
     @if ($isOrganization && ! $stakeholder->trashed())
         <flux:card class="max-w-lg space-y-4">
             <flux:heading>{{ __('Contact person') }}</flux:heading>

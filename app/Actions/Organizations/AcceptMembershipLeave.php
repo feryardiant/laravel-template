@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Events\MemberRemoved;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +21,11 @@ use Throwable;
 
 final class AcceptMembershipLeave
 {
+    public function __construct(private RelationshipTimeline $timeline)
+    {
+        // .
+    }
+
     /**
      * Approve a pending leave request and detach the requester.
      *
@@ -54,6 +63,16 @@ final class AcceptMembershipLeave
 
             if ($requester->roleIn($organization)?->isAdmin() !== true) {
                 return null;
+            }
+
+            $relationship = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->whereStakeholder($requester)
+                ->where('type', OrganizationRelationshipType::Member)
+                ->first();
+
+            if ($relationship !== null) {
+                $this->timeline->close($relationship, RelationshipPeriodReason::Left);
             }
 
             $organization->members()->detach($requester->getKey());

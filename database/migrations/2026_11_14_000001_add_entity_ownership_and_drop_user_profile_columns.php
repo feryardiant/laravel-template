@@ -33,9 +33,14 @@ return new class extends Migration
             $table->index('owner_organization_id');
         });
 
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropColumn(['name', 'avatar_url']);
-        });
+        $profileColumns = array_values(array_filter(
+            ['name', 'avatar_url'],
+            fn (string $column): bool => Schema::hasColumn('users', $column),
+        ));
+
+        if ($profileColumns !== []) {
+            Schema::dropColumns('users', $profileColumns);
+        }
     }
 
     /**
@@ -43,11 +48,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->string('name')->nullable()->after('id');
-            $table->string('avatar_url')->nullable();
-        });
-
+        // The dropped user columns are irreversible by design; the guarded
+        // up() keeps rollback + migrate safe.
         Schema::table('organizations', function (Blueprint $table): void {
             $table->dropForeign(['owner_organization_id']);
             $table->dropIndex(['owner_organization_id']);
