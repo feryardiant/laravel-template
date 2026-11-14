@@ -39,12 +39,31 @@ test('the lookup returns contacts registered by other tenants', function () {
     $payload = $response->json();
 
     expect($payload)->toContain([
-        'label' => 'Lookup Org — Vendor of record',
+        'label' => __('Organization').' · Lookup Org — Vendor of record',
         'value' => 'organization:'.$contact->uuid,
     ])->toContain([
-        'label' => 'Lookup Person — #'.Str::substr($person->uuid, 0, 8),
+        'label' => __('Individual').' · Lookup Person — #'.Str::substr($person->uuid, 0, 8),
         'value' => 'individual:'.$person->uuid,
     ]);
+});
+
+test('the lookup shows the entity type when candidates share a name', function () {
+    $current = Organization::factory()->create();
+
+    actingAsMember($current, Role::Admin);
+
+    $source = Organization::factory()->create();
+
+    $person = contactIndividual($source, ['name' => 'Same Name', 'summary' => null]);
+    $organization = contactOrganization($source, ['name' => 'Same Name', 'summary' => null]);
+
+    $labels = array_column(
+        getJson(route('contacts.lookup', ['q' => 'Same Name']))->assertOk()->assertJsonCount(2)->json(),
+        'label',
+    );
+
+    expect($labels)->toContain(__('Organization').' · Same Name — #'.Str::substr($organization->uuid, 0, 8))
+        ->toContain(__('Individual').' · Same Name — #'.Str::substr($person->uuid, 0, 8));
 });
 
 test('the lookup disambiguates candidates that share a name', function () {
@@ -62,8 +81,8 @@ test('the lookup disambiguates candidates that share a name', function () {
         'label',
     );
 
-    expect($labels)->toContain('Same Name — First summary')
-        ->toContain('Same Name — Second summary');
+    expect($labels)->toContain(__('Organization').' · Same Name — First summary')
+        ->toContain(__('Organization').' · Same Name — Second summary');
 });
 
 test('the lookup excludes the current tenant its contacts and the tenant itself', function () {

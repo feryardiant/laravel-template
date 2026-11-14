@@ -45,10 +45,11 @@ class ContactLookupController extends Controller
      */
     private function candidateLabel(Organization|Person $entity): string
     {
+        $type = $entity instanceof Organization ? __('Organization') : __('Individual');
         $hint = filled($entity->summary)
             ? Str::limit($entity->summary, 40)
             : '#'.Str::substr($entity->uuid, 0, 8);
 
-        return $entity->name.' — '.$hint;
+        return $type.' · '.$entity->name.' — '.$hint;
     }
 }
