@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Actions\Organizations\AcceptOwnershipTransfer;
+use App\Actions\Organizations\DeclineOwnershipTransfer;
 use App\Enums\OwnershipTransferStatus;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General;
@@ -265,4 +267,56 @@ test('the transfer modal opens from the email query', function () {
     Livewire::withQueryParams(['transfer' => $transfer->uuid])
         ->test(Organizations::class)
         ->assertSet('showTransferModal', true);
+});
+
+test('an expired request can no longer be accepted or declined', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $transfer = requestOwnershipTransferForTest($organization);
+    $transfer->update(['expires_at' => now()->subMinute()]);
+
+    expect(app(AcceptOwnershipTransfer::class)->handle($transfer->fresh(), $recipient))->toBeFalse()
+        ->and(app(DeclineOwnershipTransfer::class)->handle($transfer->fresh(), $recipient))->toBeFalse();
+
+    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+        ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
+        ->and($recipient->person->roleIn($organization))->toBe(Role::Member);
+
+    Notification::assertNotSentTo(
+        [$owner, $recipient],
+        OwnershipTransferredNotification::class,
+    );
+});
+
+test('accepting after the recipient lost their membership keeps the owner in place', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $transfer = requestOwnershipTransferForTest($organization);
+
+    $organization->members()->detach($recipient->person->getKey());
+
+    loginAsTransferRecipient($recipient, $organization);
+
+    Livewire::test(Organizations::class)
+        ->call('openTransfer', $organization->getKey())
+        ->call('acceptTransfer')
+        ->assertSet('showTransferModal', false)
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
+        );
+
+    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+        ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
+        ->and($organization->activeOwnerCount())->toBe(1);
+
+    Notification::assertNotSentTo($owner, OwnershipTransferredNotification::class);
 });

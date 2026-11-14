@@ -107,14 +107,16 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $acceptOwnership->handle($transfer, $user);
+        $accepted = $acceptOwnership->handle($transfer, $user);
 
         $this->reset('showTransferModal', 'transferId', 'transferOrganizationName', 'transferOwnerName');
         unset($this->memberships);
 
         Flux::toast(
-            variant: 'success',
-            text: __('You are now the owner of :organization.', ['organization' => $transfer->organization->name]),
+            variant: $accepted ? 'success' : 'danger',
+            text: $accepted
+                ? __('You are now the owner of :organization.', ['organization' => $transfer->organization->name])
+                : __('This ownership transfer is no longer valid.'),
         );
     }
 
@@ -128,12 +130,15 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $declineOwnership->handle($transfer, $user);
+        $declined = $declineOwnership->handle($transfer, $user);
 
         $this->reset('showTransferModal', 'transferId', 'transferOrganizationName', 'transferOwnerName');
         unset($this->memberships);
 
-        Flux::toast(variant: 'success', text: __('Ownership transfer declined.'));
+        Flux::toast(
+            variant: $declined ? 'success' : 'danger',
+            text: $declined ? __('Ownership transfer declined.') : __('This ownership transfer is no longer valid.'),
+        );
     }
 
     /**

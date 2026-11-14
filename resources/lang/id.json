@@ -326,6 +326,7 @@
     "Accept": "Terima",
     "You are now the owner of :organization.": "Anda sekarang menjadi pemilik :organization.",
     "Ownership transfer declined.": "Pengalihan kepemilikan ditolak.",
+    "This ownership transfer is no longer valid.": "Pengalihan kepemilikan ini sudah tidak berlaku.",
     "Ownership transfer request for :organization": "Permintaan pengalihan kepemilikan untuk :organization",
     ":owner wants to transfer ownership of :organization to you.": ":owner ingin mengalihkan kepemilikan :organization kepada Anda.",
     "This request expires on :date.": "Permintaan ini berakhir pada :date.",

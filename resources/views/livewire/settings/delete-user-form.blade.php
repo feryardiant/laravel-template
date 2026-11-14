@@ -1,5 +1,5 @@
 <div class="mt-10">
-    <x-ui.section variant="danger">
+    <x-ui.section variant="danger" :title="__('Danger Zone')">
         <x-ui.section.item
             :title="__('Delete account')"
             :description="__('Delete your account and all of its resources')"

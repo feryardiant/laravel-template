@@ -15,6 +15,8 @@ final class DeclineOwnershipTransfer
 {
     /**
      * Decline a pending ownership transfer.
+     *
+     * Returns false when the request expired or was already handled.
      */
     public function handle(OrganizationOwnershipTransfer $transfer, User $actor): bool
     {
@@ -24,7 +26,7 @@ final class DeclineOwnershipTransfer
             throw new InvalidArgumentException('This transfer does not belong to you.');
         }
 
-        $transfer = DB::transaction(function () use ($transfer, $person): OrganizationOwnershipTransfer {
+        $transfer = DB::transaction(function () use ($transfer, $person): ?OrganizationOwnershipTransfer {
             $transfer = OrganizationOwnershipTransfer::query()
                 ->whereKey($transfer->getKey())
                 ->lockForUpdate()
@@ -33,7 +35,7 @@ final class DeclineOwnershipTransfer
             if ($transfer->status !== OwnershipTransferStatus::Pending
                 || $transfer->isExpired()
                 || ! $person->is($transfer->toPerson)) {
-                throw new InvalidArgumentException('This ownership transfer is no longer valid.');
+                return null;
             }
 
             $transfer->update([
@@ -43,6 +45,10 @@ final class DeclineOwnershipTransfer
 
             return $transfer;
         });
+
+        if ($transfer === null) {
+            return false;
+        }
 
         $transfer->loadMissing(['organization', 'fromPerson', 'toPerson']);
 
