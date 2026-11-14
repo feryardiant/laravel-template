@@ -185,9 +185,44 @@ class OrganizationRelationship extends MorphPivot
     }
 
     /**
+     * Determine whether the linked entity's profile is locked for the tenant.
+     *
+     * An explicit owner decides it; until ownership is recorded, fall back to the
+     * legacy shared-entity heuristic.
+     */
+    public function profileLockedFor(Organization $organization): bool
+    {
+        $owner = $this->stakeholder?->owner_organization_id;
+
+        return $owner !== null
+            ? $owner !== $organization->getKey()
+            : $this->isShared();
+    }
+
+    /**
+     * Determine whether deleting this contact may also delete the entity.
+     */
+    public function canDeleteEntityFor(Organization $organization): bool
+    {
+        $stakeholder = $this->stakeholder;
+
+        if ($stakeholder === null || $stakeholder->trashed()) {
+            return false;
+        }
+
+        $owner = $stakeholder->owner_organization_id;
+
+        if ($owner !== null && $owner !== $organization->getKey()) {
+            return false;
+        }
+
+        return ! $this->isShared();
+    }
+
+    /**
      * Determine whether the linked entity is shared with another tenant.
      *
-     * Shared entities must not be mutated or soft-deleted from this tenant.
+     * Used as the fallback when neither entity records an owner.
      */
     public function isShared(): bool
     {

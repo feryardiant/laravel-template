@@ -50,6 +50,16 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
+    /**
+     * A display name used before the user has a person profile.
+     */
+    public ?string $displayName = null;
+
+    /**
+     * An avatar path used before the user has a person profile.
+     */
+    public ?string $displayAvatarPath = null;
+
     protected static function booted(): void
     {
         static::creating(function (User $user): void {
@@ -127,15 +137,59 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * Get the user's avatar URL.
+     * Resolve the person without caching a missing relation.
+     */
+    private function resolvedPerson(): ?Person
+    {
+        if ($this->relationLoaded('person')) {
+            $person = $this->getRelation('person');
+
+            return $person instanceof Person ? $person : null;
+        }
+
+        $person = $this->person()->first();
+
+        if ($person instanceof Person) {
+            $this->setRelation('person', $person);
+        }
+
+        return $person;
+    }
+
+    /**
+     * Get the user's display name from their person profile.
+     *
+     * Users without a person yet keep a transient name from creation or a factory.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => $this->resolvedPerson()->name ?? $this->displayName ?? $this->handle,
+            set: function (?string $value): array {
+                $this->displayName = $value;
+
+                return [];
+            },
+        );
+    }
+
+    /**
+     * Get the user's avatar from their person profile.
      *
      * @return Attribute<?string, ?string>
      */
     protected function avatarUrl(): Attribute
     {
         return Attribute::make(
-            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
-            set: fn (?string $value): array => ['avatar_url' => $value],
+            get: fn (): ?string => $this->resolvedPerson()->photo_url
+                ?? ($this->displayAvatarPath !== null ? route('uploads', ['path' => $this->displayAvatarPath]) : null),
+            set: function (?string $value): array {
+                $this->displayAvatarPath = $value;
+
+                return [];
+            },
         );
     }
 

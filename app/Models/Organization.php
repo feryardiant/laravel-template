@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  * Business entity that relates to other organizations and people.
  *
  * @property int $contact_id
+ * @property ?int $owner_organization_id
  * @property string $name
  * @property ?string $summary
  * @property bool $is_tenant
@@ -37,7 +38,7 @@ use Illuminate\Support\Str;
  *
  * @implements HasAddress<static>
  */
-#[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
+#[Fillable(['contact_id', 'owner_organization_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
 class Organization extends Entity implements HasAddress
 {
     /** @use HasFactory<OrganizationFactory> */

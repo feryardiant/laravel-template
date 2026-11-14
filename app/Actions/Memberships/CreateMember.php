@@ -37,7 +37,7 @@ final class CreateMember
         $user = null;
 
         $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
-            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl);
+            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl, owner: $organization);
             $user = $person->user;
 
             $this->attach(
@@ -73,6 +73,14 @@ final class CreateMember
                 ->whereKey($member->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // A credential-less person with no workspace joins as an org-owned
+            // member; self-registered people and existing contacts keep ownership.
+            if ($member->owner_organization_id === null
+                && $member->user_id === null
+                && ! $member->memberships()->exists()) {
+                $member->update(['owner_organization_id' => $organization->getKey()]);
+            }
 
             // A person's first workspace is their default; later memberships
             // only become the default when explicitly requested.

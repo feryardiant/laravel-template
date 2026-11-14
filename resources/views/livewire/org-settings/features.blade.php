@@ -19,6 +19,14 @@
 
             <x-ui.section.item>
                 <flux:switch
+                    wire:model.live="profileSelfEdit"
+                    :label="__('Profile self-edit')"
+                    :description="__('Let org-owned people edit their own name, email, and photo.')"
+                />
+            </x-ui.section.item>
+
+            <x-ui.section.item>
+                <flux:switch
                     wire:model.live="memberDeletion"
                     :label="__('Member removal')"
                     :description="__('Allow managers to remove members from this workspace.')"

@@ -11,6 +11,7 @@ use App\Support\CurrentOrganization;
 use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\ContactGender;
 use App\Support\Feature\MemberDeletion;
+use App\Support\Feature\ProfileSelfEdit;
 use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -88,6 +89,25 @@ it('toggles member and contact deletion per tenant', function () {
 
     expect(MemberDeletion::enabled($organization))->toBeTrue()
         ->and(ContactDeletion::enabled($organization))->toBeTrue();
+});
+
+it('toggles profile self-edit per tenant', function () {
+    $organization = Organization::factory()->create();
+
+    expect(ProfileSelfEdit::enabled($organization))->toBeFalse();
+
+    actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(Features::class)
+        ->assertSet('profileSelfEdit', false)
+        ->set('profileSelfEdit', true)
+        ->assertHasNoErrors();
+
+    expect(ProfileSelfEdit::enabled($organization))->toBeTrue();
+
+    $component->set('profileSelfEdit', false);
+
+    expect(ProfileSelfEdit::enabled($organization))->toBeFalse();
 });
 
 it('forbids members from opening the features tab', function () {

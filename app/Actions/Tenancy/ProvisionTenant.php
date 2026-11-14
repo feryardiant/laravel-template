@@ -50,6 +50,8 @@ final class ProvisionTenant
                 'root_organization_id' => null,
             ]);
 
+            $organization->update(['owner_organization_id' => $organization->getKey()]);
+
             $this->membership->attach(
                 $organization,
                 $person,

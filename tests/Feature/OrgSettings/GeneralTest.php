@@ -44,6 +44,20 @@ it('updates the organization name', function () {
     expect($organization->fresh()->name)->toBe('New Name');
 });
 
+it('updates the organization summary', function () {
+    $organization = Organization::factory()->create(['summary' => 'Old summary']);
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->assertSet('summary', 'Old summary')
+        ->set('summary', 'New summary')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($organization->fresh()->summary)->toBe('New summary');
+});
+
 it('requires a name', function () {
     $organization = Organization::factory()->create(['name' => 'Old Name']);
 

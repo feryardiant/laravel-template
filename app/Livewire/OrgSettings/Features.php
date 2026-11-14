@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\ContactGender;
 use App\Support\Feature\MemberDeletion;
+use App\Support\Feature\ProfileSelfEdit;
 use App\Support\Feature\Registration;
 use Flux\Flux;
 use Livewire\Attributes\Locked;
@@ -24,6 +25,8 @@ class Features extends Component
     public bool $memberDeletion = true;
 
     public bool $contactDeletion = true;
+
+    public bool $profileSelfEdit = false;
 
     #[Locked]
     public bool $isRootTenant = false;
@@ -48,6 +51,7 @@ class Features extends Component
         $this->contactGender = ContactGender::enabled($organization);
         $this->memberDeletion = MemberDeletion::enabled($organization);
         $this->contactDeletion = ContactDeletion::enabled($organization);
+        $this->profileSelfEdit = ProfileSelfEdit::enabled($organization);
     }
 
     /**
@@ -71,6 +75,30 @@ class Features extends Component
         Flux::toast(
             variant: 'success',
             text: $enabled ? __('Registration enabled.') : __('Registration disabled.'),
+        );
+    }
+
+    /**
+     * Toggle self-editing for org-owned profiles.
+     */
+    public function updatedProfileSelfEdit(bool $enabled): void
+    {
+        $organization = $this->currentOrganization();
+
+        abort_if($organization === null, 404);
+        abort_if($organization->getKey() !== $this->organizationId, 409);
+
+        $this->authorizeManager();
+
+        if ($enabled) {
+            ProfileSelfEdit::activate($organization);
+        } else {
+            ProfileSelfEdit::deactivate($organization);
+        }
+
+        Flux::toast(
+            variant: 'success',
+            text: $enabled ? __('Profile self-edit enabled.') : __('Profile self-edit disabled.'),
         );
     }
 

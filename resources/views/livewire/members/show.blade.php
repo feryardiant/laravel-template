@@ -89,6 +89,13 @@
             <flux:heading>{{ $role?->label() ?? '—' }}</flux:heading>
         </div>
 
+        @if (\App\Support\Feature\ContactGender::enabled($organization))
+            <div>
+                <flux:text>{{ __('Gender') }}</flux:text>
+                <flux:heading>{{ $person->gender?->label() ?? '—' }}</flux:heading>
+            </div>
+        @endif
+
         <div>
             <flux:text>{{ __('Joined at') }}</flux:text>
             <flux:heading><x-local-time :date="$joinedAt" /></flux:heading>

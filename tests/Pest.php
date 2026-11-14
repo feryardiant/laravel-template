@@ -93,10 +93,13 @@ function contactOrganization(
     array $attributes = [],
     OrganizationRelationshipType $type = OrganizationRelationshipType::Customer,
 ): Organization {
-    $contactPerson = Person::factory()->withoutCredential()->create();
+    $contactPerson = Person::factory()->withoutCredential()->create([
+        'owner_organization_id' => $tenant->getKey(),
+    ]);
 
     $organization = Organization::factory()->create([
         'contact_id' => $contactPerson->getKey(),
+        'owner_organization_id' => $tenant->getKey(),
         ...$attributes,
     ]);
 
@@ -118,7 +121,10 @@ function contactIndividual(
     array $attributes = [],
     OrganizationRelationshipType $type = OrganizationRelationshipType::Customer,
 ): Person {
-    $person = Person::factory()->withoutCredential()->create($attributes);
+    $person = Person::factory()->withoutCredential()->create([
+        'owner_organization_id' => $tenant->getKey(),
+        ...$attributes,
+    ]);
 
     $tenant->personCounterparties($type)->attach($person, [
         'type' => $type,

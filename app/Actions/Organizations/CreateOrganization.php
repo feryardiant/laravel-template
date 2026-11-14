@@ -59,6 +59,8 @@ final class CreateOrganization
                     'logo_url' => $logoPath,
                 ]);
 
+                $organization->update(['owner_organization_id' => $organization->getKey()]);
+
                 $this->membership->attach(
                     $organization,
                     $person,

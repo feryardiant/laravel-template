@@ -322,7 +322,7 @@ class Edit extends Component
     #[Computed]
     public function sharedFieldsLocked(): bool
     {
-        return $this->reusing || ($this->contactId !== null && ($this->contact?->isShared() ?? false));
+        return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
     }
 
     #[Computed]

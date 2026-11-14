@@ -27,11 +27,11 @@ test('guests are redirected from the notifications page', function () {
 });
 
 test('the notifications page lists only the current user notifications', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     $user->notify(new UserRoleChangedNotification($actor, Role::Admin));
-    User::factory()->create()->notify(new UserRoleChangedNotification($actor, Role::Admin));
+    User::factory()->withProfile()->create()->notify(new UserRoleChangedNotification($actor, Role::Admin));
 
     actingAs($user);
 
@@ -46,11 +46,11 @@ test('the notifications page lists only the current user notifications', functio
 });
 
 test('the user menu links to the notifications page and shows the unread count', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
 
     actingAs($user);
 
-    $user->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $user->notify(new UserRoleChangedNotification(User::factory()->withProfile()->create(), Role::Admin));
 
     $html = get(route('dashboard'))->assertOk()->assertSee(__('Notification'))->getContent();
 
@@ -71,7 +71,7 @@ test('the notification poller is only rendered for verified users', function () 
         ->assertOk()
         ->assertDontSee('data-notification-poller');
 
-    actingAs(User::factory()->create());
+    actingAs(User::factory()->withProfile()->create());
 
     get(route('dashboard'))
         ->assertOk()
@@ -79,8 +79,8 @@ test('the notification poller is only rendered for verified users', function () 
 });
 
 test('the notification poller reports only new unread notifications', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     actingAs($user);
 
@@ -120,11 +120,11 @@ test('the notification poller reports only new unread notifications', function (
 });
 
 test('the open parameter marks the notification read', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
 
     actingAs($user);
 
-    $user->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $user->notify(new UserRoleChangedNotification(User::factory()->withProfile()->create(), Role::Admin));
 
     $notification = $user->notifications()->firstOrFail();
 
@@ -136,8 +136,8 @@ test('the open parameter marks the notification read', function () {
 });
 
 test('opening a notification shows its content in a modal', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     actingAs($user);
 
@@ -156,8 +156,8 @@ test('opening a notification shows its content in a modal', function () {
 });
 
 test('selection clears when paging or sorting notifications', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     foreach (range(1, 11) as $ignored) {
         $user->notify(new UserRoleChangedNotification($actor, Role::Admin));
@@ -178,8 +178,8 @@ test('selection clears when paging or sorting notifications', function () {
 });
 
 test('notifications can be selected individually or all at once', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     actingAs($user);
 
@@ -204,8 +204,8 @@ test('notifications can be selected individually or all at once', function () {
 });
 
 test('selected notifications can be marked as read or unread', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     actingAs($user);
 
@@ -232,8 +232,8 @@ test('selected notifications can be marked as read or unread', function () {
 });
 
 test('notifications can be sorted by received date', function () {
-    $user = User::factory()->create();
-    $actor = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
+    $actor = User::factory()->withProfile()->create();
 
     $user->notify(new UserRoleChangedNotification($actor, Role::Admin));
     $older = $user->notifications()->firstOrFail();
@@ -264,8 +264,8 @@ test('a role change stores exactly one notification', function () {
 });
 
 test('role change notifications are stored in the database', function () {
-    $actor = User::factory()->create();
-    $user = User::factory()->create();
+    $actor = User::factory()->withProfile()->create();
+    $user = User::factory()->withProfile()->create();
 
     $user->notify(new UserRoleChangedNotification($actor, Role::Admin));
 
@@ -298,8 +298,8 @@ test('a member removal stores one notification for the removed user', function (
 
 test('a removal notification renders in the inbox', function () {
     $organization = Organization::factory()->create();
-    $actor = User::factory()->create();
-    $user = User::factory()->create();
+    $actor = User::factory()->withProfile()->create();
+    $user = User::factory()->withProfile()->create();
 
     $user->notify(new MembershipRemovedNotification($organization, $actor, lastMembership: true));
 
@@ -320,7 +320,7 @@ test('a removal notification renders in the inbox', function () {
 
 test('a member-left notification renders in the inbox', function () {
     $organization = Organization::factory()->create();
-    $user = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
 
     $user->notify(new MemberLeftNotification($organization, 'Jane Doe'));
 
@@ -345,9 +345,9 @@ test('email verification notifications are only sent by email', function () {
 });
 
 test('a user notifications are deleted with the account', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withProfile()->create();
 
-    $user->notify(new UserRoleChangedNotification(User::factory()->create(), Role::Admin));
+    $user->notify(new UserRoleChangedNotification(User::factory()->withProfile()->create(), Role::Admin));
 
     expect($user->notifications()->count())->toBe(1);
 

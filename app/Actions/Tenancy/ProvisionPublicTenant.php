@@ -44,7 +44,10 @@ final class ProvisionPublicTenant
         $organization->update([
             'is_tenant' => true,
             'root_organization_id' => $root->getKey(),
+            'owner_organization_id' => $organization->getKey(),
         ]);
+
+        $organization->primaryContact?->update(['owner_organization_id' => null]);
 
         $organization->members()->attach($organization->contact_id, [
             'type' => OrganizationRelationshipType::Member,

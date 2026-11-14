@@ -95,6 +95,7 @@ final class CreateContact
                         contactSummary: $data['contact_summary'] ?? null,
                         summary: $data['summary'] ?? null,
                         logoPath: $photoPath,
+                        owner: $tenant,
                     )
                     : $this->createIndividual(
                         name: $data['name'],
@@ -102,6 +103,7 @@ final class CreateContact
                         gender: $data['gender'] ?? null,
                         summary: $data['summary'] ?? null,
                         photoPath: $photoPath,
+                        owner: $tenant,
                     );
 
                 $this->attach($tenant, $stakeholder, $role, $data);

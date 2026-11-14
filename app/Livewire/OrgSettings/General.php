@@ -37,6 +37,8 @@ class General extends Component
 
     public string $name = '';
 
+    public string $summary = '';
+
     /**
      * @var mixed
      */
@@ -67,6 +69,7 @@ class General extends Component
         $this->authorizeManager();
 
         $this->name = $organization->name;
+        $this->summary = (string) $organization->summary;
         $this->logo_url = $organization->getRawOriginal('logo_url');
     }
 
@@ -87,9 +90,11 @@ class General extends Component
 
         $validated = $this->validate([
             'name' => $this->nameRules(),
+            'summary' => ['nullable', 'string', 'max:255'],
         ]);
 
         $organization->name = $validated['name'];
+        $organization->summary = $validated['summary'] ?? null;
 
         $previousLogo = $organization->getRawOriginal('logo_url');
 

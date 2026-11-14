@@ -23,12 +23,20 @@ trait ToManageEntities
         Gender|string|null $contactGender = null,
         ?string $contactSummary = null,
         ?User $user = null,
+        ?Organization $owner = null,
     ): Organization {
-        $contactPerson = $this->createIndividual($contactName, $contactGender, summary: $contactSummary, user: $user);
+        $contactPerson = $this->createIndividual(
+            $contactName,
+            $contactGender,
+            summary: $contactSummary,
+            user: $user,
+            owner: $owner,
+        );
 
         /** @var Organization $organization */
         $organization = Organization::create([
             'contact_id' => $contactPerson->getKey(),
+            'owner_organization_id' => $owner?->getKey(),
             'name' => $name,
             'summary' => $summary,
             'logo_url' => $logoPath,
@@ -44,6 +52,7 @@ trait ToManageEntities
         ?string $photoPath = null,
         ?string $summary = null,
         ?User $user = null,
+        ?Organization $owner = null,
     ): Person {
         if (! $user && $email) {
             $user = app(CreateUser::class)->handle(
@@ -55,6 +64,7 @@ trait ToManageEntities
 
         return Person::create([
             'user_id' => $user?->getKey(),
+            'owner_organization_id' => $owner?->getKey(),
             'name' => $name,
             'gender' => $gender,
             'summary' => $summary,

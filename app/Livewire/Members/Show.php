@@ -115,6 +115,7 @@ class Show extends Component
 
         /** @disregard P1013 */
         return view('livewire.members.show', [
+            'organization' => $this->requireOrganization(),
             'role' => $role,
             'joinedAt' => $joinedAt,
             'canManage' => $canManage && $this->person->user_id !== Auth::id()

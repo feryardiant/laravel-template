@@ -50,7 +50,7 @@ final class DeleteContact
             }
 
             $contact->setRelation('stakeholder', $stakeholder);
-            $removeOwned = ! $stakeholder->trashed() && ! $contact->isShared();
+            $removeOwned = $contact->canDeleteEntityFor($tenant);
 
             if ($removeOwned) {
                 $paths = $stakeholder instanceof Organization
