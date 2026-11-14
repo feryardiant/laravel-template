@@ -15,7 +15,7 @@
         </div>
     @endif
 
-    <div @class(['flex flex-wrap items-center gap-2', 'w-full flex-col' => $title === null])>
+    <div @class(['flex flex-wrap justify-items-stretch gap-2', 'w-full flex-col' => $title === null])>
         {{ $slot }}
     </div>
 </div>

@@ -14,7 +14,6 @@
                     wire:model.live="contactGender"
                     :label="__('Gender field in contact')"
                     :description="__('Show this field in contacts form.')"
-                    class="w-full"
                 />
             </x-ui.section.item>
 
