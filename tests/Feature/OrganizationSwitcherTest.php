@@ -33,6 +33,20 @@ test('the organization switcher lists active memberships and switches the sessio
     expect(session(CurrentOrganization::SESSION_KEY))->toBe($second->getKey());
 });
 
+test('the switcher refreshes when an organization is created', function () {
+    $first = Organization::factory()->create(['name' => 'First Org']);
+    $user = actingAsMember($first, Role::Owner);
+
+    $component = Livewire::test(OrganizationSwitcher::class)
+        ->assertSee('First Org')
+        ->assertDontSee('Second Org');
+
+    $second = Organization::factory()->create(['name' => 'Second Org']);
+    app(CreateMember::class)->attach($second, $user->person, startDate: now(), role: Role::Member);
+
+    $component->dispatch('organization-created')->assertSee('Second Org');
+});
+
 test('switching to an organization the user does not belong to is forbidden', function () {
     $organization = Organization::factory()->create();
 

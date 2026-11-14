@@ -110,6 +110,24 @@ test('an owner can change the email of a member credential', function () {
     expect($member->fresh()->email)->toBe('renamed@example.com');
 });
 
+test('the owner role cannot be assigned when editing a member', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $component = Livewire::test(Edit::class, ['person' => $member->person]);
+
+    expect($component->instance()->roles())->toBe([Role::Admin, Role::Member]);
+
+    $component->set('role', Role::Owner->value)
+        ->call('update')
+        ->assertHasErrors('role');
+
+    expect($member->person->fresh()->roleIn($organization))->toBe(Role::Member);
+});
+
 test('the member photo path cannot be changed from the client', function () {
     $organization = Organization::factory()->create();
 

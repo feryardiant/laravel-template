@@ -68,8 +68,11 @@ test('the owner role cannot be assigned when adding a member', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Index::class)
-        ->set('name', 'New Owner')
+    $component = Livewire::test(Index::class);
+
+    expect($component->instance()->roles())->toBe([Role::Admin, Role::Member]);
+
+    $component->set('name', 'New Owner')
         ->set('role', Role::Owner->value)
         ->call('createMember')
         ->assertHasErrors('role');
