@@ -152,3 +152,12 @@ test('members must be people', function () {
         ['type' => OrganizationRelationshipType::Member],
     ))->toThrow(InvalidArgumentException::class);
 });
+
+test('the owner role cannot be assigned when adding a member', function () {
+    $organization = Organization::factory()->create();
+
+    expect(fn () => app(CreateMember::class)->handle($organization, 'New Owner', Role::Owner))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(Person::query()->where('name', 'New Owner')->exists())->toBeFalse();
+});

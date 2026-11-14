@@ -136,22 +136,6 @@ test('the last owner cannot delete their account', function () {
     expect(Auth::check())->toBeTrue();
 });
 
-test('an owner can delete their account when another owner exists', function () {
-    $organization = Organization::factory()->create();
-
-    User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $owner = User::factory()->asMemberOf($organization, Role::Owner, isPrimary: true)->create();
-
-    actingAs($owner);
-
-    Livewire::test('settings.delete-user-form')
-        ->set('password', 'password')
-        ->call('deleteUser')
-        ->assertHasNoErrors();
-
-    expect($owner->fresh())->toBeNull();
-});
-
 test('the user avatar can be uploaded', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();
@@ -192,22 +176,4 @@ test('a non-image avatar is rejected', function () {
         ->assertHasErrors(['avatar']);
 
     expect($user->fresh()->getRawOriginal('avatar_url'))->toBeNull();
-});
-
-test('a deleted owner does not count toward the last owner guard', function () {
-    $organization = Organization::factory()->create();
-
-    $deleted = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $owner = User::factory()->asMemberOf($organization, Role::Owner, isPrimary: true)->create();
-
-    $deleted->delete();
-
-    actingAs($owner);
-
-    Livewire::test('settings.delete-user-form')
-        ->set('password', 'password')
-        ->call('deleteUser')
-        ->assertHasErrors(['password']);
-
-    expect($owner->fresh())->not->toBeNull();
 });

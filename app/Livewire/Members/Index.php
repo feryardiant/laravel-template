@@ -103,7 +103,7 @@ class Index extends Component
             'email' => $this->createCredential
                 ? $this->emailRules()
                 : ['nullable', 'string', 'email', 'max:255'],
-            'role' => ['required', Rule::enum(Role::class)],
+            'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
         ]);
 
         $role = Role::from((int) $validated['role']);
@@ -281,9 +281,7 @@ class Index extends Component
     #[Computed]
     public function roles(): array
     {
-        return $this->currentRole()?->isOwner()
-            ? Role::cases()
-            : [Role::Admin, Role::Member];
+        return [Role::Admin, Role::Member];
     }
 
     #[Computed]

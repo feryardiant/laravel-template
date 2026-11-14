@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 final class CreateMember
 {
@@ -29,6 +30,10 @@ final class CreateMember
         ?string $email = null,
         ?string $photoUrl = null,
     ): Person {
+        if ($role->isOwner()) {
+            throw new InvalidArgumentException('Owner is assigned by transferring ownership.');
+        }
+
         $user = null;
 
         $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {

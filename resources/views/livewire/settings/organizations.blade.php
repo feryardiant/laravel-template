@@ -81,7 +81,26 @@
                                     </flux:button>
                                 @endif
 
-                                @if ($membership['isLastOwner'])
+                                @if ($membership['pendingTransfer'] !== null)
+                                    <div class="flex items-center gap-2">
+                                        <span class="relative flex size-2" aria-hidden="true">
+                                            <span class="absolute inline-flex size-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
+                                            <span class="relative inline-flex size-2 rounded-full bg-sky-500"></span>
+                                        </span>
+
+                                        <flux:text class="text-sm" variant="subtle">
+                                            {{ __('Ownership transfer requested') }}
+                                        </flux:text>
+
+                                        <flux:button
+                                            size="sm"
+                                            variant="primary"
+                                            wire:click="openTransfer({{ $organization->id }})"
+                                        >
+                                            {{ __('Respond') }}
+                                        </flux:button>
+                                    </div>
+                                @elseif ($membership['isLastOwner'])
                                     @if ($organization->isRootTenant())
                                         <flux:button
                                             size="sm"
@@ -161,7 +180,7 @@
             </flux:callout>
 
             <flux:input
-                wire:model.live="confirmation"
+                wire:model.live.debounce.300ms="confirmation"
                 :label="__('Type :name to confirm', ['name' => $removingOrganizationName])"
                 autocomplete="off"
             />
@@ -180,6 +199,34 @@
                 >
                     {{ __('Remove organization') }}
                 </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <flux:modal
+        wire:model.self="showTransferModal"
+        class="md:w-lg"
+        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'review-transfer-heading')"
+    >
+        <div class="space-y-6">
+            <div>
+                <flux:heading id="review-transfer-heading" size="lg">{{ __('Ownership transfer request') }}</flux:heading>
+                <flux:subheading>{{ $transferOrganizationName }}</flux:subheading>
+            </div>
+
+            <flux:text>
+                {{ __(':owner wants to transfer ownership of :organization to you. Accepting makes you the owner and the current owner an Admin.', ['owner' => $transferOwnerName, 'organization' => $transferOrganizationName]) }}
+            </flux:text>
+
+            <div class="flex items-center justify-between">
+                <flux:modal.close>
+                    <flux:button variant="subtle">{{ __('Dismiss') }}</flux:button>
+                </flux:modal.close>
+
+                <div class="flex items-center gap-2">
+                    <flux:button variant="danger" wire:click="declineTransfer">{{ __('Decline') }}</flux:button>
+                    <flux:button variant="primary" wire:click="acceptTransfer">{{ __('Accept') }}</flux:button>
+                </div>
             </div>
         </div>
     </flux:modal>

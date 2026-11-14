@@ -9,7 +9,6 @@ use App\Enums\SubsidiaryKind;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\Settings\Organizations;
 use App\Models\Organization;
-use App\Models\Person;
 use App\Models\User;
 use App\Notifications\MemberLeftNotification;
 use App\Notifications\MembershipRemovedNotification;
@@ -172,6 +171,59 @@ test('the root organization cannot be removed', function () {
     Queue::assertNothingPushed();
 });
 
+test('an admin cannot remove an organization', function () {
+    Queue::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Organizations::class)
+        ->call('confirmRemove', $organization->getKey())
+        ->assertForbidden();
+
+    Queue::assertNothingPushed();
+});
+
+test('a non-member cannot remove an organization', function () {
+    Queue::fake();
+
+    $organization = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(Organizations::class)
+        ->call('confirmRemove', $other->getKey())
+        ->assertNotFound();
+
+    Queue::assertNothingPushed();
+});
+
+test('removing another organization keeps the current one', function () {
+    Queue::fake();
+
+    $current = Organization::factory()->create(['name' => 'Current Org']);
+    $other = Organization::factory()->create(['name' => 'Other Org']);
+
+    $user = actingAsMember($current, Role::Owner);
+
+    app(CreateMember::class)->attach($other, $user->person, role: Role::Owner);
+
+    Livewire::test(Organizations::class)
+        ->call('confirmRemove', $other->getKey())
+        ->set('confirmation', 'Other Org')
+        ->call('remove')
+        ->assertNoRedirect();
+
+    Queue::assertPushed(
+        DeleteOrganization::class,
+        fn (DeleteOrganization $job): bool => $job->organization->is($other),
+    );
+
+    expect(session(CurrentOrganization::SESSION_KEY))->toBe($current->getKey());
+});
+
 test('a user without an organization sees the empty state', function () {
     actingAs(User::factory()->create());
 
@@ -255,20 +307,6 @@ test('leaving stores a confirmation notification when it was the last membership
     expect($notification->data['lines'])->toContain(__('You are no longer a member of any organization.'));
 });
 
-test('an owner can leave when another owner remains', function () {
-    $organization = Organization::factory()->create();
-
-    $user = actingAsMember($organization, Role::Owner);
-    User::factory()->asMemberOf($organization, Role::Owner)->create();
-
-    Livewire::test(Organizations::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
-        ->call('leave')
-        ->assertRedirect(route('dashboard'));
-
-    expect($organization->members()->whereKey($user->person->getKey())->exists())->toBeFalse();
-});
-
 test('leaving notifies the other owners in the database only', function () {
     Notification::fake();
 
@@ -292,49 +330,4 @@ test('leaving notifies the other owners in the database only', function () {
     Notification::assertNotSentTo($leaver, MemberLeftNotification::class);
     Notification::assertNotSentTo($admin, MemberLeftNotification::class);
     expect((new MemberLeftNotification($organization, 'Someone'))->via($owner))->toBe(['database']);
-});
-
-test('leaving as an owner notifies the remaining owner', function () {
-    Notification::fake();
-
-    $organization = Organization::factory()->create();
-
-    $leaver = actingAsMember($organization, Role::Owner);
-    $otherOwner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-
-    Livewire::test(Organizations::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
-        ->call('leave');
-
-    Notification::assertSentTo($otherOwner, MemberLeftNotification::class);
-    Notification::assertNotSentTo($leaver, MemberLeftNotification::class);
-});
-
-test('only active credentialed owners of the organization are notified', function () {
-    Notification::fake();
-
-    $organization = Organization::factory()->create();
-    $otherOrganization = Organization::factory()->create();
-
-    actingAsMember($organization, Role::Member);
-
-    $activeOwner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $expiredOwner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $futureOwner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $outsider = User::factory()->asMemberOf($otherOrganization, Role::Owner)->create();
-
-    Person::factory()->withoutCredential()->asMemberOf($organization, Role::Owner)->create();
-
-    $organization->members()->updateExistingPivot($expiredOwner->person->getKey(), ['finish_date' => now()->subDay()]);
-    $organization->members()->updateExistingPivot($futureOwner->person->getKey(), ['start_date' => now()->addDay()]);
-
-    Livewire::test(Organizations::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
-        ->call('leave');
-
-    Notification::assertSentToTimes($activeOwner, MemberLeftNotification::class, 1);
-    Notification::assertNotSentTo(
-        [$expiredOwner, $futureOwner, $outsider],
-        MemberLeftNotification::class,
-    );
 });

@@ -93,6 +93,7 @@ class Edit extends Component
         abort_if($this->person === null, 404);
 
         $this->person = $this->member($this->person->getKey());
+        $this->authorizeTarget($this->person);
         $this->email = Str::lower($this->email);
 
         $this->validate([
@@ -104,7 +105,7 @@ class Edit extends Component
             'email' => $this->hasCredential
                 ? $this->emailRules($this->person->user_id)
                 : ($this->createCredential ? $this->emailRules() : ['nullable', 'string', 'email', 'max:255']),
-            'role' => ['required', Rule::enum(Role::class)],
+            'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
         ]);
 
         /** @var User|null $actor */
@@ -206,9 +207,7 @@ class Edit extends Component
     #[Computed]
     public function roles(): array
     {
-        return $this->currentRole()?->isOwner()
-            ? Role::cases()
-            : [Role::Admin, Role::Member];
+        return [Role::Admin, Role::Member];
     }
 
     public function render(): View

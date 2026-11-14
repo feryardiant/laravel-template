@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\NotificationPollerController;
+use App\Http\Controllers\OwnershipTransferLinkController;
 use App\Http\Controllers\StoredFileController;
 use App\Http\Controllers\UpdatePreferencesController;
 use App\Http\Controllers\VerifyNewUserEmailController;
@@ -64,6 +65,10 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('settings/preferences', Preferences::class)->name('preferences.edit');
     Route::patch('settings/preferences', UpdatePreferencesController::class)->name('preferences.update');
+
+    Route::get('settings/organizations/transfers/{transfer}', OwnershipTransferLinkController::class)
+        ->middleware('signed')
+        ->name('organizations.transfer.link');
 
     Route::livewire('settings/organizations', Organizations::class)
         ->middleware(['password.confirm'])

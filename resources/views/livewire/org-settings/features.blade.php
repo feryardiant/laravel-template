@@ -8,18 +8,26 @@
     <flux:heading level="2" class="sr-only">{{ __('Features') }}</flux:heading>
 
     <x-org-settings.layout :heading="__('Features')" :subheading="__('Control platform and workspace features')">
-        <flux:switch
-            wire:model.live="contactGender"
-            :label="__('Gender field in contact')"
-            :description="__('Show this field in contacts form.')"
-        />
+        <x-ui.section>
+            <x-ui.section.item>
+                <flux:switch
+                    wire:model.live="contactGender"
+                    :label="__('Gender field in contact')"
+                    :description="__('Show this field in contacts form.')"
+                    class="w-full"
+                />
+            </x-ui.section.item>
 
-        @if ($isRootTenant)
-            <flux:switch
-                wire:model.live="registration"
-                :label="__('Public registration')"
-                :description="__('Allow visitors to create an account and a tenant organization.')"
-            />
-        @endif
+            @if ($isRootTenant)
+                <x-ui.section.item>
+                    <flux:switch
+                        wire:model.live="registration"
+                        :label="__('Public registration')"
+                        :description="__('Allow visitors to create an account and a tenant organization.')"
+                    />
+                </x-ui.section.item>
+            @endif
+        </x-ui.section>
+
     </x-org-settings.layout>
 </section>

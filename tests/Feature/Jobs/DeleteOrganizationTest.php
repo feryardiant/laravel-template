@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Actions\FileStorage;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\OwnershipTransferStatus;
 use App\Enums\Role;
 use App\Jobs\DeleteOrganization;
 use App\Models\Address;
 use App\Models\Organization;
+use App\Models\OrganizationOwnershipTransfer;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
@@ -136,6 +138,32 @@ test('it tombstones an externally referenced organization', function () {
         fn (OrganizationDeletedNotification $notification): bool => $notification->organizationName === 'Customer Org',
     );
     Notification::assertNotSentTo($customerOwner, OrganizationDeletedNotification::class);
+});
+
+test('it cancels pending ownership transfers when a subsidiary is tombstoned', function () {
+    $owner = actingAsMember($this->root, Role::Owner);
+
+    $subsidiary = Organization::factory()->asTenantOf($this->root)->create(['name' => 'Subsidiary']);
+    $this->root->subsidiaries()->attach($subsidiary, ['type' => OrganizationRelationshipType::Subsidiary]);
+
+    $recipient = User::factory()->asMemberOf($subsidiary, Role::Member)->create();
+
+    $vendor = Organization::factory()->asTenantOf($this->root)->create(['name' => 'Vendor']);
+    $vendor->organizationCounterparties(OrganizationRelationshipType::Customer)->attach($subsidiary, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+
+    $transfer = OrganizationOwnershipTransfer::create([
+        'organization_id' => $subsidiary->getKey(),
+        'from_person_id' => $owner->person->getKey(),
+        'to_person_id' => $recipient->person->getKey(),
+        'status' => OwnershipTransferStatus::Pending,
+        'expires_at' => now()->addDays(7),
+    ]);
+
+    (new DeleteOrganization($subsidiary, $owner->getKey()))->handle(app(FileStorage::class));
+
+    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Cancelled);
 });
 
 test('it refuses to delete a tenant outside the internal subsidiary tree', function () {

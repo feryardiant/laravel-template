@@ -14,12 +14,14 @@ use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
+use Tests\TestCase;
 
 use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    /** @var TestCase $this */
     $this->root = Organization::factory()->asRootTenant()->create(['name' => 'Root Org']);
 });
 
@@ -52,12 +54,14 @@ test('the subsidiaries page is not found outside the root tenant', function () {
 });
 
 test('root members cannot access the subsidiaries page', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Member);
 
     get(route('org-settings.subsidiaries'))->assertForbidden();
 });
 
 test('root admins can view the list but cannot manage it', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Admin);
 
     makeInternalSubsidiary($this->root, $this->root, 'Alpha');
@@ -70,6 +74,7 @@ test('root admins can view the list but cannot manage it', function () {
 });
 
 test('root owners can view and manage the list', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Owner);
 
     makeInternalSubsidiary($this->root, $this->root, 'Alpha');
@@ -82,6 +87,7 @@ test('root owners can view and manage the list', function () {
 });
 
 test('the list shows the internal subsidiary tree only', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Owner);
 
     $alpha = makeInternalSubsidiary($this->root, $this->root, 'Alpha');
@@ -104,6 +110,7 @@ test('the list shows the internal subsidiary tree only', function () {
 });
 
 test('an owner creates a direct subsidiary under the root', function () {
+    /** @var TestCase $this */
     $owner = actingAsMember($this->root, Role::Owner);
 
     Livewire::test(Create::class, ['internal' => true])
@@ -131,6 +138,7 @@ test('an owner creates a direct subsidiary under the root', function () {
 });
 
 test('an owner creates a nested subsidiary under an existing subsidiary', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Owner);
 
     $alpha = makeInternalSubsidiary($this->root, $this->root, 'Alpha');
@@ -153,6 +161,7 @@ test('an owner creates a nested subsidiary under an existing subsidiary', functi
 });
 
 test('the parent field is hidden when there are no subsidiaries', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Owner);
 
     Livewire::test(Create::class, ['internal' => true])
@@ -160,6 +169,7 @@ test('the parent field is hidden when there are no subsidiaries', function () {
 });
 
 test('the parent field lists existing subsidiaries', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Owner);
 
     makeInternalSubsidiary($this->root, $this->root, 'Alpha');
@@ -170,6 +180,7 @@ test('the parent field lists existing subsidiaries', function () {
 });
 
 test('a root admin cannot open or submit the subsidiary form', function () {
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Admin);
 
     Livewire::test(Create::class, ['internal' => true])
@@ -187,6 +198,7 @@ test('a root admin cannot open or submit the subsidiary form', function () {
 test('an owner queues the removal of a subsidiary and its nested subsidiaries', function () {
     Queue::fake();
 
+    /** @var TestCase $this */
     $owner = actingAsMember($this->root, Role::Owner);
 
     $alpha = makeInternalSubsidiary($this->root, $this->root, 'Alpha');
@@ -211,6 +223,7 @@ test('an owner queues the removal of a subsidiary and its nested subsidiaries', 
 test('a root admin cannot queue a removal', function () {
     Queue::fake();
 
+    /** @var TestCase $this */
     actingAsMember($this->root, Role::Admin);
 
     $alpha = makeInternalSubsidiary($this->root, $this->root, 'Alpha');

@@ -29,6 +29,10 @@ final class ChangeMemberRole
      */
     public function setRole(Organization $organization, Person $person, Role $newRole, User $actor): bool
     {
+        if ($newRole->isOwner()) {
+            return false;
+        }
+
         $currentRole = $person->roleIn($organization);
 
         if ($currentRole === null || $currentRole === $newRole) {
@@ -78,7 +82,7 @@ final class ChangeMemberRole
             return false;
         }
 
-        return ! $newRole->isOwner() || $actorRole->isOwner();
+        return ! $newRole->isOwner();
     }
 
     private function updateRole(Organization $organization, Person $person, Role $role): void

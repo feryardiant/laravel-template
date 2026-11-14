@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Jobs\DeleteOrganization;
 use App\Livewire\OrgSettings\General;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
@@ -122,4 +125,83 @@ it('renders the organization logo in the switcher', function () {
     get(route('dashboard'))
         ->assertOk()
         ->assertSee(route('uploads', ['path' => 'logos/logo.png']));
+});
+
+it('queues the organization removal from the danger zone', function () {
+    Queue::fake();
+
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->call('confirmRemove')
+        ->assertSet('showRemoveModal', true)
+        ->set('removeConfirmation', 'Acme')
+        ->call('remove')
+        ->assertHasNoErrors()
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('Removal queued. :name will be deleted shortly.', ['name' => 'Acme']),
+        )
+        ->assertRedirect(route('organizations.index'));
+
+    Queue::assertPushed(
+        DeleteOrganization::class,
+        fn (DeleteOrganization $job): bool => $job->organization->is($organization)
+            && $job->actorId === $owner->getKey(),
+    );
+
+    expect(session(CurrentOrganization::SESSION_KEY))->toBeNull();
+});
+
+it('requires the exact organization name to remove it from the danger zone', function () {
+    Queue::fake();
+
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->call('confirmRemove')
+        ->set('removeConfirmation', 'acme')
+        ->call('remove')
+        ->assertHasErrors('removeConfirmation');
+
+    Queue::assertNothingPushed();
+});
+
+it('forbids admins from opening or removing the organization', function () {
+    Queue::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(General::class)
+        ->call('confirmRemove')
+        ->assertForbidden();
+
+    Livewire::test(General::class)
+        ->call('remove')
+        ->assertForbidden();
+
+    Queue::assertNothingPushed();
+});
+
+it('forbids removing the root organization', function () {
+    Queue::fake();
+
+    $root = Organization::factory()->asRootTenant()->create();
+
+    actingAsMember($root, Role::Owner);
+
+    Livewire::test(General::class)
+        ->call('confirmRemove')
+        ->assertForbidden();
+
+    Livewire::test(General::class)
+        ->call('remove')
+        ->assertForbidden();
+
+    Queue::assertNothingPushed();
 });

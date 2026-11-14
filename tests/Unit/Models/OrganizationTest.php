@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
 use App\Models\Address;
 use App\Models\Organization;
@@ -220,6 +221,22 @@ test('a child organization can only have one parent', function () {
 
     expect(fn () => $secondParent->subsidiaries()->attach($child, [
         'type' => OrganizationRelationshipType::Subsidiary,
+    ]))->toThrow(QueryException::class);
+});
+
+test('an organization can only have one owner', function () {
+    $organization = Organization::factory()->create();
+
+    $organization->members()->attach(Person::factory()->create(), [
+        'type' => OrganizationRelationshipType::Member,
+        'role' => Role::Owner,
+        'start_date' => now(),
+    ]);
+
+    expect(fn () => $organization->members()->attach(Person::factory()->create(), [
+        'type' => OrganizationRelationshipType::Member,
+        'role' => Role::Owner,
+        'start_date' => now(),
     ]))->toThrow(QueryException::class);
 });
 
