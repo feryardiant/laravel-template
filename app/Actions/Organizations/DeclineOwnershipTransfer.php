@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Enums\OwnershipTransferStatus;
-use App\Models\OrganizationOwnershipTransfer;
+use App\Enums\ApprovalRequestStatus;
+use App\Enums\ApprovalRequestType;
+use App\Models\ApprovalRequest;
 use App\Models\User;
 use App\Notifications\OwnershipTransferDeclinedNotification;
 use Illuminate\Support\Facades\DB;
@@ -18,42 +19,43 @@ final class DeclineOwnershipTransfer
      *
      * Returns false when the request expired or was already handled.
      */
-    public function handle(OrganizationOwnershipTransfer $transfer, User $actor): bool
+    public function handle(ApprovalRequest $request, User $actor): bool
     {
         $person = $actor->person;
 
-        if ($person === null || ! $person->is($transfer->toPerson)) {
+        if ($person === null || ! $person->is($request->approver)) {
             throw new InvalidArgumentException('This transfer does not belong to you.');
         }
 
-        $transfer = DB::transaction(function () use ($transfer, $person): ?OrganizationOwnershipTransfer {
-            $transfer = OrganizationOwnershipTransfer::query()
-                ->whereKey($transfer->getKey())
+        $request = DB::transaction(function () use ($request, $person): ?ApprovalRequest {
+            $request = ApprovalRequest::query()
+                ->whereKey($request->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($transfer->status !== OwnershipTransferStatus::Pending
-                || $transfer->isExpired()
-                || ! $person->is($transfer->toPerson)) {
+            if ($request->type !== ApprovalRequestType::OwnershipTransfer
+                || $request->status !== ApprovalRequestStatus::Pending
+                || $request->isExpired()
+                || ! $person->is($request->approver)) {
                 return null;
             }
 
-            $transfer->update([
-                'status' => OwnershipTransferStatus::Declined,
+            $request->update([
+                'status' => ApprovalRequestStatus::Declined,
                 'declined_at' => now(),
             ]);
 
-            return $transfer;
+            return $request;
         });
 
-        if ($transfer === null) {
+        if ($request === null) {
             return false;
         }
 
-        $transfer->loadMissing(['organization', 'fromPerson', 'toPerson']);
+        $request->loadMissing(['organization', 'requester', 'approver']);
 
-        $transfer->fromPerson->user?->notify(
-            new OwnershipTransferDeclinedNotification($transfer->organization->name, $transfer->toPerson->name),
+        $request->requester->user?->notify(
+            new OwnershipTransferDeclinedNotification($request->organization->name, $request->approver->name),
         );
 
         return true;

@@ -6,10 +6,10 @@ namespace App\Jobs;
 
 use App\Actions\FileStorage;
 use App\Actions\Organizations\ListSubsidiaries;
+use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
-use App\Enums\OwnershipTransferStatus;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
-use App\Models\OrganizationOwnershipTransfer;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
 use App\Notifications\OrganizationDeletedNotification;
@@ -149,10 +149,13 @@ final class DeleteOrganization implements ShouldQueue
             ->whereIn('type', OrganizationRelationshipType::internals())
             ->delete();
 
-        OrganizationOwnershipTransfer::query()
+        ApprovalRequest::query()
             ->where('organization_id', $organization->getKey())
-            ->where('status', OwnershipTransferStatus::Pending)
-            ->update(['status' => OwnershipTransferStatus::Cancelled]);
+            ->where('status', ApprovalRequestStatus::Pending)
+            ->update([
+                'status' => ApprovalRequestStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
 
         $organization->update([
             'summary' => null,

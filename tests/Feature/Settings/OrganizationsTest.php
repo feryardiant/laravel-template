@@ -8,9 +8,11 @@ use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\Settings\Organizations;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MemberLeftNotification;
+use App\Notifications\MembershipLeaveRequestedNotification;
 use App\Notifications\MembershipRemovedNotification;
 use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -247,6 +249,25 @@ test('a member can leave the current organization', function () {
 
     expect($organization->members()->whereKey($user->person->getKey())->exists())->toBeFalse();
     expect(session(CurrentOrganization::SESSION_KEY))->toBeNull();
+});
+
+test('an admin leave asks the owner for approval', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $admin = actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Organizations::class)
+        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->assertSet('leaveNeedsApproval', true)
+        ->call('leave')
+        ->assertNoRedirect();
+
+    expect($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue()
+        ->and(ApprovalRequest::query()->pending()->count())->toBe(1);
+
+    Notification::assertSentTo($owner, MembershipLeaveRequestedNotification::class);
 });
 
 test('leaving another organization keeps the current one', function () {

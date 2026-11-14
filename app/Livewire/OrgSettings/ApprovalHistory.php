@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings;
 
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\OrganizationOwnershipTransfer;
+use App\Models\ApprovalRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-class OwnershipHistory extends Component
+class ApprovalHistory extends Component
 {
     use HasCurrentOrganization;
 
@@ -26,16 +26,16 @@ class OwnershipHistory extends Component
     }
 
     /**
-     * The current organization's ownership transfers, newest first.
+     * The current organization's approval requests, newest first.
      *
-     * @return Collection<int, OrganizationOwnershipTransfer>
+     * @return Collection<int, ApprovalRequest>
      */
     #[Computed]
-    public function transfers(): Collection
+    public function approvals(): Collection
     {
-        return OrganizationOwnershipTransfer::query()
+        return ApprovalRequest::query()
             ->where('organization_id', $this->requireOrganization()->getKey())
-            ->with(['fromPerson', 'toPerson'])
+            ->with(['requester', 'approver'])
             ->latest()
             ->get();
     }
@@ -43,6 +43,6 @@ class OwnershipHistory extends Component
     public function render(): View
     {
         /** @disregard P1013 */
-        return view('livewire.org-settings.ownership-history')->title(__('Ownership history'));
+        return view('livewire.org-settings.approval-history')->title(__('Approvals history'));
     }
 }

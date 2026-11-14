@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Enums\ApprovalRequestStatus;
 use App\Events\MemberRemoved;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -32,11 +34,22 @@ final class LeaveOrganization
 
             $role = $person->roleIn($organization);
 
-            if ($role === null || ($role->isOwner() && $organization->activeOwnerCount() === 1)) {
+            // Admins leave through `RequestMembershipLeave`, which needs an
+            // owner's approval; only owners and members detach immediately.
+            if ($role === null || $role->isAdmin() || ($role->isOwner() && $organization->activeOwnerCount() === 1)) {
                 return false;
             }
 
             $organization->members()->detach($person->getKey());
+
+            ApprovalRequest::query()
+                ->pending()
+                ->where('organization_id', $organization->getKey())
+                ->where('requester_person_id', $person->getKey())
+                ->update([
+                    'status' => ApprovalRequestStatus::Cancelled,
+                    'cancelled_at' => now(),
+                ]);
 
             return true;
         });

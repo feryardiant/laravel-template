@@ -27,24 +27,36 @@
                     :description="__('Transfer this organization to another member')"
                 >
                     <x-slot:details>
-                        @if ($this->pendingTransfer !== null)
-                            <flux:callout variant="warning" icon="clock" :heading="__('Ownership transfer pending')">
+                        @if ($this->pendingApproval !== null)
+                            <flux:callout variant="warning" icon="clock" :heading="__('Approval request pending')">
                                 <flux:callout.text>
                                     <flux:badge size="sm" color="amber" class="mb-2">
-                                        {{ $this->pendingTransfer->status->label() }}
+                                        {{ $this->pendingApproval->status->label() }}
                                     </flux:badge>
 
-                                    {{ __('Pending transfer to :name', ['name' => $this->pendingTransfer->toPerson->name]) }}.
+                                    @if ($this->pendingApproval->type === \App\Enums\ApprovalRequestType::OwnershipTransfer)
+                                        {{ __('Pending transfer to :name', ['name' => $this->pendingApproval->approver->name]) }}.
+                                    @else
+                                        {{ __('Leave request from :name', ['name' => $this->pendingApproval->requester->name]) }}.
+                                    @endif
                                     {{ __('Expires on') }}
-                                    <x-local-time :date="$this->pendingTransfer->expires_at" format="d M Y H:i" />.
+                                    <x-local-time :date="$this->pendingApproval->expires_at" format="d M Y H:i" />.
                                 </flux:callout.text>
                             </flux:callout>
                         @endif
                     </x-slot:details>
 
-                    @if ($this->pendingTransfer !== null)
+                    @if ($this->pendingApproval?->type === \App\Enums\ApprovalRequestType::OwnershipTransfer)
                         <flux:button variant="danger" wire:click="cancelTransfer">
                             {{ __('Cancel transfer') }}
+                        </flux:button>
+                    @elseif ($this->pendingApproval !== null)
+                        <flux:button
+                            variant="danger"
+                            disabled
+                            :tooltip="__('Resolve the pending approval request first.')"
+                        >
+                            {{ __('Transfer') }}
                         </flux:button>
                     @elseif ($this->transferMembers->isEmpty())
                         <flux:button

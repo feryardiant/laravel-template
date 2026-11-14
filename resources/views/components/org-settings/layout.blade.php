@@ -15,7 +15,7 @@
                 <flux:navlist.item :href="route('org-settings.subsidiaries')" wire:navigate>{{ __('Subsidiaries') }}</flux:navlist.item>
             @endif
             @if ($role?->isOwner())
-                <flux:navlist.item :href="route('org-settings.ownership-history')" wire:navigate>{{ __('Ownership history') }}</flux:navlist.item>
+                <flux:navlist.item :href="route('org-settings.approval-history')" wire:navigate>{{ __('Approvals history') }}</flux:navlist.item>
             @endif
         </flux:navlist>
     </div>

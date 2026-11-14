@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Enums\OwnershipTransferStatus;
+use App\Enums\ApprovalRequestStatus;
+use App\Enums\ApprovalRequestType;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
-use App\Models\OrganizationOwnershipTransfer;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\OwnershipTransferRequestedNotification;
@@ -18,7 +19,7 @@ final class RequestOwnershipTransfer
     /**
      * Ask another member to take ownership of the organization.
      */
-    public function handle(Organization $organization, User $actor, Person $recipient): OrganizationOwnershipTransfer
+    public function handle(Organization $organization, User $actor, Person $recipient): ApprovalRequest
     {
         $owner = $actor->person;
 
@@ -30,7 +31,7 @@ final class RequestOwnershipTransfer
             throw new InvalidArgumentException('The recipient must be an active member with a login credential.');
         }
 
-        $transfer = DB::transaction(function () use ($organization, $owner, $recipient): OrganizationOwnershipTransfer {
+        $request = DB::transaction(function () use ($organization, $owner, $recipient): ApprovalRequest {
             $organization = Organization::query()
                 ->whereKey($organization->getKey())
                 ->lockForUpdate()
@@ -40,24 +41,24 @@ final class RequestOwnershipTransfer
                 throw new InvalidArgumentException('Only the owner can transfer ownership.');
             }
 
-            OrganizationOwnershipTransfer::query()
-                ->where('organization_id', $organization->getKey())
-                ->where('status', OwnershipTransferStatus::Pending)
-                ->update(['status' => OwnershipTransferStatus::Cancelled]);
+            if (ApprovalRequest::query()->pending()->where('organization_id', $organization->getKey())->exists()) {
+                throw new InvalidArgumentException('Another approval request is already pending.');
+            }
 
-            return OrganizationOwnershipTransfer::create([
+            return ApprovalRequest::create([
                 'organization_id' => $organization->getKey(),
-                'from_person_id' => $owner->getKey(),
-                'to_person_id' => $recipient->getKey(),
-                'status' => OwnershipTransferStatus::Pending,
+                'type' => ApprovalRequestType::OwnershipTransfer,
+                'requester_person_id' => $owner->getKey(),
+                'approver_person_id' => $recipient->getKey(),
+                'status' => ApprovalRequestStatus::Pending,
                 'expires_at' => now()->addDays(7),
             ]);
         });
 
-        $transfer->loadMissing(['organization', 'fromPerson', 'toPerson']);
+        $request->loadMissing(['organization', 'requester', 'approver']);
 
-        $recipient->user?->notify(new OwnershipTransferRequestedNotification($transfer));
+        $recipient->user?->notify(new OwnershipTransferRequestedNotification($request));
 
-        return $transfer;
+        return $request;
     }
 }

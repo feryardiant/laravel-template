@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Enums\ApprovalRequestStatus;
+use App\Enums\ApprovalRequestType;
 use App\Enums\OrganizationRelationshipType;
-use App\Enums\OwnershipTransferStatus;
 use App\Enums\Role;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
-use App\Models\OrganizationOwnershipTransfer;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
 use App\Notifications\OwnershipTransferredNotification;
@@ -23,44 +24,45 @@ final class AcceptOwnershipTransfer
      * Returns false when the request expired, changed state, or the
      * memberships moved underneath it.
      */
-    public function handle(OrganizationOwnershipTransfer $transfer, User $actor): bool
+    public function handle(ApprovalRequest $request, User $actor): bool
     {
         $person = $actor->person;
 
-        if ($person === null || ! $person->is($transfer->toPerson)) {
+        if ($person === null || ! $person->is($request->approver)) {
             throw new InvalidArgumentException('This transfer does not belong to you.');
         }
 
         try {
-            $transfer = DB::transaction(function () use ($transfer, $person): ?OrganizationOwnershipTransfer {
+            $request = DB::transaction(function () use ($request, $person): ?ApprovalRequest {
                 // Lock the organization first, matching RequestOwnershipTransfer,
                 // so an accept and a new request cannot deadlock.
                 $organization = Organization::query()
-                    ->whereKey($transfer->organization_id)
+                    ->whereKey($request->organization_id)
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $transfer = OrganizationOwnershipTransfer::query()
-                    ->whereKey($transfer->getKey())
+                $request = ApprovalRequest::query()
+                    ->whereKey($request->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($transfer->status !== OwnershipTransferStatus::Pending
-                    || $transfer->isExpired()
-                    || ! $person->is($transfer->toPerson)
-                    || $transfer->fromPerson->roleIn($organization)?->isOwner() !== true
+                if ($request->type !== ApprovalRequestType::OwnershipTransfer
+                    || $request->status !== ApprovalRequestStatus::Pending
+                    || $request->isExpired()
+                    || ! $person->is($request->approver)
+                    || $request->requester->roleIn($organization)?->isOwner() !== true
                     || $person->roleIn($organization) === null) {
                     return null;
                 }
 
                 $demoted = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->whereStakeholder($transfer->fromPerson, OrganizationRelationshipType::Member)
+                    ->whereStakeholder($request->requester, OrganizationRelationshipType::Member)
                     ->update(['role' => Role::Admin]);
 
                 $promoted = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->whereStakeholder($transfer->toPerson, OrganizationRelationshipType::Member)
+                    ->whereStakeholder($request->approver, OrganizationRelationshipType::Member)
                     ->update(['role' => Role::Owner]);
 
                 // A membership removed between the checks above would leave the
@@ -69,31 +71,25 @@ final class AcceptOwnershipTransfer
                     throw new InvalidArgumentException('This ownership transfer is no longer valid.');
                 }
 
-                $transfer->update([
-                    'status' => OwnershipTransferStatus::Accepted,
+                $request->update([
+                    'status' => ApprovalRequestStatus::Accepted,
                     'accepted_at' => now(),
                 ]);
 
-                OrganizationOwnershipTransfer::query()
-                    ->where('organization_id', $organization->getKey())
-                    ->whereKeyNot($transfer->getKey())
-                    ->where('status', OwnershipTransferStatus::Pending)
-                    ->update(['status' => OwnershipTransferStatus::Cancelled]);
-
-                return $transfer;
+                return $request;
             });
         } catch (InvalidArgumentException) {
             return false;
         }
 
-        if ($transfer === null) {
+        if ($request === null) {
             return false;
         }
 
-        $transfer->loadMissing(['organization', 'fromPerson', 'toPerson']);
+        $request->loadMissing(['organization', 'requester', 'approver']);
 
-        $transfer->fromPerson->user?->notify(
-            new OwnershipTransferredNotification($transfer->organization->name, $transfer->toPerson->name),
+        $request->requester->user?->notify(
+            new OwnershipTransferredNotification($request->organization->name, $request->approver->name),
         );
 
         return true;

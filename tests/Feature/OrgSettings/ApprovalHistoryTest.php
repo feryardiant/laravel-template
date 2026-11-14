@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Enums\OwnershipTransferStatus;
+use App\Enums\ApprovalRequestStatus;
+use App\Enums\ApprovalRequestType;
 use App\Enums\Role;
-use App\Livewire\OrgSettings\OwnershipHistory;
+use App\Livewire\OrgSettings\ApprovalHistory;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
-use App\Models\OrganizationOwnershipTransfer;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -16,63 +18,67 @@ use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
-function ownershipTransferForHistory(
+function approvalForHistory(
     Organization $organization,
-    User $from,
-    User $to,
-    OwnershipTransferStatus $status = OwnershipTransferStatus::Pending,
+    Person $requester,
+    Person $approver,
+    ApprovalRequestType $type = ApprovalRequestType::OwnershipTransfer,
+    ApprovalRequestStatus $status = ApprovalRequestStatus::Pending,
     ?Carbon $createdAt = null,
     ?Carbon $changedAt = null,
-): OrganizationOwnershipTransfer {
-    $transfer = OrganizationOwnershipTransfer::create([
+): ApprovalRequest {
+    $approval = ApprovalRequest::create([
         'organization_id' => $organization->getKey(),
-        'from_person_id' => $from->person->getKey(),
-        'to_person_id' => $to->person->getKey(),
+        'type' => $type,
+        'requester_person_id' => $requester->getKey(),
+        'approver_person_id' => $approver->getKey(),
         'status' => $status,
         'expires_at' => $changedAt ?? now()->addDay(),
-        'accepted_at' => $status === OwnershipTransferStatus::Accepted ? $changedAt : null,
-        'declined_at' => $status === OwnershipTransferStatus::Declined ? $changedAt : null,
+        'accepted_at' => $status === ApprovalRequestStatus::Accepted ? $changedAt : null,
+        'declined_at' => $status === ApprovalRequestStatus::Declined ? $changedAt : null,
     ]);
 
     if ($createdAt !== null) {
-        $transfer->created_at = $createdAt;
-        $transfer->saveQuietly();
+        $approval->created_at = $createdAt;
+        $approval->saveQuietly();
     }
 
-    return $transfer;
+    return $approval;
 }
 
-test('guests are redirected from the ownership history page', function () {
-    get(route('org-settings.ownership-history'))->assertRedirect(route('login'));
+test('guests are redirected from the approvals history page', function () {
+    get(route('org-settings.approval-history'))->assertRedirect(route('login'));
 });
 
-test('only the owner can open the ownership history page', function (Role $role) {
+test('only the owner can open the approvals history page', function (Role $role) {
     $organization = Organization::factory()->create();
 
     actingAsMember($organization, $role);
 
-    get(route('org-settings.ownership-history'))->assertForbidden();
+    get(route('org-settings.approval-history'))->assertForbidden();
 })->with([Role::Admin, Role::Member]);
 
-test('the owner sees the current organization transfers, newest first', function () {
+test('the owner sees both request types newest first', function () {
     $organization = Organization::factory()->create();
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $newer = ownershipTransferForHistory(
+    $newer = approvalForHistory(
         $organization,
-        $owner,
-        $recipient,
-        OwnershipTransferStatus::Declined,
+        $owner->person,
+        $recipient->person,
+        ApprovalRequestType::MembershipLeave,
+        ApprovalRequestStatus::Declined,
         Carbon::parse('2026-01-03 10:00'),
         Carbon::parse('2026-01-03 11:00'),
     );
 
-    $older = ownershipTransferForHistory(
+    $older = approvalForHistory(
         $organization,
-        $owner,
-        $recipient,
-        OwnershipTransferStatus::Accepted,
+        $owner->person,
+        $recipient->person,
+        ApprovalRequestType::OwnershipTransfer,
+        ApprovalRequestStatus::Accepted,
         Carbon::parse('2026-01-02 10:00'),
         Carbon::parse('2026-01-02 11:00'),
     );
@@ -80,13 +86,14 @@ test('the owner sees the current organization transfers, newest first', function
     $foreignOrganization = Organization::factory()->create();
     $foreignOwner = User::factory()->asMemberOf($foreignOrganization, Role::Owner)->create();
     $foreignRecipient = User::factory()->asMemberOf($foreignOrganization, Role::Member)->create();
-    ownershipTransferForHistory($foreignOrganization, $foreignOwner, $foreignRecipient);
+    approvalForHistory($foreignOrganization, $foreignOwner->person, $foreignRecipient->person);
 
-    $component = Livewire::test(OwnershipHistory::class);
+    $component = Livewire::test(ApprovalHistory::class);
 
-    expect($component->instance()->transfers->pluck('id')->all())->toBe([$newer->getKey(), $older->getKey()]);
+    expect($component->instance()->approvals->pluck('id')->all())->toBe([$newer->getKey(), $older->getKey()]);
 
     $component
+        ->assertSee(__(':name requested to leave', ['name' => $owner->person->name]))
         ->assertSee(__('Transfer ownership from :from to :to', ['from' => $owner->person->name, 'to' => $recipient->person->name]))
         ->assertSee(__('Ditolak'))
         ->assertSee(__('Diterima'))
@@ -98,16 +105,16 @@ test('a pending row shows the expiry timestamp', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $pending = ownershipTransferForHistory(
+    $pending = approvalForHistory(
         $organization,
-        $owner,
-        $recipient,
-        OwnershipTransferStatus::Pending,
-        Carbon::parse('2026-02-01 08:00'),
-        Carbon::parse('2026-02-08 09:30'),
+        $owner->person,
+        $recipient->person,
+        status: ApprovalRequestStatus::Pending,
+        createdAt: Carbon::parse('2026-02-01 08:00'),
+        changedAt: Carbon::parse('2026-02-08 09:30'),
     );
 
-    Livewire::test(OwnershipHistory::class)
+    Livewire::test(ApprovalHistory::class)
         ->assertSee(__('Tertunda'))
         ->assertSee(__('Dibuat pada'))
         ->assertSee($pending->created_at->translatedFormat('d M Y H:i'))
@@ -120,10 +127,10 @@ test('accepted and declined rows show their handled timestamps', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $accepted = ownershipTransferForHistory($organization, $owner, $recipient, OwnershipTransferStatus::Accepted, changedAt: Carbon::parse('2026-03-02 10:00'));
-    $declined = ownershipTransferForHistory($organization, $owner, $recipient, OwnershipTransferStatus::Declined, changedAt: Carbon::parse('2026-03-03 10:00'));
+    $accepted = approvalForHistory($organization, $owner->person, $recipient->person, status: ApprovalRequestStatus::Accepted, changedAt: Carbon::parse('2026-03-02 10:00'));
+    $declined = approvalForHistory($organization, $owner->person, $recipient->person, status: ApprovalRequestStatus::Declined, changedAt: Carbon::parse('2026-03-03 10:00'));
 
-    Livewire::test(OwnershipHistory::class)
+    Livewire::test(ApprovalHistory::class)
         ->assertSee(__('Diterima pada'))
         ->assertSee($accepted->accepted_at->translatedFormat('d M Y H:i'))
         ->assertSee(__('Ditolak pada'))
@@ -135,9 +142,9 @@ test('a cancelled row shows only the created timestamp', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $cancelled = ownershipTransferForHistory($organization, $owner, $recipient, OwnershipTransferStatus::Cancelled);
+    $cancelled = approvalForHistory($organization, $owner->person, $recipient->person, status: ApprovalRequestStatus::Cancelled);
 
-    Livewire::test(OwnershipHistory::class)
+    Livewire::test(ApprovalHistory::class)
         ->assertSee(__('Dibatalkan'))
         ->assertSee(__('Dibuat pada'))
         ->assertSee($cancelled->created_at->translatedFormat('d M Y H:i'))
@@ -146,12 +153,12 @@ test('a cancelled row shows only the created timestamp', function () {
         ->assertDontSee(__('Ditolak pada'));
 });
 
-test('an organization without transfers shows the empty state', function () {
+test('an organization without requests shows the empty state', function () {
     $organization = Organization::factory()->create();
 
     actingAsMember($organization, Role::Owner);
 
-    Livewire::test(OwnershipHistory::class)
+    Livewire::test(ApprovalHistory::class)
         ->assertOk()
-        ->assertSee(__('No ownership transfers yet.'));
+        ->assertSee(__('No approval requests yet.'));
 });

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Enums\ApprovalRequestStatus;
 use App\Events\MemberRemoved;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -58,6 +60,19 @@ final class RemoveMember
                 );
 
             $organization->members()->detach($removed->modelKeys());
+
+            if ($removed->isNotEmpty()) {
+                ApprovalRequest::query()
+                    ->pending()
+                    ->where('organization_id', $organization->getKey())
+                    ->where(fn ($query) => $query
+                        ->whereIn('requester_person_id', $removed->modelKeys())
+                        ->orWhereIn('approver_person_id', $removed->modelKeys()))
+                    ->update([
+                        'status' => ApprovalRequestStatus::Cancelled,
+                        'cancelled_at' => now(),
+                    ]);
+            }
 
             return $removed;
         });

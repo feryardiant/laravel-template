@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Enums\ApprovalRequestStatus;
+use App\Enums\ApprovalRequestType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Events\MemberRoleChanged;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -92,5 +95,16 @@ final class ChangeMemberRole
             ->whereStakeholder($person)
             ->where('type', OrganizationRelationshipType::Member)
             ->update(['role' => $role]);
+
+        // A role change invalidates an admin's pending request to leave.
+        ApprovalRequest::query()
+            ->pending()
+            ->where('organization_id', $organization->getKey())
+            ->where('type', ApprovalRequestType::MembershipLeave)
+            ->where('requester_person_id', $person->getKey())
+            ->update([
+                'status' => ApprovalRequestStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
     }
 }

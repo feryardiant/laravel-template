@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
- * The lifecycle of an organization ownership transfer request.
+ * The lifecycle of an approval request.
  */
-enum OwnershipTransferStatus: string
+enum ApprovalRequestStatus: string
 {
     case Pending = 'pending';
 

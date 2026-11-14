@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Organizations\RequestOwnershipTransfer;
-use App\Enums\OwnershipTransferStatus;
+use App\Enums\ApprovalRequestStatus;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
@@ -27,7 +27,7 @@ it('lets the recipient dismiss, respond, and accept an ownership transfer', func
         ->click(__('Confirm'))
         ->wait(0.5);
 
-    $page = visit("/settings/organizations?transfer={$transfer->uuid}");
+    $page = visit("/settings/organizations?approval={$transfer->uuid}");
 
     $page->assertSee(__('Ownership transfer request'))
         ->assertSee(__('Accept'))
@@ -37,7 +37,7 @@ it('lets the recipient dismiss, respond, and accept an ownership transfer', func
         ->assertDontSee(__('Decline'))
         ->assertSee(__('Ownership transfer requested'));
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending);
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending);
 
     $page->click(__('Respond'))
         ->wait(0.5)
@@ -46,5 +46,5 @@ it('lets the recipient dismiss, respond, and accept an ownership transfer', func
 
     expect($recipient->person->fresh()->roleIn($organization))->toBe(Role::Owner)
         ->and($owner->person->fresh()->roleIn($organization))->toBe(Role::Admin)
-        ->and($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Accepted);
+        ->and($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Accepted);
 });

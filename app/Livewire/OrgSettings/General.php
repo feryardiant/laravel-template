@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings;
 
 use App\Actions\FileStorage;
-use App\Actions\Organizations\CancelOwnershipTransfer;
+use App\Actions\Organizations\CancelApprovalRequest;
 use App\Actions\Organizations\RequestOwnershipTransfer;
 use App\Concerns\ProfileValidationRules;
-use App\Enums\OwnershipTransferStatus;
+use App\Enums\ApprovalRequestType;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\OrganizationOwnershipTransfer;
+use App\Models\ApprovalRequest;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
@@ -22,11 +22,15 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
+/**
+ * @property-read ?ApprovalRequest $pendingApproval
+ */
 class General extends Component
 {
     use HasCurrentOrganization, ProfileValidationRules, WithFileUploads;
@@ -101,7 +105,7 @@ class General extends Component
 
         $organization->save();
 
-        unset($this->pendingTransfer);
+        unset($this->pendingApproval);
 
         Flux::toast(variant: 'success', text: __('Organization updated.'));
     }
@@ -121,6 +125,8 @@ class General extends Component
     public function confirmTransfer(): void
     {
         $this->authorizeOwner();
+
+        abort_if($this->pendingApproval !== null, 409);
 
         $this->reset('transferRecipientId', 'transferConfirmation');
         $this->resetValidation();
@@ -153,10 +159,18 @@ class General extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $transferOwnership->handle($organization, $user, $recipient);
+        try {
+            $transferOwnership->handle($organization, $user, $recipient);
+        } catch (InvalidArgumentException) {
+            $this->reset('showTransferModal', 'transferRecipientId', 'transferConfirmation');
+
+            Flux::toast(variant: 'danger', text: __('Another approval request is already pending.'));
+
+            return;
+        }
 
         $this->reset('showTransferModal', 'transferRecipientId', 'transferConfirmation');
-        unset($this->pendingTransfer, $this->transferMembers);
+        unset($this->pendingApproval, $this->transferMembers);
 
         Flux::toast(
             variant: 'success',
@@ -167,7 +181,7 @@ class General extends Component
     /**
      * Cancel the pending ownership transfer.
      */
-    public function cancelTransfer(CancelOwnershipTransfer $cancelOwnership): void
+    public function cancelTransfer(CancelApprovalRequest $cancelRequest): void
     {
         $organization = $this->currentOrganization();
 
@@ -175,17 +189,17 @@ class General extends Component
 
         $this->authorizeOwner();
 
-        $transfer = $this->pendingTransfer();
+        $approval = $this->pendingApproval();
 
-        abort_if($transfer === null, 404);
+        abort_if($approval === null || $approval->type !== ApprovalRequestType::OwnershipTransfer, 404);
 
         $user = Auth::user();
 
         abort_unless($user instanceof User, 403);
 
-        $cancelOwnership->handle($transfer, $user);
+        $cancelRequest->handle($approval, $user);
 
-        unset($this->pendingTransfer);
+        unset($this->pendingApproval);
 
         Flux::toast(variant: 'success', text: __('Transfer request cancelled.'));
     }
@@ -288,23 +302,22 @@ class General extends Component
     }
 
     /**
-     * The pending ownership transfer initiated by the current owner.
+     * The pending approval request for the current organization.
      */
     #[Computed]
-    public function pendingTransfer(): ?OrganizationOwnershipTransfer
+    public function pendingApproval(): ?ApprovalRequest
     {
         $organization = $this->currentOrganization();
-        $owner = Auth::user()?->person?->getKey();
 
-        if ($organization === null || $owner === null) {
+        if ($organization === null) {
             return null;
         }
 
-        return OrganizationOwnershipTransfer::query()
+        return ApprovalRequest::query()
+            ->pending()
             ->where('organization_id', $organization->getKey())
-            ->where('from_person_id', $owner)
-            ->where('status', OwnershipTransferStatus::Pending)
             ->where('expires_at', '>', now())
+            ->with(['requester', 'approver'])
             ->first();
     }
 

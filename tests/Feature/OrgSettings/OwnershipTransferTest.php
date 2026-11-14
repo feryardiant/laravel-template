@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\RemoveMember;
 use App\Actions\Organizations\AcceptOwnershipTransfer;
-use App\Actions\Organizations\CancelOwnershipTransfer;
+use App\Actions\Organizations\CancelApprovalRequest;
 use App\Actions\Organizations\DeclineOwnershipTransfer;
 use App\Actions\Organizations\RequestOwnershipTransfer;
-use App\Enums\OwnershipTransferStatus;
+use App\Enums\ApprovalRequestStatus;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General;
 use App\Livewire\Settings\Organizations;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
-use App\Models\OrganizationOwnershipTransfer;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\OwnershipTransferDeclinedNotification;
@@ -30,7 +30,7 @@ use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
-function requestOwnershipTransferForTest(Organization $organization, string $confirmation = 'Acme', ?Person $recipient = null): OrganizationOwnershipTransfer
+function requestOwnershipTransferForTest(Organization $organization, string $confirmation = 'Acme', ?Person $recipient = null): ApprovalRequest
 {
     $recipientId = (string) ($recipient?->getKey() ?? $organization->members()
         ->whereKeyNot(Auth::user()?->person?->getKey())
@@ -45,7 +45,7 @@ function requestOwnershipTransferForTest(Organization $organization, string $con
         ->call('transfer')
         ->assertHasNoErrors();
 
-    return OrganizationOwnershipTransfer::query()->latest('id')->firstOrFail();
+    return ApprovalRequest::query()->latest('id')->firstOrFail();
 }
 
 function loginAsTransferRecipient(User $user, Organization $organization): void
@@ -63,9 +63,9 @@ test('the owner can request a transfer to a credentialed member', function () {
 
     $transfer = requestOwnershipTransferForTest($organization);
 
-    expect($transfer->status)->toBe(OwnershipTransferStatus::Pending)
-        ->and($transfer->from_person_id)->toBe($owner->person->getKey())
-        ->and($transfer->to_person_id)->toBe($recipient->person->getKey())
+    expect($transfer->status)->toBe(ApprovalRequestStatus::Pending)
+        ->and($transfer->requester_person_id)->toBe($owner->person->getKey())
+        ->and($transfer->approver_person_id)->toBe($recipient->person->getKey())
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
         ->and($recipient->person->roleIn($organization))->toBe(Role::Admin);
 
@@ -87,20 +87,22 @@ test('only active credentialed members can receive ownership', function () {
         ->call('transfer')
         ->assertHasErrors('transferRecipientId');
 
-    expect(OrganizationOwnershipTransfer::query()->exists())->toBeFalse();
+    expect(ApprovalRequest::query()->exists())->toBeFalse();
 });
 
-test('a new request supersedes the previous pending transfer', function () {
+test('a pending request blocks a new transfer', function () {
     $organization = Organization::factory()->create(['name' => 'Acme']);
     actingAsMember($organization, Role::Owner);
-    $first = User::factory()->asMemberOf($organization, Role::Member)->create();
+    User::factory()->asMemberOf($organization, Role::Member)->create();
     $second = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
     $firstTransfer = requestOwnershipTransferForTest($organization);
-    $secondTransfer = requestOwnershipTransferForTest($organization, 'Acme', $second->person);
 
-    expect($firstTransfer->fresh()->status)->toBe(OwnershipTransferStatus::Cancelled)
-        ->and($secondTransfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending);
+    expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, Auth::user(), $second->person))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect($firstTransfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
+        ->and(ApprovalRequest::query()->pending()->count())->toBe(1);
 });
 
 test('the owner can cancel a pending transfer and the recipient row returns to normal', function () {
@@ -115,12 +117,12 @@ test('the owner can cancel a pending transfer and the recipient row returns to n
         ->call('cancelTransfer')
         ->assertDontSee(__('Pending transfer to :name', ['name' => $recipient->name]));
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Cancelled);
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
 
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(Organizations::class)
-        ->assertDontSeeHtml('openTransfer(')
+        ->assertDontSeeHtml('openApproval(')
         ->assertSee(__('Leave'));
 });
 
@@ -154,12 +156,12 @@ test('the root organization can be transferred', function () {
     loginAsTransferRecipient($recipient, $root);
 
     Livewire::test(Organizations::class)
-        ->call('openTransfer', $root->getKey())
-        ->call('acceptTransfer');
+        ->call('openApproval', $root->getKey())
+        ->call('acceptApproval');
 
     expect($recipient->person->roleIn($root))->toBe(Role::Owner)
         ->and($owner->person->roleIn($root))->toBe(Role::Admin)
-        ->and($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Accepted);
+        ->and($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Accepted);
 });
 
 test('the recipient can accept and become the owner', function () {
@@ -176,14 +178,14 @@ test('the recipient can accept and become the owner', function () {
     Livewire::test(Organizations::class)
         ->assertSee(__('Ownership transfer requested'))
         ->assertSee(__('Respond'))
-        ->call('openTransfer', $organization->getKey())
-        ->assertSet('showTransferModal', true)
-        ->call('acceptTransfer')
-        ->assertSet('showTransferModal', false);
+        ->call('openApproval', $organization->getKey())
+        ->assertSet('showApprovalModal', true)
+        ->call('acceptApproval')
+        ->assertSet('showApprovalModal', false);
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Owner)
         ->and($owner->person->roleIn($organization))->toBe(Role::Admin)
-        ->and($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Accepted);
+        ->and($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Accepted);
 
     Notification::assertSentTo($owner, OwnershipTransferredNotification::class);
 });
@@ -200,13 +202,13 @@ test('the recipient can decline and the owner remains in place', function () {
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(Organizations::class)
-        ->call('openTransfer', $organization->getKey())
-        ->call('declineTransfer')
-        ->assertSet('showTransferModal', false);
+        ->call('openApproval', $organization->getKey())
+        ->call('declineApproval')
+        ->assertSet('showApprovalModal', false);
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Member)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
-        ->and($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Declined);
+        ->and($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Declined);
 
     Notification::assertSentTo($owner, OwnershipTransferDeclinedNotification::class);
 });
@@ -219,14 +221,14 @@ test('the signed email link redirects the recipient and rejects everyone else', 
     $transfer = requestOwnershipTransferForTest($organization);
 
     $url = URL::temporarySignedRoute(
-        'organizations.transfer.link',
+        'organizations.approval.link',
         $transfer->expires_at,
-        ['transfer' => $transfer->uuid],
+        ['approval' => $transfer->uuid],
     );
 
     actingAs($recipient);
 
-    get($url)->assertRedirect(route('organizations.index', ['transfer' => $transfer->uuid]));
+    get($url)->assertRedirect(route('organizations.index', ['approval' => $transfer->uuid]));
 
     actingAs(User::factory()->create());
 
@@ -244,7 +246,7 @@ test('the transfer modal opens from the email query and an expired request canno
 
     test()->withSession(['auth.password_confirmed_at' => time()]);
 
-    get(route('organizations.index', ['transfer' => $transfer->uuid]))
+    get(route('organizations.index', ['approval' => $transfer->uuid]))
         ->assertOk()
         ->assertSee(__('Ownership transfer request'))
         ->assertSee(__('Accept'))
@@ -253,8 +255,8 @@ test('the transfer modal opens from the email query and an expired request canno
     $transfer->update(['expires_at' => now()->subMinute()]);
 
     Livewire::test(Organizations::class)
-        ->assertDontSeeHtml('openTransfer(')
-        ->call('openTransfer', $organization->getKey())
+        ->assertDontSeeHtml('openApproval(')
+        ->call('openApproval', $organization->getKey())
         ->assertNotFound();
 });
 
@@ -267,9 +269,9 @@ test('the transfer modal opens from the email query', function () {
 
     loginAsTransferRecipient($recipient, $organization);
 
-    Livewire::withQueryParams(['transfer' => $transfer->uuid])
+    Livewire::withQueryParams(['approval' => $transfer->uuid])
         ->test(Organizations::class)
-        ->assertSet('showTransferModal', true);
+        ->assertSet('showApprovalModal', true);
 });
 
 test('an expired request can no longer be accepted or declined', function () {
@@ -285,7 +287,7 @@ test('an expired request can no longer be accepted or declined', function () {
     expect(app(AcceptOwnershipTransfer::class)->handle($transfer->fresh(), $recipient))->toBeFalse()
         ->and(app(DeclineOwnershipTransfer::class)->handle($transfer->fresh(), $recipient))->toBeFalse();
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
         ->and($recipient->person->roleIn($organization))->toBe(Role::Member);
 
@@ -309,15 +311,15 @@ test('accepting after the recipient lost their membership keeps the owner in pla
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(Organizations::class)
-        ->call('openTransfer', $organization->getKey())
-        ->call('acceptTransfer')
-        ->assertSet('showTransferModal', false)
+        ->call('openApproval', $organization->getKey())
+        ->call('acceptApproval')
+        ->assertSet('showApprovalModal', false)
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
         );
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
         ->and($organization->activeOwnerCount())->toBe(1);
 
@@ -334,19 +336,19 @@ test('a modal left open on a stale request reports it as invalid', function () {
     loginAsTransferRecipient($recipient, $organization);
 
     $component = Livewire::test(Organizations::class)
-        ->call('openTransfer', $organization->getKey())
-        ->assertSet('showTransferModal', true);
+        ->call('openApproval', $organization->getKey())
+        ->assertSet('showApprovalModal', true);
 
     $transfer->update(['expires_at' => now()->subMinute()]);
 
-    $component->call('acceptTransfer')
-        ->assertSet('showTransferModal', false)
+    $component->call('acceptApproval')
+        ->assertSet('showApprovalModal', false)
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
         );
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
         ->and($recipient->person->roleIn($organization))->toBe(Role::Member);
 });
@@ -361,8 +363,8 @@ test('a member cannot be removed after they become the owner', function () {
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(Organizations::class)
-        ->call('openTransfer', $organization->getKey())
-        ->call('acceptTransfer');
+        ->call('openApproval', $organization->getKey())
+        ->call('acceptApproval');
 
     app(RemoveMember::class)->handle($organization, $recipient->person, $owner);
 
@@ -380,7 +382,7 @@ test('only an owner can request an ownership transfer', function () {
     expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, $admin, $recipient->person))
         ->toThrow(InvalidArgumentException::class);
 
-    expect(OrganizationOwnershipTransfer::query()->count())->toBe(0);
+    expect(ApprovalRequest::query()->count())->toBe(0);
     Notification::assertNothingSent();
 });
 
@@ -399,7 +401,7 @@ test('the recipient must be another active member with a credential', function (
     expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, $owner, $target))
         ->toThrow(InvalidArgumentException::class);
 
-    expect(OrganizationOwnershipTransfer::query()->count())->toBe(0);
+    expect(ApprovalRequest::query()->count())->toBe(0);
     Notification::assertNothingSent();
 })->with(['self', 'no credential', 'no membership']);
 
@@ -416,12 +418,12 @@ test('the wrong person cannot accept, decline, or cancel a transfer', function (
     $attempt = match ($action) {
         'accept' => fn () => app(AcceptOwnershipTransfer::class)->handle($transfer, $outsider),
         'decline' => fn () => app(DeclineOwnershipTransfer::class)->handle($transfer, $outsider),
-        'cancel' => fn () => app(CancelOwnershipTransfer::class)->handle($transfer, $recipient),
+        'cancel' => fn () => app(CancelApprovalRequest::class)->handle($transfer, $recipient),
     };
 
     expect($attempt)->toThrow(InvalidArgumentException::class);
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
         ->and($recipient->person->roleIn($organization))->toBe(Role::Member);
 
@@ -445,11 +447,11 @@ test('a handled transfer cannot be accepted, declined, or cancelled again', func
 
     expect(app(AcceptOwnershipTransfer::class)->handle($handled, $recipient))->toBeFalse()
         ->and(app(DeclineOwnershipTransfer::class)->handle($handled, $recipient))->toBeFalse()
-        ->and(app(CancelOwnershipTransfer::class)->handle($handled, $owner))->toBeFalse();
+        ->and(app(CancelApprovalRequest::class)->handle($handled, $owner))->toBeFalse();
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Owner)
         ->and($owner->person->roleIn($organization))->toBe(Role::Admin)
-        ->and($handled->status)->toBe(OwnershipTransferStatus::Accepted);
+        ->and($handled->status)->toBe(ApprovalRequestStatus::Accepted);
 
     Notification::assertSentToTimes($owner, OwnershipTransferredNotification::class, 1);
 });
@@ -462,18 +464,18 @@ test('accepting or declining without an open transfer reports it as invalid', fu
 
     $component = Livewire::test(Organizations::class);
 
-    $component->call('acceptTransfer')
-        ->assertSet('showTransferModal', false)
+    $component->call('acceptApproval')
+        ->assertSet('showApprovalModal', false)
         ->assertDispatched(
             'toast-show',
-            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This request is no longer valid.'),
         );
 
-    $component->call('declineTransfer')
-        ->assertSet('showTransferModal', false)
+    $component->call('declineApproval')
+        ->assertSet('showApprovalModal', false)
         ->assertDispatched(
             'toast-show',
-            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This request is no longer valid.'),
         );
 });
 
@@ -488,15 +490,16 @@ test('a transfer opened by another recipient is treated as invalid', function ()
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(Organizations::class)
-        ->set('transferId', $transfer->getKey())
-        ->call('acceptTransfer')
-        ->assertSet('showTransferModal', false)
+        ->set('approvalId', $transfer->getKey())
+        ->set('approvalType', 'ownership_transfer')
+        ->call('acceptApproval')
+        ->assertSet('showApprovalModal', false)
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
         );
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
         ->and($target->person->roleIn($organization))->toBe(Role::Member);
 });

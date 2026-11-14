@@ -3,13 +3,14 @@
 declare(strict_types=1);
 
 use App\Actions\FileStorage;
+use App\Enums\ApprovalRequestStatus;
+use App\Enums\ApprovalRequestType;
 use App\Enums\OrganizationRelationshipType;
-use App\Enums\OwnershipTransferStatus;
 use App\Enums\Role;
 use App\Jobs\DeleteOrganization;
 use App\Models\Address;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
-use App\Models\OrganizationOwnershipTransfer;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
@@ -140,7 +141,7 @@ test('it tombstones an externally referenced organization', function () {
     Notification::assertNotSentTo($customerOwner, OrganizationDeletedNotification::class);
 });
 
-test('it cancels pending ownership transfers when a subsidiary is tombstoned', function () {
+test('it cancels pending approval requests when a subsidiary is tombstoned', function () {
     $owner = actingAsMember($this->root, Role::Owner);
 
     $subsidiary = Organization::factory()->asTenantOf($this->root)->create(['name' => 'Subsidiary']);
@@ -153,17 +154,18 @@ test('it cancels pending ownership transfers when a subsidiary is tombstoned', f
         'type' => OrganizationRelationshipType::Customer,
     ]);
 
-    $transfer = OrganizationOwnershipTransfer::create([
+    $transfer = ApprovalRequest::create([
         'organization_id' => $subsidiary->getKey(),
-        'from_person_id' => $owner->person->getKey(),
-        'to_person_id' => $recipient->person->getKey(),
-        'status' => OwnershipTransferStatus::Pending,
+        'type' => ApprovalRequestType::OwnershipTransfer,
+        'requester_person_id' => $owner->person->getKey(),
+        'approver_person_id' => $recipient->person->getKey(),
+        'status' => ApprovalRequestStatus::Pending,
         'expires_at' => now()->addDays(7),
     ]);
 
     (new DeleteOrganization($subsidiary, $owner->getKey()))->handle(app(FileStorage::class));
 
-    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Cancelled);
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
 });
 
 test('it refuses to delete a tenant outside the internal subsidiary tree', function () {

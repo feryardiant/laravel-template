@@ -24,6 +24,8 @@
                         @php($role = $membership['role'])
                         @php($parent = $membership['parent'])
                         @php($kind = $membership['kind'])
+                        @php($pendingApproval = $membership['pendingApproval'])
+                        @php($pendingRequest = $membership['pendingRequest'])
 
                         <div
                             wire:key="organization-{{ $organization->id }}"
@@ -81,7 +83,7 @@
                                     </flux:button>
                                 @endif
 
-                                @if ($membership['pendingTransfer'] !== null)
+                                @if ($pendingApproval !== null)
                                     <div class="flex items-center gap-2">
                                         <span class="relative flex size-2" aria-hidden="true">
                                             <span class="absolute inline-flex size-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
@@ -89,19 +91,37 @@
                                         </span>
 
                                         <flux:text class="text-sm" variant="subtle">
-                                            {{ __('Ownership transfer requested') }}
+                                            @if ($pendingApproval->type === \App\Enums\ApprovalRequestType::MembershipLeave)
+                                                {{ __('Leave request from :name', ['name' => $pendingApproval->requester->name]) }}
+                                            @else
+                                                {{ __('Ownership transfer requested') }}
+                                            @endif
                                         </flux:text>
 
                                         <flux:badge size="sm" color="sky">
-                                            {{ $membership['pendingTransfer']->status->label() }}
+                                            {{ $pendingApproval->status->label() }}
                                         </flux:badge>
 
                                         <flux:button
                                             size="sm"
                                             variant="primary"
-                                            wire:click="openTransfer({{ $organization->id }})"
+                                            wire:click="openApproval({{ $organization->id }})"
                                         >
                                             {{ __('Respond') }}
+                                        </flux:button>
+                                    </div>
+                                @elseif ($pendingRequest !== null && $pendingRequest->type === \App\Enums\ApprovalRequestType::MembershipLeave)
+                                    <div class="flex items-center gap-2">
+                                        <flux:text class="text-sm" variant="subtle">
+                                            {{ __('Leave request pending') }}
+                                        </flux:text>
+
+                                        <flux:button
+                                            size="sm"
+                                            variant="danger"
+                                            wire:click="cancelLeaveRequest({{ $pendingRequest->id }})"
+                                        >
+                                            {{ __('Cancel request') }}
                                         </flux:button>
                                     </div>
                                 @elseif ($membership['isLastOwner'])
@@ -148,11 +168,19 @@
         <form wire:submit="leave" class="space-y-6">
             <div>
                 <flux:heading id="leave-organization-heading" size="lg">
-                    {{ __('Leave :organization?', ['organization' => $leavingOrganizationName ?? __('this organization')]) }}
+                    @if ($leaveNeedsApproval)
+                        {{ __('Request to leave :organization?', ['organization' => $leavingOrganizationName ?? __('this organization')]) }}
+                    @else
+                        {{ __('Leave :organization?', ['organization' => $leavingOrganizationName ?? __('this organization')]) }}
+                    @endif
                 </flux:heading>
 
                 <flux:subheading>
-                    {{ __('You will lose access to this organization. An owner or admin can add you back later.') }}
+                    @if ($leaveNeedsApproval)
+                        {{ __('An owner must approve this request. You keep access until they respond.') }}
+                    @else
+                        {{ __('You will lose access to this organization. An owner or admin can add you back later.') }}
+                    @endif
                 </flux:subheading>
             </div>
 
@@ -161,7 +189,9 @@
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
                 </flux:modal.close>
 
-                <flux:button variant="danger" type="submit">{{ __('Leave organization') }}</flux:button>
+                <flux:button variant="danger" type="submit">
+                    {{ $leaveNeedsApproval ? __('Request to leave') : __('Leave organization') }}
+                </flux:button>
             </div>
         </form>
     </flux:modal>
@@ -208,18 +238,26 @@
     </flux:modal>
 
     <flux:modal
-        wire:model.self="showTransferModal"
+        wire:model.self="showApprovalModal"
         class="md:w-lg"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'review-transfer-heading')"
+        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'review-approval-heading')"
     >
         <div class="space-y-6">
             <div>
-                <flux:heading id="review-transfer-heading" size="lg">{{ __('Ownership transfer request') }}</flux:heading>
-                <flux:subheading>{{ $transferOrganizationName }}</flux:subheading>
+                <flux:heading id="review-approval-heading" size="lg">
+                    {{ $approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value
+                        ? __('Ownership transfer request')
+                        : __('Leave request') }}
+                </flux:heading>
+                <flux:subheading>{{ $approvalOrganizationName }}</flux:subheading>
             </div>
 
             <flux:text>
-                {{ __(':owner wants to transfer ownership of :organization to you. Accepting makes you the owner and the current owner an Admin.', ['owner' => $transferOwnerName, 'organization' => $transferOrganizationName]) }}
+                @if ($approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value)
+                    {{ __(':owner wants to transfer ownership of :organization to you. Accepting makes you the owner and the current owner an Admin.', ['owner' => $approvalRequesterName, 'organization' => $approvalOrganizationName]) }}
+                @else
+                    {{ __(':name requested to leave :organization. Approving removes their access immediately.', ['name' => $approvalRequesterName, 'organization' => $approvalOrganizationName]) }}
+                @endif
             </flux:text>
 
             <div class="flex items-center justify-between">
@@ -228,8 +266,10 @@
                 </flux:modal.close>
 
                 <div class="flex items-center gap-2">
-                    <flux:button variant="danger" wire:click="declineTransfer">{{ __('Decline') }}</flux:button>
-                    <flux:button variant="primary" wire:click="acceptTransfer">{{ __('Accept') }}</flux:button>
+                    <flux:button variant="danger" wire:click="declineApproval">{{ __('Decline') }}</flux:button>
+                    <flux:button variant="primary" wire:click="acceptApproval">
+                        {{ $approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value ? __('Accept') : __('Approve') }}
+                    </flux:button>
                 </div>
             </div>
         </div>

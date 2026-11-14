@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Models\OrganizationOwnershipTransfer;
+use App\Models\ApprovalRequest;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,15 +24,15 @@ class OwnershipTransferRequestedNotification extends Notification implements Sho
 
     public string $url;
 
-    public function __construct(OrganizationOwnershipTransfer $transfer)
+    public function __construct(ApprovalRequest $request)
     {
-        $this->organizationName = $transfer->organization->name;
-        $this->ownerName = $transfer->fromPerson->name;
-        $this->expiresAt = $transfer->expires_at->translatedFormat('d M Y');
+        $this->organizationName = $request->organization->name;
+        $this->ownerName = $request->requester->name;
+        $this->expiresAt = $request->expires_at->translatedFormat('d M Y');
         $this->url = URL::temporarySignedRoute(
-            'organizations.transfer.link',
-            $transfer->expires_at,
-            ['transfer' => $transfer->uuid],
+            'organizations.approval.link',
+            $request->expires_at,
+            ['approval' => $request->uuid],
         );
 
         $this->afterCommit = true;
