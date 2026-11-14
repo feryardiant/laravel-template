@@ -7,15 +7,17 @@ namespace App\Actions\Contacts;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 final class SearchContact
 {
     /**
-     * Find existing external counterparties that match the given name.
+     * Find external counterparties that match the given name.
      *
-     * The current tenant's own contacts and the tenant itself are excluded, so a
-     * candidate can be attached without creating a duplicate relationship.
+     * Candidates are entities registered by another tenant or the current
+     * tenant's own expired contacts, so they can be attached or renewed without
+     * creating a duplicate relationship.
      *
      * @return Collection<int, Organization|Person>
      */
@@ -29,44 +31,20 @@ final class SearchContact
 
         $organizations = Organization::query()
             ->whereKeyNot($tenant->getKey())
-            ->whereIn(
-                'id',
-                OrganizationRelationship::query()
-                    ->external()
-                    ->where('organization_id', '!=', $tenant->getKey())
-                    ->where('stakeholder_type', Organization::class)
-                    ->select('stakeholder_id'),
-            )
-            ->whereNotIn(
-                'id',
-                OrganizationRelationship::query()
-                    ->forOrganization($tenant)
-                    ->external()
-                    ->where('stakeholder_type', Organization::class)
-                    ->select('stakeholder_id'),
-            )
+            ->where(fn (Builder $query) => $query
+                ->whereIn('id', $this->stakeholderIds($tenant, Organization::class, own: false))
+                ->orWhereIn('id', $this->stakeholderIds($tenant, Organization::class, own: true)))
+            ->whereNotIn('id', $this->currentStakeholderIds($tenant, Organization::class))
             ->whereLike('name', "%{$term}%")
             ->orderBy('name')
             ->limit($limit)
             ->get();
 
         $people = Person::query()
-            ->whereIn(
-                'id',
-                OrganizationRelationship::query()
-                    ->external()
-                    ->where('organization_id', '!=', $tenant->getKey())
-                    ->where('stakeholder_type', Person::class)
-                    ->select('stakeholder_id'),
-            )
-            ->whereNotIn(
-                'id',
-                OrganizationRelationship::query()
-                    ->forOrganization($tenant)
-                    ->external()
-                    ->where('stakeholder_type', Person::class)
-                    ->select('stakeholder_id'),
-            )
+            ->where(fn (Builder $query) => $query
+                ->whereIn('id', $this->stakeholderIds($tenant, Person::class, own: false))
+                ->orWhereIn('id', $this->stakeholderIds($tenant, Person::class, own: true)))
+            ->whereNotIn('id', $this->currentStakeholderIds($tenant, Person::class))
             ->whereLike('name', "%{$term}%")
             ->orderBy('name')
             ->limit($limit)
@@ -77,5 +55,41 @@ final class SearchContact
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->take($limit)
             ->values();
+    }
+
+    /**
+     * Stakeholder ids registered by another tenant or the tenant's expired rows.
+     *
+     * @param  class-string<Organization|Person>  $stakeholder
+     * @return Builder<OrganizationRelationship>
+     */
+    private function stakeholderIds(Organization $tenant, string $stakeholder, bool $own): Builder
+    {
+        $query = OrganizationRelationship::query()
+            ->external()
+            ->where('stakeholder_type', $stakeholder)
+            ->select('stakeholder_id');
+
+        if ($own) {
+            return $query->forOrganization($tenant)->expired();
+        }
+
+        return $query->where('organization_id', '!=', $tenant->getKey());
+    }
+
+    /**
+     * Stakeholder ids the tenant already has an unfinished relationship with.
+     *
+     * @param  class-string<Organization|Person>  $stakeholder
+     * @return Builder<OrganizationRelationship>
+     */
+    private function currentStakeholderIds(Organization $tenant, string $stakeholder): Builder
+    {
+        return OrganizationRelationship::query()
+            ->external()
+            ->forOrganization($tenant)
+            ->notExpired()
+            ->where('stakeholder_type', $stakeholder)
+            ->select('stakeholder_id');
     }
 }

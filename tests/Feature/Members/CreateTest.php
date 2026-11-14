@@ -63,16 +63,19 @@ test('an admin can add a member with an invite credential', function () {
     });
 });
 
-test('an admin cannot assign the owner role', function () {
+test('the owner role cannot be assigned when adding a member', function () {
     $organization = Organization::factory()->create();
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Index::class)
-        ->set('name', 'New Owner')
+    $component = Livewire::test(Index::class);
+
+    expect($component->instance()->roles())->toBe([Role::Admin, Role::Member]);
+
+    $component->set('name', 'New Owner')
         ->set('role', Role::Owner->value)
         ->call('createMember')
-        ->assertForbidden();
+        ->assertHasErrors('role');
 
     expect(Person::query()->where('name', 'New Owner')->exists())->toBeFalse();
 });

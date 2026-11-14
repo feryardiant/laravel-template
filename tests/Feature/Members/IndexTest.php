@@ -116,7 +116,7 @@ test('members can be searched by name and email', function () {
         ->assertDontSee('Alice Wonder');
 });
 
-test('an owner can assign the owner role', function () {
+test('the owner role cannot be assigned to a new member', function () {
     $organization = Organization::factory()->create();
 
     actingAsMember($organization, Role::Owner);
@@ -125,11 +125,9 @@ test('an owner can assign the owner role', function () {
         ->set('name', 'New Owner')
         ->set('role', Role::Owner->value)
         ->call('createMember')
-        ->assertHasNoErrors();
+        ->assertHasErrors('role');
 
-    $person = Person::query()->where('name', 'New Owner')->firstOrFail();
-
-    expect($person->roleIn($organization))->toBe(Role::Owner);
+    expect(Person::query()->where('name', 'New Owner')->exists())->toBeFalse();
 });
 
 test('a role change promotes within the current organization only', function () {

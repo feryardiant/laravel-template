@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\FileStorage;
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +23,7 @@ final class UpdateContact
     public function __construct(
         private FileStorage $fileStorage,
         private FindContact $findContact,
+        private RelationshipTimeline $timeline,
     ) {
         // .
     }
@@ -40,6 +43,7 @@ final class UpdateContact
         ?UploadedFile $photo = null,
         bool $removePhoto = false,
         bool $validatedSharedFieldsLocked = false,
+        ?User $actor = null,
     ): void {
         $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
@@ -47,16 +51,16 @@ final class UpdateContact
         abort_if($stakeholder === null, 404);
 
         $role = $this->ensureExternalRole($data['role'] ?? null);
-        $shared = $contact->isShared();
+        $locked = $contact->profileLockedFor($tenant);
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
         $previous = null;
 
-        $newPhoto = ! $validatedSharedFieldsLocked && ! $shared && $photo instanceof UploadedFile
+        $newPhoto = ! $validatedSharedFieldsLocked && ! $locked && $photo instanceof UploadedFile
             ? $this->fileStorage->handle($photo, 'photos')
             : null;
 
         try {
-            DB::transaction(function () use ($tenant, $contact, $data, $role, &$shared, $stakeholder, $newPhoto, $removePhoto, $column, &$previous, $validatedSharedFieldsLocked): void {
+            DB::transaction(function () use ($tenant, $contact, $data, $role, &$locked, $stakeholder, $newPhoto, $removePhoto, $column, &$previous, $validatedSharedFieldsLocked): void {
                 // Serialize with a concurrent reuse or credential change.
                 $stakeholder = $stakeholder->newQuery()
                     ->whereKey($stakeholder->getKey())
@@ -72,12 +76,12 @@ final class UpdateContact
                 }
 
                 $contact->setRelation('stakeholder', $stakeholder);
-                $shared = $contact->isShared();
+                $locked = $contact->profileLockedFor($tenant);
 
                 // The form skipped shared-field validation while the entity was
                 // locked; if that changed meanwhile, reject instead of writing
                 // values the request never validated.
-                if ($validatedSharedFieldsLocked && ! $shared) {
+                if ($validatedSharedFieldsLocked && ! $locked) {
                     throw ValidationException::withMessages([
                         'name' => __('The contact changed. Reopen it and try again.'),
                     ]);
@@ -94,7 +98,10 @@ final class UpdateContact
                         'finish_date' => $data['finish_date'] ?? null,
                     ]);
 
-                if ($shared) {
+                $contact->refresh();
+                $this->timeline->sync($contact);
+
+                if ($locked) {
                     return;
                 }
 
@@ -136,7 +143,7 @@ final class UpdateContact
             throw $exception;
         }
 
-        if ($shared) {
+        if ($locked) {
             if ($newPhoto !== null) {
                 $this->fileStorage->delete($newPhoto);
             }

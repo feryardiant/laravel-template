@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\Role;
+use App\Enums\SubsidiaryKind;
 use App\Models\Address;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -60,6 +62,37 @@ it('removes inbound relationships when an organization is force-deleted', functi
     $organization->forceDelete();
 
     expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeFalse();
+});
+
+it('cannot force-delete a root tenant that still has tenant children', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    Organization::factory()->asTenantOf($root)->create();
+    Organization::factory()->asTenantOf($root)->create();
+
+    $counterparty = Organization::factory()->create();
+
+    $counterparty->organizationCounterparties()->attach($root, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+
+    expect(fn () => $root->forceDelete())->toThrow(QueryException::class);
+
+    expect(Organization::query()->whereKey($root->getKey())->exists())->toBeTrue();
+    expect(OrganizationRelationship::whereStakeholder($root)->exists())->toBeTrue();
+});
+
+it('force-deletes a childless root tenant and its inbound relationships', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $counterparty = Organization::factory()->create();
+
+    $counterparty->organizationCounterparties()->attach($root, [
+        'type' => OrganizationRelationshipType::Customer,
+    ]);
+
+    $root->forceDelete();
+
+    expect(Organization::query()->whereKey($root->getKey())->exists())->toBeFalse();
+    expect(OrganizationRelationship::whereStakeholder($root)->exists())->toBeFalse();
 });
 
 it('keeps inbound relationships when an organization is soft-deleted', function () {
@@ -152,6 +185,59 @@ test('subsidiaries must be organizations', function () {
         Person::factory()->create(),
         ['type' => OrganizationRelationshipType::Subsidiary],
     ))->toThrow(InvalidArgumentException::class);
+});
+
+test('subsidiary relationships default to the subsidiary kind', function () {
+    $parent = Organization::factory()->create();
+    $child = Organization::factory()->create();
+
+    $parent->subsidiaries()->attach($child, ['type' => OrganizationRelationshipType::Subsidiary]);
+
+    $relationship = OrganizationRelationship::query()->whereStakeholder($child)->firstOrFail();
+
+    expect($relationship->kind)->toBe(SubsidiaryKind::Subsidiary);
+});
+
+test('non-subsidiary relationships have no kind', function () {
+    $organization = Organization::factory()->create();
+    $customer = Organization::factory()->create();
+
+    $organization->organizationCounterparties()->attach($customer, [
+        'type' => OrganizationRelationshipType::Customer,
+        'kind' => SubsidiaryKind::Branch,
+    ]);
+
+    $relationship = OrganizationRelationship::query()->whereStakeholder($customer)->firstOrFail();
+
+    expect($relationship->kind)->toBeNull();
+});
+
+test('a child organization can only have one parent', function () {
+    $firstParent = Organization::factory()->create();
+    $secondParent = Organization::factory()->create();
+    $child = Organization::factory()->create();
+
+    $firstParent->subsidiaries()->attach($child, ['type' => OrganizationRelationshipType::Subsidiary]);
+
+    expect(fn () => $secondParent->subsidiaries()->attach($child, [
+        'type' => OrganizationRelationshipType::Subsidiary,
+    ]))->toThrow(QueryException::class);
+});
+
+test('an organization can only have one owner', function () {
+    $organization = Organization::factory()->create();
+
+    $organization->members()->attach(Person::factory()->create(), [
+        'type' => OrganizationRelationshipType::Member,
+        'role' => Role::Owner,
+        'start_date' => now(),
+    ]);
+
+    expect(fn () => $organization->members()->attach(Person::factory()->create(), [
+        'type' => OrganizationRelationshipType::Member,
+        'role' => Role::Owner,
+        'start_date' => now(),
+    ]))->toThrow(QueryException::class);
 });
 
 test('an organization factory state attaches a counterparty to the given organization', function () {

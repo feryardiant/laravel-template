@@ -96,7 +96,17 @@ class PersonFactory extends Factory
             'role' => $role ?: $person->user?->role ?: Role::Member,
             'is_primary' => $isPrimary,
             'start_date' => now(),
-        ], 'organizationRelationships');
+        ], 'organizationRelationships')->afterCreating(function (Person $person): void {
+            if ($person->owner_organization_id !== null) {
+                return;
+            }
+
+            $owner = $person->organizations()->value('organizations.id');
+
+            if ($owner !== null) {
+                $person->update(['owner_organization_id' => $owner]);
+            }
+        });
     }
 
     /**

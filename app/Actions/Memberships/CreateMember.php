@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -14,10 +15,16 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 final class CreateMember
 {
     use ToManageEntities;
+
+    public function __construct(private RelationshipTimeline $timeline)
+    {
+        // .
+    }
 
     /**
      * Create a person, optional credential, and organization membership.
@@ -28,11 +35,16 @@ final class CreateMember
         Role $role,
         ?string $email = null,
         ?string $photoUrl = null,
+        ?User $actor = null,
     ): Person {
+        if ($role->isOwner()) {
+            throw new InvalidArgumentException('Owner is assigned by transferring ownership.');
+        }
+
         $user = null;
 
-        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, &$user): Person {
-            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl);
+        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, $actor, &$user): Person {
+            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl, owner: $organization);
             $user = $person->user;
 
             $this->attach(
@@ -40,6 +52,7 @@ final class CreateMember
                 $person,
                 startDate: now(),
                 role: $role,
+                actor: $actor,
             );
 
             return $person;
@@ -62,12 +75,25 @@ final class CreateMember
         ?CarbonInterface $startDate = null,
         ?CarbonInterface $finishDate = null,
         Role $role = Role::Member,
+        ?User $actor = null,
     ): void {
         DB::transaction(function () use ($organization, $member, $isPrimary, $startDate, $finishDate, $role): void {
             $member->newQuery()
                 ->whereKey($member->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // A credential-less person with no workspace joins as an org-owned
+            // member; self-registered people and existing contacts keep ownership.
+            if ($member->owner_organization_id === null
+                && $member->user_id === null
+                && ! $member->memberships()->exists()) {
+                $member->update(['owner_organization_id' => $organization->getKey()]);
+            }
+
+            // A person's first workspace is their default; later memberships
+            // only become the default when explicitly requested.
+            $isPrimary = $isPrimary || ! $member->memberships()->exists();
 
             if ($isPrimary) {
                 // shortcut: primary membership is global until relationship rows
@@ -91,6 +117,14 @@ final class CreateMember
                     'finish_date' => $finishDate,
                 ],
             );
+
+            $relationship = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->whereStakeholder($member)
+                ->where('type', OrganizationRelationshipType::Member)
+                ->firstOrFail();
+
+            $this->timeline->open($relationship);
         });
     }
 }

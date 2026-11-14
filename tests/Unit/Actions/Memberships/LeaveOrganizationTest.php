@@ -24,3 +24,12 @@ it('keeps the leave when a listener fails', function () {
     expect(app(LeaveOrganization::class)->handle($user, $organization))->toBeTrue()
         ->and($organization->members()->whereKey($user->person->getKey())->exists())->toBeFalse();
 });
+
+it('does not detach an admin without approval', function () {
+    $organization = Organization::factory()->create();
+
+    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
+
+    expect(app(LeaveOrganization::class)->handle($admin, $organization))->toBeFalse()
+        ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();
+});

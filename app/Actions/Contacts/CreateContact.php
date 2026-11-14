@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Actions\Contacts;
 
 use App\Actions\FileStorage;
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +26,7 @@ final class CreateContact
     public function __construct(
         private FileStorage $fileStorage,
         private FindContact $findContact,
+        private RelationshipTimeline $timeline,
     ) {
         // .
     }
@@ -32,14 +36,14 @@ final class CreateContact
      *
      * @param  array<string, mixed>  $data
      */
-    public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null): Entity
+    public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null, ?User $actor = null): Entity
     {
         $role = $this->ensureExternalRole($data['role'] ?? null);
 
         $reference = $data['reference'] ?? null;
 
         if (\is_string($reference) && $reference !== '') {
-            return DB::transaction(function () use ($tenant, $reference, $role, $data): Entity {
+            return DB::transaction(function () use ($tenant, $reference, $role, $data, $actor): Entity {
                 $stakeholder = $this->findContact->byReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
@@ -48,7 +52,36 @@ final class CreateContact
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $this->assertNotAlreadyContact($tenant, $stakeholder);
+                $existing = OrganizationRelationship::query()
+                    ->forOrganization($tenant)
+                    ->external()
+                    ->whereStakeholder($stakeholder)
+                    ->lockForUpdate()
+                    ->first();
+
+                // Active or scheduled rows still block reuse; an expired row is
+                // renewed in place instead of creating a duplicate.
+                if ($existing !== null) {
+                    if ($existing->finish_date?->lt(today()) !== true) {
+                        throw ValidationException::withMessages([
+                            'name' => __('This contact is already in your list.'),
+                        ]);
+                    }
+
+                    $this->timeline->close($existing, RelationshipPeriodReason::Renewed, $actor);
+
+                    $existing->update([
+                        'code' => $data['code'] ?? null,
+                        'type' => $role,
+                        'start_date' => $data['start_date'] ?? null,
+                        'finish_date' => null,
+                    ]);
+
+                    $this->timeline->open($existing->refresh());
+
+                    return $stakeholder;
+                }
+
                 $this->attach($tenant, $stakeholder, $role, $data);
 
                 return $stakeholder;
@@ -70,6 +103,7 @@ final class CreateContact
                         contactSummary: $data['contact_summary'] ?? null,
                         summary: $data['summary'] ?? null,
                         logoPath: $photoPath,
+                        owner: $tenant,
                     )
                     : $this->createIndividual(
                         name: $data['name'],
@@ -77,6 +111,7 @@ final class CreateContact
                         gender: $data['gender'] ?? null,
                         summary: $data['summary'] ?? null,
                         photoPath: $photoPath,
+                        owner: $tenant,
                     );
 
                 $this->attach($tenant, $stakeholder, $role, $data);
@@ -108,21 +143,14 @@ final class CreateContact
             'start_date' => $data['start_date'] ?? null,
             'finish_date' => $data['finish_date'] ?? null,
         ]);
-    }
 
-    private function assertNotAlreadyContact(Organization $tenant, Organization|Person $stakeholder): void
-    {
-        $exists = OrganizationRelationship::query()
+        $relationship = OrganizationRelationship::query()
             ->forOrganization($tenant)
             ->external()
-            ->where('stakeholder_type', $stakeholder->getMorphClass())
-            ->where('stakeholder_id', $stakeholder->getKey())
-            ->exists();
+            ->whereStakeholder($stakeholder)
+            ->latest('id')
+            ->firstOrFail();
 
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'name' => __('This contact is already in your list.'),
-            ]);
-        }
+        $this->timeline->open($relationship);
     }
 }

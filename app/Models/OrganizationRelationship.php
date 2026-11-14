@@ -7,10 +7,12 @@ namespace App\Models;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipStatus;
 use App\Enums\Role;
+use App\Enums\SubsidiaryKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -23,6 +25,7 @@ use InvalidArgumentException;
  * @property int $organization_id
  * @property ?string $stakeholder_type
  * @property null|OrganizationRelationshipType $type
+ * @property null|SubsidiaryKind $kind
  * @property null|Role $role
  * @property null|string $remark
  * @property null|CarbonImmutable $start_date
@@ -30,6 +33,7 @@ use InvalidArgumentException;
  * @property-read RelationshipStatus $status
  * @property-read bool $is_internal
  * @property-read bool $is_external
+ * @property-read ?Organization $organization
  * @property-read Organization|Person|null $stakeholder
  *
  * @method static Builder<static> whereStakeholder(Organization|Person $entity)
@@ -56,6 +60,12 @@ class OrganizationRelationship extends MorphPivot
                 $relationship->role = null;
             } elseif ($relationship->role === null) {
                 $relationship->role = Role::Member;
+            }
+
+            if ($relationship->type !== OrganizationRelationshipType::Subsidiary) {
+                $relationship->kind = null;
+            } elseif ($relationship->kind === null) {
+                $relationship->kind = SubsidiaryKind::Subsidiary;
             }
 
             if ($relationship->type === null || $relationship->stakeholder_type === null) {
@@ -89,10 +99,21 @@ class OrganizationRelationship extends MorphPivot
         return [
             'organization_id' => 'int',
             'type' => OrganizationRelationshipType::class,
+            'kind' => SubsidiaryKind::class,
             'role' => Role::class,
             'start_date' => 'immutable_date',
             'finish_date' => 'immutable_date',
         ];
+    }
+
+    /**
+     * Get the organization that owns this relationship.
+     *
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
     }
 
     /**
@@ -164,9 +185,44 @@ class OrganizationRelationship extends MorphPivot
     }
 
     /**
+     * Determine whether the linked entity's profile is locked for the tenant.
+     *
+     * An explicit owner decides it; until ownership is recorded, fall back to the
+     * legacy shared-entity heuristic.
+     */
+    public function profileLockedFor(Organization $organization): bool
+    {
+        $owner = $this->stakeholder?->owner_organization_id;
+
+        return $owner !== null
+            ? $owner !== $organization->getKey()
+            : $this->isShared();
+    }
+
+    /**
+     * Determine whether deleting this contact may also delete the entity.
+     */
+    public function canDeleteEntityFor(Organization $organization): bool
+    {
+        $stakeholder = $this->stakeholder;
+
+        if ($stakeholder === null || $stakeholder->trashed()) {
+            return false;
+        }
+
+        $owner = $stakeholder->owner_organization_id;
+
+        if ($owner !== null && $owner !== $organization->getKey()) {
+            return false;
+        }
+
+        return ! $this->isShared();
+    }
+
+    /**
      * Determine whether the linked entity is shared with another tenant.
      *
-     * Shared entities must not be mutated or soft-deleted from this tenant.
+     * Used as the fallback when neither entity records an owner.
      */
     public function isShared(): bool
     {
@@ -262,6 +318,30 @@ class OrganizationRelationship extends MorphPivot
     public function status(): Attribute
     {
         return Attribute::get(fn (): RelationshipStatus => $this->resolveStatus());
+    }
+
+    /**
+     * Limit the query to relationships whose window has ended.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeExpired(Builder $query): Builder
+    {
+        return $query->whereNotNull('finish_date')->whereDate('finish_date', '<', today());
+    }
+
+    /**
+     * Limit the query to relationships that have not ended (active or scheduled).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeNotExpired(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $query): Builder => $query
+            ->whereNull('finish_date')
+            ->orWhereDate('finish_date', '>=', today()));
     }
 
     /**

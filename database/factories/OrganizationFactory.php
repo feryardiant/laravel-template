@@ -34,6 +34,22 @@ class OrganizationFactory extends Factory
         ];
     }
 
+    /**
+     * Configure the model factory.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Organization $organization): void {
+            if ($organization->is_tenant) {
+                $organization->update(['owner_organization_id' => $organization->getKey()]);
+            }
+
+            $organization->members()
+                ->whereNull('owner_organization_id')
+                ->update(['owner_organization_id' => $organization->getKey()]);
+        });
+    }
+
     public function asRootTenant(): static
     {
         return $this->state(fn () => [
@@ -98,6 +114,10 @@ class OrganizationFactory extends Factory
                 'start_date' => $startDate,
                 'finish_date' => $finishDate,
             ]);
+
+            if ($counterparty->owner_organization_id === null) {
+                $counterparty->update(['owner_organization_id' => $organization->getKey()]);
+            }
         });
     }
 
@@ -139,6 +159,10 @@ class OrganizationFactory extends Factory
                 'start_date' => $startDate ?: now(),
                 'finish_date' => $finishDate,
             ]);
+
+            if ($counterparty->owner_organization_id === null) {
+                $counterparty->update(['owner_organization_id' => $tenant->getKey()]);
+            }
         });
     }
 }

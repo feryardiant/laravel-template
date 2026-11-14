@@ -96,6 +96,18 @@ it('promotes an existing member without duplicating them', function () {
     expect($members->first()->pivot->is_primary)->toBeTrue();
 });
 
+it('makes the first membership the default automatically', function () {
+    $person = Person::factory()->create();
+    $first = Organization::factory()->create();
+    $second = Organization::factory()->create();
+
+    app(CreateMember::class)->attach($first, $person);
+    app(CreateMember::class)->attach($second, $person);
+
+    expect($person->fresh()->defaultOrganization()?->is($first))->toBeTrue()
+        ->and($second->members()->whereKey($person->getKey())->firstOrFail()->pivot->is_primary)->toBeNull();
+});
+
 it('moves a persons primary organization when they join another as primary', function () {
     $person = Person::factory()->create();
     $organization = Organization::factory()->create();
@@ -104,13 +116,13 @@ it('moves a persons primary organization when they join another as primary', fun
     app(CreateMember::class)->attach($organization, $person, isPrimary: true);
     app(CreateMember::class)->attach($otherOrganization, $person, isPrimary: true);
 
-    $primaryOrganizations = $person->organizationRelationships()
+    $defaultMemberships = $person->organizationRelationships()
         ->wherePivot('type', OrganizationRelationshipType::Member)
         ->wherePivot('is_primary', true)
         ->get();
 
-    expect($primaryOrganizations)->toHaveCount(1);
-    expect($primaryOrganizations->first()->is($otherOrganization))->toBeTrue();
+    expect($defaultMemberships)->toHaveCount(1);
+    expect($defaultMemberships->first()->is($otherOrganization))->toBeTrue();
     expect($organization->members()->first()->pivot->is_primary)->toBeNull();
 });
 
@@ -151,4 +163,13 @@ test('members must be people', function () {
         Organization::factory()->create(),
         ['type' => OrganizationRelationshipType::Member],
     ))->toThrow(InvalidArgumentException::class);
+});
+
+test('the owner role cannot be assigned when adding a member', function () {
+    $organization = Organization::factory()->create();
+
+    expect(fn () => app(CreateMember::class)->handle($organization, 'New Owner', Role::Owner))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(Person::query()->where('name', 'New Owner')->exists())->toBeFalse();
 });

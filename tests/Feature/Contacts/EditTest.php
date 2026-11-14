@@ -84,11 +84,15 @@ test('editing keeps the contact type even when the client changes it', function 
 
 test('a user-linked contact keeps its shared fields', function () {
     $organization = Organization::factory()->create();
+    $owner = Organization::factory()->create();
 
     actingAsMember($organization, Role::Admin);
 
     $person = contactIndividual($organization, ['name' => 'User Linked Shared']);
-    $person->update(['user_id' => User::factory()->create()->getKey()]);
+    $person->update([
+        'user_id' => User::factory()->create()->getKey(),
+        'owner_organization_id' => $owner->getKey(),
+    ]);
     $relationshipId = contactRelationshipId($organization, $person);
 
     Livewire::test(Edit::class)
@@ -106,13 +110,14 @@ test('a shared contact keeps its shared fields and still updates per-tenant fiel
     $owner = Organization::factory()->create();
     $other = Organization::factory()->create();
 
-    actingAsMember($owner, Role::Admin);
+    actingAsMember($other, Role::Admin);
 
     $contact = contactOrganization($owner, ['name' => 'Shared Org', 'summary' => 'Original']);
     $contactPerson = $contact->primaryContact;
-    $relationshipId = contactRelationshipId($owner, $contact);
 
-    $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer]);
+    $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer, 'start_date' => now()]);
+
+    $relationshipId = contactRelationshipId($other, $contact);
 
     Livewire::test(Edit::class)
         ->call('openEdit', $relationshipId)
@@ -325,15 +330,38 @@ test('the actions menu can open the edit flyout with the keyboard', function () 
         ->assertDispatched('edit-contact', contactId: $relationshipId);
 });
 
-test('a shared contact ignores empty shared fields on save', function () {
+test('the owner can edit a shared contact profile', function () {
     $owner = Organization::factory()->create();
     $other = Organization::factory()->create();
 
     actingAsMember($owner, Role::Admin);
 
-    $contact = contactOrganization($owner, ['name' => 'Shared Empty', 'summary' => 'Kept']);
+    $contact = contactOrganization($owner, ['name' => 'Owned Org', 'summary' => 'Original']);
     $relationshipId = contactRelationshipId($owner, $contact);
+
     $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer]);
+
+    Livewire::test(Edit::class)
+        ->call('openEdit', $relationshipId)
+        ->set('name', 'Renamed Org')
+        ->set('summary', 'Updated summary')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contact->fresh()?->name)->toBe('Renamed Org')
+        ->and($contact->fresh()?->summary)->toBe('Updated summary');
+});
+
+test('a shared contact ignores empty shared fields on save', function () {
+    $owner = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    actingAsMember($other, Role::Admin);
+
+    $contact = contactOrganization($owner, ['name' => 'Shared Empty', 'summary' => 'Kept']);
+    $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer, 'start_date' => now()]);
+
+    $relationshipId = contactRelationshipId($other, $contact);
 
     Livewire::test(Edit::class)
         ->call('openEdit', $relationshipId)

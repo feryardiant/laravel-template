@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
  * Individual entity and its personal relationships.
  *
  * @property ?int $user_id
+ * @property ?int $owner_organization_id
  * @property string $name
  * @property null|Gender $gender
  * @property ?string $summary
@@ -35,7 +36,7 @@ use Illuminate\Support\Str;
  *
  * @implements HasAddresses<static>
  */
-#[Fillable(['user_id', 'name', 'gender', 'summary', 'photo_url'])]
+#[Fillable(['user_id', 'owner_organization_id', 'name', 'gender', 'summary', 'photo_url'])]
 class Person extends Entity implements HasAddresses
 {
     /** @use HasFactory<PersonFactory> */
@@ -120,9 +121,9 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
-     * Get the person's primary organization.
+     * Get the person's default workspace.
      */
-    public function primaryOrganization(): ?Organization
+    public function defaultOrganization(): ?Organization
     {
         return $this->organizations()->wherePivot('is_primary', true)->first();
     }

@@ -7,6 +7,7 @@ use App\Actions\Contacts\ListContacts;
 use App\Actions\Contacts\SearchContact;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,6 +53,31 @@ test('a current tenant contact cannot be resolved as a reusable candidate', func
         ->toThrow(ModelNotFoundException::class);
 });
 
+test('an expired current tenant contact resolves as a reusable candidate', function () {
+    $current = Organization::factory()->create();
+
+    $person = contactIndividual($current, ['name' => 'Expired Candidate']);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['finish_date' => now()->subDay()]);
+
+    $candidate = app(FindContact::class)->byReference($current, 'individual:'.$person->uuid);
+
+    expect($candidate->is($person))->toBeTrue();
+});
+
+test('a scheduled current tenant contact cannot be resolved as a reusable candidate', function () {
+    $current = Organization::factory()->create();
+
+    $person = contactIndividual($current, ['name' => 'Scheduled Candidate']);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['start_date' => now()->addWeek(), 'finish_date' => null]);
+
+    expect(fn () => app(FindContact::class)->byReference($current, 'individual:'.$person->uuid))
+        ->toThrow(ModelNotFoundException::class);
+});
+
 test('a foreign candidate resolves by reference', function () {
     $current = Organization::factory()->create();
     $source = Organization::factory()->create();
@@ -87,6 +113,30 @@ test('the candidate search excludes entities already in the current tenant', fun
     $results = app(SearchContact::class)->handle($current, 'Shared Candidate');
 
     expect($results)->toBeEmpty();
+});
+
+test('the candidate search includes the tenant own expired contacts', function () {
+    $current = Organization::factory()->create();
+
+    $person = contactIndividual($current, ['name' => 'Expired Candidate']);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['finish_date' => now()->subDay()]);
+
+    $results = app(SearchContact::class)->handle($current, 'Expired Candidate');
+
+    expect($results->pluck('name')->all())->toBe(['Expired Candidate']);
+});
+
+test('the candidate search excludes the tenant own scheduled contacts', function () {
+    $current = Organization::factory()->create();
+
+    $person = contactIndividual($current, ['name' => 'Scheduled Candidate']);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['start_date' => now()->addWeek(), 'finish_date' => null]);
+
+    expect(app(SearchContact::class)->handle($current, 'Scheduled Candidate'))->toBeEmpty();
 });
 
 test('the candidate search is ordered and limited before merging', function () {

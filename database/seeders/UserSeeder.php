@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Actions\Relationships\RelationshipTimeline;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
@@ -64,6 +67,23 @@ class UserSeeder extends Seeder
         if (app()->environment('local')) {
             $this->call(DemoSeeder::class, parameters: ['root' => $root]);
         }
+
+        $this->seedPeriods();
+    }
+
+    /**
+     * Give the seeded relationships an opening history period.
+     */
+    private function seedPeriods(): void
+    {
+        $timeline = app(RelationshipTimeline::class);
+
+        OrganizationRelationship::query()
+            ->whereIn('type', [
+                ...OrganizationRelationshipType::externals(),
+                OrganizationRelationshipType::Member,
+            ])
+            ->eachById(fn (OrganizationRelationship $relationship) => $timeline->open($relationship));
     }
 
     private function initialUsers(): void

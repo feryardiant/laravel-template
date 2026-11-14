@@ -18,6 +18,7 @@ use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -76,6 +77,9 @@ class Edit extends Component
 
     public ?string $reusedName = null;
 
+    #[Locked]
+    public ?int $reusedContactId = null;
+
     public string $contact_name = '';
 
     public ?string $contact_gender = null;
@@ -108,6 +112,7 @@ class Edit extends Component
             'selectedEntity',
             'reusedType',
             'reusedName',
+            'reusedContactId',
             'contact_name',
             'contact_gender',
             'contact_summary',
@@ -146,8 +151,10 @@ class Edit extends Component
             return;
         }
 
+        $organization = $this->requireOrganization();
+
         try {
-            $entity = app(FindContact::class)->byReference($this->requireOrganization(), $reference);
+            $entity = app(FindContact::class)->byReference($organization, $reference);
         } catch (Throwable) {
             $this->resetReuse();
 
@@ -159,6 +166,12 @@ class Edit extends Component
         $this->resetReuse(false);
 
         $this->selectedEntity = $reference;
+        $this->reusedContactId = OrganizationRelationship::query()
+            ->external()
+            ->forOrganization($organization)
+            ->expired()
+            ->whereStakeholder($entity)
+            ->value('id');
         $this->reusedType = $entity instanceof Organization ? 'organization' : 'individual';
         $this->reusedName = $entity->name;
         $this->type = $this->reusedType;
@@ -242,6 +255,8 @@ class Edit extends Component
         }
 
         try {
+            $actor = Auth::user();
+
             if ($this->contactId !== null) {
                 $updateContact->handle(
                     $organization,
@@ -250,6 +265,7 @@ class Edit extends Component
                     $this->photo instanceof UploadedFile ? $this->photo : null,
                     $this->photo_url === null,
                     $sharedFieldsLocked,
+                    $actor,
                 );
 
                 $message = __('Contact updated.');
@@ -258,6 +274,7 @@ class Edit extends Component
                     $organization,
                     $data,
                     $this->photo instanceof UploadedFile ? $this->photo : null,
+                    $actor,
                 );
 
                 $message = __('Contact created.');
@@ -310,7 +327,7 @@ class Edit extends Component
     #[Computed]
     public function sharedFieldsLocked(): bool
     {
-        return $this->reusing || ($this->contactId !== null && ($this->contact?->isShared() ?? false));
+        return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
     }
 
     #[Computed]
@@ -334,6 +351,8 @@ class Edit extends Component
 
         if ($this->contactId !== null) {
             $code->ignore($this->contactId);
+        } elseif ($this->reusedContactId !== null) {
+            $code->ignore($this->reusedContactId);
         }
 
         $rules = [
@@ -415,6 +434,7 @@ class Edit extends Component
         $this->selectedEntity = null;
         $this->reusedType = null;
         $this->reusedName = null;
+        $this->reusedContactId = null;
         $this->summary = '';
         $this->gender = null;
         $this->photo = null;

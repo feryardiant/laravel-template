@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Memberships\RemoveMember;
 use App\Enums\Role;
 use App\Livewire\Members\Index;
 use App\Models\Organization;
@@ -10,9 +11,12 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\MemberLeftNotification;
 use App\Notifications\MembershipRemovedNotification;
+use App\Support\Feature\MemberDeletion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+
+use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
@@ -109,6 +113,37 @@ test('removing a member notifies them once', function () {
     );
 });
 
+test('removing the same member twice notifies only once', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Owner);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $action = app(RemoveMember::class);
+    $action->handle($organization, $member->person, $actor);
+    $action->handle($organization, $member->person, $actor);
+
+    Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1);
+});
+
+test('an actor demoted before the removal cannot remove a member', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Admin);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $organization->members()->updateExistingPivot($actor->person->getKey(), ['role' => Role::Member]);
+
+    app(RemoveMember::class)->handle($organization, $member->person, $actor);
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+    Notification::assertNothingSent();
+});
+
 test('a manager removal does not notify the owners', function () {
     Notification::fake();
 
@@ -162,4 +197,46 @@ test('removing selected members notifies each credentialed member', function () 
 
     $members->each(fn (User $member) => Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1));
     Notification::assertCount(3);
+});
+
+test('member removal is blocked when the workspace disables it', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $other = User::factory()->asMemberOf($organization)->create();
+
+    MemberDeletion::deactivate($organization);
+
+    Livewire::test(Index::class)
+        ->call('removeMember', $member->person->getKey())
+        ->assertForbidden();
+
+    Livewire::test(Index::class)
+        ->set('selected', [$other->person->getKey()])
+        ->call('deleteSelected')
+        ->assertForbidden();
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue()
+        ->and($organization->members()->whereKey($other->person->getKey())->exists())->toBeTrue();
+
+    Notification::assertNothingSent();
+});
+
+test('the member view hides removal controls when the workspace disables it', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+    User::factory()->asMemberOf($organization)->create();
+
+    MemberDeletion::deactivate($organization);
+
+    get(route('members.index'))
+        ->assertOk()
+        ->assertDontSeeHtml('confirmDelete(')
+        ->assertDontSeeHtml('confirmDeleteSelected')
+        ->assertDontSee(__('Select all members'));
 });

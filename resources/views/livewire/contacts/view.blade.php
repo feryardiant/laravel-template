@@ -11,6 +11,10 @@
                 <flux:heading size="xl" level="1">
                     {{ $stakeholder->name }}
                     <flux:badge color="zinc">{{ $isOrganization ? __('Organization') : __('Individual') }}</flux:badge>
+
+                    @if ($stakeholder->trashed())
+                        <flux:badge color="red">{{ __('Deleted') }}</flux:badge>
+                    @endif
                 </flux:heading>
 
                 <flux:subheading>
@@ -20,6 +24,14 @@
             </div>
         </div>
     </div>
+
+    @if ($stakeholder->trashed())
+        <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This organization has been deleted.')">
+            <flux:callout.text>
+                {{ __('You can still see your relationship history, but the organization no longer exists.') }}
+            </flux:callout.text>
+        </flux:callout>
+    @endif
 
     <flux:separator variant="subtle" />
 
@@ -77,7 +89,9 @@
         </div>
     </flux:card>
 
-    @if ($isOrganization)
+    <x-relationship-history :periods="$this->history" />
+
+    @if ($isOrganization && ! $stakeholder->trashed())
         <flux:card class="max-w-lg space-y-4">
             <flux:heading>{{ __('Contact person') }}</flux:heading>
             <flux:separator variant="subtle" />

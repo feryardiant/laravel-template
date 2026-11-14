@@ -16,12 +16,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Business entity that relates to other organizations and people.
  *
  * @property int $contact_id
+ * @property ?int $owner_organization_id
  * @property string $name
  * @property ?string $summary
  * @property bool $is_tenant
@@ -36,7 +38,7 @@ use Illuminate\Support\Str;
  *
  * @implements HasAddress<static>
  */
-#[Fillable(['contact_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
+#[Fillable(['contact_id', 'owner_organization_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
 class Organization extends Entity implements HasAddress
 {
     /** @use HasFactory<OrganizationFactory> */
@@ -67,6 +69,17 @@ class Organization extends Entity implements HasAddress
                 ->whereStakeholder($organization)
                 ->delete();
         });
+    }
+
+    /**
+     * Force-delete the organization and its inbound relationships atomically.
+     *
+     * A root tenant that still has tenant children must survive the foreign key
+     * restriction without losing its relationships.
+     */
+    public function forceDelete(): ?bool
+    {
+        return DB::transaction(fn (): ?bool => parent::forceDelete());
     }
 
     /**
@@ -131,7 +144,7 @@ class Organization extends Entity implements HasAddress
     {
         return $this->morphedByMany($stakeholder, 'stakeholder', 'organization_relationships', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'code', 'start_date', 'finish_date');
+            ->withPivot('type', 'kind', 'code', 'start_date', 'finish_date');
     }
 
     /**

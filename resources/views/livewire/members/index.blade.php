@@ -15,7 +15,7 @@
                     {{ __('Add member') }}
                 </flux:button>
 
-                @if ($selected !== [])
+                @if ($selected !== [] && $canDeleteMembers)
                     <flux:dropdown align="end" class="order-first">
                         <flux:button icon:trailing="chevron-down">
                             {{ __('Action') }}
@@ -46,7 +46,7 @@
                         {{ __('Add member') }}
                     </flux:menu.item>
 
-                    @if ($selected !== [])
+                    @if ($selected !== [] && $canDeleteMembers)
                         <flux:menu.separator />
 
                         <flux:menu.item
@@ -92,7 +92,7 @@
                 <flux:table.columns>
                     <flux:table.column>
                         <span class="inline-flex items-center gap-2">
-                            @if ($canManage)
+                            @if ($canManage && $canDeleteMembers)
                                 <label class="relative -m-1.5 inline-flex shrink-0 cursor-pointer items-center justify-center p-1.5">
                                     <input
                                         type="checkbox"
@@ -173,7 +173,7 @@
                                         <flux:badge size="sm" color="zinc">{{ __('You') }}</flux:badge>
                                     @endif
 
-                                    @if ($canManageMember)
+                                    @if ($canManageMember && $canDeleteMembers)
                                         <span
                                             class="absolute left-0 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center"
                                             x-on:click="if (! $event.target.closest('ui-checkbox')) { $event.stopPropagation(); $el.querySelector('ui-checkbox').click() }"
@@ -245,13 +245,15 @@
 
                                             <flux:menu.separator />
 
-                                            <flux:menu.item
-                                                variant="danger"
-                                                icon="trash"
-                                                wire:click="confirmDelete({{ $member->id }})"
-                                            >
-                                                {{ __('Remove member') }}
-                                            </flux:menu.item>
+                                            @if ($canDeleteMembers)
+                                                <flux:menu.item
+                                                    variant="danger"
+                                                    icon="trash"
+                                                    wire:click="confirmDelete({{ $member->id }})"
+                                                >
+                                                    {{ __('Remove member') }}
+                                                </flux:menu.item>
+                                            @endif
                                         </flux:menu>
                                     </flux:dropdown>
                                 @endif

@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace App\Actions\Tenancy;
 
 use App\Actions\Contacts\CreateContact;
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 final class ProvisionPublicTenant
 {
-    public function __construct(private CreateContact $createContact)
-    {
+    public function __construct(
+        private CreateContact $createContact,
+        private RelationshipTimeline $timeline,
+    ) {
         // .
     }
 
@@ -44,7 +49,10 @@ final class ProvisionPublicTenant
         $organization->update([
             'is_tenant' => true,
             'root_organization_id' => $root->getKey(),
+            'owner_organization_id' => $organization->getKey(),
         ]);
+
+        $organization->primaryContact?->update(['owner_organization_id' => null]);
 
         $organization->members()->attach($organization->contact_id, [
             'type' => OrganizationRelationshipType::Member,
@@ -52,6 +60,17 @@ final class ProvisionPublicTenant
             'is_primary' => true,
             'start_date' => now(),
         ]);
+
+        $membership = OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->where('stakeholder_type', (new Person)->getMorphClass())
+            ->where('stakeholder_id', $organization->contact_id)
+            ->where('type', OrganizationRelationshipType::Member)
+            ->first();
+
+        if ($membership !== null) {
+            $this->timeline->open($membership);
+        }
 
         return $organization;
     }

@@ -14,6 +14,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
+use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -103,7 +104,7 @@ class Index extends Component
             'email' => $this->createCredential
                 ? $this->emailRules()
                 : ['nullable', 'string', 'email', 'max:255'],
-            'role' => ['required', Rule::enum(Role::class)],
+            'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
         ]);
 
         $role = Role::from((int) $validated['role']);
@@ -120,6 +121,7 @@ class Index extends Component
             $role,
             $hasCredential ? $validated['email'] : null,
             $photoUrl,
+            Auth::user(),
         );
 
         $this->reset('name', 'email', 'createCredential', 'photo', 'showCreateModal');
@@ -257,6 +259,8 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
+        abort_unless(MemberDeletion::enabled($organization), 403);
+
         $this->authorizeManager();
 
         $person = $organization->members()->whereKey($personId)->firstOrFail();
@@ -281,9 +285,7 @@ class Index extends Component
     #[Computed]
     public function roles(): array
     {
-        return $this->currentRole()?->isOwner()
-            ? Role::cases()
-            : [Role::Admin, Role::Member];
+        return [Role::Admin, Role::Member];
     }
 
     #[Computed]
@@ -360,6 +362,8 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
+        abort_unless(MemberDeletion::enabled($organization), 403);
+
         $this->authorizeManager();
 
         $actor = Auth::user();
@@ -416,6 +420,7 @@ class Index extends Component
             'organization' => $this->currentOrganization(),
             'currentRole' => $currentRole,
             'canManage' => $currentRole?->isOwner() || $currentRole?->isAdmin(),
+            'canDeleteMembers' => MemberDeletion::enabled($this->currentOrganization()),
         ])->title(__('Members'));
     }
 

@@ -308,6 +308,61 @@ test('a failed create removes the uploaded photo', function () {
     expect(Storage::disk()->allFiles('photos'))->toBe([]);
 });
 
+test('an expired contact is renewed in place', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Renewable Person']);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    OrganizationRelationship::query()
+        ->whereKey($relationshipId)
+        ->update([
+            'code' => 'OLD-CODE',
+            'type' => OrganizationRelationshipType::Customer,
+            'start_date' => now()->subMonth(),
+            'finish_date' => now()->subDay(),
+        ]);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('selectedEntity', 'individual:'.$person->uuid)
+        ->set('role', OrganizationRelationshipType::Supplier->value)
+        ->set('code', 'OLD-CODE')
+        ->set('start_date', now()->toDateString())
+        ->set('finish_date', now()->addMonth()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $relationship = OrganizationRelationship::query()->whereKey($relationshipId)->firstOrFail();
+
+    expect(OrganizationRelationship::query()
+        ->where('stakeholder_type', Person::class)
+        ->where('stakeholder_id', $person->getKey())
+        ->count())->toBe(1)
+        ->and($relationship->type)->toBe(OrganizationRelationshipType::Supplier)
+        ->and($relationship->code)->toBe('OLD-CODE')
+        ->and($relationship->start_date?->toDateString())->toBe(now()->toDateString())
+        ->and($relationship->finish_date)->toBeNull();
+});
+
+test('a scheduled contact cannot be selected for reuse', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Scheduled Person']);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($organization, $person))
+        ->update(['start_date' => now()->addWeek(), 'finish_date' => null]);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('selectedEntity', 'individual:'.$person->uuid)
+        ->assertSet('selectedEntity', null);
+});
+
 test('a contact already in the tenant list cannot be selected for reuse', function () {
     $source = Organization::factory()->create();
     $target = Organization::factory()->create();

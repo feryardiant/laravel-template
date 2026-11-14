@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\ApprovalRequestLinkController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\NotificationPollerController;
 use App\Http\Controllers\StoredFileController;
@@ -45,6 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::livewire('general', OrgSettings\General::class)->name('org-settings.general');
         Route::livewire('features', OrgSettings\Features::class)->name('org-settings.features');
+        Route::livewire('subsidiaries', OrgSettings\Subsidiaries::class)->name('org-settings.subsidiaries');
+        Route::livewire('approval-history', OrgSettings\ApprovalHistory::class)->name('org-settings.approval-history');
     });
 
     Route::livewire('notifications', NotificationIndex::class)->name('notifications.index');
@@ -64,9 +67,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('settings/preferences', Preferences::class)->name('preferences.edit');
     Route::patch('settings/preferences', UpdatePreferencesController::class)->name('preferences.update');
 
-    Route::livewire('settings/organization', Organizations::class)
+    Route::get('settings/organizations/approvals/{approval}', ApprovalRequestLinkController::class)
+        ->middleware('signed')
+        ->name('organizations.approval.link');
+
+    Route::livewire('settings/organizations', Organizations::class)
         ->middleware(['password.confirm'])
-        ->name('organization.edit');
+        ->name('organizations.index');
 
     Route::livewire('settings/security', Security::class)
         ->middleware(['password.confirm'])

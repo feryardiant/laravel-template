@@ -8,11 +8,13 @@ use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
+use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
+use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -26,6 +28,10 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
+/**
+ * @property-read bool $canEditProfile
+ * @property-read bool $genderEditable
+ */
 class Edit extends Component
 {
     use HasCurrentOrganization, ProfileValidationRules, WithFileUploads;
@@ -47,6 +53,11 @@ class Edit extends Component
 
     public int $role = Role::Member->value;
 
+    public ?string $gender = null;
+
+    #[Locked]
+    public bool $genderEnabled = false;
+
     /**
      * @var mixed
      */
@@ -62,6 +73,7 @@ class Edit extends Component
     {
         if ($person instanceof Person) {
             $this->fromDetail = true;
+            $this->genderEnabled = ContactGender::enabled($this->currentOrganization());
             $this->fillFrom($person);
         }
     }
@@ -76,6 +88,7 @@ class Edit extends Component
 
         $this->authorizeManager();
         $this->authorizeTarget($person);
+        $this->genderEnabled = ContactGender::enabled($this->requireOrganization());
         $this->fillFrom($person);
 
         $this->showModal = true;
@@ -93,19 +106,43 @@ class Edit extends Component
         abort_if($this->person === null, 404);
 
         $this->person = $this->member($this->person->getKey());
+        $this->authorizeTarget($this->person);
         $this->email = Str::lower($this->email);
 
-        $this->validate([
-            'photo' => ['nullable', 'image', 'max:2048'],
-        ]);
+        $canEditProfile = $this->canEditProfile;
 
-        $validated = $this->validate([
-            'name' => $this->nameRules(),
-            'email' => $this->hasCredential
+        if (! $canEditProfile) {
+            abort_if($this->name !== $this->person->name, 403);
+            abort_if($this->createCredential, 403);
+            abort_if($this->photo instanceof UploadedFile, 403);
+
+            if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+                abort(403);
+            }
+        }
+
+        if ($canEditProfile) {
+            $this->validate([
+                'photo' => ['nullable', 'image', 'max:2048'],
+            ]);
+        }
+
+        $rules = [
+            'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
+        ];
+
+        if ($canEditProfile) {
+            $rules['name'] = $this->nameRules();
+            $rules['email'] = $this->hasCredential
                 ? $this->emailRules($this->person->user_id)
-                : ($this->createCredential ? $this->emailRules() : ['nullable', 'string', 'email', 'max:255']),
-            'role' => ['required', Rule::enum(Role::class)],
-        ]);
+                : ($this->createCredential ? $this->emailRules() : ['nullable', 'string', 'email', 'max:255']);
+
+            if ($this->genderEnabled && $this->genderEditable) {
+                $rules['gender'] = ['nullable', Rule::enum(Gender::class)];
+            }
+        }
+
+        $validated = $this->validate($rules);
 
         /** @var User|null $actor */
         $actor = Auth::user();
@@ -124,48 +161,60 @@ class Edit extends Component
         }
 
         // Credentials are global: editing an email shared with other organizations would hand them the account.
-        if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+        if ($canEditProfile && $this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
             abort_if($this->person->organizations()->whereKeyNot($organization->getKey())->exists(), 403);
         }
 
         $previousPhoto = $this->person->getRawOriginal('photo_url');
-        $photoUrl = $this->photo_url;
+        $photoUrl = $previousPhoto;
 
-        if ($this->photo instanceof UploadedFile) {
-            $photoUrl = $fileStorage->replace($this->photo, 'photos', $previousPhoto);
-        } elseif ($previousPhoto !== $this->photo_url) {
-            $fileStorage->delete($previousPhoto);
+        if ($canEditProfile) {
+            $photoUrl = $this->photo_url;
+
+            if ($this->photo instanceof UploadedFile) {
+                $photoUrl = $fileStorage->replace($this->photo, 'photos', $previousPhoto);
+            } elseif ($previousPhoto !== $this->photo_url) {
+                $fileStorage->delete($previousPhoto);
+            }
         }
 
         $emailChanged = false;
         $credentialCreated = false;
+        $gender = $this->genderEnabled && $this->genderEditable
+            ? ($validated['gender'] ?? null)
+            : null;
 
-        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, &$emailChanged, &$credentialCreated): void {
-            $this->person->update([
-                'name' => $validated['name'],
-                'photo_url' => $photoUrl,
-            ]);
+        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, &$emailChanged, &$credentialCreated): void {
+            if ($canEditProfile) {
+                $attributes = [
+                    'name' => $validated['name'],
+                    'photo_url' => $photoUrl,
+                ];
 
-            if ($this->hasCredential) {
+                if ($gender !== null) {
+                    $attributes['gender'] = $gender;
+                }
+
+                $this->person->update($attributes);
+            }
+
+            if ($canEditProfile && $this->hasCredential) {
                 $user = $this->person->user;
 
                 abort_if($user === null, 404);
 
                 $emailChanged = $user->email !== $this->email;
 
-                $user->fill([
-                    'name' => $validated['name'],
-                    'email' => $this->email,
-                ]);
+                $user->email = $this->email;
 
                 if ($emailChanged) {
                     $user->email_verified_at = null;
                 }
 
                 $user->save();
-            } elseif ($this->createCredential) {
+            } elseif ($canEditProfile && $this->createCredential) {
                 $user = app(CreateUser::class)->handle(
-                    name: $validated['name'],
+                    name: $this->person->name,
                     email: $this->email,
                     password: Str::random(16),
                 );
@@ -206,9 +255,27 @@ class Edit extends Component
     #[Computed]
     public function roles(): array
     {
-        return $this->currentRole()?->isOwner()
-            ? Role::cases()
-            : [Role::Admin, Role::Member];
+        return [Role::Admin, Role::Member];
+    }
+
+    /**
+     * Determine whether the current organization controls this person's profile.
+     */
+    #[Computed]
+    public function canEditProfile(): bool
+    {
+        $organization = $this->currentOrganization();
+
+        return $organization !== null && $this->person?->isOwnedBy($organization) === true;
+    }
+
+    /**
+     * Gender can be set once.
+     */
+    #[Computed]
+    public function genderEditable(): bool
+    {
+        return $this->canEditProfile && $this->person !== null && $this->person->gender === null;
     }
 
     public function render(): View
@@ -227,6 +294,7 @@ class Edit extends Component
         $this->hasCredential = $person->user_id !== null;
         $this->createCredential = false;
         $this->email = $person->user_id === null ? '' : $person->user->email;
+        $this->gender = $person->gender?->value;
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
     }
 
