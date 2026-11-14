@@ -83,6 +83,28 @@
                                     </flux:button>
                                 @endif
 
+                                @if ($membership['isDefault'])
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="star"
+                                        disabled
+                                        :tooltip="__('This is your default organization.')"
+                                    >
+                                        {{ __('Default') }}
+                                    </flux:button>
+                                @else
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="star"
+                                        wire:click="setDefault({{ $organization->id }})"
+                                        :tooltip="__('Set this organization as your default.')"
+                                    >
+                                        {{ __('Set default') }}
+                                    </flux:button>
+                                @endif
+
                                 @if ($pendingApproval !== null)
                                     <div class="flex items-center gap-2">
                                         <span class="relative flex size-2" aria-hidden="true">

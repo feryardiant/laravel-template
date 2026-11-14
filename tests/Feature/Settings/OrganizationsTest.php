@@ -57,6 +57,51 @@ test('the organizations settings page lists every joined organization with a rol
         ->assertSeeHtml('wire:click="manage(');
 });
 
+test('the default organization is marked and other rows can become default', function () {
+    $first = Organization::factory()->create(['name' => 'First Org']);
+    $second = Organization::factory()->create(['name' => 'Second Org']);
+
+    $user = actingAsMember($first, Role::Member, true);
+    app(CreateMember::class)->attach($second, $user->person, role: Role::Member);
+
+    Livewire::test(Organizations::class)
+        ->assertSee(__('Default'))
+        ->assertSee(__('Set default'))
+        ->assertSeeHtml('wire:click="setDefault('.$second->getKey().')"')
+        ->assertDontSeeHtml('wire:click="setDefault('.$first->getKey().')"');
+});
+
+test('a member can change their default organization', function () {
+    $first = Organization::factory()->create(['name' => 'First Org']);
+    $second = Organization::factory()->create(['name' => 'Second Org']);
+
+    $user = actingAsMember($first, Role::Member, true);
+    app(CreateMember::class)->attach($second, $user->person, role: Role::Member);
+
+    Livewire::test(Organizations::class)
+        ->call('setDefault', $second->getKey())
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('Default organization updated.'),
+        );
+
+    expect($user->person->fresh()->defaultOrganization()?->is($second))->toBeTrue()
+        ->and($first->members()->whereKey($user->person->getKey())->firstOrFail()->pivot->is_primary)->toBeNull()
+        ->and(session(CurrentOrganization::SESSION_KEY))->toBe($first->getKey());
+});
+
+test('a user cannot default an organization they do not belong to', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Member, true);
+
+    $foreign = Organization::factory()->create();
+
+    Livewire::test(Organizations::class)
+        ->call('setDefault', $foreign->getKey())
+        ->assertNotFound();
+});
+
 test('a subsidiary row shows its parent organization', function () {
     Organization::factory()->asRootTenant()->create();
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Settings;
 
 use App\Actions\Memberships\LeaveOrganization;
+use App\Actions\Memberships\SetDefaultOrganization;
 use App\Actions\Organizations\AcceptMembershipLeave;
 use App\Actions\Organizations\AcceptOwnershipTransfer;
 use App\Actions\Organizations\CancelApprovalRequest;
@@ -434,9 +435,29 @@ class Organizations extends Component
     }
 
     /**
+     * Make the given organization the user's default workspace.
+     */
+    public function setDefault(int $organizationId, SetDefaultOrganization $setDefault): void
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        abort_unless($user instanceof User, 403);
+
+        $organization = $user->organizations()->firstWhere('id', $organizationId);
+
+        abort_if($organization === null, 404);
+        abort_unless($setDefault->handle($user, $organization), 404);
+
+        unset($this->memberships);
+
+        Flux::toast(variant: 'success', text: __('Default organization updated.'));
+    }
+
+    /**
      * The organizations the user belongs to, with their role and options.
      *
-     * @return Collection<int, array{organization: Organization, role: ?Role, isCurrent: bool, canManage: bool, isLastOwner: bool, parent: ?Organization, kind: ?SubsidiaryKind, pendingApproval: ?ApprovalRequest, pendingRequest: ?ApprovalRequest}>
+     * @return Collection<int, array{organization: Organization, role: ?Role, isCurrent: bool, canManage: bool, isLastOwner: bool, isDefault: bool, parent: ?Organization, kind: ?SubsidiaryKind, pendingApproval: ?ApprovalRequest, pendingRequest: ?ApprovalRequest}>
      */
     #[Computed]
     public function memberships(): Collection
@@ -444,6 +465,7 @@ class Organizations extends Component
         /** @var User|null $user */
         $user = Auth::user();
         $current = $this->currentOrganization();
+        $defaultId = $user?->defaultOrganization()?->getKey();
 
         $organizations = $user instanceof User ? $user->organizations() : collect();
 
@@ -473,7 +495,7 @@ class Organizations extends Component
         $asApprover = $approvals->where('approver_person_id', $personId)->keyBy('organization_id');
         $asRequester = $approvals->where('requester_person_id', $personId)->keyBy('organization_id');
 
-        return $organizations->map(function (Organization $organization) use ($user, $current, $parents, $asApprover, $asRequester): array {
+        return $organizations->map(function (Organization $organization) use ($user, $current, $defaultId, $parents, $asApprover, $asRequester): array {
             $role = $user?->roleIn($organization);
             $parent = $parents->get($organization->getKey());
             $approval = $asApprover->get($organization->getKey());
@@ -485,6 +507,7 @@ class Organizations extends Component
                 'isCurrent' => $current?->is($organization) === true,
                 'canManage' => $role?->isOwner() === true || $role?->isAdmin() === true,
                 'isLastOwner' => $role?->isOwner() === true && $organization->activeOwnerCount() === 1,
+                'isDefault' => $defaultId !== null && $defaultId === $organization->getKey(),
                 'parent' => $parent instanceof OrganizationRelationship ? $parent->organization : null,
                 'kind' => $parent instanceof OrganizationRelationship
                     ? ($parent->kind ?? SubsidiaryKind::Subsidiary)

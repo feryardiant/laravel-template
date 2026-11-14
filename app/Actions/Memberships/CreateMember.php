@@ -74,6 +74,10 @@ final class CreateMember
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            // A person's first workspace is their default; later memberships
+            // only become the default when explicitly requested.
+            $isPrimary = $isPrimary || ! $member->memberships()->exists();
+
             if ($isPrimary) {
                 // shortcut: primary membership is global until relationship rows
                 // carry a tenant key; then scope this reset to the organization.

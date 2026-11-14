@@ -94,7 +94,7 @@ test('setup provisions the root tenant and owner', function () {
     expect($organization->is_tenant)->toBeTrue();
     expect($organization->root_organization_id)->toBeNull();
     expect($person->roleIn($organization))->toBe(Role::Owner);
-    expect($person->primaryOrganization()?->is($organization))->toBeTrue();
+    expect($person->defaultOrganization()?->is($organization))->toBeTrue();
     expect(Auth::id())->toBe($user->getKey());
     expect(session(CurrentOrganization::SESSION_KEY))->toBe($organization->getKey());
 });

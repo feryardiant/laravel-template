@@ -120,9 +120,9 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
-     * Get the person's primary organization.
+     * Get the person's default workspace.
      */
-    public function primaryOrganization(): ?Organization
+    public function defaultOrganization(): ?Organization
     {
         return $this->organizations()->wherePivot('is_primary', true)->first();
     }

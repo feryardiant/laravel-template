@@ -32,7 +32,7 @@ final class CurrentOrganization
             }
         }
 
-        return $person->primaryOrganization() ?? $person->organizations()->first();
+        return $person->defaultOrganization() ?? $person->organizations()->first();
     }
 
     /**

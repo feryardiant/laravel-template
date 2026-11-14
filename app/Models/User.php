@@ -99,11 +99,11 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * Get the user's primary organization.
+     * Get the user's default workspace.
      */
-    public function primaryOrganization(): ?Organization
+    public function defaultOrganization(): ?Organization
     {
-        return $this->person?->primaryOrganization();
+        return $this->person?->defaultOrganization();
     }
 
     /**

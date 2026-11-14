@@ -62,7 +62,6 @@ final class CreateOrganization
                 $this->membership->attach(
                     $organization,
                     $person,
-                    isPrimary: $person->primaryOrganization() === null,
                     startDate: now(),
                     role: Role::Owner,
                 );
