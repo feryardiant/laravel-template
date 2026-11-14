@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Actions\Organizations\ReconcileOwners;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\OwnershipTransferStatus;
-use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -29,20 +29,9 @@ return new class extends Migration
         $connection = DB::connection();
         $supportsPartialIndexes = \in_array($connection->getDriverName(), ['pgsql', 'sqlite'], true);
 
-        // Earlier releases let several members hold Owner; keep the oldest row
+        // Earlier releases let several members hold Owner; keep a usable one
         // so the unique index below can be created on an existing database.
-        $connection->update(
-            'UPDATE organization_relationships SET role = ?'
-            .' WHERE type = ? AND role = ? AND id NOT IN ('
-            .'SELECT MIN(id) FROM organization_relationships WHERE type = ? AND role = ? GROUP BY organization_id)',
-            [
-                Role::Admin->value,
-                OrganizationRelationshipType::Member->value,
-                Role::Owner->value,
-                OrganizationRelationshipType::Member->value,
-                Role::Owner->value,
-            ],
-        );
+        app(ReconcileOwners::class)->handle();
 
         // shortcut: only pgsql/sqlite support partial indexes, add an
         // application-level check if another driver is ever supported.

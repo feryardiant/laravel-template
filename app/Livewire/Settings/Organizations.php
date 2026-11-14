@@ -102,15 +102,23 @@ class Organizations extends Component
      */
     public function acceptTransfer(AcceptOwnershipTransfer $acceptOwnership): void
     {
-        $transfer = $this->pendingTransferForUser();
         $user = Auth::user();
 
         abort_unless($user instanceof User, 403);
 
+        $transfer = $this->pendingTransferForUser();
+
+        if ($transfer === null) {
+            $this->dismissTransfer();
+
+            Flux::toast(variant: 'danger', text: __('This ownership transfer is no longer valid.'));
+
+            return;
+        }
+
         $accepted = $acceptOwnership->handle($transfer, $user);
 
-        $this->reset('showTransferModal', 'transferId', 'transferOrganizationName', 'transferOwnerName');
-        unset($this->memberships);
+        $this->dismissTransfer();
 
         Flux::toast(
             variant: $accepted ? 'success' : 'danger',
@@ -125,15 +133,23 @@ class Organizations extends Component
      */
     public function declineTransfer(DeclineOwnershipTransfer $declineOwnership): void
     {
-        $transfer = $this->pendingTransferForUser();
         $user = Auth::user();
 
         abort_unless($user instanceof User, 403);
 
+        $transfer = $this->pendingTransferForUser();
+
+        if ($transfer === null) {
+            $this->dismissTransfer();
+
+            Flux::toast(variant: 'danger', text: __('This ownership transfer is no longer valid.'));
+
+            return;
+        }
+
         $declined = $declineOwnership->handle($transfer, $user);
 
-        $this->reset('showTransferModal', 'transferId', 'transferOrganizationName', 'transferOwnerName');
-        unset($this->memberships);
+        $this->dismissTransfer();
 
         Flux::toast(
             variant: $declined ? 'success' : 'danger',
@@ -144,18 +160,27 @@ class Organizations extends Component
     /**
      * Resolve the transfer currently open in the modal.
      */
-    private function pendingTransferForUser(): OrganizationOwnershipTransfer
+    private function pendingTransferForUser(): ?OrganizationOwnershipTransfer
     {
         $user = Auth::user();
 
-        abort_if($this->transferId === null || ! $user instanceof User || $user->person === null, 404);
+        if ($this->transferId === null || ! $user instanceof User || $user->person === null) {
+            return null;
+        }
 
         return OrganizationOwnershipTransfer::query()
             ->whereKey($this->transferId)
             ->where('to_person_id', $user->person->getKey())
-            ->where('status', OwnershipTransferStatus::Pending)
-            ->where('expires_at', '>', now())
-            ->firstOrFail();
+            ->first();
+    }
+
+    /**
+     * Close the transfer modal and drop its cached data.
+     */
+    private function dismissTransfer(): void
+    {
+        $this->reset('showTransferModal', 'transferId', 'transferOrganizationName', 'transferOwnerName');
+        unset($this->memberships);
     }
 
     /**

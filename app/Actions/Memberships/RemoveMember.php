@@ -33,9 +33,31 @@ final class RemoveMember
             return;
         }
 
-        DB::transaction(fn () => $organization->members()->detach($persons->modelKeys()));
+        $removed = DB::transaction(function () use ($organization, $persons, $actor): Collection {
+            $organization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
-        foreach ($persons as $person) {
+            if ($organization === null) {
+                return new Collection;
+            }
+
+            $actorRole = $actor?->person?->roleIn($organization);
+
+            if ($actor !== null && ($actorRole?->isOwner() !== true && $actorRole?->isAdmin() !== true)) {
+                return new Collection;
+            }
+
+            // Owners only leave through `LeaveOrganization` or an ownership
+            // transfer, even when the removal was authorized before a transfer.
+            $removed = $persons->reject(
+                fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
+            );
+
+            $organization->members()->detach($removed->modelKeys());
+
+            return $removed;
+        });
+
+        foreach ($removed as $person) {
             try {
                 event(new MemberRemoved(
                     $organization,

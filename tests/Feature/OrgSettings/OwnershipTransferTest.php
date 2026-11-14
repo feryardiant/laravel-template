@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\RemoveMember;
 use App\Actions\Organizations\AcceptOwnershipTransfer;
 use App\Actions\Organizations\DeclineOwnershipTransfer;
 use App\Enums\OwnershipTransferStatus;
@@ -319,4 +320,50 @@ test('accepting after the recipient lost their membership keeps the owner in pla
         ->and($organization->activeOwnerCount())->toBe(1);
 
     Notification::assertNotSentTo($owner, OwnershipTransferredNotification::class);
+});
+
+test('a modal left open on a stale request reports it as invalid', function () {
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $transfer = requestOwnershipTransferForTest($organization);
+
+    loginAsTransferRecipient($recipient, $organization);
+
+    $component = Livewire::test(Organizations::class)
+        ->call('openTransfer', $organization->getKey())
+        ->assertSet('showTransferModal', true);
+
+    $transfer->update(['expires_at' => now()->subMinute()]);
+
+    $component->call('acceptTransfer')
+        ->assertSet('showTransferModal', false)
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This ownership transfer is no longer valid.'),
+        );
+
+    expect($transfer->fresh()->status)->toBe(OwnershipTransferStatus::Pending)
+        ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
+        ->and($recipient->person->roleIn($organization))->toBe(Role::Member);
+});
+
+test('a member cannot be removed after they become the owner', function () {
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    requestOwnershipTransferForTest($organization);
+
+    loginAsTransferRecipient($recipient, $organization);
+
+    Livewire::test(Organizations::class)
+        ->call('openTransfer', $organization->getKey())
+        ->call('acceptTransfer');
+
+    app(RemoveMember::class)->handle($organization, $recipient->person, $owner);
+
+    expect($recipient->person->fresh()->roleIn($organization))->toBe(Role::Owner)
+        ->and($organization->activeOwnerCount())->toBe(1);
 });
