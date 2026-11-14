@@ -48,9 +48,14 @@ final class RemoveMember
 
             // Owners only leave through `LeaveOrganization` or an ownership
             // transfer, even when the removal was authorized before a transfer.
-            $removed = $persons->reject(
-                fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
-            );
+            // Only people still in the organization are detached, so a repeated
+            // or stale request cannot emit another removal event.
+            $removed = $organization->members()
+                ->whereKey($persons->modelKeys())
+                ->get()
+                ->reject(
+                    fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
+                );
 
             $organization->members()->detach($removed->modelKeys());
 

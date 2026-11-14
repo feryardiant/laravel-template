@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Memberships\RemoveMember;
 use App\Enums\Role;
 use App\Livewire\Members\Index;
 use App\Models\Organization;
@@ -107,6 +108,37 @@ test('removing a member notifies them once', function () {
             && $notification->actor?->is($actor) === true
             && $notification->lastMembership === true,
     );
+});
+
+test('removing the same member twice notifies only once', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Owner);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $action = app(RemoveMember::class);
+    $action->handle($organization, $member->person, $actor);
+    $action->handle($organization, $member->person, $actor);
+
+    Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1);
+});
+
+test('an actor demoted before the removal cannot remove a member', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $actor = actingAsMember($organization, Role::Admin);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $organization->members()->updateExistingPivot($actor->person->getKey(), ['role' => Role::Member]);
+
+    app(RemoveMember::class)->handle($organization, $member->person, $actor);
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+    Notification::assertNothingSent();
 });
 
 test('a manager removal does not notify the owners', function () {
