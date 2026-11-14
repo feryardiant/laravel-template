@@ -30,6 +30,10 @@
                         @if ($this->pendingTransfer !== null)
                             <flux:callout variant="warning" icon="clock" :heading="__('Ownership transfer pending')">
                                 <flux:callout.text>
+                                    <flux:badge size="sm" color="amber" class="mb-2">
+                                        {{ $this->pendingTransfer->status->label() }}
+                                    </flux:badge>
+
                                     {{ __('Pending transfer to :name', ['name' => $this->pendingTransfer->toPerson->name]) }}.
                                     {{ __('Expires on') }}
                                     <x-local-time :date="$this->pendingTransfer->expires_at" format="d M Y H:i" />.

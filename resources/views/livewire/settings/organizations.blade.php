@@ -92,6 +92,10 @@
                                             {{ __('Ownership transfer requested') }}
                                         </flux:text>
 
+                                        <flux:badge size="sm" color="sky">
+                                            {{ $membership['pendingTransfer']->status->label() }}
+                                        </flux:badge>
+
                                         <flux:button
                                             size="sm"
                                             variant="primary"
