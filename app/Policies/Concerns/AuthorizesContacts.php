@@ -36,13 +36,15 @@ trait AuthorizesContacts
 
     public function updateContact(User $user, Organization|Person $entity): bool
     {
-        return $this->managesContacts($user)
+        return ! $entity->trashed()
+            && $this->managesContacts($user)
             && $this->isCounterpartyOfCurrentOrganization($user, $entity);
     }
 
     public function deleteContact(User $user, Organization|Person $entity): bool
     {
-        return $this->updateContact($user, $entity);
+        return $this->managesContacts($user)
+            && $this->isCounterpartyOfCurrentOrganization($user, $entity);
     }
 
     public function deleteAnyContact(User $user): bool

@@ -38,7 +38,7 @@ class View extends Component
         return view('livewire.contacts.view', [
             'stakeholder' => $stakeholder,
             'isOrganization' => $this->contact->isOrganization(),
-            'contactPerson' => $stakeholder instanceof Organization ? $stakeholder->primaryContact : null,
+            'contactPerson' => $stakeholder instanceof Organization && ! $stakeholder->trashed() ? $stakeholder->primaryContact : null,
             'showGender' => ContactGender::enabled($this->currentOrganization()),
         ])->title(__('Contact details'));
     }

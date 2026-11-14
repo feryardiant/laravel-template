@@ -55,6 +55,27 @@ test('a contact whose stakeholder is soft-deleted is not listed', function () {
         ->assertDontSee('Deleted Contact');
 });
 
+test('a deleted organization tombstone remains in the contact list', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $contact = contactOrganization($organization, ['name' => 'Deleted Org']);
+    $contact->delete();
+
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    Livewire::test(Index::class)
+        ->assertSee('Deleted Org')
+        ->assertSee(__('Deleted'))
+        ->call('editContact', $relationshipId)
+        ->assertForbidden();
+
+    get(route('contacts.view', ['stakeholder' => $contact->uuid]))
+        ->assertOk()
+        ->assertSee(__('This organization has been deleted.'));
+});
+
 test('organization rows show their contact person and individuals show a dash', function () {
     $organization = Organization::factory()->create();
 

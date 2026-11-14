@@ -7,10 +7,12 @@ namespace App\Models;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipStatus;
 use App\Enums\Role;
+use App\Enums\SubsidiaryKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -23,6 +25,7 @@ use InvalidArgumentException;
  * @property int $organization_id
  * @property ?string $stakeholder_type
  * @property null|OrganizationRelationshipType $type
+ * @property null|SubsidiaryKind $kind
  * @property null|Role $role
  * @property null|string $remark
  * @property null|CarbonImmutable $start_date
@@ -30,6 +33,7 @@ use InvalidArgumentException;
  * @property-read RelationshipStatus $status
  * @property-read bool $is_internal
  * @property-read bool $is_external
+ * @property-read ?Organization $organization
  * @property-read Organization|Person|null $stakeholder
  *
  * @method static Builder<static> whereStakeholder(Organization|Person $entity)
@@ -56,6 +60,12 @@ class OrganizationRelationship extends MorphPivot
                 $relationship->role = null;
             } elseif ($relationship->role === null) {
                 $relationship->role = Role::Member;
+            }
+
+            if ($relationship->type !== OrganizationRelationshipType::Subsidiary) {
+                $relationship->kind = null;
+            } elseif ($relationship->kind === null) {
+                $relationship->kind = SubsidiaryKind::Subsidiary;
             }
 
             if ($relationship->type === null || $relationship->stakeholder_type === null) {
@@ -89,10 +99,21 @@ class OrganizationRelationship extends MorphPivot
         return [
             'organization_id' => 'int',
             'type' => OrganizationRelationshipType::class,
+            'kind' => SubsidiaryKind::class,
             'role' => Role::class,
             'start_date' => 'immutable_date',
             'finish_date' => 'immutable_date',
         ];
+    }
+
+    /**
+     * Get the organization that owns this relationship.
+     *
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
     }
 
     /**

@@ -1,56 +1,188 @@
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <flux:heading level="2" class="sr-only">{{ __('Organization settings') }}</flux:heading>
+    <flux:heading level="2" class="sr-only">{{ __('Organizations') }}</flux:heading>
 
-    <x-settings.layout :heading="__('Organization')" :subheading="__('Manage your membership in the current organization')">
-        @if ($organization === null)
-            <flux:text>{{ __('You are not a member of any organization.') }}</flux:text>
-        @else
-            <div class="space-y-2">
-                <flux:heading>{{ $organization->name }}</flux:heading>
+    <x-settings.layout
+        :heading="__('Organizations')"
+        :subheading="__('Manage your memberships in the organizations you have joined')"
+        width="max-w-none"
+    >
+        <x-slot:actions>
+            <flux:button icon="plus" wire:click="$dispatch('create-organization')">
+                {{ __('New organization') }}
+            </flux:button>
+        </x-slot>
 
-                @if ($role !== null)
-                    <flux:text>{{ __('Your role') }}: {{ $role->label() }}</flux:text>
-                @endif
+        <div>
+            @if ($this->memberships->isEmpty())
+                <flux:text>{{ __('You are not a member of any organization.') }}</flux:text>
+            @else
+                <div class="divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200 dark:divide-white/10 dark:border-white/10">
+                    @foreach ($this->memberships as $membership)
+                        @php($organization = $membership['organization'])
+                        @php($role = $membership['role'])
+                        @php($parent = $membership['parent'])
+                        @php($kind = $membership['kind'])
+
+                        <div
+                            wire:key="organization-{{ $organization->id }}"
+                            class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <div class="flex min-w-0 items-center gap-3">
+                                <flux:avatar
+                                    :initials="$organization->initials()"
+                                    :src="$organization->logo_url"
+                                    :tooltip="$parent !== null ? __(':kind of :name', ['kind' => $kind?->label() ?? __('Subsidiary'), 'name' => $parent->name]) : null"
+                                >
+                                    @if ($parent !== null)
+                                        <x-slot:badge>
+                                            <flux:avatar
+                                                :initials="$parent->initials()"
+                                                :src="$parent->logo_url"
+                                                class="size-3 text-[6px]"
+                                            />
+                                        </x-slot:badge>
+                                    @endif
+                                </flux:avatar>
+
+                                <div class="min-w-0">
+                                    <div class="flex min-w-0 flex-wrap items-center gap-2">
+                                        <flux:heading class="truncate">{{ $organization->name }}</flux:heading>
+
+                                        @if ($role !== null)
+                                            <flux:badge
+                                                size="sm"
+                                                :color="$role->isOwner() ? 'amber' : ($role->isAdmin() ? 'blue' : 'zinc')"
+                                            >
+                                                {{ $role->label() }}
+                                            </flux:badge>
+                                        @endif
+
+                                        @if ($membership['isCurrent'])
+                                            <flux:badge size="sm" color="zinc">{{ __('Current') }}</flux:badge>
+                                        @endif
+                                    </div>
+
+                                    <flux:text class="text-xs" variant="subtle">
+                                        <x-local-time :date="$organization->created_at" />
+                                    </flux:text>
+
+                                    @if ($parent !== null)
+                                        <span class="sr-only">{{ __(':kind of :name', ['kind' => $kind?->label() ?? __('Subsidiary'), 'name' => $parent->name]) }}</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="flex shrink-0 flex-wrap items-center gap-2">
+                                @if ($membership['canManage'])
+                                    <flux:button size="sm" wire:click="manage({{ $organization->id }})">
+                                        {{ __('Settings') }}
+                                    </flux:button>
+                                @endif
+
+                                @if ($membership['isLastOwner'])
+                                    @if ($organization->isRootTenant())
+                                        <flux:button
+                                            size="sm"
+                                            variant="danger"
+                                            disabled
+                                            :tooltip="__('You cannot leave while you are the last owner.')"
+                                        >
+                                            {{ __('Leave') }}
+                                        </flux:button>
+                                    @else
+                                        <flux:button
+                                            size="sm"
+                                            variant="danger"
+                                            wire:click="confirmRemove({{ $organization->id }})"
+                                        >
+                                            {{ __('Remove organization') }}
+                                        </flux:button>
+                                    @endif
+                                @else
+                                    <flux:button
+                                        size="sm"
+                                        variant="danger"
+                                        wire:click="confirmLeave({{ $organization->id }}, @js($organization->name))"
+                                    >
+                                        {{ __('Leave') }}
+                                    </flux:button>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </x-settings.layout>
+
+    <flux:modal
+        wire:model.self="showLeaveModal"
+        class="md:w-96"
+        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'leave-organization-heading')"
+    >
+        <form wire:submit="leave" class="space-y-6">
+            <div>
+                <flux:heading id="leave-organization-heading" size="lg">
+                    {{ __('Leave :organization?', ['organization' => $leavingOrganizationName ?? __('this organization')]) }}
+                </flux:heading>
+
+                <flux:subheading>
+                    {{ __('You will lose access to this organization. An owner or admin can add you back later.') }}
+                </flux:subheading>
             </div>
 
-            <section class="mt-10 space-y-6">
-                <div class="relative mb-5">
-                    <flux:heading>{{ __('Leave organization') }}</flux:heading>
-                    <flux:subheading>{{ __('Remove your membership from this organization') }}</flux:subheading>
-                </div>
+            <div class="flex items-center justify-between">
+                <flux:modal.close>
+                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
 
-                @if ($isLastOwner)
-                    <flux:text variant="subtle">{{ __('You cannot leave while you are the last owner.') }}</flux:text>
-                @else
-                    <flux:modal.trigger name="leave-organization">
-                        <flux:button variant="danger">{{ __('Leave organization') }}</flux:button>
-                    </flux:modal.trigger>
+                <flux:button variant="danger" type="submit">{{ __('Leave organization') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
 
-                    <flux:modal name="leave-organization" class="max-w-lg">
-                        <form wire:submit="leave" class="space-y-6">
-                            <div>
-                                <flux:heading size="lg">
-                                    {{ __('Leave :organization?', ['organization' => $organization->name]) }}
-                                </flux:heading>
+    <flux:modal
+        wire:model.self="showRemoveModal"
+        class="md:w-lg"
+        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-organization-heading')"
+    >
+        <div class="space-y-6">
+            <div>
+                <flux:heading id="remove-organization-heading" size="lg">{{ __('Remove organization') }}</flux:heading>
+                <flux:subheading>{{ $removingOrganizationName }}</flux:subheading>
+            </div>
 
-                                <flux:subheading>
-                                    {{ __('You will lose access to this organization. An owner or admin can add you back later.') }}
-                                </flux:subheading>
-                            </div>
+            <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This action cannot be undone.')">
+                <flux:callout.text>
+                    {{ __('All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.', ['name' => $removingOrganizationName]) }}
+                </flux:callout.text>
+            </flux:callout>
 
-                            <div class="flex justify-end space-x-2 rtl:space-x-reverse">
-                                <flux:modal.close>
-                                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
-                                </flux:modal.close>
+            <flux:input
+                wire:model.live="confirmation"
+                :label="__('Type :name to confirm', ['name' => $removingOrganizationName])"
+                autocomplete="off"
+            />
 
-                                <flux:button variant="danger" type="submit">{{ __('Leave organization') }}</flux:button>
-                            </div>
-                        </form>
-                    </flux:modal>
-                @endif
-            </section>
-        @endif
-    </x-settings.layout>
+            <flux:error name="confirmation" />
+
+            <div class="flex items-center justify-between">
+                <flux:modal.close>
+                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
+
+                <flux:button
+                    variant="danger"
+                    wire:click="remove"
+                    :disabled="$confirmation !== $removingOrganizationName"
+                >
+                    {{ __('Remove organization') }}
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <livewire:settings.organizations.create />
 </section>

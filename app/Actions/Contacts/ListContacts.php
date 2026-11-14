@@ -27,7 +27,11 @@ final class ListContacts
             ->select('organization_relationships.*')
             ->forOrganization($tenant)
             ->external()
-            ->whereHasMorph('stakeholder', [Organization::class, Person::class])
+            ->whereHasMorph('stakeholder', [Organization::class, Person::class], function (Builder $query, string $type): void {
+                if ($type === Organization::class) {
+                    $query->withTrashed();
+                }
+            })
             ->leftJoin('people', function (JoinClause $join): void {
                 $join->on('people.id', '=', 'organization_relationships.stakeholder_id')
                     ->where('organization_relationships.stakeholder_type', '=', (new Person)->getMorphClass());
@@ -46,7 +50,7 @@ final class ListContacts
             }))
             ->orderByRaw('COALESCE(people.created_at, organizations.created_at) desc')
             ->orderByDesc('organization_relationships.id')
-            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->morphWith([
+            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()->morphWith([
                 Organization::class => ['primaryContact'],
             ])])
             ->paginate($perPage);

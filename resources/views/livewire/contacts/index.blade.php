@@ -126,7 +126,8 @@
                         @php($isSelected = in_array($contact->id, $selectedIds, true))
                         @php($stakeholder = $contact->stakeholder)
                         @php($isOrganization = $contact->isOrganization())
-                        @php($rowClick = $canManage
+                        @php($isTrashed = $stakeholder->trashed())
+                        @php($rowClick = $canManage && ! $isTrashed
                             ? "if (! window.getSelection()?.toString() && ! \$event.target.closest('a, button, input, ui-checkbox, ui-dropdown')) \$wire.dispatch('edit-contact', { contactId: {$contact->id} })"
                             : "if (! window.getSelection()?.toString() && ! \$event.target.closest('a, button, input, ui-checkbox, ui-dropdown')) window.Livewire.navigate('".route('contacts.view', ['stakeholder' => $stakeholder])."')")
 
@@ -168,6 +169,10 @@
                                         {{ $isOrganization ? __('Organization') : __('Individual') }}
                                     </flux:badge>
 
+                                    @if ($isTrashed)
+                                        <flux:badge size="sm" color="red">{{ __('Deleted') }}</flux:badge>
+                                    @endif
+
                                     @if ($canDeleteAny)
                                         <span
                                             class="absolute left-0 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center"
@@ -191,7 +196,7 @@
                             </flux:table.cell>
 
                             <flux:table.cell class="w-2/12">
-                                @if ($isOrganization)
+                                @if ($isOrganization && ! $isTrashed)
                                     {{ $stakeholder->primaryContact?->name ?? '—' }}
                                 @else
                                     <flux:text>—</flux:text>
@@ -214,7 +219,7 @@
                                     />
 
                                     <flux:menu>
-                                        @if ($canManage)
+                                        @if ($canManage && ! $isTrashed)
                                             <flux:menu.item
                                                 icon="pencil-square"
                                                 wire:click="editContact({{ $contact->id }})"

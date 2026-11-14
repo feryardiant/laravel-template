@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -67,6 +68,17 @@ class Organization extends Entity implements HasAddress
                 ->whereStakeholder($organization)
                 ->delete();
         });
+    }
+
+    /**
+     * Force-delete the organization and its inbound relationships atomically.
+     *
+     * A root tenant that still has tenant children must survive the foreign key
+     * restriction without losing its relationships.
+     */
+    public function forceDelete(): ?bool
+    {
+        return DB::transaction(fn (): ?bool => parent::forceDelete());
     }
 
     /**
@@ -131,7 +143,7 @@ class Organization extends Entity implements HasAddress
     {
         return $this->morphedByMany($stakeholder, 'stakeholder', 'organization_relationships', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'code', 'start_date', 'finish_date');
+            ->withPivot('type', 'kind', 'code', 'start_date', 'finish_date');
     }
 
     /**

@@ -8,11 +8,18 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class OrganizationSwitcher extends Component
 {
     use HasCurrentOrganization;
+
+    #[On('organization-created')]
+    public function refreshOrganizations(): void
+    {
+        //
+    }
 
     public function render(): View
     {

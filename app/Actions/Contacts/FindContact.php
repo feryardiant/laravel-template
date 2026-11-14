@@ -22,7 +22,13 @@ final class FindContact
             ->whereHasMorph(
                 'stakeholder',
                 [Organization::class, Person::class],
-                fn (Builder $query): Builder => $query->where('uuid', $uuid),
+                function (Builder $query, string $type) use ($uuid): void {
+                    if ($type === Organization::class) {
+                        $query->withTrashed();
+                    }
+
+                    $query->where('uuid', $uuid);
+                },
             )
             ->firstOrFail();
     }
@@ -86,8 +92,12 @@ final class FindContact
         return OrganizationRelationship::query()
             ->external()
             ->forOrganization($tenant)
-            ->whereHasMorph('stakeholder', [Organization::class, Person::class])
-            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->morphWith([
+            ->whereHasMorph('stakeholder', [Organization::class, Person::class], function (Builder $query, string $type): void {
+                if ($type === Organization::class) {
+                    $query->withTrashed();
+                }
+            })
+            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()->morphWith([
                 Organization::class => ['primaryContact'],
             ])]);
     }
