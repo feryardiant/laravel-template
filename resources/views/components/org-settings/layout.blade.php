@@ -14,6 +14,9 @@
             @if ($organization?->isRootTenant() === true && ($role?->isOwner() || $role?->isAdmin()))
                 <flux:navlist.item :href="route('org-settings.subsidiaries')" wire:navigate>{{ __('Subsidiaries') }}</flux:navlist.item>
             @endif
+            @if ($role?->isOwner())
+                <flux:navlist.item :href="route('org-settings.ownership-history')" wire:navigate>{{ __('Ownership history') }}</flux:navlist.item>
+            @endif
         </flux:navlist>
     </div>
 

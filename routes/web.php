@@ -47,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('general', OrgSettings\General::class)->name('org-settings.general');
         Route::livewire('features', OrgSettings\Features::class)->name('org-settings.features');
         Route::livewire('subsidiaries', OrgSettings\Subsidiaries::class)->name('org-settings.subsidiaries');
+        Route::livewire('ownership-history', OrgSettings\OwnershipHistory::class)->name('org-settings.ownership-history');
     });
 
     Route::livewire('notifications', NotificationIndex::class)->name('notifications.index');
