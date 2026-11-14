@@ -17,6 +17,22 @@
                 />
             </x-ui.section.item>
 
+            <x-ui.section.item>
+                <flux:switch
+                    wire:model.live="memberDeletion"
+                    :label="__('Member removal')"
+                    :description="__('Allow managers to remove members from this workspace.')"
+                />
+            </x-ui.section.item>
+
+            <x-ui.section.item>
+                <flux:switch
+                    wire:model.live="contactDeletion"
+                    :label="__('Contact deletion')"
+                    :description="__('Allow managers to delete contacts from this workspace.')"
+                />
+            </x-ui.section.item>
+
             @if ($isRootTenant)
                 <x-ui.section.item>
                     <flux:switch

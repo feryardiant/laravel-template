@@ -10,6 +10,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\Feature\ContactDeletion;
 
 /**
  * Contact abilities shared by the Organization and Person policies.
@@ -43,13 +44,15 @@ trait AuthorizesContacts
 
     public function deleteContact(User $user, Organization|Person $entity): bool
     {
-        return $this->managesContacts($user)
+        return ContactDeletion::enabled(app(CurrentOrganization::class)->get($user))
+            && $this->managesContacts($user)
             && $this->isCounterpartyOfCurrentOrganization($user, $entity);
     }
 
     public function deleteAnyContact(User $user): bool
     {
-        return $this->managesContacts($user);
+        return ContactDeletion::enabled(app(CurrentOrganization::class)->get($user))
+            && $this->managesContacts($user);
     }
 
     protected function managesContacts(User $user): bool

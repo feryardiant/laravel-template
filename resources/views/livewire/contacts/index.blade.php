@@ -236,7 +236,7 @@
                                             {{ __('View contact') }}
                                         </flux:menu.item>
 
-                                        @if ($canManage)
+                                        @if ($canDeleteAny)
                                             <flux:menu.separator />
 
                                             <flux:menu.item

@@ -8,7 +8,9 @@ use App\Livewire\OrgSettings\Features;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\ContactGender;
+use App\Support\Feature\MemberDeletion;
 use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -61,6 +63,41 @@ it('toggles contact gender for any tenant', function () {
     expect(ContactGender::enabled($tenant))->toBeFalse();
 });
 
+it('enables member and contact deletion by default', function () {
+    $organization = Organization::factory()->create();
+
+    expect(MemberDeletion::enabled($organization))->toBeTrue()
+        ->and(ContactDeletion::enabled($organization))->toBeTrue();
+});
+
+it('toggles member and contact deletion per tenant', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(Features::class)
+        ->assertSet('memberDeletion', true)
+        ->assertSet('contactDeletion', true);
+
+    $component->set('memberDeletion', false)->set('contactDeletion', false)->assertHasNoErrors();
+
+    expect(MemberDeletion::enabled($organization))->toBeFalse()
+        ->and(ContactDeletion::enabled($organization))->toBeFalse();
+
+    $component->set('memberDeletion', true)->set('contactDeletion', true);
+
+    expect(MemberDeletion::enabled($organization))->toBeTrue()
+        ->and(ContactDeletion::enabled($organization))->toBeTrue();
+});
+
+it('forbids members from opening the features tab', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Member);
+
+    Livewire::test(Features::class)->assertForbidden();
+});
+
 it('shows the features tab for every tenant', function () {
     $root = Organization::factory()->asRootTenant()->create();
     $tenant = Organization::factory()->asTenantOf($root)->create();
@@ -111,7 +148,7 @@ it('rejects a stale page after the current organization changes', function () {
     app(CreateMember::class)->attach($tenantA, $user->person, isPrimary: true, role: Role::Owner);
     app(CreateMember::class)->attach($tenantB, $user->person, role: Role::Owner);
 
-    $this->actingAs($user);
+    actingAs($user);
 
     session([CurrentOrganization::SESSION_KEY => $tenantA->getKey()]);
 

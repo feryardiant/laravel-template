@@ -14,6 +14,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
+use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -257,6 +258,8 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
+        abort_unless(MemberDeletion::enabled($organization), 403);
+
         $this->authorizeManager();
 
         $person = $organization->members()->whereKey($personId)->firstOrFail();
@@ -358,6 +361,8 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
+        abort_unless(MemberDeletion::enabled($organization), 403);
+
         $this->authorizeManager();
 
         $actor = Auth::user();
@@ -414,6 +419,7 @@ class Index extends Component
             'organization' => $this->currentOrganization(),
             'currentRole' => $currentRole,
             'canManage' => $currentRole?->isOwner() || $currentRole?->isAdmin(),
+            'canDeleteMembers' => MemberDeletion::enabled($this->currentOrganization()),
         ])->title(__('Members'));
     }
 

@@ -6,13 +6,18 @@ use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\DeleteContact;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\Feature\ContactDeletion;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
+
+use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
@@ -226,4 +231,44 @@ test('deleting an organization contact created from the contact form removes the
     app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $contact));
 
     expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeTrue();
+});
+
+test('contact deletion is blocked when the workspace disables it', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Keep Me']);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    ContactDeletion::deactivate($organization);
+
+    Livewire::test(Index::class)
+        ->call('confirmDelete', $relationshipId, 'Keep Me')
+        ->call('deleteConfirmed')
+        ->assertForbidden();
+
+    Livewire::test(Index::class)
+        ->set('selected', [$relationshipId])
+        ->call('deleteSelectedConfirmed')
+        ->assertForbidden();
+
+    expect(OrganizationRelationship::query()->find($relationshipId))->not->toBeNull();
+});
+
+test('the contact view hides deletion controls when the workspace disables it', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Keep Me']);
+    contactRelationshipId($organization, $person);
+
+    ContactDeletion::deactivate($organization);
+
+    get(route('contacts.index'))
+        ->assertOk()
+        ->assertDontSeeHtml('confirmDelete(')
+        ->assertDontSeeHtml('confirmDeleteSelected')
+        ->assertDontSee(__('Select all contacts'));
 });
