@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -45,6 +46,42 @@ test('the lookup returns contacts registered by other tenants', function () {
         'label' => __('Individual').' · Lookup Person — #'.Str::substr($person->uuid, 0, 8),
         'value' => 'individual:'.$person->uuid,
     ]);
+});
+
+test('the lookup labels the tenant own expired contacts', function () {
+    $current = Organization::factory()->create();
+
+    actingAsMember($current, Role::Admin);
+
+    $person = contactIndividual($current, ['name' => 'Renew Me', 'summary' => null]);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['finish_date' => now()->subDay()]);
+
+    $payload = getJson(route('contacts.lookup', ['q' => 'Renew Me']))
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->json();
+
+    expect($payload[0]['label'])->toBe(
+        __('Individual').' · Renew Me — #'.Str::substr($person->uuid, 0, 8).' ('.__('Expired').')',
+    );
+    expect($payload[0]['value'])->toBe('individual:'.$person->uuid);
+});
+
+test('the lookup excludes the tenant own scheduled contacts', function () {
+    $current = Organization::factory()->create();
+
+    actingAsMember($current, Role::Admin);
+
+    $person = contactIndividual($current, ['name' => 'Future Person']);
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['start_date' => now()->addWeek(), 'finish_date' => null]);
+
+    getJson(route('contacts.lookup', ['q' => 'Future Person']))
+        ->assertOk()
+        ->assertJson([]);
 });
 
 test('the lookup shows the entity type when candidates share a name', function () {

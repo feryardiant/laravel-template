@@ -286,6 +286,30 @@ class OrganizationRelationship extends MorphPivot
     }
 
     /**
+     * Limit the query to relationships whose window has ended.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeExpired(Builder $query): Builder
+    {
+        return $query->whereNotNull('finish_date')->whereDate('finish_date', '<', today());
+    }
+
+    /**
+     * Limit the query to relationships that have not ended (active or scheduled).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeNotExpired(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $query): Builder => $query
+            ->whereNull('finish_date')
+            ->orWhereDate('finish_date', '>=', today()));
+    }
+
+    /**
      * Resolve the status from the relationship's date window.
      */
     private function resolveStatus(): RelationshipStatus

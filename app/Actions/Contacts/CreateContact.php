@@ -48,7 +48,32 @@ final class CreateContact
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $this->assertNotAlreadyContact($tenant, $stakeholder);
+                $existing = OrganizationRelationship::query()
+                    ->forOrganization($tenant)
+                    ->external()
+                    ->whereStakeholder($stakeholder)
+                    ->lockForUpdate()
+                    ->first();
+
+                // Active or scheduled rows still block reuse; an expired row is
+                // renewed in place instead of creating a duplicate.
+                if ($existing !== null) {
+                    if ($existing->finish_date?->lt(today()) !== true) {
+                        throw ValidationException::withMessages([
+                            'name' => __('This contact is already in your list.'),
+                        ]);
+                    }
+
+                    $existing->update([
+                        'code' => $data['code'] ?? null,
+                        'type' => $role,
+                        'start_date' => $data['start_date'] ?? null,
+                        'finish_date' => null,
+                    ]);
+
+                    return $stakeholder;
+                }
+
                 $this->attach($tenant, $stakeholder, $role, $data);
 
                 return $stakeholder;
@@ -108,21 +133,5 @@ final class CreateContact
             'start_date' => $data['start_date'] ?? null,
             'finish_date' => $data['finish_date'] ?? null,
         ]);
-    }
-
-    private function assertNotAlreadyContact(Organization $tenant, Organization|Person $stakeholder): void
-    {
-        $exists = OrganizationRelationship::query()
-            ->forOrganization($tenant)
-            ->external()
-            ->where('stakeholder_type', $stakeholder->getMorphClass())
-            ->where('stakeholder_id', $stakeholder->getKey())
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'name' => __('This contact is already in your list.'),
-            ]);
-        }
     }
 }

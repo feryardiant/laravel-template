@@ -71,13 +71,21 @@ final class FindContact
             ->whereStakeholder($entity)
             ->exists();
 
-        $alreadyContact = OrganizationRelationship::query()
+        $ownExpired = OrganizationRelationship::query()
             ->external()
             ->forOrganization($tenant)
+            ->expired()
             ->whereStakeholder($entity)
             ->exists();
 
-        if (! $registeredElsewhere || $alreadyContact) {
+        $ownCurrent = OrganizationRelationship::query()
+            ->external()
+            ->forOrganization($tenant)
+            ->notExpired()
+            ->whereStakeholder($entity)
+            ->exists();
+
+        if ((! $registeredElsewhere && ! $ownExpired) || $ownCurrent) {
             throw (new ModelNotFoundException)->setModel($class);
         }
 

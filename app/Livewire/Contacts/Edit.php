@@ -76,6 +76,9 @@ class Edit extends Component
 
     public ?string $reusedName = null;
 
+    #[Locked]
+    public ?int $reusedContactId = null;
+
     public string $contact_name = '';
 
     public ?string $contact_gender = null;
@@ -108,6 +111,7 @@ class Edit extends Component
             'selectedEntity',
             'reusedType',
             'reusedName',
+            'reusedContactId',
             'contact_name',
             'contact_gender',
             'contact_summary',
@@ -146,8 +150,10 @@ class Edit extends Component
             return;
         }
 
+        $organization = $this->requireOrganization();
+
         try {
-            $entity = app(FindContact::class)->byReference($this->requireOrganization(), $reference);
+            $entity = app(FindContact::class)->byReference($organization, $reference);
         } catch (Throwable) {
             $this->resetReuse();
 
@@ -159,6 +165,12 @@ class Edit extends Component
         $this->resetReuse(false);
 
         $this->selectedEntity = $reference;
+        $this->reusedContactId = OrganizationRelationship::query()
+            ->external()
+            ->forOrganization($organization)
+            ->expired()
+            ->whereStakeholder($entity)
+            ->value('id');
         $this->reusedType = $entity instanceof Organization ? 'organization' : 'individual';
         $this->reusedName = $entity->name;
         $this->type = $this->reusedType;
@@ -334,6 +346,8 @@ class Edit extends Component
 
         if ($this->contactId !== null) {
             $code->ignore($this->contactId);
+        } elseif ($this->reusedContactId !== null) {
+            $code->ignore($this->reusedContactId);
         }
 
         $rules = [
@@ -415,6 +429,7 @@ class Edit extends Component
         $this->selectedEntity = null;
         $this->reusedType = null;
         $this->reusedName = null;
+        $this->reusedContactId = null;
         $this->summary = '';
         $this->gender = null;
         $this->photo = null;

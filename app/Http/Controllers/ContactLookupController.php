@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Contacts\SearchContact;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
@@ -32,7 +33,7 @@ class ContactLookupController extends Controller
 
         $results = $search->handle($organization, trim((string) $request->query('q', '')))
             ->map(fn (Organization|Person $entity): array => [
-                'label' => $this->candidateLabel($entity),
+                'label' => $this->candidateLabel($entity, $this->isExpiredFor($organization, $entity)),
                 'value' => ($entity instanceof Organization ? 'organization' : 'individual').':'.$entity->uuid,
             ])
             ->values();
@@ -41,15 +42,28 @@ class ContactLookupController extends Controller
     }
 
     /**
+     * Determine whether the candidate is one of the tenant's expired contacts.
+     */
+    private function isExpiredFor(Organization $organization, Organization|Person $entity): bool
+    {
+        return OrganizationRelationship::query()
+            ->external()
+            ->forOrganization($organization)
+            ->expired()
+            ->whereStakeholder($entity)
+            ->exists();
+    }
+
+    /**
      * Disambiguate candidates that share a name.
      */
-    private function candidateLabel(Organization|Person $entity): string
+    private function candidateLabel(Organization|Person $entity, bool $expired = false): string
     {
         $type = $entity instanceof Organization ? __('Organization') : __('Individual');
         $hint = filled($entity->summary)
             ? Str::limit($entity->summary, 40)
             : '#'.Str::substr($entity->uuid, 0, 8);
 
-        return $type.' · '.$entity->name.' — '.$hint;
+        return $type.' · '.$entity->name.' — '.$hint.($expired ? ' ('.__('Expired').')' : '');
     }
 }
