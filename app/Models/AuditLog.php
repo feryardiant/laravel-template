@@ -36,6 +36,7 @@ use Illuminate\Support\Carbon;
     'subject_id',
     'organization_relationship_period_id',
     'changes',
+    'created_at',
 ])]
 class AuditLog extends Model
 {

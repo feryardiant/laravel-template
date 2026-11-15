@@ -39,3 +39,23 @@ test('late audit events are skipped after the organization is deleted', function
 
     expect(AuditLog::query()->where('organization_id', $organization->getKey())->count())->toBe(0);
 });
+
+test('audit rows keep the event occurrence time instead of the queue time', function () {
+    $organization = Organization::factory()->create();
+
+    $this->travelTo('2026-11-15 23:59:00');
+
+    $event = new ContactCreated($organization, null, $organization, [
+        'type' => 'customer',
+    ]);
+
+    $this->travelTo('2026-11-16 00:05:00');
+
+    app(RecordAuditLog::class)->handle($event);
+
+    expect(AuditLog::query()
+        ->where('organization_id', $organization->getKey())
+        ->sole()
+        ->created_at
+        ->toDateTimeString())->toBe('2026-11-15 23:59:00');
+});

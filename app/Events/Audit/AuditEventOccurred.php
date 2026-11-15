@@ -8,6 +8,7 @@ use App\Enums\AuditEvent;
 use App\Models\Organization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Events\Dispatchable;
 
@@ -37,6 +38,8 @@ abstract class AuditEventOccurred
 
     public ?int $relationshipPeriodId;
 
+    public CarbonImmutable $occurredAt;
+
     /**
      * @param  array<string, mixed>  $changes
      */
@@ -53,6 +56,7 @@ abstract class AuditEventOccurred
         $this->subjectId = $subject?->getKey();
         $this->changes = $changes;
         $this->relationshipPeriodId = $period?->getKey();
+        $this->occurredAt = CarbonImmutable::now();
     }
 
     abstract public function auditEvent(): AuditEvent;

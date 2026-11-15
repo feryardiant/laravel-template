@@ -74,7 +74,7 @@ final class AcceptMembershipLeave
                 ->first();
 
             $period = $relationship !== null
-                ? $this->timeline->close($relationship, RelationshipPeriodReason::Left)
+                ? $this->timeline->close($relationship, RelationshipPeriodReason::Left, $actor)
                 : null;
 
             $organization->members()->detach($requester->getKey());

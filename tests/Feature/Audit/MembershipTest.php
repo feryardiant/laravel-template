@@ -132,6 +132,7 @@ test('an accepted admin leave records the approval and the leave', function () {
     $accepted = AuditLog::query()->where('event', AuditEvent::ApprovalAccepted)->sole();
     $left = AuditLog::query()->where('event', AuditEvent::MemberLeft)->sole();
     $requested = AuditLog::query()->where('event', AuditEvent::ApprovalRequested)->sole();
+    $period = OrganizationRelationshipPeriod::query()->findOrFail($left->organization_relationship_period_id);
 
     expect($requested->actor_id)->toBe($admin->getKey())
         ->and($accepted->actor_id)->toBe($owner->getKey())
@@ -142,7 +143,7 @@ test('an accepted admin leave records the approval and the leave', function () {
             'via' => 'approval',
             'approval_id' => $request->getKey(),
         ])
-        ->and($left->organization_relationship_period_id)->not->toBeNull();
+        ->and($period->actor_id)->toBe($owner->getKey());
 });
 
 test('a bulk removal writes one entry per detached member', function () {
