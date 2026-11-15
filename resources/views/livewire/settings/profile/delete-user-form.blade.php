@@ -1,16 +1,12 @@
-<div class="mt-10">
-    <x-ui.section variant="danger" :title="__('Danger Zone')">
-        <x-ui.section.item
-            :title="__('Delete account')"
-            :description="__('Delete your account and all of its resources')"
-        >
-            <flux:modal.trigger name="confirm-user-deletion">
-                <flux:button variant="danger" x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')">
-                    {{ __('Delete account') }}
-                </flux:button>
-            </flux:modal.trigger>
-        </x-ui.section.item>
-    </x-ui.section>
+<x-ui.section.item
+    :title="__('Delete account')"
+    :description="__('Delete your account and all of its resources')"
+>
+    <flux:modal.trigger name="confirm-user-deletion">
+        <flux:button variant="danger" x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')">
+            {{ __('Delete account') }}
+        </flux:button>
+    </flux:modal.trigger>
 
     <x-modal
         name="confirm-user-deletion"
@@ -32,4 +28,4 @@
             </div>
         </form>
     </x-modal>
-</div>
+</x-ui.section.item>

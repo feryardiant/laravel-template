@@ -90,7 +90,9 @@
         </form>
 
         @if ($this->showDeleteUser)
-            <livewire:settings.profile.delete-user-form />
+            <x-ui.section variant="danger" :title="__('Danger Zone')">
+                <livewire:settings.profile.delete-user-form />
+            </x-ui.section>
         @endif
     </x-settings.layout>
 </x-page>

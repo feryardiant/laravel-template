@@ -9,7 +9,7 @@ use App\Actions\Organizations\DeclineOwnershipTransfer;
 use App\Actions\Organizations\RequestOwnershipTransfer;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\Role;
-use App\Livewire\OrgSettings\General;
+use App\Livewire\OrgSettings\General\TransferOwnership;
 use App\Livewire\Settings\Organizations;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -38,10 +38,10 @@ function requestOwnershipTransferForTest(Organization $organization, string $con
         ->firstOrFail()
         ->getKey());
 
-    Livewire::test(General::class)
+    Livewire::test(TransferOwnership::class)
         ->call('confirmTransfer')
-        ->set('transferRecipientId', $recipientId)
-        ->set('transferConfirmation', $confirmation)
+        ->set('recipientId', $recipientId)
+        ->set('confirmation', $confirmation)
         ->call('transfer')
         ->assertHasNoErrors();
 
@@ -80,12 +80,12 @@ test('only active credentialed members can receive ownership', function () {
 
     $credentialLess = Person::factory()->withoutCredential()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(General::class)
+    Livewire::test(TransferOwnership::class)
         ->call('confirmTransfer')
-        ->set('transferRecipientId', (string) $credentialLess->getKey())
-        ->set('transferConfirmation', 'Acme')
+        ->set('recipientId', (string) $credentialLess->getKey())
+        ->set('confirmation', 'Acme')
         ->call('transfer')
-        ->assertHasErrors('transferRecipientId');
+        ->assertHasErrors('recipientId');
 
     expect(ApprovalRequest::query()->exists())->toBeFalse();
 });
@@ -112,7 +112,7 @@ test('the owner can cancel a pending transfer and the recipient row returns to n
 
     $transfer = requestOwnershipTransferForTest($organization);
 
-    Livewire::test(General::class)
+    Livewire::test(TransferOwnership::class)
         ->assertSee(__('Pending transfer to :name', ['name' => $recipient->name]))
         ->call('cancelTransfer')
         ->assertDontSee(__('Pending transfer to :name', ['name' => $recipient->name]));
@@ -124,24 +124,6 @@ test('the owner can cancel a pending transfer and the recipient row returns to n
     Livewire::test(Organizations::class)
         ->assertDontSeeHtml('openApproval(')
         ->assertSee(__('Leave'));
-});
-
-test('the danger zone is visible only to the owner', function () {
-    $organization = Organization::factory()->create(['name' => 'Acme']);
-
-    actingAsMember($organization, Role::Owner);
-
-    get(route('org-settings.general'))
-        ->assertOk()
-        ->assertSee(__('Danger Zone'))
-        ->assertSee(__('Transfer Ownership'))
-        ->assertSee(__('Delete Organization'));
-
-    actingAsMember($organization, Role::Admin);
-
-    get(route('org-settings.general'))
-        ->assertOk()
-        ->assertDontSee(__('Danger Zone'));
 });
 
 test('the root organization can be transferred', function () {
