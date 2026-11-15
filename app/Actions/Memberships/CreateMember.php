@@ -9,6 +9,7 @@ use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -115,6 +116,29 @@ final class CreateMember
                 ->first();
 
             $previousRole = $existing?->role;
+            $roleChanged = $existing !== null && $previousRole instanceof Role && $previousRole !== $role;
+
+            if ($roleChanged) {
+                $this->timeline->close($existing, RelationshipPeriodReason::RoleChanged, $actor);
+            }
+
+            $attributes = [
+                'is_primary' => $isPrimary ? true : null,
+                'role' => $role,
+            ];
+
+            if ($existing === null) {
+                $attributes['start_date'] = $startDate;
+                $attributes['finish_date'] = $finishDate;
+            } else {
+                if ($startDate !== null) {
+                    $attributes['start_date'] = $startDate;
+                }
+
+                if ($finishDate !== null) {
+                    $attributes['finish_date'] = $finishDate;
+                }
+            }
 
             OrganizationRelationship::query()->updateOrCreate(
                 [
@@ -123,12 +147,7 @@ final class CreateMember
                     'stakeholder_id' => $member->getKey(),
                     'type' => OrganizationRelationshipType::Member,
                 ],
-                [
-                    'is_primary' => $isPrimary ? true : null,
-                    'role' => $role,
-                    'start_date' => $startDate,
-                    'finish_date' => $finishDate,
-                ],
+                $attributes,
             );
 
             $relationship = OrganizationRelationship::query()
@@ -137,13 +156,16 @@ final class CreateMember
                 ->where('type', OrganizationRelationshipType::Member)
                 ->firstOrFail();
 
-            $period = $this->timeline->open($relationship);
+            $period = $this->timeline->open(
+                $relationship,
+                $roleChanged ? ($startDate ?? today()) : null,
+            );
 
             if ($existing === null) {
                 $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $member, [
                     'role' => $role->value,
                 ], $period);
-            } elseif ($previousRole instanceof Role && $previousRole !== $role) {
+            } elseif ($roleChanged) {
                 $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $member, [
                     'from' => $previousRole->value,
                     'to' => $role->value,

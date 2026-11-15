@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,6 +167,18 @@ it('keeps the organization logo when removal fails', function () {
         ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
 
     expect($organization->fresh()->getRawOriginal('logo_url'))->toBe('logos/blocked');
+
+    $logs = AuditLog::query()
+        ->where('event', AuditEvent::OrganizationUpdated)
+        ->orderBy('id')
+        ->get();
+
+    expect($logs)->toHaveCount(2)
+        ->and($logs[0]->changes['fields'] ?? [])->toContain('logo_url')
+        ->and($logs[1]->changes)->toMatchArray([
+            'fields' => ['logo_url'],
+            'restored' => true,
+        ]);
 });
 
 it('renders the organization logo in the switcher', function () {

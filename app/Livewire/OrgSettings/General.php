@@ -131,6 +131,14 @@ class General extends Component
 
         if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
             $organization->forceFill(['logo_url' => $previousLogo])->save();
+
+            $actor = Auth::user();
+
+            $audit->handle($organization, $actor instanceof User ? $actor : null, AuditEvent::OrganizationUpdated, $organization, [
+                'fields' => ['logo_url'],
+                'restored' => true,
+            ]);
+
             $this->logo_url = $previousLogo;
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));

@@ -125,6 +125,7 @@ test('the event filter narrows the list and resets an invalid value', function (
 });
 
 test('the event and range filters compose', function () {
+    /** @var TestCase $this */
     $this->travelTo('2026-11-18 12:00:00');
 
     $organization = Organization::factory()->create();
@@ -163,6 +164,7 @@ test('the event and range filters compose', function () {
 });
 
 test('a reversed range is normalized', function () {
+    /** @var TestCase $this */
     $this->travelTo('2026-11-18 12:00:00');
 
     $organization = Organization::factory()->create();
@@ -175,6 +177,7 @@ test('a reversed range is normalized', function () {
 });
 
 test('the range end boundary uses the end of the user day', function () {
+    /** @var TestCase $this */
     $this->travelTo('2026-11-18 12:00:00');
 
     $organization = Organization::factory()->create();

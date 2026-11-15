@@ -91,6 +91,10 @@
                             $details[] = __('Last membership');
                         }
 
+                        if (isset($changes['restored']) && $changes['restored']) {
+                            $details[] = __('Restored');
+                        }
+
                         if (isset($changes['detached_only']) && $changes['detached_only']) {
                             $details[] = __('Entity kept');
                         }

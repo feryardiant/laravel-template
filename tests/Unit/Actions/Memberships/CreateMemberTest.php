@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Actions\Memberships\CreateMember;
 use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
 use App\Models\AuditLog;
 use App\Models\Organization;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -47,6 +49,23 @@ it('updates the membership role when an existing member is added again', functio
 
     expect($organization->members()->count())->toBe(1);
     expect($person->roleIn($organization))->toBe(Role::Owner);
+
+    $membership = $organization->members()->whereKey($person->getKey())->firstOrFail();
+
+    expect($membership->pivot->start_date)->not->toBeNull();
+
+    $periods = OrganizationRelationshipPeriod::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_id', $person->getKey())
+        ->orderBy('id')
+        ->get();
+
+    expect($periods)->toHaveCount(2)
+        ->and($periods[0]->reason)->toBe(RelationshipPeriodReason::RoleChanged)
+        ->and($periods[0]->role)->toBe(Role::Member)
+        ->and($periods[0]->closed_at)->not->toBeNull()
+        ->and($periods[1]->role)->toBe(Role::Owner)
+        ->and($periods[1]->isOpen())->toBeTrue();
 
     $log = AuditLog::query()->where('event', AuditEvent::MemberRoleChanged)->sole();
 
