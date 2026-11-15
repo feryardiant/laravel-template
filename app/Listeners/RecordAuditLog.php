@@ -7,9 +7,9 @@ namespace App\Listeners;
 use App\Events\Audit\AuditEventOccurred;
 use App\Models\AuditLog;
 use App\Models\Organization;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 
-final class RecordAuditLog implements ShouldQueue
+final class RecordAuditLog implements ShouldQueueAfterCommit
 {
     public int $tries = 3;
 

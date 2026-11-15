@@ -16,10 +16,7 @@ use App\Support\Feature\MemberDeletion;
 use App\Support\Feature\ProfileSelfEdit;
 use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Laravel\Pennant\FeatureManager;
 use Livewire\Livewire;
-use RuntimeException;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -212,28 +209,4 @@ it('does not audit a feature toggle that changes nothing', function () {
     $component->set('memberDeletion', true);
 
     expect(AuditLog::query()->where('event', AuditEvent::FeatureToggled)->count())->toBe(0);
-});
-
-it('rolls back the feature toggle when the audit write fails', function () {
-    $organization = Organization::factory()->create();
-
-    actingAsMember($organization, Role::Owner);
-
-    failAuditWrites();
-
-    try {
-        expect(fn () => Livewire::test(Features::class)->set('memberDeletion', false))
-            ->toThrow(RuntimeException::class);
-    } finally {
-        restoreAuditWrites();
-    }
-
-    $scope = app(FeatureManager::class)->serializeScope($organization);
-
-    $value = DB::table('features')
-        ->where('name', MemberDeletion::FEATURE)
-        ->where('scope', $scope)
-        ->value('value');
-
-    expect(json_decode((string) $value, true))->toBeTrue();
 });

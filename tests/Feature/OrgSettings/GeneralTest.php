@@ -13,7 +13,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
-use RuntimeException;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -207,48 +206,4 @@ test('the danger zone is visible only to the owner', function () {
     get(route('org-settings.general'))
         ->assertOk()
         ->assertDontSee(__('Danger Zone'));
-});
-
-it('cleans up a replacement logo when the audit write fails', function () {
-    Storage::fake(FileUploadConfiguration::disk());
-    Storage::fake();
-
-    $organization = Organization::factory()->create(['logo_url' => 'logos/old.png']);
-    Storage::disk()->put('logos/old.png', 'old');
-
-    actingAsMember($organization, Role::Owner);
-
-    failAuditWrites();
-
-    try {
-        expect(fn () => Livewire::test(General::class)
-            ->set('logo', UploadedFile::fake()->image('new.png'))
-            ->call('update'))
-            ->toThrow(RuntimeException::class);
-    } finally {
-        restoreAuditWrites();
-    }
-
-    expect($organization->fresh()->getRawOriginal('logo_url'))->toBe('logos/old.png')
-        ->and(Storage::disk()->exists('logos/old.png'))->toBeTrue()
-        ->and(Storage::disk()->allFiles('logos'))->toHaveCount(1);
-});
-
-it('rolls back the organization update when the audit write fails', function () {
-    $organization = Organization::factory()->create(['name' => 'Old Name']);
-
-    actingAsMember($organization, Role::Owner);
-
-    failAuditWrites();
-
-    try {
-        expect(fn () => Livewire::test(General::class)
-            ->set('name', 'New Name')
-            ->call('update'))
-            ->toThrow(RuntimeException::class);
-    } finally {
-        restoreAuditWrites();
-    }
-
-    expect($organization->fresh()->name)->toBe('Old Name');
 });

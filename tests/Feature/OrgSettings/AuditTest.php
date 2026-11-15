@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Memberships\ChangeMemberRole;
-use App\Actions\Memberships\RemoveMember;
 use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -18,7 +17,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
-use RuntimeException;
 use Tests\TestCase;
 
 use function Pest\Laravel\get;
@@ -270,25 +268,6 @@ test('a demoted manager cannot keep reading the audit log', function () {
     $component
         ->set('event', AuditEvent::ContactCreated->value)
         ->assertForbidden();
-});
-
-test('a failed audit write rolls back the membership change', function () {
-    Notification::fake();
-
-    $organization = Organization::factory()->create();
-    $owner = actingAsMember($organization, Role::Owner);
-    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
-
-    failAuditWrites();
-
-    try {
-        expect(fn () => app(RemoveMember::class)->handle($organization, $member->person, $owner))
-            ->toThrow(RuntimeException::class);
-    } finally {
-        restoreAuditWrites();
-    }
-
-    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
 });
 
 test('contact audit rows render the relationship type without the code value', function () {
