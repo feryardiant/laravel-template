@@ -111,7 +111,13 @@ class Profile extends Component
             if ($this->avatar instanceof UploadedFile) {
                 $photoPath = $fileStorage->replace($this->avatar, 'avatars', $previousAvatar);
             } elseif ($previousAvatar !== $this->avatar_url) {
-                $fileStorage->delete($previousAvatar);
+                if (! $fileStorage->delete($previousAvatar)) {
+                    $this->avatar_url = $previousAvatar;
+
+                    Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('User avatar')]));
+
+                    return;
+                }
             }
         }
 

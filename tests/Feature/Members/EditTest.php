@@ -194,6 +194,49 @@ test('the member photo path cannot be changed from the client', function () {
         ->toThrow(CannotUpdateLockedPropertyException::class);
 });
 
+test('a member photo can be removed', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/old.jpg']);
+    Storage::disk()->put('photos/old.jpg', 'photo');
+
+    Livewire::test(Edit::class, ['person' => $member->person])
+        ->call('clearPhoto')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($member->person->fresh()->getRawOriginal('photo_url'))->toBeNull();
+    expect(Storage::disk()->exists('photos/old.jpg'))->toBeFalse();
+});
+
+test('the member photo path is kept when removal fails', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/blocked']);
+
+    // A directory at the object path cannot be unlinked, which forces the failure.
+    Storage::disk()->makeDirectory('photos/blocked');
+
+    Livewire::test(Edit::class, ['person' => $member->person])
+        ->call('clearPhoto')
+        ->call('update')
+        ->assertSet('photo_url', 'photos/blocked')
+        ->assertNotDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success')
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
+
+    expect($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/blocked');
+});
+
 test('the edit member modal is a floating right-side flyout with a bottom footer', function () {
     $organization = Organization::factory()->create();
 

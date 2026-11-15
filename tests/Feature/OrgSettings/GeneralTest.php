@@ -128,6 +128,44 @@ it('updates the organization logo', function () {
     expect(Storage::disk()->allFiles('logos'))->not->toBeEmpty();
 });
 
+it('removes the organization logo', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create(['logo_url' => 'logos/old.png']);
+    Storage::disk()->put('logos/old.png', 'logo');
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->call('clearLogo')
+        ->call('update')
+        ->assertHasNoErrors()
+        ->assertSet('logo_url', null);
+
+    expect($organization->fresh()->getRawOriginal('logo_url'))->toBeNull();
+    expect(Storage::disk()->exists('logos/old.png'))->toBeFalse();
+});
+
+it('keeps the organization logo when removal fails', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create(['logo_url' => 'logos/blocked']);
+
+    // A directory at the object path cannot be unlinked, which forces the failure.
+    Storage::disk()->makeDirectory('logos/blocked');
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->call('clearLogo')
+        ->call('update')
+        ->assertSet('logo_url', 'logos/blocked')
+        ->assertNotDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success')
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
+
+    expect($organization->fresh()->getRawOriginal('logo_url'))->toBe('logos/blocked');
+});
+
 it('renders the organization logo in the switcher', function () {
     $organization = Organization::factory()->create(['logo_url' => 'logos/logo.png']);
 

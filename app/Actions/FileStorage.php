@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -50,14 +51,20 @@ final class FileStorage
     }
 
     /**
-     * Delete a previously stored file.
+     * Delete a previously stored file. Returns false when the object survives.
      */
-    public function delete(?string $path): void
+    public function delete(?string $path): bool
     {
         if ($path === null || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return;
+            return true;
         }
 
-        Storage::disk()->delete($path);
+        $deleted = Storage::disk()->delete($path);
+
+        if (! $deleted) {
+            Log::warning('Unable to delete stored file.', ['path' => $path]);
+        }
+
+        return $deleted;
     }
 }
