@@ -1,19 +1,15 @@
 <div>
-    <flux:modal
-        wire:model.self="showModal"
+    <x-modal
         flyout
         position="right"
         variant="floating"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'edit-member-heading')"
+        wire:model.self="showModal"
+        :title="__('Edit member')"
+        :subtitle="$person?->name"
+        class="flex flex-col"
     >
-        <form wire:submit="update" class="flex min-h-[calc(100dvh-5rem)] flex-col">
+        <form wire:submit="update" class="flex flex-1 flex-col">
             <div class="space-y-6">
-                <div>
-                    <flux:heading id="edit-member-heading" size="lg">{{ __('Edit member') }}</flux:heading>
-                    <flux:subheading>{{ $person?->name }}</flux:subheading>
-                </div>
-
                 @unless ($this->canEditProfile)
                     <flux:callout variant="secondary" icon="lock-closed">
                         <flux:callout.text>
@@ -119,5 +115,5 @@
                 <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
             </div>
         </form>
-    </flux:modal>
+    </x-modal>
 </div>

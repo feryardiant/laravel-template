@@ -265,17 +265,12 @@
         </flux:checkbox.group>
     @endif
 
-    <flux:modal
+    <x-modal
         wire:model.self="showCreateModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'add-member-heading')"
+        :title="__('Add member')"
+        :subtitle="__('Add a person to this organization.')"
     >
         <form wire:submit="createMember" class="space-y-6">
-            <div>
-                <flux:heading id="add-member-heading" size="lg">{{ __('Add member') }}</flux:heading>
-                <flux:subheading>{{ __('Add a person to this organization.') }}</flux:subheading>
-            </div>
-
             <x-ui.file-upload wire:model="photo" accept="image/*" :label="__('Member Photo')">
                 <x-ui.file-upload.avatar :url="$photo" shape="rounded" remove="clearPhoto" />
             </x-ui.file-upload>
@@ -321,21 +316,14 @@
                 <flux:button variant="primary" type="submit">{{ __('Add') }}</flux:button>
             </div>
         </form>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showDeleteModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-member-heading')"
+        :title="__('Remove member')"
+        :subtitle="__('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-member-heading" size="lg">{{ __('Remove member') }}</flux:heading>
-                <flux:subheading>
-                    {{ __('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -346,21 +334,14 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showBatchDeleteModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-selected-members-heading')"
+        :title="__('Remove members')"
+        :subtitle="__('Remove :count selected members from this organization?', ['count' => count($selected)])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-selected-members-heading" size="lg">{{ __('Remove members') }}</flux:heading>
-                <flux:subheading>
-                    {{ __('Remove :count selected members from this organization?', ['count' => count($selected)]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -371,26 +352,14 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showRoleModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'role-change-heading')"
+        :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
+        :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="role-change-heading" size="lg">
-                    {{ $this->roleChangeIsPromotion ? __('Promote member') : __('Demote member') }}
-                </flux:heading>
-
-                <flux:subheading>
-                    {{ $this->roleChangeIsPromotion
-                        ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')])
-                        : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -404,7 +373,7 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
     <livewire:members.edit />
 </div>

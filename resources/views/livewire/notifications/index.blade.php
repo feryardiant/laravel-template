@@ -161,15 +161,17 @@
         </flux:table.rows>
     </flux:table>
 
-    <flux:modal flyout variant="floating" wire:model.self="showNotificationModal" class="md:w-96">
+    <x-modal
+        flyout
+        position="right"
+        variant="floating"
+        wire:model.self="showNotificationModal"
+        :title="$this->selectedNotification?->data['title'] ?? null"
+    >
         @if ($this->selectedNotification)
             @php($data = $this->selectedNotification->data)
 
             <div class="space-y-6">
-                <flux:heading size="lg" class="pe-8" data-notification-modal-title>
-                    {{ $data['title'] ?? '' }}
-                </flux:heading>
-
                 <div class="space-y-3 text-sm">
                     @if (! empty($data['greeting']))
                         <p class="font-medium">{{ $data['greeting'] }}</p>
@@ -195,7 +197,7 @@
                 </div>
             </div>
         @endif
-    </flux:modal>
+    </x-modal>
 
     @script
         <script>

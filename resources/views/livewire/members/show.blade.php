@@ -108,24 +108,12 @@
         <livewire:members.edit :person="$person" />
     @endif
 
-    <flux:modal
+    <x-modal
         wire:model.self="showRoleModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'role-change-heading')"
+        :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
+        :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $person->name]) : __('Demote :name to Member?', ['name' => $person->name])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="role-change-heading" size="lg">
-                    {{ $this->roleChangeIsPromotion ? __('Promote member') : __('Demote member') }}
-                </flux:heading>
-
-                <flux:subheading>
-                    {{ $this->roleChangeIsPromotion
-                        ? __('Promote :name to Admin?', ['name' => $person->name])
-                        : __('Demote :name to Member?', ['name' => $person->name]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -139,5 +127,5 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 </div>

@@ -205,7 +205,7 @@ test('the edit member modal is a floating right-side flyout with a bottom footer
         ->assertSeeHtml('data-flux-flyout')
         ->assertSeeHtml('ml-auto')
         ->assertSeeHtml('rounded-xl')
-        ->assertSeeHtml('min-h-[calc(100dvh-5rem)]')
+        ->assertSeeHtml('class="flex flex-1 flex-col"')
         ->assertSeeHtml('mt-auto');
 });
 

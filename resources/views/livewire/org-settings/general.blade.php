@@ -97,17 +97,13 @@
         @endif
     </x-org-settings.layout>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showTransferModal"
-        class="md:w-lg"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'transfer-ownership-heading')"
+        width="md:w-lg"
+        :title="__('Transfer ownership')"
+        :subtitle="$organization?->name"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="transfer-ownership-heading" size="lg">{{ __('Transfer ownership') }}</flux:heading>
-                <flux:subheading>{{ $organization?->name }}</flux:subheading>
-            </div>
-
             <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('You will become an Admin.')">
                 <flux:callout.text>
                     {{ __('The selected member must accept the transfer. Until then, you remain the owner.') }}
@@ -150,19 +146,15 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showRemoveModal"
-        class="md:w-lg"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-organization-heading')"
+        width="md:w-lg"
+        :title="__('Remove organization')"
+        :subtitle="$organization?->name"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-organization-heading" size="lg">{{ __('Remove organization') }}</flux:heading>
-                <flux:subheading>{{ $organization?->name }}</flux:subheading>
-            </div>
-
             <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This action cannot be undone.')">
                 <flux:callout.text>
                     {{ __('All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.', ['name' => $organization?->name]) }}
@@ -191,5 +183,5 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 </section>

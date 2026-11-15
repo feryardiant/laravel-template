@@ -88,17 +88,12 @@
 
     <livewire:settings.organizations.create :internal="true" />
 
-    <flux:modal
+    <x-modal
         wire:model.self="showRemoveModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-subsidiary-heading')"
+        :title="__('Remove subsidiary')"
+        :subtitle="__('Remove :name?', ['name' => $removingName])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-subsidiary-heading" size="lg">{{ __('Remove subsidiary') }}</flux:heading>
-                <flux:subheading>{{ __('Remove :name?', ['name' => $removingName]) }}</flux:subheading>
-            </div>
-
             <flux:text>
                 {{ __('This permanently deletes the organization, its members, contacts, addresses and logo. People and login credentials are kept, and the deletion runs in the background.') }}
 
@@ -115,5 +110,5 @@
                 <flux:button variant="danger" wire:click="remove">{{ __('Remove') }}</flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 </section>

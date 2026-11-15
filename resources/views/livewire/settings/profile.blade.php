@@ -94,7 +94,7 @@
         </form>
 
         @if ($this->showDeleteUser)
-            <livewire:settings.delete-user-form />
+            <livewire:settings.profile.delete-user-form />
         @endif
     </x-settings.layout>
 </section>

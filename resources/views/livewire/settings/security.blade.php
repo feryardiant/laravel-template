@@ -79,9 +79,9 @@
         @endif
 
         @if ($canManageTwoFactor)
-            <flux:modal
+            <x-modal
                 name="two-factor-setup-modal"
-                class="max-w-md md:min-w-md"
+                width="max-w-md md:min-w-md"
                 @close="closeModal"
                 wire:model="showModal"
             >
@@ -237,7 +237,7 @@
                         </div>
                     @endif
                 </div>
-            </flux:modal>
+            </x-modal>
         @endif
 
     </x-settings.layout>

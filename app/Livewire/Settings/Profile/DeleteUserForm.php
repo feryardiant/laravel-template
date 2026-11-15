@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Settings;
+namespace App\Livewire\Settings\Profile;
 
 use App\Concerns\PasswordValidationRules;
 use App\Enums\Role;
