@@ -226,3 +226,24 @@ test('a member photo can be updated', function () {
 
     expect($member->person->fresh()->getRawOriginal('photo_url'))->toContain('photos/');
 });
+
+test('a photo picked for a new member does not follow into an edit', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/original.jpg']);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('photo', UploadedFile::fake()->image('pending.jpg'))
+        ->call('editMember', $member->person->getKey())
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/original.jpg');
+});

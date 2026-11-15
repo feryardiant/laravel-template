@@ -373,6 +373,7 @@ class Edit extends Component
     {
         $this->person = $person->loadMissing('user');
         $this->name = $person->name;
+        $this->photo = null;
         $this->photo_url = $person->getRawOriginal('photo_url');
         $this->hasCredential = $person->user_id !== null;
         $this->createCredential = false;
