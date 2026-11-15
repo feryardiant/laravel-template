@@ -6,14 +6,10 @@ namespace App\Livewire\OrgSettings;
 
 use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\SubsidiaryKind;
-use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
-use App\Models\User;
-use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -21,14 +17,6 @@ use Livewire\Component;
 class Subsidiaries extends Component
 {
     use HasCurrentOrganization;
-
-    public bool $showRemoveModal = false;
-
-    public ?int $removingId = null;
-
-    public ?string $removingName = null;
-
-    public int $removingCount = 0;
 
     /**
      * Mount the component.
@@ -42,65 +30,6 @@ class Subsidiaries extends Component
         $role = $this->currentRole();
 
         abort_unless($role?->isOwner() || $role?->isAdmin(), 403);
-    }
-
-    /**
-     * Select a subsidiary to remove.
-     */
-    public function confirmRemove(int $organizationId): void
-    {
-        abort_unless($this->currentRole()?->isOwner(), 403);
-
-        $rows = $this->subsidiaries();
-        $index = $rows->search(
-            fn (array $row): bool => $row['organization']->getKey() === $organizationId,
-        );
-
-        abort_if($index === false, 404);
-
-        $depth = $rows[$index]['depth'];
-        $count = 1;
-
-        for ($position = $index + 1; $position < $rows->count(); $position++) {
-            if ($rows[$position]['depth'] <= $depth) {
-                break;
-            }
-
-            $count++;
-        }
-
-        $this->removingId = $organizationId;
-        $this->removingName = $rows[$index]['organization']->name;
-        $this->removingCount = $count;
-        $this->showRemoveModal = true;
-    }
-
-    /**
-     * Queue the removal of the selected subsidiary and its nested subsidiaries.
-     */
-    public function remove(): void
-    {
-        /** @var User|null $user */
-        $user = Auth::user();
-
-        abort_unless($user instanceof User && $this->currentRole()?->isOwner(), 403);
-
-        $rows = $this->subsidiaries();
-        $organization = $rows->first(
-            fn (array $row): bool => $row['organization']->getKey() === $this->removingId,
-        );
-
-        abort_if($organization === null, 404);
-
-        DeleteOrganization::dispatch($organization['organization'], $user->getKey());
-
-        $this->reset('showRemoveModal', 'removingId', 'removingName', 'removingCount');
-        unset($this->subsidiaries);
-
-        Flux::toast(
-            variant: 'success',
-            text: __('Removal queued. :name will be deleted shortly.', ['name' => $organization['organization']->name]),
-        );
     }
 
     /**
@@ -138,6 +67,7 @@ class Subsidiaries extends Component
     }
 
     #[On('organization-created')]
+    #[On('subsidiary-removed')]
     public function refreshSubsidiaries(): void
     {
         //
