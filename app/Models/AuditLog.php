@@ -86,6 +86,43 @@ class AuditLog extends Model
     }
 
     /**
+     * Get a human-readable label for a changed field name.
+     */
+    public static function fieldLabel(string $field): string
+    {
+        return match ($field) {
+            'code' => __('Code'),
+            'type' => __('Type'),
+            'start_date' => __('Start date'),
+            'finish_date' => __('Finish date'),
+            'name' => __('Name'),
+            'summary' => __('Summary'),
+            'gender' => __('Gender'),
+            'photo_url' => __('Photo'),
+            'logo_url' => __('Organization Logo'),
+            'contact_name' => __('Contact name'),
+            'contact_summary' => __('Contact summary'),
+            'contact_gender' => __('Contact gender'),
+            default => $field,
+        };
+    }
+
+    /**
+     * Get a human-readable label for a feature toggle key.
+     */
+    public static function featureLabel(string $feature): string
+    {
+        return match ($feature) {
+            'contact-gender' => __('Gender field in contact'),
+            'profile-self-edit' => __('Profile self-edit'),
+            'member-deletion' => __('Member removal'),
+            'contact-deletion' => __('Contact deletion'),
+            'registration' => __('Public registration'),
+            default => $feature,
+        };
+    }
+
+    /**
      * Get a human-readable label for the changed subject.
      */
     public function subjectLabel(): string

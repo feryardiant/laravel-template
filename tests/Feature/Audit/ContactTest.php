@@ -116,6 +116,7 @@ test('updating a contact records field names but no personal values', function (
     $changes = $log->changes ?? [];
 
     expect($changes['fields'] ?? [])->toContain('name', 'summary', 'code', 'type', 'start_date')
+        ->and($log->organization_relationship_period_id)->not->toBeNull()
         ->and(json_encode($changes))->not->toContain('Updated Name')
         ->and(json_encode($changes))->not->toContain('Updated summary')
         ->and(json_encode($changes))->not->toContain('Original Name');

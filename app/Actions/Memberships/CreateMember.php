@@ -59,10 +59,6 @@ final class CreateMember
                 actor: $actor,
             );
 
-            $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $person, [
-                'role' => $role->value,
-            ]);
-
             return $person;
         });
 
@@ -85,7 +81,7 @@ final class CreateMember
         Role $role = Role::Member,
         ?User $actor = null,
     ): void {
-        DB::transaction(function () use ($organization, $member, $isPrimary, $startDate, $finishDate, $role): void {
+        DB::transaction(function () use ($organization, $member, $isPrimary, $startDate, $finishDate, $role, $actor): void {
             $member->newQuery()
                 ->whereKey($member->getKey())
                 ->lockForUpdate()
@@ -132,7 +128,11 @@ final class CreateMember
                 ->where('type', OrganizationRelationshipType::Member)
                 ->firstOrFail();
 
-            $this->timeline->open($relationship);
+            $period = $this->timeline->open($relationship);
+
+            $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $member, [
+                'role' => $role->value,
+            ], $period);
         });
     }
 }

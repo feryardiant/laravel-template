@@ -56,14 +56,12 @@ final class RelationshipTimeline
     /**
      * Sync the open period after dates, code, or type were edited in place.
      */
-    public function sync(OrganizationRelationship $relationship): void
+    public function sync(OrganizationRelationship $relationship): OrganizationRelationshipPeriod
     {
         $period = $this->openPeriod($relationship);
 
         if ($period === null) {
-            $this->open($relationship);
-
-            return;
+            return $this->open($relationship);
         }
 
         $period->update([
@@ -73,6 +71,8 @@ final class RelationshipTimeline
             'start_date' => $relationship->start_date ?? $period->start_date,
             'finish_date' => $relationship->finish_date,
         ]);
+
+        return $period;
     }
 
     /**

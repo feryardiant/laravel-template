@@ -73,6 +73,8 @@ class Audit extends Component
     #[Computed]
     public function logs(): LengthAwarePaginator
     {
+        $this->authorizeManager();
+
         $timezone = $this->userTimezone();
         $start = $this->range['start'] ?? null;
         $end = $this->range['end'] ?? null;
@@ -98,6 +100,7 @@ class Audit extends Component
         /** @disregard P1013 */
         return view('livewire.org-settings.audit', [
             'events' => AuditEvent::cases(),
+            'today' => CarbonImmutable::now($this->userTimezone())->toDateString(),
         ])->title(__('Audit log'));
     }
 

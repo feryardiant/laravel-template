@@ -73,3 +73,13 @@ test('a keep window below one day is rejected', function () {
 
     $this->assertDatabaseHas('audit_logs', ['id' => $log->getKey()]);
 });
+
+test('a non-numeric keep window is rejected', function () {
+    $log = auditEntryForPrune(['created_at' => now()->subDays(10)]);
+
+    /** @var TestCase $this */
+    $this->artisan('app:audit-prune', ['--keep' => 'seven'])
+        ->assertExitCode(1);
+
+    $this->assertDatabaseHas('audit_logs', ['id' => $log->getKey()]);
+});

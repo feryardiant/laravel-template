@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\LeaveOrganization;
 use App\Actions\Memberships\RemoveMember;
 use App\Actions\Organizations\AcceptMembershipLeave;
@@ -16,6 +17,21 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
+
+test('adding a member records the opened period', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    app(CreateMember::class)->handle($organization, 'Invited Member', Role::Member, actor: $owner);
+
+    $log = AuditLog::query()->where('event', AuditEvent::MemberAdded)->sole();
+
+    expect($log->actor_id)->toBe($owner->getKey())
+        ->and($log->changes)->toMatchArray(['role' => Role::Member->value])
+        ->and($log->organization_relationship_period_id)->not->toBeNull();
+});
 
 test('a role change records the actor and both roles', function () {
     Notification::fake();

@@ -19,6 +19,7 @@
                     :label="__('Date range')"
                     with-presets
                     start-day="0"
+                    :today="$today"
                     class="w-full sm:w-60"
                 />
             </div>
@@ -46,12 +47,17 @@
                         }
 
                         if (isset($changes['fields'])) {
-                            $details[] = __('Fields').': '.implode(', ', $changes['fields']);
+                            $fields = is_array($changes['fields']) ? $changes['fields'] : [];
+
+                            $details[] = __('Fields').': '.implode(', ', array_map(
+                                fn (string $field): string => \App\Models\AuditLog::fieldLabel($field),
+                                $fields,
+                            ));
                         }
 
                         if (isset($changes['feature'])) {
                             $details[] = __(':feature: :state', [
-                                'feature' => $changes['feature'],
+                                'feature' => \App\Models\AuditLog::featureLabel((string) $changes['feature']),
                                 'state' => $changes['enabled'] ? __('On') : __('Off'),
                             ]);
                         }
@@ -82,7 +88,7 @@
                         }
 
                         if (isset($changes['last_membership']) && $changes['last_membership']) {
-                            $details[] = __('Last workspace');
+                            $details[] = __('Last membership');
                         }
 
                         if (isset($changes['detached_only']) && $changes['detached_only']) {

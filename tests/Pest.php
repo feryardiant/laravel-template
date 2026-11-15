@@ -6,6 +6,7 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General\TransferOwnership;
 use App\Models\ApprovalRequest;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -66,6 +67,26 @@ function assertNoBackendErrors(): void
     expect($throwable)->toBeNull(
         'The last backend request threw: '.($throwable?->getMessage() ?? 'unknown'),
     );
+}
+
+/**
+ * Force the next audit insert to fail.
+ *
+ * Call `restoreAuditWrites()` in a finally block so the listener does not leak.
+ */
+function failAuditWrites(): void
+{
+    AuditLog::creating(function (): void {
+        throw new RuntimeException('audit failed');
+    });
+}
+
+/**
+ * Remove the failure listener installed by `failAuditWrites()`.
+ */
+function restoreAuditWrites(): void
+{
+    AuditLog::flushEventListeners();
 }
 
 /**

@@ -16,6 +16,7 @@ use App\Support\Feature\ProfileSelfEdit;
 use App\Support\Feature\Registration;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -71,13 +72,15 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            Registration::activate($organization);
-        } else {
-            Registration::deactivate($organization);
-        }
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                Registration::activate($organization);
+            } else {
+                Registration::deactivate($organization);
+            }
 
-        $this->recordToggle($organization, Registration::FEATURE, $enabled);
+            $this->recordToggle($organization, Registration::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -97,13 +100,15 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            ProfileSelfEdit::activate($organization);
-        } else {
-            ProfileSelfEdit::deactivate($organization);
-        }
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                ProfileSelfEdit::activate($organization);
+            } else {
+                ProfileSelfEdit::deactivate($organization);
+            }
 
-        $this->recordToggle($organization, ProfileSelfEdit::FEATURE, $enabled);
+            $this->recordToggle($organization, ProfileSelfEdit::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -123,13 +128,15 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            ContactGender::activate($organization);
-        } else {
-            ContactGender::deactivate($organization);
-        }
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                ContactGender::activate($organization);
+            } else {
+                ContactGender::deactivate($organization);
+            }
 
-        $this->recordToggle($organization, ContactGender::FEATURE, $enabled);
+            $this->recordToggle($organization, ContactGender::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -149,13 +156,15 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            MemberDeletion::activate($organization);
-        } else {
-            MemberDeletion::deactivate($organization);
-        }
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                MemberDeletion::activate($organization);
+            } else {
+                MemberDeletion::deactivate($organization);
+            }
 
-        $this->recordToggle($organization, MemberDeletion::FEATURE, $enabled);
+            $this->recordToggle($organization, MemberDeletion::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -175,13 +184,15 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            ContactDeletion::activate($organization);
-        } else {
-            ContactDeletion::deactivate($organization);
-        }
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                ContactDeletion::activate($organization);
+            } else {
+                ContactDeletion::deactivate($organization);
+            }
 
-        $this->recordToggle($organization, ContactDeletion::FEATURE, $enabled);
+            $this->recordToggle($organization, ContactDeletion::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',

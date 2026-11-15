@@ -69,6 +69,7 @@ final class CreateOrganization
                     $person,
                     startDate: now(),
                     role: Role::Owner,
+                    actor: $actor,
                 );
 
                 if ($parent !== null) {

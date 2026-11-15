@@ -40,6 +40,12 @@ test('creating an organization records the parent and kind', function () {
             'parent_id' => $root->getKey(),
             'kind' => SubsidiaryKind::Branch->value,
         ]);
+
+    $memberLog = AuditLog::query()->where('event', AuditEvent::MemberAdded)->sole();
+
+    expect($memberLog->actor_id)->toBe($user->getKey())
+        ->and($memberLog->subject_id)->toBe($user->person->getKey())
+        ->and($memberLog->organization_relationship_period_id)->not->toBeNull();
 });
 
 test('updating an organization records the changed field names', function () {

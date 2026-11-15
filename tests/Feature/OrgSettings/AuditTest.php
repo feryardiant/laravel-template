@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\RemoveMember;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\Audit;
@@ -12,7 +14,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\TestCase;
 
 use function Pest\Laravel\get;
@@ -67,8 +71,7 @@ test('owners and admins can open the audit log', function (Role $role) {
         ->assertOk()
         ->assertSee(__('No audit entries yet.'))
         ->assertSee(__('Date range'))
-        ->assertSee('data-ui-date-picker', false)
-        ->assertSee('data-ui-presets', false);
+        ->assertSee('aria-label="'.__('Date range').'"', false);
 })->with([Role::Owner, Role::Admin]);
 
 test('the log only lists the current organization entries', function () {
@@ -119,6 +122,146 @@ test('the event filter narrows the list and resets an invalid value', function (
         ->assertSet('event', null);
 
     expect($component->instance()->logs->total())->toBe(2);
+});
+
+test('the event and range filters compose', function () {
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    $contactInRange = auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-18 10:00'),
+    );
+
+    auditEntryForPage(
+        $organization,
+        AuditEvent::MemberLeft,
+        $owner,
+        $owner->person,
+        ['via' => 'self'],
+        Carbon::parse('2026-11-17 10:00'),
+    );
+
+    auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-04 10:00'),
+    );
+
+    $component = Livewire::test(Audit::class)
+        ->set('event', AuditEvent::ContactCreated->value)
+        ->set('range', ['start' => '2026-11-15', 'end' => '2026-11-18']);
+
+    expect($component->instance()->logs->pluck('id')->all())->toBe([$contactInRange->getKey()]);
+});
+
+test('a reversed range is normalized', function () {
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(Audit::class)
+        ->set('range', ['start' => '2026-11-18', 'end' => '2026-11-16'])
+        ->assertSet('range', ['start' => '2026-11-16', 'end' => '2026-11-18']);
+});
+
+test('the range end boundary uses the end of the user day', function () {
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $owner->update(['timezone' => 'Asia/Jakarta']);
+
+    $inside = auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-18 16:59:59', 'UTC'),
+    );
+
+    auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-18 17:00:00', 'UTC'),
+    );
+
+    $component = Livewire::test(Audit::class)
+        ->set('range', ['start' => '2026-11-18', 'end' => '2026-11-18']);
+
+    expect($component->instance()->logs->pluck('id')->all())->toBe([$inside->getKey()]);
+});
+
+test('audit details translate field names and feature keys', function () {
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    auditEntryForPage($organization, AuditEvent::ContactUpdated, $owner, $owner->person, [
+        'fields' => ['start_date', 'logo_url'],
+    ]);
+
+    auditEntryForPage($organization, AuditEvent::FeatureToggled, $owner, $organization, [
+        'feature' => 'contact-gender',
+        'enabled' => true,
+    ]);
+
+    auditEntryForPage($organization, AuditEvent::MemberRemoved, $owner, $owner->person, [
+        'last_membership' => true,
+    ]);
+
+    Livewire::test(Audit::class)
+        ->assertSee(__('Start date'))
+        ->assertSee(__('Organization Logo'))
+        ->assertSee(__('Gender field in contact'))
+        ->assertSee(__('Last membership'));
+});
+
+test('a demoted manager cannot keep reading the audit log', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    $admin = actingAsMember($organization, Role::Admin);
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+
+    $component = Livewire::test(Audit::class);
+
+    app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner);
+
+    expect($admin->person->roleIn($organization))->toBe(Role::Member);
+
+    $component
+        ->set('event', AuditEvent::ContactCreated->value)
+        ->assertForbidden();
+});
+
+test('a failed audit write rolls back the membership change', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    failAuditWrites();
+
+    try {
+        expect(fn () => app(RemoveMember::class)->handle($organization, $member->person, $owner))
+            ->toThrow(RuntimeException::class);
+    } finally {
+        restoreAuditWrites();
+    }
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
 });
 
 test('the default range covers this week', function () {
@@ -231,6 +374,10 @@ test('the log is paginated newest first', function () {
     expect($component->instance()->logs->total())->toBe(21)
         ->and($component->instance()->logs->perPage())->toBe(20)
         ->and($component->instance()->logs->items()[0]->created_at->toDateString())->toBe('2026-11-18');
+
+    $component->set('paginators.page', 2);
+    $component->set('event', AuditEvent::ContactCreated->value);
+    $component->assertSet('paginators.page', 1);
 });
 
 test('a soft deleted subject still shows its name', function () {

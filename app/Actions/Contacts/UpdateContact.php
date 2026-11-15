@@ -12,6 +12,7 @@ use App\Enums\AuditEvent;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -105,7 +106,7 @@ final class UpdateContact
                     ]);
 
                 $contact->refresh();
-                $this->timeline->sync($contact);
+                $period = $this->timeline->sync($contact);
 
                 $fields = [];
 
@@ -116,7 +117,7 @@ final class UpdateContact
                 }
 
                 if ($locked) {
-                    $this->recordUpdate($tenant, $actor, $stakeholder, $fields);
+                    $this->recordUpdate($tenant, $actor, $stakeholder, $fields, $period);
 
                     return;
                 }
@@ -166,7 +167,7 @@ final class UpdateContact
                     }
                 }
 
-                $this->recordUpdate($tenant, $actor, $stakeholder, $fields);
+                $this->recordUpdate($tenant, $actor, $stakeholder, $fields, $period);
             });
         } catch (Throwable $exception) {
             if ($newPhoto !== null) {
@@ -192,8 +193,13 @@ final class UpdateContact
     /**
      * @param  list<string>  $fields
      */
-    private function recordUpdate(Organization $tenant, ?User $actor, Entity $stakeholder, array $fields): void
-    {
+    private function recordUpdate(
+        Organization $tenant,
+        ?User $actor,
+        Entity $stakeholder,
+        array $fields,
+        OrganizationRelationshipPeriod $period,
+    ): void {
         $fields = array_values(array_unique($fields));
 
         if ($fields === []) {
@@ -202,6 +208,6 @@ final class UpdateContact
 
         $this->audit->handle($tenant, $actor, AuditEvent::ContactUpdated, $stakeholder, [
             'fields' => $fields,
-        ]);
+        ], $period);
     }
 }

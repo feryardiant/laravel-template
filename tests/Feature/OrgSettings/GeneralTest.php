@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
+use RuntimeException;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -192,4 +193,23 @@ test('the danger zone is visible only to the owner', function () {
     get(route('org-settings.general'))
         ->assertOk()
         ->assertDontSee(__('Danger Zone'));
+});
+
+it('rolls back the organization update when the audit write fails', function () {
+    $organization = Organization::factory()->create(['name' => 'Old Name']);
+
+    actingAsMember($organization, Role::Owner);
+
+    failAuditWrites();
+
+    try {
+        expect(fn () => Livewire::test(General::class)
+            ->set('name', 'New Name')
+            ->call('update'))
+            ->toThrow(RuntimeException::class);
+    } finally {
+        restoreAuditWrites();
+    }
+
+    expect($organization->fresh()->name)->toBe('Old Name');
 });

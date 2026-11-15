@@ -50,6 +50,8 @@ export interface DatePickerConfig {
     withConfirmation: boolean
     withPresets: boolean
     presetKeys: string[]
+    /** Optional server-provided civil date for presets. */
+    today: string | null
     placeholder: string | null
     clearable: boolean
     disabled: boolean
@@ -477,7 +479,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
         /** Rebuild the presets from the current local date and bounds. */
         buildPresets() {
-            const today = localTodayKey()
+            const today = config.today ?? localTodayKey()
             const startDay = config.startDay ?? firstDayOfWeek(locale)
             const min = config.min === 'today' ? today : toDateKey(config.min)
             const max = config.max === 'today' ? today : toDateKey(config.max)
