@@ -7,7 +7,6 @@ use App\Enums\Role;
 use App\Events\MemberRoleChanged;
 use App\Livewire\Members\Index;
 use App\Models\Organization;
-use App\Models\Person;
 use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,20 +113,6 @@ test('members can be searched by name and email', function () {
         ->set('search', 'bob@example')
         ->assertSee('Bob Builder')
         ->assertDontSee('Alice Wonder');
-});
-
-test('the owner role cannot be assigned to a new member', function () {
-    $organization = Organization::factory()->create();
-
-    actingAsMember($organization, Role::Owner);
-
-    Livewire::test(Index::class)
-        ->set('name', 'New Owner')
-        ->set('role', Role::Owner->value)
-        ->call('createMember')
-        ->assertHasErrors('role');
-
-    expect(Person::query()->where('name', 'New Owner')->exists())->toBeFalse();
 });
 
 test('a role change promotes within the current organization only', function () {

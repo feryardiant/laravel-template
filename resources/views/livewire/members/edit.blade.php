@@ -3,11 +3,11 @@
     position="right"
     variant="floating"
     wire:model.self="showModal"
-    :title="__('Edit member')"
-    :subtitle="$person?->name"
+    :title="$person === null ? __('Add member') : __('Edit member')"
+    :subtitle="$person === null ? __('Add a person to this organization.') : $person->name"
     class="flex flex-col"
 >
-    <form wire:submit="update" class="flex flex-1 flex-col">
+    <form wire:submit="save" class="flex flex-1 flex-col">
         <div class="space-y-6">
             @unless ($this->canEditProfile)
                 <flux:callout variant="secondary" icon="lock-closed">
@@ -111,7 +111,7 @@
                 <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
             </flux:modal.close>
 
-            <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
+            <flux:button variant="primary" type="submit">{{ $person === null ? __('Add') : __('Save') }}</flux:button>
         </div>
     </form>
 </x-modal>

@@ -6,6 +6,7 @@ namespace App\Livewire\Members;
 
 use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\CreateMember;
 use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\Gender;
@@ -40,8 +41,6 @@ class Edit extends Component
 
     public bool $showModal = false;
 
-    public bool $fromDetail = false;
-
     public string $name = '';
 
     public string $email = '';
@@ -72,7 +71,6 @@ class Edit extends Component
     public function mount(?Person $person = null): void
     {
         if ($person instanceof Person) {
-            $this->fromDetail = true;
             $this->genderEnabled = ContactGender::enabled($this->currentOrganization());
             $this->fillFrom($person);
         }
@@ -92,6 +90,90 @@ class Edit extends Component
         $this->fillFrom($person);
 
         $this->showModal = true;
+    }
+
+    /**
+     * Open the form for a new member.
+     */
+    #[On('create-member')]
+    public function openCreate(): void
+    {
+        $this->authorizeManager();
+
+        $this->reset('person', 'name', 'email', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
+
+        $this->role = Role::Member->value;
+        $this->genderEnabled = false;
+        $this->resetValidation();
+
+        $this->showModal = true;
+    }
+
+    /**
+     * Add a person to the current organization.
+     */
+    public function create(CreateMember $createMember, FileStorage $fileStorage): void
+    {
+        $organization = $this->requireOrganization();
+
+        $this->authorizeManager();
+
+        $this->email = Str::lower($this->email);
+
+        $this->validate([
+            'photo' => ['nullable', 'image', 'max:2048'],
+        ]);
+
+        $validated = $this->validate([
+            'name' => $this->nameRules(),
+            'email' => $this->createCredential
+                ? $this->emailRules()
+                : ['nullable', 'string', 'email', 'max:255'],
+            'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
+        ]);
+
+        $role = Role::from((int) $validated['role']);
+        $this->authorizeRole($role);
+
+        $hasCredential = $this->createCredential;
+        $photoUrl = $this->photo instanceof UploadedFile
+            ? $fileStorage->handle($this->photo, 'photos')
+            : null;
+
+        $createMember->handle(
+            $organization,
+            $validated['name'],
+            $role,
+            $hasCredential ? $validated['email'] : null,
+            $photoUrl,
+            Auth::user(),
+        );
+
+        $this->photo = null;
+        $this->showModal = false;
+
+        $this->dispatch('member-updated');
+
+        Flux::toast(
+            variant: 'success',
+            text: $hasCredential
+                ? __('Member added. A verification email has been sent.')
+                : __('Member added.'),
+        );
+    }
+
+    /**
+     * Save the form, either creating a member or updating the selected one.
+     */
+    public function save(CreateMember $createMember, FileStorage $fileStorage): void
+    {
+        if ($this->person === null) {
+            $this->create($createMember, $fileStorage);
+
+            return;
+        }
+
+        $this->update($fileStorage);
     }
 
     /**
@@ -266,7 +348,8 @@ class Edit extends Component
     {
         $organization = $this->currentOrganization();
 
-        return $organization !== null && $this->person?->isOwnedBy($organization) === true;
+        // A new member is always editable; existing profiles only when this organization owns them.
+        return $organization !== null && ($this->person === null || $this->person->isOwnedBy($organization));
     }
 
     /**

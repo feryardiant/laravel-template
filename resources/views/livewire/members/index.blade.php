@@ -10,7 +10,7 @@
     <x-slot:actions>
         @if ($canManage)
             <div class="hidden items-center gap-2 sm:flex">
-                <flux:button variant="primary" icon="plus" wire:click="$set('showCreateModal', true)">
+                <flux:button variant="primary" icon="plus" wire:click="createMember">
                     {{ __('Add member') }}
                 </flux:button>
 
@@ -41,7 +41,7 @@
                 />
 
                 <flux:menu>
-                    <flux:menu.item icon="plus" wire:click="$set('showCreateModal', true)">
+                    <flux:menu.item icon="plus" wire:click="createMember">
                         {{ __('Add member') }}
                     </flux:menu.item>
 
@@ -261,59 +261,6 @@
             </flux:table>
         </flux:checkbox.group>
     @endif
-
-    <x-modal
-        wire:model.self="showCreateModal"
-        :title="__('Add member')"
-        :subtitle="__('Add a person to this organization.')"
-    >
-        <form wire:submit="createMember" class="space-y-6">
-            <x-ui.file-upload wire:model="photo" accept="image/*" :label="__('Member Photo')">
-                <x-ui.file-upload.avatar :url="$photo" shape="rounded" remove="clearPhoto" />
-            </x-ui.file-upload>
-
-            <flux:input
-                wire:model="name"
-                type="text"
-                :label="__('Name')"
-                required
-                autofocus
-                autocomplete="off"
-            />
-
-            <flux:radio.group wire:model="role" :label="__('Role')" class="flex flex-wrap gap-x-6">
-                @foreach ($this->roles as $roleOption)
-                    <flux:radio :value="$roleOption->value" :label="$roleOption->label()" />
-                @endforeach
-
-                <flux:error name="role" />
-            </flux:radio.group>
-
-            <flux:checkbox
-                wire:model.live="createCredential"
-                :label="__('Create login credential')"
-                :description="__('An invitation email will be sent so they can set their password.')"
-            />
-
-            @if ($createCredential)
-                <flux:input
-                    wire:model="email"
-                    type="email"
-                    :label="__('Email')"
-                    required
-                    autocomplete="off"
-                />
-            @endif
-
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle" color="red">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="primary" type="submit">{{ __('Add') }}</flux:button>
-            </div>
-        </form>
-    </x-modal>
 
     <x-modal
         wire:model.self="showDeleteModal"
