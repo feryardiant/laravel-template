@@ -20,6 +20,7 @@
                     with-presets
                     start-day="0"
                     :today="$today"
+                    :timezone="$timezone"
                     class="w-full sm:w-60"
                 />
             </div>

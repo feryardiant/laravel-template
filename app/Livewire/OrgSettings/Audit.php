@@ -81,7 +81,7 @@ class Audit extends Component
 
         $query = AuditLog::query()
             ->where('organization_id', $this->requireOrganization()->getKey())
-            ->with(['actor', 'subject'])
+            ->with(['actor.person', 'subject'])
             ->when($this->event !== null, fn ($query) => $query->where('event', $this->event));
 
         if ($start !== null) {
@@ -101,6 +101,7 @@ class Audit extends Component
         return view('livewire.org-settings.audit', [
             'events' => AuditEvent::cases(),
             'today' => CarbonImmutable::now($this->userTimezone())->toDateString(),
+            'timezone' => $this->userTimezone(),
         ])->title(__('Audit log'));
     }
 
