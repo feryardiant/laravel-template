@@ -259,7 +259,7 @@ class Edit extends Component
                 if (! $fileStorage->delete($previousPhoto)) {
                     $this->photo_url = $previousPhoto;
 
-                    Flux::toast(variant: 'danger', text: __('Unable to remove the photo. Please try again.'));
+                    Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
 
                     return;
                 }

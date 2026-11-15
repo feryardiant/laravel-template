@@ -114,7 +114,7 @@ class Profile extends Component
                 if (! $fileStorage->delete($previousAvatar)) {
                     $this->avatar_url = $previousAvatar;
 
-                    Flux::toast(variant: 'danger', text: __('Unable to remove the avatar. Please try again.'));
+                    Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('User avatar')]));
 
                     return;
                 }
