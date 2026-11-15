@@ -1,14 +1,13 @@
-<div class="flex w-full flex-1 flex-col gap-6">
-    <div class="flex items-start justify-between gap-4">
-        <div class="relative w-full">
-            <flux:heading size="xl" level="1">{{ __('Contacts') }}</flux:heading>
-            <flux:subheading>
-                {{ $organization === null
-                    ? __('You are not a member of any organization.')
-                    : __('Contacts of :organization', ['organization' => $organization->name]) }}
-            </flux:subheading>
-        </div>
+<x-page :heading="__('Contacts')">
+    <x-slot:subheading>
+        <flux:subheading>
+            {{ $organization === null
+                ? __('You are not a member of any organization.')
+                : __('Contacts of :organization', ['organization' => $organization->name]) }}
+        </flux:subheading>
+    </x-slot:subheading>
 
+    <x-slot:actions>
         @if ($canManage)
             <div class="hidden items-center gap-2 sm:flex">
                 <flux:button variant="primary" icon="plus" wire:click="createContact">
@@ -60,9 +59,7 @@
                 </flux:menu>
             </flux:dropdown>
         @endif
-    </div>
-
-    <flux:separator variant="subtle" />
+    </x-slot:actions>
 
     @if ($organization === null)
         <flux:card class="max-w-lg">
@@ -257,19 +254,12 @@
         </flux:checkbox.group>
     @endif
 
-    <flux:modal
+    <x-modal
         wire:model.self="showDeleteModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'delete-contact-heading')"
+        :title="__('Delete contact')"
+        :subtitle="__('Delete :name from your contacts?', ['name' => $deletingContactName ?? __('this contact')])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="delete-contact-heading" size="lg">{{ __('Delete contact') }}</flux:heading>
-                <flux:subheading>
-                    {{ __('Delete :name from your contacts?', ['name' => $deletingContactName ?? __('this contact')]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -280,21 +270,14 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showBatchDeleteModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'delete-selected-contacts-heading')"
+        :title="__('Delete contacts')"
+        :subtitle="__('Delete :count selected contacts?', ['count' => count($selected)])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="delete-selected-contacts-heading" size="lg">{{ __('Delete contacts') }}</flux:heading>
-                <flux:subheading>
-                    {{ __('Delete :count selected contacts?', ['count' => count($selected)]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -305,7 +288,7 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
     <livewire:contacts.edit />
-</div>
+</x-page>

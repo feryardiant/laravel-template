@@ -1,12 +1,4 @@
-<section class="w-full">
-    <div class="relative mb-6 w-full">
-        <flux:heading size="xl" level="1">{{ __('Organization settings') }}</flux:heading>
-        <flux:subheading class="mb-6">{{ __('Manage your organization settings') }}</flux:subheading>
-        <flux:separator variant="subtle" />
-    </div>
-
-    <flux:heading level="2" class="sr-only">{{ __('Features') }}</flux:heading>
-
+<x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
     <x-org-settings.layout :heading="__('Features')" :subheading="__('Control platform and workspace features')">
         <x-ui.section>
             <x-ui.section.item>
@@ -53,4 +45,4 @@
         </x-ui.section>
 
     </x-org-settings.layout>
-</section>
+</x-page>

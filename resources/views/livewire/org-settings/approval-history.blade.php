@@ -1,12 +1,4 @@
-<section class="w-full">
-    <div class="relative mb-6 w-full">
-        <flux:heading size="xl" level="1">{{ __('Organization settings') }}</flux:heading>
-        <flux:subheading class="mb-6">{{ __('Manage your organization settings') }}</flux:subheading>
-        <flux:separator variant="subtle" />
-    </div>
-
-    <flux:heading level="2" class="sr-only">{{ __('Approvals history') }}</flux:heading>
-
+<x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
     <x-org-settings.layout
         :heading="__('Approvals history')"
         :subheading="__('Every approval request made in this organization')"
@@ -65,4 +57,4 @@
             </div>
         @endif
     </x-org-settings.layout>
-</section>
+</x-page>

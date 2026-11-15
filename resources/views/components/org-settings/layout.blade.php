@@ -4,8 +4,8 @@
 @php($user = auth()->user())
 @php($role = $organization !== null && $user instanceof \App\Models\User ? $user->roleIn($organization) : null)
 
-<div class="flex items-start max-md:flex-col">
-    <div class="me-10 w-full pb-4 md:w-[220px]">
+<x-page.nav :$heading :$subheading :$width>
+    <x-slot:nav>
         <flux:navlist aria-label="{{ __('Organization settings') }}">
             <flux:navlist.item :href="route('org-settings.general')" wire:navigate>{{ __('General') }}</flux:navlist.item>
             @if ($organization !== null)
@@ -18,22 +18,11 @@
                 <flux:navlist.item :href="route('org-settings.approval-history')" wire:navigate>{{ __('Approvals history') }}</flux:navlist.item>
             @endif
         </flux:navlist>
-    </div>
+    </x-slot:nav>
 
-    <flux:separator class="md:hidden" />
+    @isset($actions)
+        <x-slot:actions>{{ $actions }}</x-slot:actions>
+    @endisset
 
-    <div class="flex-1 self-stretch max-md:pt-6">
-        <div class="flex flex-row">
-            <div class="flex-1">
-                <flux:heading>{{ $heading }}</flux:heading>
-                <flux:subheading>{{ $subheading }}</flux:subheading>
-            </div>
-
-            <div class="flex flex-row">{{ $actions ?? '' }}</div>
-        </div>
-
-        <div class="mt-5 w-full {{ $width }}">
-            {{ $slot }}
-        </div>
-    </div>
-</div>
+    {{ $slot }}
+</x-page.nav>

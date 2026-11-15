@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\OrgSettings\Subsidiaries;
+use App\Livewire\OrgSettings\Subsidiaries\RemoveSubsidiary;
 use App\Livewire\Settings\Organizations\Create;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -70,7 +71,7 @@ test('root admins can view the list but cannot manage it', function () {
         ->assertOk()
         ->assertSee('Alpha')
         ->assertDontSeeHtml('data-test="new-subsidiary"')
-        ->assertDontSeeHtml('confirmRemove(');
+        ->assertDontSeeHtml("dispatch('remove-subsidiary'");
 });
 
 test('root owners can view and manage the list', function () {
@@ -83,7 +84,7 @@ test('root owners can view and manage the list', function () {
         ->assertOk()
         ->assertSee('Alpha')
         ->assertSeeHtml('data-test="new-subsidiary"')
-        ->assertSeeHtml('confirmRemove(');
+        ->assertSeeHtml("dispatch('remove-subsidiary'");
 });
 
 test('the list shows the internal subsidiary tree only', function () {
@@ -204,7 +205,7 @@ test('an owner queues the removal of a subsidiary and its nested subsidiaries', 
     $alpha = makeInternalSubsidiary($this->root, $this->root, 'Alpha');
     makeInternalSubsidiary($alpha, $this->root, 'Beta');
 
-    Livewire::test(Subsidiaries::class)
+    Livewire::test(RemoveSubsidiary::class)
         ->call('confirmRemove', $alpha->getKey())
         ->assertSet('removingCount', 2)
         ->call('remove')
@@ -228,11 +229,11 @@ test('a root admin cannot queue a removal', function () {
 
     $alpha = makeInternalSubsidiary($this->root, $this->root, 'Alpha');
 
-    Livewire::test(Subsidiaries::class)
+    Livewire::test(RemoveSubsidiary::class)
         ->call('confirmRemove', $alpha->getKey())
         ->assertForbidden();
 
-    Livewire::test(Subsidiaries::class)
+    Livewire::test(RemoveSubsidiary::class)
         ->call('remove')
         ->assertForbidden();
 

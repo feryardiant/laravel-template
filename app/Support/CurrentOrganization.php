@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 final class CurrentOrganization
 {
@@ -14,8 +15,9 @@ final class CurrentOrganization
     /**
      * Resolve the organization the user is currently working in.
      */
-    public function get(?User $user): ?Organization
+    public function get(?User $user = null): ?Organization
     {
+        $user = Auth::user();
         $person = $user?->person;
 
         if ($person === null) {

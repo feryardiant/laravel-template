@@ -205,7 +205,7 @@ test('the edit member modal is a floating right-side flyout with a bottom footer
         ->assertSeeHtml('data-flux-flyout')
         ->assertSeeHtml('ml-auto')
         ->assertSeeHtml('rounded-xl')
-        ->assertSeeHtml('min-h-[calc(100dvh-5rem)]')
+        ->assertSeeHtml('class="flex flex-1 flex-col"')
         ->assertSeeHtml('mt-auto');
 });
 
@@ -225,4 +225,25 @@ test('a member photo can be updated', function () {
         ->assertHasNoErrors();
 
     expect($member->person->fresh()->getRawOriginal('photo_url'))->toContain('photos/');
+});
+
+test('a photo picked for a new member does not follow into an edit', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/original.jpg']);
+
+    Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('photo', UploadedFile::fake()->image('pending.jpg'))
+        ->call('editMember', $member->person->getKey())
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/original.jpg');
 });

@@ -1,10 +1,5 @@
-<div class="flex w-full flex-1 flex-col gap-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="relative w-full">
-            <flux:heading size="xl" level="1">{{ __('Notifications') }}</flux:heading>
-            <flux:subheading>{{ __('All notifications for your account') }}</flux:subheading>
-        </div>
-
+<x-page :heading="__('Notifications')" :subheading="__('All notifications for your account')">
+    <x-slot:actions>
         @if (count($selectedNotifications) > 0)
             <flux:button.group class="shrink-0 self-start max-sm:flex-wrap">
                 <flux:button
@@ -25,9 +20,7 @@
                 </flux:button>
             </flux:button.group>
         @endif
-    </div>
-
-    <flux:separator variant="subtle" />
+    </x-slot:actions>
 
     @php($pageIds = $notifications->pluck('id')->all())
     @php($allSelected = $pageIds !== [] && array_diff($pageIds, $selectedNotifications) === [])
@@ -161,15 +154,17 @@
         </flux:table.rows>
     </flux:table>
 
-    <flux:modal flyout variant="floating" wire:model.self="showNotificationModal" class="md:w-96">
+    <x-modal
+        flyout
+        position="right"
+        variant="floating"
+        wire:model.self="showNotificationModal"
+        :title="$this->selectedNotification?->data['title'] ?? null"
+    >
         @if ($this->selectedNotification)
             @php($data = $this->selectedNotification->data)
 
             <div class="space-y-6">
-                <flux:heading size="lg" class="pe-8" data-notification-modal-title>
-                    {{ $data['title'] ?? '' }}
-                </flux:heading>
-
                 <div class="space-y-3 text-sm">
                     @if (! empty($data['greeting']))
                         <p class="font-medium">{{ $data['greeting'] }}</p>
@@ -195,7 +190,7 @@
                 </div>
             </div>
         @endif
-    </flux:modal>
+    </x-modal>
 
     @script
         <script>
@@ -204,4 +199,4 @@
             }
         </script>
     @endscript
-</div>
+</x-page>

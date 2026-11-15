@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
-use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
-use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
-use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
@@ -18,15 +15,11 @@ use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Throwable;
 
@@ -37,9 +30,7 @@ use Throwable;
  */
 class Index extends Component
 {
-    use HasCurrentOrganization, ProfileValidationRules, WithFileUploads, WithPagination;
-
-    public bool $showCreateModal = false;
+    use HasCurrentOrganization, WithPagination;
 
     public bool $showDeleteModal = false;
 
@@ -52,19 +43,6 @@ class Index extends Component
     public ?int $roleChangePersonId = null;
 
     public ?int $roleChangeTo = null;
-
-    public string $name = '';
-
-    public string $email = '';
-
-    public bool $createCredential = false;
-
-    public int $role = Role::Member->value;
-
-    /**
-     * @var mixed
-     */
-    public $photo = null;
 
     /**
      * @var array<int, int|string>
@@ -85,63 +63,13 @@ class Index extends Component
     public string $search = '';
 
     /**
-     * Add a person to the current organization.
+     * Open the form for a new member.
      */
-    public function createMember(CreateMember $createMember, FileStorage $fileStorage): void
+    public function createMember(): void
     {
-        $organization = $this->requireOrganization();
-
         $this->authorizeManager();
 
-        $this->email = Str::lower($this->email);
-
-        $this->validate([
-            'photo' => ['nullable', 'image', 'max:2048'],
-        ]);
-
-        $validated = $this->validate([
-            'name' => $this->nameRules(),
-            'email' => $this->createCredential
-                ? $this->emailRules()
-                : ['nullable', 'string', 'email', 'max:255'],
-            'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
-        ]);
-
-        $role = Role::from((int) $validated['role']);
-        $this->authorizeRole($role);
-
-        $hasCredential = $this->createCredential;
-        $photoUrl = $this->photo instanceof UploadedFile
-            ? $fileStorage->handle($this->photo, 'photos')
-            : null;
-
-        $createMember->handle(
-            $organization,
-            $validated['name'],
-            $role,
-            $hasCredential ? $validated['email'] : null,
-            $photoUrl,
-            Auth::user(),
-        );
-
-        $this->reset('name', 'email', 'createCredential', 'photo', 'showCreateModal');
-        $this->role = Role::Member->value;
-        $this->resetPage();
-
-        Flux::toast(
-            variant: 'success',
-            text: $hasCredential
-                ? __('Member added. A verification email has been sent.')
-                : __('Member added.'),
-        );
-    }
-
-    /**
-     * Clear the pending member photo.
-     */
-    public function clearPhoto(): void
-    {
-        $this->photo = null;
+        $this->dispatch('create-member');
     }
 
     public function confirmDelete(int $personId): void
@@ -277,15 +205,6 @@ class Index extends Component
         $this->resetPage();
 
         Flux::toast(variant: 'success', text: __('Member removed.'));
-    }
-
-    /**
-     * @return array<int, Role>
-     */
-    #[Computed]
-    public function roles(): array
-    {
-        return [Role::Admin, Role::Member];
     }
 
     #[Computed]

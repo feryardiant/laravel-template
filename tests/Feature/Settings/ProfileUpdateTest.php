@@ -175,7 +175,7 @@ test('email verification status is unchanged when email address is unchanged', f
 test('user can delete their account', function () {
     actingAs($user = User::factory()->create());
 
-    $response = Livewire::test('settings.delete-user-form')
+    $response = Livewire::test('settings.profile.delete-user-form')
         ->set('password', 'password')
         ->call('deleteUser');
 
@@ -190,7 +190,7 @@ test('user can delete their account', function () {
 test('correct password must be provided to delete account', function () {
     actingAs($user = User::factory()->create());
 
-    $response = Livewire::test('settings.delete-user-form')
+    $response = Livewire::test('settings.profile.delete-user-form')
         ->set('password', 'wrong-password')
         ->call('deleteUser');
 
@@ -205,7 +205,7 @@ test('the last owner cannot delete their account', function () {
 
     actingAs($owner);
 
-    Livewire::test('settings.delete-user-form')
+    Livewire::test('settings.profile.delete-user-form')
         ->set('password', 'password')
         ->call('deleteUser')
         ->assertHasErrors(['password']);

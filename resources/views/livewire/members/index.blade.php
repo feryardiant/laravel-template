@@ -1,17 +1,16 @@
-<div class="flex w-full flex-1 flex-col gap-6">
-    <div class="flex items-start justify-between gap-4">
-        <div class="relative w-full">
-            <flux:heading size="xl" level="1">{{ __('Members') }}</flux:heading>
-            <flux:subheading>
-                {{ $organization === null
-                    ? __('You are not a member of any organization.')
-                    : __('Members of :organization', ['organization' => $organization->name]) }}
-            </flux:subheading>
-        </div>
+<x-page :heading="__('Members')">
+    <x-slot:subheading>
+        <flux:subheading>
+            {{ $organization === null
+                ? __('You are not a member of any organization.')
+                : __('Members of :organization', ['organization' => $organization->name]) }}
+        </flux:subheading>
+    </x-slot:subheading>
 
+    <x-slot:actions>
         @if ($canManage)
             <div class="hidden items-center gap-2 sm:flex">
-                <flux:button variant="primary" icon="plus" wire:click="$set('showCreateModal', true)">
+                <flux:button variant="primary" icon="plus" wire:click="createMember">
                     {{ __('Add member') }}
                 </flux:button>
 
@@ -42,7 +41,7 @@
                 />
 
                 <flux:menu>
-                    <flux:menu.item icon="plus" wire:click="$set('showCreateModal', true)">
+                    <flux:menu.item icon="plus" wire:click="createMember">
                         {{ __('Add member') }}
                     </flux:menu.item>
 
@@ -60,9 +59,7 @@
                 </flux:menu>
             </flux:dropdown>
         @endif
-    </div>
-
-    <flux:separator variant="subtle" />
+    </x-slot:actions>
 
     @php($selectedIds = array_map('intval', $selected))
     @php($isOwner = $currentRole?->isOwner() ?? false)
@@ -265,77 +262,12 @@
         </flux:checkbox.group>
     @endif
 
-    <flux:modal
-        wire:model.self="showCreateModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'add-member-heading')"
-    >
-        <form wire:submit="createMember" class="space-y-6">
-            <div>
-                <flux:heading id="add-member-heading" size="lg">{{ __('Add member') }}</flux:heading>
-                <flux:subheading>{{ __('Add a person to this organization.') }}</flux:subheading>
-            </div>
-
-            <x-ui.file-upload wire:model="photo" accept="image/*" :label="__('Member Photo')">
-                <x-ui.file-upload.avatar :url="$photo" shape="rounded" remove="clearPhoto" />
-            </x-ui.file-upload>
-
-            <flux:input
-                wire:model="name"
-                type="text"
-                :label="__('Name')"
-                required
-                autofocus
-                autocomplete="off"
-            />
-
-            <flux:radio.group wire:model="role" :label="__('Role')" class="flex flex-wrap gap-x-6">
-                @foreach ($this->roles as $roleOption)
-                    <flux:radio :value="$roleOption->value" :label="$roleOption->label()" />
-                @endforeach
-
-                <flux:error name="role" />
-            </flux:radio.group>
-
-            <flux:checkbox
-                wire:model.live="createCredential"
-                :label="__('Create login credential')"
-                :description="__('An invitation email will be sent so they can set their password.')"
-            />
-
-            @if ($createCredential)
-                <flux:input
-                    wire:model="email"
-                    type="email"
-                    :label="__('Email')"
-                    required
-                    autocomplete="off"
-                />
-            @endif
-
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle" color="red">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="primary" type="submit">{{ __('Add') }}</flux:button>
-            </div>
-        </form>
-    </flux:modal>
-
-    <flux:modal
+    <x-modal
         wire:model.self="showDeleteModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-member-heading')"
+        :title="__('Remove member')"
+        :subtitle="__('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-member-heading" size="lg">{{ __('Remove member') }}</flux:heading>
-                <flux:subheading>
-                    {{ __('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -346,21 +278,14 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showBatchDeleteModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-selected-members-heading')"
+        :title="__('Remove members')"
+        :subtitle="__('Remove :count selected members from this organization?', ['count' => count($selected)])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-selected-members-heading" size="lg">{{ __('Remove members') }}</flux:heading>
-                <flux:subheading>
-                    {{ __('Remove :count selected members from this organization?', ['count' => count($selected)]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -371,26 +296,14 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
-    <flux:modal
+    <x-modal
         wire:model.self="showRoleModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'role-change-heading')"
+        :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
+        :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')])"
     >
         <div class="space-y-6">
-            <div>
-                <flux:heading id="role-change-heading" size="lg">
-                    {{ $this->roleChangeIsPromotion ? __('Promote member') : __('Demote member') }}
-                </flux:heading>
-
-                <flux:subheading>
-                    {{ $this->roleChangeIsPromotion
-                        ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')])
-                        : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) }}
-                </flux:subheading>
-            </div>
-
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -404,7 +317,7 @@
                 </flux:button>
             </div>
         </div>
-    </flux:modal>
+    </x-modal>
 
     <livewire:members.edit />
-</div>
+</x-page>

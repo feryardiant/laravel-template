@@ -1,8 +1,4 @@
-<section class="w-full">
-    @include('partials.settings-heading')
-
-    <flux:heading level="2" class="sr-only">{{ __('Security settings') }}</flux:heading>
-
+<x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
     <x-settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
             <flux:input
@@ -79,9 +75,9 @@
         @endif
 
         @if ($canManageTwoFactor)
-            <flux:modal
+            <x-modal
                 name="two-factor-setup-modal"
-                class="max-w-md md:min-w-md"
+                width="max-w-md md:min-w-md"
                 @close="closeModal"
                 wire:model="showModal"
             >
@@ -237,9 +233,8 @@
                         </div>
                     @endif
                 </div>
-            </flux:modal>
+            </x-modal>
         @endif
 
     </x-settings.layout>
-
-</section>
+</x-page>

@@ -1,29 +1,27 @@
-<div class="flex w-full flex-1 flex-col gap-6">
-    <div class="flex items-start justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <flux:avatar
-                size="lg"
-                :initials="$stakeholder->initials()"
-                :src="$isOrganization ? $stakeholder->logo_url : $stakeholder->photo_url"
-            />
+<x-page>
+    <x-slot:leading>
+        <flux:avatar
+            size="lg"
+            :initials="$stakeholder->initials()"
+            :src="$isOrganization ? $stakeholder->logo_url : $stakeholder->photo_url"
+        />
+    </x-slot:leading>
 
-            <div class="relative w-full">
-                <flux:heading size="xl" level="1">
-                    {{ $stakeholder->name }}
-                    <flux:badge color="zinc">{{ $isOrganization ? __('Organization') : __('Individual') }}</flux:badge>
+    <x-slot:heading>
+        {{ $stakeholder->name }}
+        <flux:badge color="zinc">{{ $isOrganization ? __('Organization') : __('Individual') }}</flux:badge>
 
-                    @if ($stakeholder->trashed())
-                        <flux:badge color="red">{{ __('Deleted') }}</flux:badge>
-                    @endif
-                </flux:heading>
+        @if ($stakeholder->trashed())
+            <flux:badge color="red">{{ __('Deleted') }}</flux:badge>
+        @endif
+    </x-slot:heading>
 
-                <flux:subheading>
-                    {{ __('Registered at') }}
-                    <x-local-time :date="$stakeholder->created_at" />
-                </flux:subheading>
-            </div>
-        </div>
-    </div>
+    <x-slot:subheading>
+        <flux:subheading>
+            {{ __('Registered at') }}
+            <x-local-time :date="$stakeholder->created_at" />
+        </flux:subheading>
+    </x-slot:subheading>
 
     @if ($stakeholder->trashed())
         <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This organization has been deleted.')">
@@ -32,8 +30,6 @@
             </flux:callout.text>
         </flux:callout>
     @endif
-
-    <flux:separator variant="subtle" />
 
     <flux:card class="max-w-lg space-y-4">
         <div>
@@ -114,4 +110,4 @@
             </div>
         </flux:card>
     @endif
-</div>
+</x-page>

@@ -10,12 +10,34 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
 
 trait HasCurrentOrganization
 {
-    protected function currentOrganization(): ?Organization
+    /**
+     * Whether the current user owns the organization.
+     */
+    #[Computed()]
+    public function isOwner(): bool
     {
-        return app(CurrentOrganization::class)->get(Auth::user());
+        return $this->currentRole()?->isOwner() === true;
+    }
+
+    /**
+     * Whether the current user can manage the organization.
+     */
+    #[Computed()]
+    public function isManager(): bool
+    {
+        $role = $this->currentRole();
+
+        return $role?->isOwner() || $role?->isAdmin();
+    }
+
+    #[Computed()]
+    public function currentOrganization(): ?Organization
+    {
+        return app(CurrentOrganization::class)->get();
     }
 
     protected function currentRole(): ?Role
@@ -61,11 +83,14 @@ trait HasCurrentOrganization
         $this->redirect($target, navigate: true);
     }
 
+    private function authorizeOwner(): void
+    {
+        abort_unless($this->isOwner(), 403);
+    }
+
     protected function authorizeManager(): void
     {
-        $role = $this->currentRole();
-
-        abort_unless($role?->isOwner() || $role?->isAdmin(), 403);
+        abort_unless($this->isManager(), 403);
     }
 
     protected function authorizeRole(Role $role): void

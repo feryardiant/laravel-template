@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
-use App\Livewire\Members\Index;
+use App\Livewire\Members\Edit;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Notifications\VerifyEmailForNewUser;
@@ -21,11 +21,11 @@ test('an admin can add a person without a credential', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Index::class)
+    Livewire::test(Edit::class)->call('openCreate')
         ->set('name', 'No Credential')
         ->set('role', Role::Member->value)
         ->set('createCredential', false)
-        ->call('createMember')
+        ->call('create')
         ->assertHasNoErrors();
 
     $person = Person::query()->where('name', 'No Credential')->firstOrFail();
@@ -42,12 +42,12 @@ test('an admin can add a member with an invite credential', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Index::class)
+    Livewire::test(Edit::class)->call('openCreate')
         ->set('name', 'Invited Member')
         ->set('email', 'invited@example.com')
         ->set('createCredential', true)
         ->set('role', Role::Member->value)
-        ->call('createMember')
+        ->call('create')
         ->assertHasNoErrors();
 
     $person = Person::query()->where('name', 'Invited Member')->firstOrFail();
@@ -68,13 +68,13 @@ test('the owner role cannot be assigned when adding a member', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    $component = Livewire::test(Index::class);
+    $component = Livewire::test(Edit::class)->call('openCreate');
 
     expect($component->instance()->roles())->toBe([Role::Admin, Role::Member]);
 
     $component->set('name', 'New Owner')
         ->set('role', Role::Owner->value)
-        ->call('createMember')
+        ->call('create')
         ->assertHasErrors('role');
 
     expect(Person::query()->where('name', 'New Owner')->exists())->toBeFalse();
@@ -85,10 +85,8 @@ test('a plain member cannot add members', function () {
 
     actingAsMember($organization, Role::Member);
 
-    Livewire::test(Index::class)
-        ->set('name', 'Forbidden Member')
-        ->set('role', Role::Member->value)
-        ->call('createMember')
+    Livewire::test(Edit::class)
+        ->call('create')
         ->assertForbidden();
 
     expect(Person::query()->where('name', 'Forbidden Member')->exists())->toBeFalse();
@@ -102,11 +100,11 @@ test('an admin can add a member with a photo', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Index::class)
+    Livewire::test(Edit::class)->call('openCreate')
         ->set('name', 'Photo Member')
         ->set('role', Role::Member->value)
         ->set('photo', UploadedFile::fake()->image('member.jpg'))
-        ->call('createMember')
+        ->call('create')
         ->assertHasNoErrors();
 
     $person = Person::query()->where('name', 'Photo Member')->firstOrFail();

@@ -1,8 +1,4 @@
-<section class="w-full">
-    @include('partials.settings-heading')
-
-    <flux:heading level="2" class="sr-only">{{ __('Profile settings') }}</flux:heading>
-
+<x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
     <x-settings.layout :heading="__('Profile')" :subheading="__('Update your name, profile, and email address')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             @unless ($this->canEditOwnProfile)
@@ -94,7 +90,9 @@
         </form>
 
         @if ($this->showDeleteUser)
-            <livewire:settings.delete-user-form />
+            <x-ui.section variant="danger" :title="__('Danger Zone')">
+                <livewire:settings.profile.delete-user-form />
+            </x-ui.section>
         @endif
     </x-settings.layout>
-</section>
+</x-page>

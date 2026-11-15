@@ -1,8 +1,4 @@
-<section class="w-full">
-    @include('partials.settings-heading')
-
-    <flux:heading level="2" class="sr-only">{{ __('Organizations') }}</flux:heading>
-
+<x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
     <x-settings.layout
         :heading="__('Organizations')"
         :subheading="__('Manage your memberships in the organizations you have joined')"
@@ -127,7 +123,7 @@
                                         <flux:button
                                             size="sm"
                                             variant="primary"
-                                            wire:click="openApproval({{ $organization->id }})"
+                                            wire:click="$dispatch('respond', { organizationId: {{ $organization->id }} })"
                                         >
                                             {{ __('Respond') }}
                                         </flux:button>
@@ -141,7 +137,7 @@
                                         <flux:button
                                             size="sm"
                                             variant="danger"
-                                            wire:click="cancelLeaveRequest({{ $pendingRequest->id }})"
+                                            wire:click="$dispatch('cancel-leave-request', { approvalId: {{ $pendingRequest->id }} })"
                                         >
                                             {{ __('Cancel request') }}
                                         </flux:button>
@@ -160,7 +156,7 @@
                                         <flux:button
                                             size="sm"
                                             variant="danger"
-                                            wire:click="confirmRemove({{ $organization->id }})"
+                                            wire:click="$dispatch('remove-organization', { organizationId: {{ $organization->id }} })"
                                         >
                                             {{ __('Remove organization') }}
                                         </flux:button>
@@ -169,7 +165,7 @@
                                     <flux:button
                                         size="sm"
                                         variant="danger"
-                                        wire:click="confirmLeave({{ $organization->id }}, @js($organization->name))"
+                                        wire:click="$dispatch('leave-organization', { organizationId: {{ $organization->id }}, name: @js($organization->name) })"
                                     >
                                         {{ __('Leave') }}
                                     </flux:button>
@@ -182,120 +178,11 @@
         </div>
     </x-settings.layout>
 
-    <flux:modal
-        wire:model.self="showLeaveModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'leave-organization-heading')"
-    >
-        <form wire:submit="leave" class="space-y-6">
-            <div>
-                <flux:heading id="leave-organization-heading" size="lg">
-                    @if ($leaveNeedsApproval)
-                        {{ __('Request to leave :organization?', ['organization' => $leavingOrganizationName ?? __('this organization')]) }}
-                    @else
-                        {{ __('Leave :organization?', ['organization' => $leavingOrganizationName ?? __('this organization')]) }}
-                    @endif
-                </flux:heading>
+    <livewire:settings.organizations.leave />
 
-                <flux:subheading>
-                    @if ($leaveNeedsApproval)
-                        {{ __('An owner must approve this request. You keep access until they respond.') }}
-                    @else
-                        {{ __('You will lose access to this organization. An owner or admin can add you back later.') }}
-                    @endif
-                </flux:subheading>
-            </div>
+    <livewire:settings.organizations.remove />
 
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" type="submit">
-                    {{ $leaveNeedsApproval ? __('Request to leave') : __('Leave organization') }}
-                </flux:button>
-            </div>
-        </form>
-    </flux:modal>
-
-    <flux:modal
-        wire:model.self="showRemoveModal"
-        class="md:w-lg"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-organization-heading')"
-    >
-        <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-organization-heading" size="lg">{{ __('Remove organization') }}</flux:heading>
-                <flux:subheading>{{ $removingOrganizationName }}</flux:subheading>
-            </div>
-
-            <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This action cannot be undone.')">
-                <flux:callout.text>
-                    {{ __('All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.', ['name' => $removingOrganizationName]) }}
-                </flux:callout.text>
-            </flux:callout>
-
-            <flux:input
-                wire:model.live.debounce.300ms="confirmation"
-                :label="__('Type :name to confirm', ['name' => $removingOrganizationName])"
-                autocomplete="off"
-            />
-
-            <flux:error name="confirmation" />
-
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button
-                    variant="danger"
-                    wire:click="remove"
-                    :disabled="$confirmation !== $removingOrganizationName"
-                >
-                    {{ __('Remove organization') }}
-                </flux:button>
-            </div>
-        </div>
-    </flux:modal>
-
-    <flux:modal
-        wire:model.self="showApprovalModal"
-        class="md:w-lg"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'review-approval-heading')"
-    >
-        <div class="space-y-6">
-            <div>
-                <flux:heading id="review-approval-heading" size="lg">
-                    {{ $approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value
-                        ? __('Ownership transfer request')
-                        : __('Leave request') }}
-                </flux:heading>
-                <flux:subheading>{{ $approvalOrganizationName }}</flux:subheading>
-            </div>
-
-            <flux:text>
-                @if ($approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value)
-                    {{ __(':owner wants to transfer ownership of :organization to you. Accepting makes you the owner and the current owner an Admin.', ['owner' => $approvalRequesterName, 'organization' => $approvalOrganizationName]) }}
-                @else
-                    {{ __(':name requested to leave :organization. Approving removes their access immediately.', ['name' => $approvalRequesterName, 'organization' => $approvalOrganizationName]) }}
-                @endif
-            </flux:text>
-
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Dismiss') }}</flux:button>
-                </flux:modal.close>
-
-                <div class="flex items-center gap-2">
-                    <flux:button variant="danger" wire:click="declineApproval">{{ __('Decline') }}</flux:button>
-                    <flux:button variant="primary" wire:click="acceptApproval">
-                        {{ $approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value ? __('Accept') : __('Approve') }}
-                    </flux:button>
-                </div>
-            </div>
-        </div>
-    </flux:modal>
+    <livewire:settings.organizations.transfer-approval />
 
     <livewire:settings.organizations.create />
-</section>
+</x-page>

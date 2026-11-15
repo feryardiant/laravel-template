@@ -476,7 +476,7 @@ test('the edit flyout is a floating right-side flyout with a bottom footer', fun
         ->assertSeeHtml('data-flux-flyout')
         ->assertSeeHtml('ml-auto')
         ->assertSeeHtml('rounded-xl')
-        ->assertSeeHtml('min-h-[calc(100dvh-5rem)]')
+        ->assertSeeHtml('flex flex-1 flex-col')
         ->assertSeeHtml('mt-auto');
 });
 

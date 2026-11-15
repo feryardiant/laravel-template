@@ -1,23 +1,15 @@
 <div>
-    <flux:modal
-        wire:model.self="showModal"
+    <x-modal
         flyout
         position="right"
         variant="floating"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'create-organization-heading')"
+        wire:model.self="showModal"
+        :title="$internal ? __('New subsidiary') : __('New organization')"
+        :subtitle="$internal ? __('Create an organization under the root tenant.') : __('Create an organization you own and manage.')"
+        class="flex flex-col"
     >
-        <form wire:submit="create" class="flex min-h-[calc(100dvh-5rem)] flex-col">
+        <form wire:submit="create" class="flex flex-1 flex-col">
             <div class="space-y-6">
-                <div>
-                    <flux:heading id="create-organization-heading" size="lg">
-                        {{ $internal ? __('New subsidiary') : __('New organization') }}
-                    </flux:heading>
-                    <flux:subheading>
-                        {{ $internal ? __('Create an organization under the root tenant.') : __('Create an organization you own and manage.') }}
-                    </flux:subheading>
-                </div>
-
                 <x-ui.file-upload wire:model="logo" accept="image/*" :label="__('Organization Logo')">
                     <x-ui.file-upload.avatar :url="$logo" shape="rounded" remove="clearLogo" />
                 </x-ui.file-upload>
@@ -70,5 +62,5 @@
                 </flux:button>
             </div>
         </form>
-    </flux:modal>
+    </x-modal>
 </div>

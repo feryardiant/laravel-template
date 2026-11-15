@@ -1,12 +1,4 @@
-<section class="w-full">
-    <div class="relative mb-6 w-full">
-        <flux:heading size="xl" level="1">{{ __('Organization settings') }}</flux:heading>
-        <flux:subheading class="mb-6">{{ __('Manage your organization settings') }}</flux:subheading>
-        <flux:separator variant="subtle" />
-    </div>
-
-    <flux:heading level="2" class="sr-only">{{ __('Subsidiaries') }}</flux:heading>
-
+<x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
     <x-org-settings.layout
         :heading="__('Subsidiaries')"
         :subheading="__('Manage the organizations that belong to the root tenant')"
@@ -74,7 +66,7 @@
                                 <flux:button
                                     size="sm"
                                     variant="danger"
-                                    wire:click="confirmRemove({{ $organization->id }})"
+                                    wire:click="$dispatch('remove-subsidiary', { organizationId: {{ $organization->id }} })"
                                 >
                                     {{ __('Remove') }}
                                 </flux:button>
@@ -88,32 +80,5 @@
 
     <livewire:settings.organizations.create :internal="true" />
 
-    <flux:modal
-        wire:model.self="showRemoveModal"
-        class="md:w-96"
-        x-init="$el.querySelector('dialog')?.setAttribute('aria-labelledby', 'remove-subsidiary-heading')"
-    >
-        <div class="space-y-6">
-            <div>
-                <flux:heading id="remove-subsidiary-heading" size="lg">{{ __('Remove subsidiary') }}</flux:heading>
-                <flux:subheading>{{ __('Remove :name?', ['name' => $removingName]) }}</flux:subheading>
-            </div>
-
-            <flux:text>
-                {{ __('This permanently deletes the organization, its members, contacts, addresses and logo. People and login credentials are kept, and the deletion runs in the background.') }}
-
-                @if ($removingCount > 1)
-                    {{ __('This will also remove :count nested subsidiaries.', ['count' => $removingCount - 1]) }}
-                @endif
-            </flux:text>
-
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" wire:click="remove">{{ __('Remove') }}</flux:button>
-            </div>
-        </div>
-    </flux:modal>
-</section>
+    <livewire:org-settings.subsidiaries.remove-subsidiary />
+</x-page>
