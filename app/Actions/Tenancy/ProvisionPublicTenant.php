@@ -45,7 +45,7 @@ final class ProvisionPublicTenant
             'start_date' => now(),
             'contact_name' => $user->name,
             'user' => $user,
-        ]);
+        ], actor: $user);
 
         \assert($organization instanceof Organization);
 

@@ -112,6 +112,13 @@ test('new users register as members with a tenant organization owned by their pe
         ->and($added->actor_id)->toBe($user->getKey())
         ->and($added->subject_id)->toBe($person->getKey())
         ->and($added->organization_relationship_period_id)->not->toBeNull();
+
+    $contact = AuditLog::query()
+        ->where('event', AuditEvent::ContactCreated)
+        ->where('organization_id', $root->getKey())
+        ->sole();
+
+    expect($contact->actor_id)->toBe($user->getKey());
 });
 
 test('registration rejects an email that differs only by case', function () {

@@ -72,10 +72,6 @@
                             $details[] = \App\Enums\Role::from($changes['role'])->label();
                         }
 
-                        if (isset($changes['code'])) {
-                            $details[] = $changes['code'];
-                        }
-
                         if (isset($changes['via'])) {
                             $via = match ($changes['via']) {
                                 'manager' => __('Manager'),
@@ -93,6 +89,18 @@
 
                         if (isset($changes['restored']) && $changes['restored']) {
                             $details[] = __('Restored');
+                        }
+
+                        if (isset($changes['reason'])) {
+                            $reason = match ($changes['reason']) {
+                                'role_changed' => __('Role changed'),
+                                'member_removed' => __('Member removed'),
+                                'member_left' => __('Member left'),
+                                'organization_deleted' => __('Organization deleted'),
+                                default => $changes['reason'],
+                            };
+
+                            $details[] = __('Reason').': '.$reason;
                         }
 
                         if (isset($changes['detached_only']) && $changes['detached_only']) {

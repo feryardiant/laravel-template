@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\CreateContact;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
 use App\Enums\AuditEvent;
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\Audit;
 use App\Models\AuditLog;
@@ -22,6 +24,28 @@ use Tests\TestCase;
 use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function auditPageContactData(array $overrides = []): array
+{
+    return [
+        'name' => 'Audit Contact',
+        'summary' => null,
+        'code' => 'person@example.com',
+        'role' => OrganizationRelationshipType::Customer,
+        'type' => 'individual',
+        'start_date' => '2026-01-01',
+        'finish_date' => null,
+        'contact_name' => null,
+        'contact_gender' => null,
+        'contact_summary' => null,
+        'reference' => null,
+        ...$overrides,
+    ];
+}
 
 /**
  * @param  array<string, mixed>  $changes
@@ -265,6 +289,30 @@ test('a failed audit write rolls back the membership change', function () {
     }
 
     expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+});
+
+test('contact audit rows render the relationship type without the code value', function () {
+    $organization = Organization::factory()->create();
+    $actor = actingAsMember($organization, Role::Admin);
+
+    $entity = app(CreateContact::class)->handle($organization, auditPageContactData([
+        'finish_date' => '2026-01-31',
+    ]), actor: $actor);
+
+    Livewire::test(Audit::class)
+        ->assertSee(__('Contact created'))
+        ->assertSee(OrganizationRelationshipType::Customer->label())
+        ->assertDontSee('person@example.com');
+
+    app(CreateContact::class)->handle($organization, auditPageContactData([
+        'start_date' => '2026-03-01',
+        'reference' => 'individual:'.$entity->uuid,
+    ]), actor: $actor);
+
+    Livewire::test(Audit::class)
+        ->assertSee(__('Contact renewed'))
+        ->assertSee(OrganizationRelationshipType::Customer->label())
+        ->assertDontSee('person@example.com');
 });
 
 test('the default range covers this week', function () {

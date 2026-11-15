@@ -159,7 +159,7 @@ test('leaving closes the current period as self-leave', function () {
         ->firstOrFail();
 
     expect($period->reason)->toBe(RelationshipPeriodReason::Left)
-        ->and($period->actor_id)->toBeNull();
+        ->and($period->actor_id)->toBe($user->getKey());
 });
 
 test('a role change closes the old role period and opens a new one', function () {

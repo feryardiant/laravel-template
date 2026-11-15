@@ -60,10 +60,24 @@ test('creating a contact records the actor and period', function () {
         ->and($log->subject_id)->toBe($entity->getKey())
         ->and($log->changes)->toMatchArray([
             'kind' => 'individual',
-            'role' => OrganizationRelationshipType::Customer->value,
-            'code' => 'A-1',
+            'type' => OrganizationRelationshipType::Customer->value,
+            'fields' => ['code'],
         ])
         ->and($log->organization_relationship_period_id)->not->toBeNull();
+});
+
+test('a contact code is recorded as a field name, not a value', function () {
+    $organization = Organization::factory()->create();
+    $actor = actingAsMember($organization, Role::Admin);
+
+    app(CreateContact::class)->handle($organization, contactDataForAudit([
+        'code' => 'person@example.com',
+    ]), actor: $actor);
+
+    $log = AuditLog::query()->where('event', AuditEvent::ContactCreated)->sole();
+
+    expect($log->changes['fields'] ?? [])->toBe(['code'])
+        ->and(json_encode($log->changes))->not->toContain('person@example.com');
 });
 
 test('renewing an expired contact records a renewal instead of a duplicate creation', function () {
@@ -85,8 +99,8 @@ test('renewing an expired contact records a renewal instead of a duplicate creat
     expect($log->subject_id)->toBe($entity->getKey())
         ->and($log->changes)->toMatchArray([
             'kind' => 'individual',
-            'role' => OrganizationRelationshipType::Customer->value,
-            'code' => 'A-2',
+            'type' => OrganizationRelationshipType::Customer->value,
+            'fields' => ['code'],
         ])
         ->and($log->organization_relationship_period_id)->not->toBeNull()
         ->and(AuditLog::query()->where('event', AuditEvent::ContactCreated)->count())->toBe(1);

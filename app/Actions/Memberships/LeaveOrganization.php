@@ -38,7 +38,7 @@ final class LeaveOrganization
             return false;
         }
 
-        $left = DB::transaction(function () use ($person, $organization): bool {
+        $left = DB::transaction(function () use ($person, $organization, $user): bool {
             $organization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
             if ($organization === null) {
@@ -60,23 +60,32 @@ final class LeaveOrganization
                 ->first();
 
             $period = $relationship !== null
-                ? $this->timeline->close($relationship, RelationshipPeriodReason::Left)
+                ? $this->timeline->close($relationship, RelationshipPeriodReason::Left, $user)
                 : null;
 
             $organization->members()->detach($person->getKey());
 
-            $this->audit->handle($organization, null, AuditEvent::MemberLeft, $person, [
+            $this->audit->handle($organization, $user, AuditEvent::MemberLeft, $person, [
                 'via' => 'self',
             ], $period);
 
-            ApprovalRequest::query()
+            $pending = ApprovalRequest::query()
                 ->pending()
                 ->where('organization_id', $organization->getKey())
                 ->where('requester_person_id', $person->getKey())
-                ->update([
+                ->get();
+
+            foreach ($pending as $request) {
+                $request->update([
                     'status' => ApprovalRequestStatus::Cancelled,
                     'cancelled_at' => now(),
                 ]);
+
+                $this->audit->handle($organization, $user, AuditEvent::ApprovalCancelled, $request, [
+                    'type' => $request->type->value,
+                    'reason' => 'member_left',
+                ]);
+            }
 
             return true;
         });

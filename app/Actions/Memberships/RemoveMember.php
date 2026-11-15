@@ -94,16 +94,25 @@ final class RemoveMember
             $organization->members()->detach($removed->modelKeys());
 
             if ($removed->isNotEmpty()) {
-                ApprovalRequest::query()
+                $pending = ApprovalRequest::query()
                     ->pending()
                     ->where('organization_id', $organization->getKey())
                     ->where(fn ($query) => $query
                         ->whereIn('requester_person_id', $removed->modelKeys())
                         ->orWhereIn('approver_person_id', $removed->modelKeys()))
-                    ->update([
+                    ->get();
+
+                foreach ($pending as $request) {
+                    $request->update([
                         'status' => ApprovalRequestStatus::Cancelled,
                         'cancelled_at' => now(),
                     ]);
+
+                    $this->audit->handle($organization, $actor, AuditEvent::ApprovalCancelled, $request, [
+                        'type' => $request->type->value,
+                        'reason' => 'member_removed',
+                    ]);
+                }
 
                 foreach ($removed as $person) {
                     $this->audit->handle($organization, $actor, AuditEvent::MemberRemoved, $person, [

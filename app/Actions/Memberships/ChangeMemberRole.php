@@ -19,6 +19,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 final class ChangeMemberRole
 {
@@ -58,14 +59,16 @@ final class ChangeMemberRole
             return false;
         }
 
-        $this->updateRole($organization, $person, $newRole, $actor);
+        DB::transaction(function () use ($organization, $person, $newRole, $actor, $currentRole): void {
+            $this->updateRole($organization, $person, $newRole, $actor);
 
-        $period = $this->openPeriod($organization, $person);
+            $period = $this->openPeriod($organization, $person);
 
-        $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $person, [
-            'from' => $currentRole->value,
-            'to' => $newRole->value,
-        ], $period);
+            $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $person, [
+                'from' => $currentRole->value,
+                'to' => $newRole->value,
+            ], $period);
+        });
 
         event(new MemberRoleChanged($organization, $person, $actor, $currentRole, $newRole));
 
@@ -141,14 +144,23 @@ final class ChangeMemberRole
         }
 
         // A role change invalidates an admin's pending request to leave.
-        ApprovalRequest::query()
+        $pending = ApprovalRequest::query()
             ->pending()
             ->where('organization_id', $organization->getKey())
             ->where('type', ApprovalRequestType::MembershipLeave)
             ->where('requester_person_id', $person->getKey())
-            ->update([
+            ->get();
+
+        foreach ($pending as $request) {
+            $request->update([
                 'status' => ApprovalRequestStatus::Cancelled,
                 'cancelled_at' => now(),
             ]);
+
+            $this->audit->handle($organization, $actor, AuditEvent::ApprovalCancelled, $request, [
+                'type' => $request->type->value,
+                'reason' => 'role_changed',
+            ]);
+        }
     }
 }

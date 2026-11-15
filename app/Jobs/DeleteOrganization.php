@@ -83,7 +83,7 @@ final class DeleteOrganization implements ShouldQueue
                     $notifications[] = [$subsidiary->name, $members];
                 }
 
-                $logoPaths[] = $this->purge($subsidiary);
+                $logoPaths[] = $this->purge($subsidiary, $audit, $actor);
             }
         });
 
@@ -124,11 +124,28 @@ final class DeleteOrganization implements ShouldQueue
      * Organizations referenced by other tenants keep a minimal tombstone so
      * those relationships can still be displayed.
      */
-    private function purge(Organization $organization): ?string
+    private function purge(Organization $organization, RecordAudit $audit, ?User $actor): ?string
     {
         $logoPath = $organization->getRawOriginal('logo_url');
 
         $organization->address()->delete();
+
+        $pending = ApprovalRequest::query()
+            ->where('organization_id', $organization->getKey())
+            ->where('status', ApprovalRequestStatus::Pending)
+            ->get();
+
+        foreach ($pending as $request) {
+            $request->update([
+                'status' => ApprovalRequestStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
+
+            $audit->handle($organization, $actor, AuditEvent::ApprovalCancelled, $request, [
+                'type' => $request->type->value,
+                'reason' => 'organization_deleted',
+            ]);
+        }
 
         DB::table('features')
             ->where('scope', app(FeatureManager::class)->serializeScope($organization))
@@ -154,14 +171,6 @@ final class DeleteOrganization implements ShouldQueue
             ->whereStakeholder($organization)
             ->whereIn('type', OrganizationRelationshipType::internals())
             ->delete();
-
-        ApprovalRequest::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
-            ->update([
-                'status' => ApprovalRequestStatus::Cancelled,
-                'cancelled_at' => now(),
-            ]);
 
         $organization->update([
             'summary' => null,

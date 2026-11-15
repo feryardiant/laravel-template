@@ -8,13 +8,16 @@ use App\Actions\Memberships\LeaveOrganization;
 use App\Actions\Memberships\RemoveMember;
 use App\Actions\Organizations\AcceptMembershipLeave;
 use App\Actions\Organizations\RequestMembershipLeave;
+use App\Enums\ApprovalRequestStatus;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Models\AuditLog;
 use App\Models\Organization;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use RuntimeException;
 
 uses(RefreshDatabase::class);
 
@@ -31,6 +34,46 @@ test('adding a member records the opened period', function () {
     expect($log->actor_id)->toBe($owner->getKey())
         ->and($log->changes)->toMatchArray(['role' => Role::Member->value])
         ->and($log->organization_relationship_period_id)->not->toBeNull();
+});
+
+test('a failed role-change audit rolls back the role, period, and pending approval', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $admin = User::factory()->withProfile()->create();
+
+    app(CreateMember::class)->attach($organization, $admin->person, role: Role::Admin);
+
+    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+
+    $openBefore = OrganizationRelationshipPeriod::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_id', $admin->person->getKey())
+        ->whereNull('closed_at')
+        ->latest('id')
+        ->firstOrFail();
+
+    failAuditWrites();
+
+    try {
+        expect(fn () => app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner))
+            ->toThrow(RuntimeException::class);
+    } finally {
+        restoreAuditWrites();
+    }
+
+    $openAfter = OrganizationRelationshipPeriod::query()
+        ->where('organization_id', $organization->getKey())
+        ->where('stakeholder_id', $admin->person->getKey())
+        ->whereNull('closed_at')
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($admin->person->fresh()->roleIn($organization))->toBe(Role::Admin)
+        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
+        ->and($openAfter->is($openBefore))->toBeTrue()
+        ->and($openAfter->role)->toBe(Role::Admin);
 });
 
 test('a role change records the actor and both roles', function () {
@@ -100,7 +143,7 @@ test('a repeated removal writes no second entry', function () {
     expect(AuditLog::query()->where('event', AuditEvent::MemberRemoved)->count())->toBe(1);
 });
 
-test('a self leave records a null actor', function () {
+test('a self leave records the user as the actor', function () {
     Notification::fake();
 
     $organization = Organization::factory()->create();
@@ -109,11 +152,12 @@ test('a self leave records a null actor', function () {
     expect(app(LeaveOrganization::class)->handle($member, $organization))->toBeTrue();
 
     $log = AuditLog::query()->where('event', AuditEvent::MemberLeft)->sole();
+    $period = OrganizationRelationshipPeriod::query()->findOrFail($log->organization_relationship_period_id);
 
-    expect($log->actor_id)->toBeNull()
+    expect($log->actor_id)->toBe($member->getKey())
         ->and($log->subject_id)->toBe($member->person->getKey())
         ->and($log->changes)->toMatchArray(['via' => 'self'])
-        ->and($log->organization_relationship_period_id)->not->toBeNull();
+        ->and($period->actor_id)->toBe($member->getKey());
 });
 
 test('an accepted admin leave records the approval and the leave', function () {

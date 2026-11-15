@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Actions\Organizations;
 
 use App\Actions\Audit\RecordAudit;
+use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -20,8 +22,10 @@ use InvalidArgumentException;
 
 final class AcceptOwnershipTransfer
 {
-    public function __construct(private RecordAudit $audit)
-    {
+    public function __construct(
+        private RecordAudit $audit,
+        private RelationshipTimeline $timeline,
+    ) {
         // .
     }
 
@@ -62,20 +66,48 @@ final class AcceptOwnershipTransfer
                     return null;
                 }
 
-                $demoted = OrganizationRelationship::query()
+                $requesterRelationship = OrganizationRelationship::query()
                     ->forOrganization($organization)
                     ->whereStakeholder($request->requester, OrganizationRelationshipType::Member)
-                    ->update(['role' => Role::Admin]);
+                    ->lockForUpdate()
+                    ->first();
 
-                $promoted = OrganizationRelationship::query()
+                $approverRelationship = OrganizationRelationship::query()
                     ->forOrganization($organization)
                     ->whereStakeholder($request->approver, OrganizationRelationshipType::Member)
-                    ->update(['role' => Role::Owner]);
+                    ->lockForUpdate()
+                    ->first();
 
                 // A membership removed between the checks above would leave the
                 // organization without an owner, so abandon the swap instead.
-                if ($demoted !== 1 || $promoted !== 1) {
+                if ($requesterRelationship === null || $approverRelationship === null) {
                     throw new InvalidArgumentException('This ownership transfer is no longer valid.');
+                }
+
+                $requesterRole = $requesterRelationship->role;
+                $approverRole = $approverRelationship->role;
+
+                $this->timeline->close($requesterRelationship, RelationshipPeriodReason::RoleChanged, $actor);
+                $this->timeline->close($approverRelationship, RelationshipPeriodReason::RoleChanged, $actor);
+
+                $requesterRelationship->update(['role' => Role::Admin]);
+                $approverRelationship->update(['role' => Role::Owner]);
+
+                $requesterPeriod = $this->timeline->open($requesterRelationship->refresh(), today());
+                $approverPeriod = $this->timeline->open($approverRelationship->refresh(), today());
+
+                if ($requesterRole instanceof Role) {
+                    $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $request->requester, [
+                        'from' => $requesterRole->value,
+                        'to' => Role::Admin->value,
+                    ], $requesterPeriod);
+                }
+
+                if ($approverRole instanceof Role) {
+                    $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $request->approver, [
+                        'from' => $approverRole->value,
+                        'to' => Role::Owner->value,
+                    ], $approverPeriod);
                 }
 
                 $request->update([

@@ -83,11 +83,7 @@ final class CreateContact
 
                     $period = $this->timeline->open($existing->refresh());
 
-                    $this->audit->handle($tenant, $actor, AuditEvent::ContactRenewed, $stakeholder, [
-                        'kind' => $stakeholder instanceof Organization ? 'organization' : 'individual',
-                        'role' => $role->value,
-                        'code' => $data['code'] ?? null,
-                    ], $period);
+                    $this->audit->handle($tenant, $actor, AuditEvent::ContactRenewed, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
 
                     return $stakeholder;
                 }
@@ -126,11 +122,7 @@ final class CreateContact
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);
 
-                $this->audit->handle($tenant, $actor, AuditEvent::ContactCreated, $stakeholder, [
-                    'kind' => $stakeholder instanceof Organization ? 'organization' : 'individual',
-                    'role' => $role->value,
-                    'code' => $data['code'] ?? null,
-                ], $period);
+                $this->audit->handle($tenant, $actor, AuditEvent::ContactCreated, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
 
                 return $stakeholder;
             });
@@ -141,6 +133,28 @@ final class CreateContact
 
             throw $exception;
         }
+    }
+
+    /**
+     * Build the safe audit payload for a contact event.
+     *
+     * The free-form code is recorded as a changed field, not as a value.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function contactAuditChanges(Organization|Person $stakeholder, OrganizationRelationshipType $type, array $data): array
+    {
+        $changes = [
+            'kind' => $stakeholder instanceof Organization ? 'organization' : 'individual',
+            'type' => $type->value,
+        ];
+
+        if (filled($data['code'] ?? null)) {
+            $changes['fields'] = ['code'];
+        }
+
+        return $changes;
     }
 
     /**
