@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
+use App\Events\Audit;
 use App\Events\MemberRemoved;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -22,7 +21,6 @@ final class LeaveOrganization
 {
     public function __construct(
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -65,7 +63,7 @@ final class LeaveOrganization
 
             $organization->members()->detach($person->getKey());
 
-            $this->audit->handle($organization, $user, AuditEvent::MemberLeft, $person, [
+            Audit\MemberLeft::dispatch($organization, $user, $person, [
                 'via' => 'self',
             ], $period);
 
@@ -81,7 +79,7 @@ final class LeaveOrganization
                     'cancelled_at' => now(),
                 ]);
 
-                $this->audit->handle($organization, $user, AuditEvent::ApprovalCancelled, $request, [
+                Audit\ApprovalCancelled::dispatch($organization, $user, $request, [
                     'type' => $request->type->value,
                     'reason' => 'member_left',
                 ]);

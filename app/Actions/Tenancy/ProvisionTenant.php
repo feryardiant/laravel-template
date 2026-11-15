@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Tenancy;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\Memberships\CreateMember;
-use App\Enums\AuditEvent;
 use App\Enums\Role;
+use App\Events\Audit;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -19,7 +18,6 @@ final class ProvisionTenant
 {
     public function __construct(
         private CreateMember $membership,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -56,7 +54,7 @@ final class ProvisionTenant
 
             $organization->update(['owner_organization_id' => $organization->getKey()]);
 
-            $this->audit->handle($organization, $user, AuditEvent::OrganizationCreated, $organization, [
+            Audit\OrganizationCreated::dispatch($organization, $user, $organization, [
                 'parent_id' => null,
                 'kind' => null,
             ]);

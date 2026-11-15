@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
-use App\Enums\AuditEvent;
 use App\Enums\Role;
+use App\Events\Audit;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\Person;
@@ -19,7 +18,7 @@ use InvalidArgumentException;
 
 final class RequestMembershipLeave
 {
-    public function __construct(private RecordAudit $audit)
+    public function __construct()
     {
         // .
     }
@@ -67,7 +66,7 @@ final class RequestMembershipLeave
                 'expires_at' => now()->addDays(7),
             ]);
 
-            $this->audit->handle($organization, $actor, AuditEvent::ApprovalRequested, $request, [
+            Audit\ApprovalRequested::dispatch($organization, $actor, $request, [
                 'type' => $request->type->value,
             ]);
 

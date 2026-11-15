@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
-use App\Enums\AuditEvent;
+use App\Events\Audit;
 use App\Models\ApprovalRequest;
 use App\Models\User;
 use App\Notifications\MembershipLeaveDeclinedNotification;
@@ -16,7 +15,7 @@ use InvalidArgumentException;
 
 final class DeclineMembershipLeave
 {
-    public function __construct(private RecordAudit $audit)
+    public function __construct()
     {
         // .
     }
@@ -52,7 +51,7 @@ final class DeclineMembershipLeave
                 'declined_at' => now(),
             ]);
 
-            $this->audit->handle($request->organization, $actor, AuditEvent::ApprovalDeclined, $request, [
+            Audit\ApprovalDeclined::dispatch($request->organization, $actor, $request, [
                 'type' => $request->type->value,
             ]);
 

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
+use App\Events\Audit;
 use App\Events\MemberRoleChanged;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -25,7 +24,6 @@ final class ChangeMemberRole
 {
     public function __construct(
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -64,7 +62,7 @@ final class ChangeMemberRole
 
             $period = $this->openPeriod($organization, $person);
 
-            $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $person, [
+            Audit\MemberRoleChanged::dispatch($organization, $actor, $person, [
                 'from' => $currentRole->value,
                 'to' => $newRole->value,
             ], $period);
@@ -157,7 +155,7 @@ final class ChangeMemberRole
                 'cancelled_at' => now(),
             ]);
 
-            $this->audit->handle($organization, $actor, AuditEvent::ApprovalCancelled, $request, [
+            Audit\ApprovalCancelled::dispatch($organization, $actor, $request, [
                 'type' => $request->type->value,
                 'reason' => 'role_changed',
             ]);

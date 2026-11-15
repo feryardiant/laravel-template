@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Tenancy;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Events\Audit;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -22,7 +21,6 @@ final class ProvisionPublicTenant
     public function __construct(
         private CreateContact $createContact,
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -57,7 +55,7 @@ final class ProvisionPublicTenant
 
         $organization->primaryContact?->update(['owner_organization_id' => null]);
 
-        $this->audit->handle($organization, $user, AuditEvent::OrganizationCreated, $organization, [
+        Audit\OrganizationCreated::dispatch($organization, $user, $organization, [
             'parent_id' => $root->getKey(),
             'kind' => null,
         ]);
@@ -81,7 +79,7 @@ final class ProvisionPublicTenant
             $owner = $organization->primaryContact;
 
             if ($owner instanceof Person) {
-                $this->audit->handle($organization, $user, AuditEvent::MemberAdded, $owner, [
+                Audit\MemberAdded::dispatch($organization, $user, $owner, [
                     'role' => Role::Owner->value,
                 ], $period);
             }

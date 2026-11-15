@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
-use App\Enums\AuditEvent;
+use App\Events\Audit;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -28,7 +27,6 @@ final class UpdateContact
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -206,7 +204,7 @@ final class UpdateContact
             return;
         }
 
-        $this->audit->handle($tenant, $actor, AuditEvent::ContactUpdated, $stakeholder, [
+        Audit\ContactUpdated::dispatch($tenant, $actor, $stakeholder, [
             'fields' => $fields,
         ], $period);
     }

@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
+use App\Events\Audit;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -40,9 +39,8 @@ final class DeleteOrganization implements ShouldQueue
     /**
      * Delete the organization and every nested organization under it.
      */
-    public function handle(FileStorage $fileStorage, ?RecordAudit $audit = null): void
+    public function handle(FileStorage $fileStorage): void
     {
-        $audit ??= app(RecordAudit::class);
 
         $organization = $this->organization->fresh();
 
@@ -71,9 +69,9 @@ final class DeleteOrganization implements ShouldQueue
         $logoPaths = [];
         $notifications = [];
 
-        DB::transaction(function () use ($branch, $audit, $actor, &$logoPaths, &$notifications): void {
+        DB::transaction(function () use ($branch, $actor, &$logoPaths, &$notifications): void {
             foreach (array_reverse($branch) as $subsidiary) {
-                $audit->handle($subsidiary, $actor, AuditEvent::OrganizationDeleted, $subsidiary);
+                Audit\OrganizationDeleted::dispatch($subsidiary, $actor, $subsidiary);
 
                 $members = $this->activeMembers($subsidiary)
                     ->reject(fn (User $user): bool => $user->getKey() === $this->actorId)
@@ -83,7 +81,7 @@ final class DeleteOrganization implements ShouldQueue
                     $notifications[] = [$subsidiary->name, $members];
                 }
 
-                $logoPaths[] = $this->purge($subsidiary, $audit, $actor);
+                $logoPaths[] = $this->purge($subsidiary, $actor);
             }
         });
 
@@ -124,7 +122,7 @@ final class DeleteOrganization implements ShouldQueue
      * Organizations referenced by other tenants keep a minimal tombstone so
      * those relationships can still be displayed.
      */
-    private function purge(Organization $organization, RecordAudit $audit, ?User $actor): ?string
+    private function purge(Organization $organization, ?User $actor): ?string
     {
         $logoPath = $organization->getRawOriginal('logo_url');
 
@@ -141,7 +139,7 @@ final class DeleteOrganization implements ShouldQueue
                 'cancelled_at' => now(),
             ]);
 
-            $audit->handle($organization, $actor, AuditEvent::ApprovalCancelled, $request, [
+            Audit\ApprovalCancelled::dispatch($organization, $actor, $request, [
                 'type' => $request->type->value,
                 'reason' => 'organization_deleted',
             ]);

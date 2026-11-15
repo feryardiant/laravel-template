@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Audit\RecordAudit;
-use App\Enums\AuditEvent;
+use App\Events\Audit;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;
@@ -225,7 +224,7 @@ class Features extends Component
     {
         $actor = Auth::user();
 
-        app(RecordAudit::class)->handle($organization, $actor instanceof User ? $actor : null, AuditEvent::FeatureToggled, $organization, [
+        Audit\FeatureToggled::dispatch($organization, $actor instanceof User ? $actor : null, $organization, [
             'feature' => $feature,
             'enabled' => $enabled,
         ]);

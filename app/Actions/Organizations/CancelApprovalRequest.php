@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\AuditEvent;
+use App\Events\Audit;
 use App\Models\ApprovalRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +13,7 @@ use InvalidArgumentException;
 
 final class CancelApprovalRequest
 {
-    public function __construct(private RecordAudit $audit)
+    public function __construct()
     {
         // .
     }
@@ -46,7 +45,7 @@ final class CancelApprovalRequest
                 'cancelled_at' => now(),
             ]);
 
-            $this->audit->handle($request->organization, $actor, AuditEvent::ApprovalCancelled, $request, [
+            Audit\ApprovalCancelled::dispatch($request->organization, $actor, $request, [
                 'type' => $request->type->value,
             ]);
 

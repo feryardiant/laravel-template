@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
@@ -175,7 +174,7 @@ test('deleting an organization audits its cancelled leave request', function () 
     $request = app(RequestMembershipLeave::class)->handle($subsidiary, $admin);
 
     (new DeleteOrganization($subsidiary, $rootOwner->getKey()))
-        ->handle(app(FileStorage::class), app(RecordAudit::class));
+        ->handle(app(FileStorage::class));
 
     $cancelled = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
 

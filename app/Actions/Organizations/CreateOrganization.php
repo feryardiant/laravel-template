@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\CreateMember;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
+use App\Events\Audit;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -23,7 +22,6 @@ final class CreateOrganization
     public function __construct(
         private CreateMember $membership,
         private FileStorage $fileStorage,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -80,7 +78,7 @@ final class CreateOrganization
                     ]);
                 }
 
-                $this->audit->handle($organization, $actor, AuditEvent::OrganizationCreated, $organization, [
+                Audit\OrganizationCreated::dispatch($organization, $actor, $organization, [
                     'parent_id' => $parent?->getKey(),
                     'kind' => $parent !== null ? ($kind ?? SubsidiaryKind::Subsidiary)->value : null,
                 ]);

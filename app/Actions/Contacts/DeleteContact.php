@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Enums\AuditEvent;
 use App\Enums\RelationshipPeriodReason;
+use App\Events\Audit;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
@@ -20,7 +19,6 @@ final class DeleteContact
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -76,7 +74,7 @@ final class DeleteContact
                 ->whereKey($contact->getKey())
                 ->delete();
 
-            $this->audit->handle($tenant, $actor, AuditEvent::ContactDeleted, $stakeholder, [
+            Audit\ContactDeleted::dispatch($tenant, $actor, $stakeholder, [
                 'detached_only' => ! $removeOwned,
             ], $period);
 

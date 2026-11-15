@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
+use App\Events\Audit;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -30,7 +29,6 @@ final class CreateContact
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -83,7 +81,7 @@ final class CreateContact
 
                     $period = $this->timeline->open($existing->refresh());
 
-                    $this->audit->handle($tenant, $actor, AuditEvent::ContactRenewed, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
+                    Audit\ContactRenewed::dispatch($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
 
                     return $stakeholder;
                 }
@@ -122,7 +120,7 @@ final class CreateContact
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);
 
-                $this->audit->handle($tenant, $actor, AuditEvent::ContactCreated, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
+                Audit\ContactCreated::dispatch($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
 
                 return $stakeholder;
             });

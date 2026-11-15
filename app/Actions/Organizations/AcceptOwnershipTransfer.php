@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
+use App\Events\Audit;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -23,7 +22,6 @@ use InvalidArgumentException;
 final class AcceptOwnershipTransfer
 {
     public function __construct(
-        private RecordAudit $audit,
         private RelationshipTimeline $timeline,
     ) {
         // .
@@ -97,14 +95,14 @@ final class AcceptOwnershipTransfer
                 $approverPeriod = $this->timeline->open($approverRelationship->refresh(), today());
 
                 if ($requesterRole instanceof Role) {
-                    $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $request->requester, [
+                    Audit\MemberRoleChanged::dispatch($organization, $actor, $request->requester, [
                         'from' => $requesterRole->value,
                         'to' => Role::Admin->value,
                     ], $requesterPeriod);
                 }
 
                 if ($approverRole instanceof Role) {
-                    $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $request->approver, [
+                    Audit\MemberRoleChanged::dispatch($organization, $actor, $request->approver, [
                         'from' => $approverRole->value,
                         'to' => Role::Owner->value,
                     ], $approverPeriod);
@@ -115,7 +113,7 @@ final class AcceptOwnershipTransfer
                     'accepted_at' => now(),
                 ]);
 
-                $this->audit->handle($organization, $actor, AuditEvent::ApprovalAccepted, $request, [
+                Audit\ApprovalAccepted::dispatch($organization, $actor, $request, [
                     'type' => $request->type->value,
                 ]);
 

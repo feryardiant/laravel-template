@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Listeners;
+
+use App\Events\Audit\AuditEventOccurred;
+use App\Models\AuditLog;
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+final class RecordAuditLog implements ShouldQueue
+{
+    public int $tries = 3;
+
+    public int $backoff = 10;
+
+    public function handle(AuditEventOccurred $event): void
+    {
+        AuditLog::create([
+            'organization_id' => $event->organizationId,
+            'actor_id' => $event->actorId,
+            'event' => $event->auditEvent(),
+            'subject_type' => $event->subjectType,
+            'subject_id' => $event->subjectId,
+            'organization_relationship_period_id' => $event->relationshipPeriodId,
+            'changes' => $event->changes === [] ? null : $event->changes,
+        ]);
+    }
+}

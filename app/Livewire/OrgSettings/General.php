@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
-use App\Enums\AuditEvent;
+use App\Events\Audit;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
 use Flux\Flux;
@@ -62,7 +61,7 @@ class General extends Component
     /**
      * Update the current organization's name.
      */
-    public function update(FileStorage $fileStorage, RecordAudit $audit): void
+    public function update(FileStorage $fileStorage): void
     {
         $organization = $this->currentOrganization();
 
@@ -92,7 +91,7 @@ class General extends Component
         }
 
         try {
-            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $audit): void {
+            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage): void {
                 $organization->name = $validated['name'];
                 $organization->summary = $validated['summary'] ?? null;
 
@@ -109,7 +108,7 @@ class General extends Component
                 if ($fields !== []) {
                     $actor = Auth::user();
 
-                    $audit->handle($organization, $actor instanceof User ? $actor : null, AuditEvent::OrganizationUpdated, $organization, [
+                    Audit\OrganizationUpdated::dispatch($organization, $actor instanceof User ? $actor : null, $organization, [
                         'fields' => $fields,
                     ]);
                 }
@@ -134,7 +133,7 @@ class General extends Component
 
             $actor = Auth::user();
 
-            $audit->handle($organization, $actor instanceof User ? $actor : null, AuditEvent::OrganizationUpdated, $organization, [
+            Audit\OrganizationUpdated::dispatch($organization, $actor instanceof User ? $actor : null, $organization, [
                 'fields' => ['logo_url'],
                 'restored' => true,
             ]);

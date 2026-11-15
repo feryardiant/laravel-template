@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Organizations\CreateOrganization;
 use App\Enums\AuditEvent;
@@ -86,7 +85,7 @@ test('deleting an organization records the actor and subject', function () {
     $root->subsidiaries()->attach($organization, ['type' => OrganizationRelationshipType::Subsidiary]);
 
     (new DeleteOrganization($organization, $owner->getKey()))
-        ->handle(app(FileStorage::class), app(RecordAudit::class));
+        ->handle(app(FileStorage::class));
 
     $log = AuditLog::query()->where('event', AuditEvent::OrganizationDeleted)->sole();
 

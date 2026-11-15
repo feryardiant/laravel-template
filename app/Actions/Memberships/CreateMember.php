@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
-use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
-use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
+use App\Events\Audit;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -26,7 +25,6 @@ final class CreateMember
 
     public function __construct(
         private RelationshipTimeline $timeline,
-        private RecordAudit $audit,
     ) {
         // .
     }
@@ -162,11 +160,11 @@ final class CreateMember
             );
 
             if ($existing === null) {
-                $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $member, [
+                Audit\MemberAdded::dispatch($organization, $actor, $member, [
                     'role' => $role->value,
                 ], $period);
             } elseif ($roleChanged) {
-                $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $member, [
+                Audit\MemberRoleChanged::dispatch($organization, $actor, $member, [
                     'from' => $previousRole->value,
                     'to' => $role->value,
                 ], $period);
