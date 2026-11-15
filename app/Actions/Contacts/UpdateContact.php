@@ -70,6 +70,11 @@ final class UpdateContact
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                $contact = $contact->newQuery()
+                    ->whereKey($contact->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
                 $previousRaw = $stakeholder->getRawOriginal($column);
                 $previous = \is_string($previousRaw) ? $previousRaw : null;
 
