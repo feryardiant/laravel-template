@@ -1,6 +1,4 @@
 <x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
-    <flux:heading level="2" class="sr-only">{{ __('Subsidiaries') }}</flux:heading>
-
     <x-org-settings.layout
         :heading="__('Subsidiaries')"
         :subheading="__('Manage the organizations that belong to the root tenant')"

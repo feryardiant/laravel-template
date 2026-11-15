@@ -1,6 +1,4 @@
 <x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
-    <flux:heading level="2" class="sr-only">{{ __('Features') }}</flux:heading>
-
     <x-org-settings.layout :heading="__('Features')" :subheading="__('Control platform and workspace features')">
         <x-ui.section>
             <x-ui.section.item>

@@ -1,6 +1,4 @@
 <x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
-    <flux:heading level="2" class="sr-only">{{ __('Organizations') }}</flux:heading>
-
     <x-settings.layout
         :heading="__('Organizations')"
         :subheading="__('Manage your memberships in the organizations you have joined')"

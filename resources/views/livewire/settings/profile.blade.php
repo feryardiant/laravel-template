@@ -1,6 +1,4 @@
 <x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
-    <flux:heading level="2" class="sr-only">{{ __('Profile settings') }}</flux:heading>
-
     <x-settings.layout :heading="__('Profile')" :subheading="__('Update your name, profile, and email address')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             @unless ($this->canEditOwnProfile)

@@ -1,6 +1,4 @@
 <x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
-    <flux:heading level="2" class="sr-only">{{ __('Preferences settings') }}</flux:heading>
-
     <div x-data="{
         locale: @js($locale),
         timezone: @js($timezone),

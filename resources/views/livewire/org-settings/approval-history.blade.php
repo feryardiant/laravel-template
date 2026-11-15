@@ -1,6 +1,4 @@
 <x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
-    <flux:heading level="2" class="sr-only">{{ __('Approvals history') }}</flux:heading>
-
     <x-org-settings.layout
         :heading="__('Approvals history')"
         :subheading="__('Every approval request made in this organization')"
