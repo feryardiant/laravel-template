@@ -74,10 +74,17 @@ final class LeaveOrganization
                 ->get();
 
             foreach ($pending as $request) {
-                $request->update([
-                    'status' => ApprovalRequestStatus::Cancelled,
-                    'cancelled_at' => now(),
-                ]);
+                $cancelled = ApprovalRequest::query()
+                    ->whereKey($request->getKey())
+                    ->where('status', ApprovalRequestStatus::Pending)
+                    ->update([
+                        'status' => ApprovalRequestStatus::Cancelled,
+                        'cancelled_at' => now(),
+                    ]);
+
+                if ($cancelled === 0) {
+                    continue;
+                }
 
                 Audit\ApprovalCancelled::dispatch($organization, $user, $request, [
                     'type' => $request->type->value,

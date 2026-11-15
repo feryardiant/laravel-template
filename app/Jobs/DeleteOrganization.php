@@ -136,10 +136,13 @@ final class DeleteOrganization implements ShouldQueue
             ->get();
 
         foreach ($pending as $request) {
-            $request->update([
-                'status' => ApprovalRequestStatus::Cancelled,
-                'cancelled_at' => now(),
-            ]);
+            ApprovalRequest::query()
+                ->whereKey($request->getKey())
+                ->where('status', ApprovalRequestStatus::Pending)
+                ->update([
+                    'status' => ApprovalRequestStatus::Cancelled,
+                    'cancelled_at' => now(),
+                ]);
         }
 
         DB::table('features')

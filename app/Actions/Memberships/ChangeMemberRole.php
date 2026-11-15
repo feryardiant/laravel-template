@@ -47,18 +47,25 @@ final class ChangeMemberRole
             return false;
         }
 
-        $currentRole = $person->roleIn($organization);
+        $currentRole = null;
 
-        if ($currentRole === null || $currentRole === $newRole) {
-            return false;
-        }
+        $changed = DB::transaction(function () use ($organization, $person, $newRole, $actor, &$currentRole): bool {
+            $relationship = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->whereStakeholder($person)
+                ->where('type', OrganizationRelationshipType::Member)
+                ->lockForUpdate()
+                ->first();
 
-        if (! $this->canAct($organization, $person, $actor, $newRole)) {
-            return false;
-        }
+            $currentRole = $relationship?->role;
 
-        DB::transaction(function () use ($organization, $person, $newRole, $actor, $currentRole): void {
-            $this->updateRole($organization, $person, $newRole, $actor);
+            if ($currentRole === null
+                || $currentRole === $newRole
+                || ! $this->canAct($organization, $person, $actor, $newRole, $currentRole)) {
+                return false;
+            }
+
+            $this->updateRole($organization, $person, $newRole, $actor, $relationship);
 
             $period = $this->openPeriod($organization, $person);
 
@@ -66,7 +73,13 @@ final class ChangeMemberRole
                 'from' => $currentRole->value,
                 'to' => $newRole->value,
             ], $period);
+
+            return true;
         });
+
+        if (! $changed || $currentRole === null) {
+            return false;
+        }
 
         event(new MemberRoleChanged($organization, $person, $actor, $currentRole, $newRole));
 
@@ -87,7 +100,7 @@ final class ChangeMemberRole
         return $this->setRole($organization, $person, $newRole, $actor);
     }
 
-    private function canAct(Organization $organization, Person $person, User $actor, Role $newRole): bool
+    private function canAct(Organization $organization, Person $person, User $actor, Role $newRole, Role $currentRole): bool
     {
         $actorRole = $actor->roleIn($organization);
 
@@ -99,9 +112,7 @@ final class ChangeMemberRole
             return false;
         }
 
-        $targetRole = $person->roleIn($organization);
-
-        if ($targetRole?->isOwner() && ! $actorRole->isOwner()) {
+        if ($currentRole->isOwner() && ! $actorRole->isOwner()) {
             return false;
         }
 
@@ -119,27 +130,18 @@ final class ChangeMemberRole
             ->first();
     }
 
-    private function updateRole(Organization $organization, Person $person, Role $role, User $actor): void
-    {
-        $relationship = OrganizationRelationship::query()
-            ->forOrganization($organization)
-            ->whereStakeholder($person)
-            ->where('type', OrganizationRelationshipType::Member)
-            ->first();
+    private function updateRole(
+        Organization $organization,
+        Person $person,
+        Role $role,
+        User $actor,
+        OrganizationRelationship $relationship,
+    ): void {
+        $this->timeline->close($relationship, RelationshipPeriodReason::RoleChanged, $actor);
 
-        if ($relationship !== null) {
-            $this->timeline->close($relationship, RelationshipPeriodReason::RoleChanged, $actor);
-        }
+        $relationship->update(['role' => $role]);
 
-        OrganizationRelationship::query()
-            ->forOrganization($organization)
-            ->whereStakeholder($person)
-            ->where('type', OrganizationRelationshipType::Member)
-            ->update(['role' => $role]);
-
-        if ($relationship !== null) {
-            $this->timeline->open($relationship->refresh(), today());
-        }
+        $this->timeline->open($relationship->refresh(), today());
 
         // A role change invalidates an admin's pending request to leave.
         $pending = ApprovalRequest::query()
@@ -150,10 +152,17 @@ final class ChangeMemberRole
             ->get();
 
         foreach ($pending as $request) {
-            $request->update([
-                'status' => ApprovalRequestStatus::Cancelled,
-                'cancelled_at' => now(),
-            ]);
+            $cancelled = ApprovalRequest::query()
+                ->whereKey($request->getKey())
+                ->where('status', ApprovalRequestStatus::Pending)
+                ->update([
+                    'status' => ApprovalRequestStatus::Cancelled,
+                    'cancelled_at' => now(),
+                ]);
+
+            if ($cancelled === 0) {
+                continue;
+            }
 
             Audit\ApprovalCancelled::dispatch($organization, $actor, $request, [
                 'type' => $request->type->value,
