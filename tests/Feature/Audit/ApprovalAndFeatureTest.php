@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\MembershipLeave;
+use App\Actions\Approvals\OwnershipTransfer;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
-use App\Actions\Organizations\AcceptOwnershipTransfer;
-use App\Actions\Organizations\CancelApprovalRequest;
-use App\Actions\Organizations\DeclineMembershipLeave;
-use App\Actions\Organizations\DeclineOwnershipTransfer;
-use App\Actions\Organizations\RequestMembershipLeave;
-use App\Actions\Organizations\RequestOwnershipTransfer;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\AuditEvent;
@@ -36,9 +33,9 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $request = app(RequestOwnershipTransfer::class)->handle($organization, $owner, $recipient->person);
+    $request = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
 
-    expect(app(AcceptOwnershipTransfer::class)->handle($request, $recipient))->toBeTrue();
+    expect(app(OwnershipTransfer::class)->accept($request, $recipient))->toBeTrue();
 
     $requested = AuditLog::query()->where('event', AuditEvent::ApprovalRequested)->sole();
     $accepted = AuditLog::query()->where('event', AuditEvent::ApprovalAccepted)->sole();
@@ -73,16 +70,16 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
     $secondOwner = $accepted->subject->approver->user;
     \assert($secondOwner instanceof User);
 
-    $declineRequest = app(RequestOwnershipTransfer::class)->handle($organization, $secondOwner, $owner->person);
+    $declineRequest = app(OwnershipTransfer::class)->request($organization, $secondOwner, $owner->person);
 
-    expect(app(DeclineOwnershipTransfer::class)->handle($declineRequest, $owner))->toBeTrue();
+    expect(app(OwnershipTransfer::class)->decline($declineRequest, $owner))->toBeTrue();
 
     $declined = AuditLog::query()->where('event', AuditEvent::ApprovalDeclined)->latest('id')->sole();
 
     expect($declined->actor_id)->toBe($owner->getKey())
         ->and($declined->subject_id)->toBe($declineRequest->getKey());
 
-    $cancelRequest = app(RequestOwnershipTransfer::class)->handle($organization, $secondOwner, $owner->person);
+    $cancelRequest = app(OwnershipTransfer::class)->request($organization, $secondOwner, $owner->person);
 
     expect(app(CancelApprovalRequest::class)->handle($cancelRequest, $secondOwner))->toBeTrue();
 
@@ -99,16 +96,16 @@ test('a membership leave decline and cancellation are recorded', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
-    expect(app(DeclineMembershipLeave::class)->handle($request, $owner))->toBeTrue();
+    expect(app(MembershipLeave::class)->decline($request, $owner))->toBeTrue();
 
     $declined = AuditLog::query()->where('event', AuditEvent::ApprovalDeclined)->sole();
 
     expect($declined->actor_id)->toBe($owner->getKey())
         ->and($declined->changes)->toMatchArray(['type' => ApprovalRequestType::MembershipLeave->value]);
 
-    $cancelRequest = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $cancelRequest = app(MembershipLeave::class)->request($organization, $admin);
 
     expect(app(CancelApprovalRequest::class)->handle($cancelRequest, $admin))->toBeTrue();
 
@@ -125,7 +122,7 @@ test('demoting an admin audits the cancelled leave request', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner);
 
@@ -146,7 +143,7 @@ test('removing an admin audits the cancelled leave request', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     app(RemoveMember::class)->handle($organization, $admin->person, $owner);
 
@@ -171,7 +168,7 @@ test('deleting an organization prunes its audit log and approvals', function () 
     User::factory()->asMemberOf($subsidiary, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($subsidiary, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($subsidiary, $admin);
+    $request = app(MembershipLeave::class)->request($subsidiary, $admin);
 
     (new DeleteOrganization($subsidiary, $rootOwner->getKey()))
         ->handle(app(FileStorage::class));
@@ -188,10 +185,10 @@ test('a handled approval does not write a second decision entry', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $request = app(RequestOwnershipTransfer::class)->handle($organization, $owner, $recipient->person);
+    $request = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
 
-    expect(app(AcceptOwnershipTransfer::class)->handle($request, $recipient))->toBeTrue()
-        ->and(app(DeclineOwnershipTransfer::class)->handle($request->fresh(), $recipient))->toBeFalse()
+    expect(app(OwnershipTransfer::class)->accept($request, $recipient))->toBeTrue()
+        ->and(app(OwnershipTransfer::class)->decline($request->fresh(), $recipient))->toBeFalse()
         ->and(AuditLog::query()->where('event', AuditEvent::ApprovalDeclined)->count())->toBe(0);
 });
 

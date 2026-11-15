@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Audit;
+namespace App\Events;
 
 use App\Enums\AuditEvent;
 
-final class MemberLeft extends AuditEventOccurred
+final class FeatureToggled extends AuditableEvent
 {
     public function auditEvent(): AuditEvent
     {
-        return AuditEvent::MemberLeft;
+        return AuditEvent::FeatureToggled;
     }
 }

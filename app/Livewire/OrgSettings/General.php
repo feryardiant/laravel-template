@@ -6,7 +6,7 @@ namespace App\Livewire\OrgSettings;
 
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
-use App\Events\Audit;
+use App\Events\Organizations\OrganizationUpdated;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;
@@ -109,9 +109,9 @@ class General extends Component
                 if ($fields !== []) {
                     $actor = Auth::user();
 
-                    Audit\OrganizationUpdated::dispatch($organization, $actor instanceof User ? $actor : null, $organization, [
+                    event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, $organization, [
                         'fields' => $fields,
-                    ]);
+                    ]));
                 }
 
                 if ($newLogoPath !== null) {
@@ -148,10 +148,10 @@ class General extends Component
 
             $actor = Auth::user();
 
-            Audit\OrganizationUpdated::dispatch($organization, $actor instanceof User ? $actor : null, $organization, [
+            event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, $organization, [
                 'fields' => ['logo_url'],
                 'restored' => true,
-            ]);
+            ]));
 
             $this->logo_url = $previousLogo;
 

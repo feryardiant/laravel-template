@@ -9,7 +9,8 @@ use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
-use App\Events\Audit;
+use App\Events\Contacts\ContactCreated;
+use App\Events\Contacts\ContactRenewed;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -81,14 +82,14 @@ final class CreateContact
 
                     $period = $this->timeline->open($existing->refresh());
 
-                    Audit\ContactRenewed::dispatch($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
+                    event(new ContactRenewed($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period));
 
                     return $stakeholder;
                 }
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);
 
-                Audit\ContactCreated::dispatch($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
+                event(new ContactCreated($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period));
 
                 return $stakeholder;
             });
@@ -122,7 +123,7 @@ final class CreateContact
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);
 
-                Audit\ContactCreated::dispatch($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
+                event(new ContactCreated($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period));
 
                 return $stakeholder;
             });

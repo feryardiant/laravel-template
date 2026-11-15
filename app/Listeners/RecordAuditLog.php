@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Events\Audit\AuditEventOccurred;
+use App\Events\AuditableEvent;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
@@ -15,7 +15,7 @@ final class RecordAuditLog implements ShouldQueueAfterCommit
 
     public int $backoff = 10;
 
-    public function handle(AuditEventOccurred $event): void
+    public function handle(AuditableEvent $event): void
     {
         if ($event->organizationId !== null) {
             $organization = Organization::withTrashed()->find($event->organizationId);

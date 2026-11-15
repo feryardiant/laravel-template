@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
-use App\Events\Audit\ContactCreated;
+use App\Events\Contacts\ContactCreated;
 use App\Listeners\RecordAuditLog;
 use App\Models\AuditLog;
 use App\Models\Organization;
@@ -19,9 +19,9 @@ test('audit events are queued for the audit listener', function () {
     $organization = Organization::factory()->create();
     $actor = actingAsMember($organization, Role::Owner);
 
-    ContactCreated::dispatch($organization, $actor, $organization, [
+    event(new ContactCreated($organization, $actor, $organization, [
         'type' => 'customer',
-    ]);
+    ]));
 
     Queue::assertPushed(CallQueuedListener::class, fn (CallQueuedListener $job): bool => $job->class === RecordAuditLog::class);
 });

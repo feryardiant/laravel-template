@@ -212,6 +212,16 @@ class Organization extends Entity implements HasAddress
     }
 
     /**
+     * @return MorphToMany<Person, $this, OrganizationRelationship>
+     */
+    public function owners(): MorphToMany
+    {
+        return $this->members()
+            ->wherePivot('role', '=', Role::Owner)
+            ->whereHas('user');
+    }
+
+    /**
      * @return MorphToMany<Organization, $this, OrganizationRelationship, 'subsidiary'>
      */
     public function subsidiaries(): MorphToMany

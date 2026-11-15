@@ -9,7 +9,8 @@ use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
-use App\Events\Audit;
+use App\Events\Memberships\MemberAdded;
+use App\Events\Memberships\MemberRoleChanged;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -160,14 +161,11 @@ final class CreateMember
             );
 
             if ($existing === null) {
-                Audit\MemberAdded::dispatch($organization, $actor, $member, [
+                event(new MemberAdded($organization, $actor, $member, [
                     'role' => $role->value,
-                ], $period);
+                ], $period));
             } elseif ($roleChanged) {
-                Audit\MemberRoleChanged::dispatch($organization, $actor, $member, [
-                    'from' => $previousRole->value,
-                    'to' => $role->value,
-                ], $period);
+                event(new MemberRoleChanged($organization, $previousRole, $role, $member, $actor, $period));
             }
         });
     }

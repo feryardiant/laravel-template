@@ -8,8 +8,8 @@ use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
-use App\Events\Audit;
-use App\Events\MemberRemoved;
+use App\Events\Approvals\ApprovalCancelled;
+use App\Events\Memberships\MemberRemoved;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -17,7 +17,6 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 final class RemoveMember
 {
@@ -46,7 +45,7 @@ final class RemoveMember
             return;
         }
 
-        $removed = DB::transaction(function () use ($organization, $persons, $actor): Collection {
+        DB::transaction(function () use ($organization, $persons, $actor): Collection {
             $organization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
             if ($organization === null) {
@@ -113,34 +112,22 @@ final class RemoveMember
                         continue;
                     }
 
-                    Audit\ApprovalCancelled::dispatch($organization, $actor, $request, [
-                        'type' => $request->type->value,
-                        'reason' => 'member_removed',
-                    ]);
+                    event(new ApprovalCancelled($request, $actor, 'member_removed'));
                 }
 
                 foreach ($removed as $person) {
-                    Audit\MemberRemoved::dispatch($organization, $actor, $person, [
-                        'via' => $actor === null ? 'system' : 'manager',
-                        'last_membership' => ! $person->organizations()->exists(),
-                    ], $periods[$person->getKey()] ?? null);
+                    event(new MemberRemoved(
+                        $organization,
+                        $actor,
+                        $person,
+                        $actor === null ? 'system' : 'manager',
+                        ! $person->organizations()->exists(),
+                        $periods[$person->getKey()] ?? null
+                    ));
                 }
             }
 
             return $removed;
         });
-
-        foreach ($removed as $person) {
-            try {
-                event(new MemberRemoved(
-                    $organization,
-                    $person,
-                    $actor,
-                    ! $person->organizations()->exists(),
-                ));
-            } catch (Throwable $exception) {
-                report($exception);
-            }
-        }
     }
 }

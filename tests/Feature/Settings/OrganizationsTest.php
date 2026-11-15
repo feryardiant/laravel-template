@@ -13,9 +13,7 @@ use App\Livewire\Settings\Organizations\Remove;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
-use App\Notifications\MemberLeftNotification;
 use App\Notifications\MembershipLeaveRequestedNotification;
-use App\Notifications\MembershipRemovedNotification;
 use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -361,45 +359,4 @@ test('a member cannot open another organization settings', function () {
     Livewire::test(Organizations::class)
         ->call('manage', $other->getKey())
         ->assertForbidden();
-});
-
-test('leaving stores a confirmation notification when it was the last membership', function () {
-    $organization = Organization::factory()->create();
-
-    $user = actingAsMember($organization, Role::Member);
-
-    Livewire::test(Leave::class)
-        ->call('confirm', $organization->getKey(), $organization->name)
-        ->call('leave');
-
-    $notification = $user->notifications()->firstOrFail();
-
-    expect($notification->type)->toBe(MembershipRemovedNotification::class);
-    expect($notification->data['title'])->toBe(__('You left :organization', ['organization' => $organization->name]));
-    expect($notification->data['lines'])->toContain(__('You are no longer a member of any organization.'));
-});
-
-test('leaving notifies the other owners in the database only', function () {
-    Notification::fake();
-
-    $organization = Organization::factory()->create();
-
-    $leaver = actingAsMember($organization, Role::Member);
-    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
-
-    Livewire::test(Leave::class)
-        ->call('confirm', $organization->getKey(), $organization->name)
-        ->call('leave');
-
-    Notification::assertSentTo(
-        $owner,
-        MemberLeftNotification::class,
-        fn (MemberLeftNotification $notification): bool => $notification->organization->is($organization)
-            && $notification->memberName === $leaver->name,
-    );
-
-    Notification::assertNotSentTo($leaver, MemberLeftNotification::class);
-    Notification::assertNotSentTo($admin, MemberLeftNotification::class);
-    expect((new MemberLeftNotification($organization, 'Someone'))->via($owner))->toBe(['database']);
 });

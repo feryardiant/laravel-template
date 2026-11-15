@@ -78,7 +78,7 @@ class RemoveSubsidiary extends Component
 
         abort_if($organization === null, 404);
 
-        DeleteOrganization::dispatch($organization['organization'], $user->getKey());
+        dispatch(new DeleteOrganization($organization['organization'], $user->getKey()));
 
         $this->reset('showModal', 'removingId', 'removingName', 'removingCount');
 

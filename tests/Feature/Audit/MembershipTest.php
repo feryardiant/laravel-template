@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Approvals\MembershipLeave;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\LeaveOrganization;
 use App\Actions\Memberships\RemoveMember;
-use App\Actions\Organizations\AcceptMembershipLeave;
-use App\Actions\Organizations\RequestMembershipLeave;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Models\AuditLog;
@@ -125,9 +124,9 @@ test('an accepted admin leave records the approval and the leave', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
-    expect(app(AcceptMembershipLeave::class)->handle($request, $owner))->toBeTrue();
+    expect(app(MembershipLeave::class)->accept($request, $owner))->toBeTrue();
 
     $accepted = AuditLog::query()->where('event', AuditEvent::ApprovalAccepted)->sole();
     $left = AuditLog::query()->where('event', AuditEvent::MemberLeft)->sole();

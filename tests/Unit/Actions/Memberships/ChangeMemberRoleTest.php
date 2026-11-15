@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Enums\Role;
-use App\Events\MemberRoleChanged;
+use App\Events\Memberships\MemberRoleChanged;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

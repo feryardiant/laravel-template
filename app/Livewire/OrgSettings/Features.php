@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Events\Audit;
+use App\Events\FeatureToggled;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;
@@ -224,10 +224,10 @@ class Features extends Component
     {
         $actor = Auth::user();
 
-        Audit\FeatureToggled::dispatch($organization, $actor instanceof User ? $actor : null, $organization, [
+        event(new FeatureToggled($organization, $actor instanceof User ? $actor : null, $organization, [
             'feature' => $feature,
             'enabled' => $enabled,
-        ]);
+        ]));
     }
 
     private function featureEnabled(Organization $organization, string $feature): bool

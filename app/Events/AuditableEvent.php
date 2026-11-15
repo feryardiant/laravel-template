@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Audit;
+namespace App\Events;
 
 use App\Enums\AuditEvent;
 use App\Models\Organization;
@@ -19,7 +19,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  * scalar identifiers are retained so the queued listener can serialize safely
  * even when a subject is deleted before the worker runs.
  */
-abstract class AuditEventOccurred
+abstract class AuditableEvent
 {
     use Dispatchable;
 

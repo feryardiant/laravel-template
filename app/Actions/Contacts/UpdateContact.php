@@ -7,7 +7,7 @@ namespace App\Actions\Contacts;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
-use App\Events\Audit;
+use App\Events\Contacts\ContactUpdated;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -209,8 +209,8 @@ final class UpdateContact
             return;
         }
 
-        Audit\ContactUpdated::dispatch($tenant, $actor, $stakeholder, [
+        event(new ContactUpdated($tenant, $actor, $stakeholder, [
             'fields' => $fields,
-        ], $period);
+        ], $period));
     }
 }

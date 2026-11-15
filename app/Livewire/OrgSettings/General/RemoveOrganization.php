@@ -63,7 +63,7 @@ class RemoveOrganization extends Component
 
         abort_unless($user instanceof User, 403);
 
-        DeleteOrganization::dispatch($organization, $user->getKey());
+        dispatch(new DeleteOrganization($organization, $user->getKey()));
 
         session()->forget(CurrentOrganization::SESSION_KEY);
 

@@ -6,7 +6,7 @@ namespace App\Actions\Tenancy;
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
-use App\Events\Audit;
+use App\Events\Organizations\OrganizationCreated;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -54,10 +54,10 @@ final class ProvisionTenant
 
             $organization->update(['owner_organization_id' => $organization->getKey()]);
 
-            Audit\OrganizationCreated::dispatch($organization, $user, $organization, [
+            event(new OrganizationCreated($organization, $user, $organization, [
                 'parent_id' => null,
                 'kind' => null,
-            ]);
+            ]));
 
             $this->membership->attach(
                 $organization,

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings\Organizations;
 
+use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\MembershipLeave;
 use App\Actions\Memberships\LeaveOrganization;
-use App\Actions\Organizations\CancelApprovalRequest;
-use App\Actions\Organizations\RequestMembershipLeave;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
@@ -78,7 +78,7 @@ class Leave extends Component
     /**
      * Leave the selected organization, or request approval when an admin.
      */
-    public function leave(LeaveOrganization $leaveOrganization, RequestMembershipLeave $requestLeave): void
+    public function leave(LeaveOrganization $leaveOrganization, MembershipLeave $leaveMembership): void
     {
         /** @var User|null $user */
         $user = Auth::user();
@@ -91,7 +91,7 @@ class Leave extends Component
 
         if ($user->roleIn($organization)?->isAdmin() === true) {
             try {
-                $requestLeave->handle($organization, $user);
+                $leaveMembership->request($organization, $user);
             } catch (InvalidArgumentException) {
                 $this->reset('showModal', 'organizationId', 'organizationName', 'needsApproval');
 

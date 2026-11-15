@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Approvals;
 
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
@@ -10,16 +10,22 @@ use App\Enums\ApprovalRequestType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
-use App\Events\Audit;
+use App\Events\Approvals\ApprovalAccepted;
+use App\Events\Approvals\ApprovalDeclined;
+use App\Events\Approvals\ApprovalRequested;
+use App\Events\Memberships\MemberRoleChanged;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use App\Models\User;
+use App\Notifications\OwnershipTransferDeclinedNotification;
 use App\Notifications\OwnershipTransferredNotification;
+use App\Notifications\OwnershipTransferRequestedNotification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
-final class AcceptOwnershipTransfer
+final class OwnershipTransfer
 {
     public function __construct(
         private RelationshipTimeline $timeline,
@@ -28,12 +34,58 @@ final class AcceptOwnershipTransfer
     }
 
     /**
+     * Ask another member to take ownership of the organization.
+     */
+    public function request(Organization $organization, User $actor, Person $recipient): ApprovalRequest
+    {
+        $owner = $actor->person;
+
+        if ($owner === null || ! $owner->roleIn($organization)?->isOwner()) {
+            throw new InvalidArgumentException('Only the owner can transfer ownership.');
+        }
+
+        if ($recipient->is($owner) || $recipient->user_id === null || $recipient->roleIn($organization) === null) {
+            throw new InvalidArgumentException('The recipient must be an active member with a login credential.');
+        }
+
+        $request = DB::transaction(function () use ($organization, $owner, $recipient, $actor): ApprovalRequest {
+            $organization = Organization::query()
+                ->whereKey($organization->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (ApprovalRequest::query()->pending()->where('organization_id', $organization->getKey())->exists()) {
+                throw new InvalidArgumentException('Another approval request is already pending.');
+            }
+
+            $request = ApprovalRequest::create([
+                'organization_id' => $organization->getKey(),
+                'type' => ApprovalRequestType::OwnershipTransfer,
+                'requester_person_id' => $owner->getKey(),
+                'approver_person_id' => $recipient->getKey(),
+                'status' => ApprovalRequestStatus::Pending,
+                'expires_at' => now()->addDays(7),
+            ]);
+
+            event(new ApprovalRequested($request, $actor));
+
+            return $request;
+        });
+
+        $request->loadMissing(['organization', 'requester', 'approver']);
+
+        $recipient->user?->notify(new OwnershipTransferRequestedNotification($request));
+
+        return $request;
+    }
+
+    /**
      * Accept a pending ownership transfer and swap the roles.
      *
      * Returns false when the request expired, changed state, or the
      * memberships moved underneath it.
      */
-    public function handle(ApprovalRequest $request, User $actor): bool
+    public function accept(ApprovalRequest $request, User $actor): bool
     {
         $person = $actor->person;
 
@@ -56,9 +108,8 @@ final class AcceptOwnershipTransfer
                     ->firstOrFail();
 
                 if ($request->type !== ApprovalRequestType::OwnershipTransfer
-                    || $request->status !== ApprovalRequestStatus::Pending
+                    || $request->status->isFinished()
                     || $request->isExpired()
-                    || ! $person->is($request->approver)
                     || $request->requester->roleIn($organization)?->isOwner() !== true
                     || $person->roleIn($organization) === null) {
                     return null;
@@ -95,17 +146,11 @@ final class AcceptOwnershipTransfer
                 $approverPeriod = $this->timeline->open($approverRelationship->refresh(), today());
 
                 if ($requesterRole instanceof Role) {
-                    Audit\MemberRoleChanged::dispatch($organization, $actor, $request->requester, [
-                        'from' => $requesterRole->value,
-                        'to' => Role::Admin->value,
-                    ], $requesterPeriod);
+                    event(new MemberRoleChanged($organization, $requesterRole, Role::Admin, $request->requester, $actor, $requesterPeriod));
                 }
 
                 if ($approverRole instanceof Role) {
-                    Audit\MemberRoleChanged::dispatch($organization, $actor, $request->approver, [
-                        'from' => $approverRole->value,
-                        'to' => Role::Owner->value,
-                    ], $approverPeriod);
+                    event(new MemberRoleChanged($organization, $requesterRole, Role::Owner, $request->approver, $actor, $requesterPeriod));
                 }
 
                 $request->update([
@@ -113,9 +158,7 @@ final class AcceptOwnershipTransfer
                     'accepted_at' => now(),
                 ]);
 
-                Audit\ApprovalAccepted::dispatch($organization, $actor, $request, [
-                    'type' => $request->type->value,
-                ]);
+                event(new ApprovalAccepted($request, $actor));
 
                 return $request;
             });
@@ -131,6 +174,54 @@ final class AcceptOwnershipTransfer
 
         $request->requester->user?->notify(
             new OwnershipTransferredNotification($request->organization->name, $request->approver->name),
+        );
+
+        return true;
+    }
+
+    /**
+     * Decline a pending ownership transfer.
+     *
+     * Returns false when the request expired or was already handled.
+     */
+    public function decline(ApprovalRequest $request, User $actor): bool
+    {
+        $person = $actor->person;
+
+        if ($person === null || ! $person->is($request->approver)) {
+            throw new InvalidArgumentException('This transfer does not belong to you.');
+        }
+
+        $request = DB::transaction(function () use ($request, $actor): ?ApprovalRequest {
+            $request = ApprovalRequest::query()
+                ->whereKey($request->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($request->type !== ApprovalRequestType::OwnershipTransfer
+                || $request->status->isFinished()
+                || $request->isExpired()) {
+                return null;
+            }
+
+            $request->update([
+                'status' => ApprovalRequestStatus::Declined,
+                'declined_at' => now(),
+            ]);
+
+            event(new ApprovalDeclined($request, $actor));
+
+            return $request;
+        });
+
+        if ($request === null) {
+            return false;
+        }
+
+        $request->loadMissing(['organization', 'requester', 'approver']);
+
+        $request->requester->user?->notify(
+            new OwnershipTransferDeclinedNotification($request->organization->name, $request->approver->name),
         );
 
         return true;

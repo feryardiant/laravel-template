@@ -9,7 +9,7 @@ use App\Actions\Memberships\CreateMember;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
-use App\Events\Audit;
+use App\Events\Organizations\OrganizationCreated;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -78,10 +78,10 @@ final class CreateOrganization
                     ]);
                 }
 
-                Audit\OrganizationCreated::dispatch($organization, $actor, $organization, [
+                event(new OrganizationCreated($organization, $actor, $organization, [
                     'parent_id' => $parent?->getKey(),
                     'kind' => $parent !== null ? ($kind ?? SubsidiaryKind::Subsidiary)->value : null,
-                ]);
+                ]));
 
                 return $organization;
             });

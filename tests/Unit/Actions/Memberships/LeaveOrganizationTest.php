@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\LeaveOrganization;
 use App\Enums\Role;
-use App\Events\MemberRemoved;
+use App\Events\Memberships\MemberRemoved;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

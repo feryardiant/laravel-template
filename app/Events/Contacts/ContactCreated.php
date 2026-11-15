@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Audit;
+namespace App\Events\Contacts;
 
 use App\Enums\AuditEvent;
+use App\Events\AuditableEvent;
 
-final class ContactCreated extends AuditEventOccurred
+final class ContactCreated extends AuditableEvent
 {
     public function auditEvent(): AuditEvent
     {

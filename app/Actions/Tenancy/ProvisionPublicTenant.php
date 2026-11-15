@@ -8,7 +8,8 @@ use App\Actions\Contacts\CreateContact;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
-use App\Events\Audit;
+use App\Events\Memberships\MemberAdded;
+use App\Events\Organizations\OrganizationCreated;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -55,10 +56,10 @@ final class ProvisionPublicTenant
 
         $organization->primaryContact?->update(['owner_organization_id' => null]);
 
-        Audit\OrganizationCreated::dispatch($organization, $user, $organization, [
+        event(new OrganizationCreated($organization, $user, $organization, [
             'parent_id' => $root->getKey(),
             'kind' => null,
-        ]);
+        ]));
 
         $organization->members()->attach($organization->contact_id, [
             'type' => OrganizationRelationshipType::Member,
@@ -79,9 +80,9 @@ final class ProvisionPublicTenant
             $owner = $organization->primaryContact;
 
             if ($owner instanceof Person) {
-                Audit\MemberAdded::dispatch($organization, $user, $owner, [
+                event(new MemberAdded($organization, $user, $owner, [
                     'role' => Role::Owner->value,
-                ], $period);
+                ], $period));
             }
         }
 

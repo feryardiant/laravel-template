@@ -10,8 +10,8 @@ use App\Enums\ApprovalRequestType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
-use App\Events\Audit;
-use App\Events\MemberRoleChanged;
+use App\Events\Approvals\ApprovalCancelled;
+use App\Events\Memberships\MemberRoleChanged;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -69,10 +69,7 @@ final class ChangeMemberRole
 
             $period = $this->openPeriod($organization, $person);
 
-            Audit\MemberRoleChanged::dispatch($organization, $actor, $person, [
-                'from' => $currentRole->value,
-                'to' => $newRole->value,
-            ], $period);
+            event(new MemberRoleChanged($organization, $currentRole, $newRole, $person, $actor, $period));
 
             return true;
         });
@@ -80,8 +77,6 @@ final class ChangeMemberRole
         if (! $changed || $currentRole === null) {
             return false;
         }
-
-        event(new MemberRoleChanged($organization, $person, $actor, $currentRole, $newRole));
 
         return true;
     }
@@ -164,10 +159,7 @@ final class ChangeMemberRole
                 continue;
             }
 
-            Audit\ApprovalCancelled::dispatch($organization, $actor, $request, [
-                'type' => $request->type->value,
-                'reason' => 'role_changed',
-            ]);
+            event(new ApprovalCancelled($request, $actor, 'role_changed'));
         }
     }
 }

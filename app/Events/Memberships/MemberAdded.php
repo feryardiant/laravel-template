@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Audit;
+namespace App\Events\Memberships;
 
 use App\Enums\AuditEvent;
+use App\Events\AuditableEvent;
 
-final class MemberAdded extends AuditEventOccurred
+final class MemberAdded extends AuditableEvent
 {
     public function auditEvent(): AuditEvent
     {

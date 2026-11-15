@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Events\Audit;
+namespace App\Events\Approvals;
 
 use App\Enums\AuditEvent;
 
-final class ApprovalDeclined extends AuditEventOccurred
+final class ApprovalDeclined extends ApprovableEvent
 {
     public function auditEvent(): AuditEvent
     {

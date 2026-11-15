@@ -7,7 +7,7 @@ namespace App\Actions\Contacts;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\RelationshipPeriodReason;
-use App\Events\Audit;
+use App\Events\Contacts\ContactDeleted;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
@@ -74,9 +74,9 @@ final class DeleteContact
                 ->whereKey($contact->getKey())
                 ->delete();
 
-            Audit\ContactDeleted::dispatch($tenant, $actor, $stakeholder, [
+            event(new ContactDeleted($tenant, $actor, $stakeholder, [
                 'detached_only' => ! $removeOwned,
-            ], $period);
+            ], $period));
 
             if (! $removeOwned) {
                 return;

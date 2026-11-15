@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
-use App\Events\MemberRemoved;
+use App\Events\Memberships\MemberRemoved;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -48,25 +48,4 @@ it('does nothing when there is nobody to remove', function () {
     app(RemoveMember::class)->handleMany(Organization::factory()->create(), new Collection);
 
     Event::assertNotDispatched(MemberRemoved::class);
-});
-
-it('keeps the removal when a listener fails for one member', function () {
-    $organization = Organization::factory()->create();
-
-    User::factory()->count(2)->asMemberOf($organization)->create();
-
-    $dispatched = [];
-
-    Event::listen(MemberRemoved::class, function (MemberRemoved $event) use (&$dispatched): void {
-        $dispatched[] = $event->person->getKey();
-
-        if (\count($dispatched) === 1) {
-            throw new RuntimeException('Notification publication failed.');
-        }
-    });
-
-    app(RemoveMember::class)->handleMany($organization, $organization->members()->get());
-
-    expect($organization->members()->count())->toBe(0)
-        ->and($dispatched)->toHaveCount(2);
 });

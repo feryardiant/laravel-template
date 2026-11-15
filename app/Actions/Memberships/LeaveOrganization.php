@@ -5,17 +5,13 @@ declare(strict_types=1);
 namespace App\Actions\Memberships;
 
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
-use App\Events\Audit;
-use App\Events\MemberRemoved;
-use App\Models\ApprovalRequest;
+use App\Events\Memberships\MemberLeft;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 final class LeaveOrganization
 {
@@ -36,7 +32,7 @@ final class LeaveOrganization
             return false;
         }
 
-        $left = DB::transaction(function () use ($person, $organization, $user): bool {
+        return DB::transaction(function () use ($person, $organization, $user): bool {
             $organization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
             if ($organization === null) {
@@ -53,8 +49,7 @@ final class LeaveOrganization
 
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($person)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->whereStakeholder($person, OrganizationRelationshipType::Member)
                 ->first();
 
             $period = $relationship !== null
@@ -63,48 +58,9 @@ final class LeaveOrganization
 
             $organization->members()->detach($person->getKey());
 
-            Audit\MemberLeft::dispatch($organization, $user, $person, [
-                'via' => 'self',
-            ], $period);
-
-            $pending = ApprovalRequest::query()
-                ->pending()
-                ->where('organization_id', $organization->getKey())
-                ->where('requester_person_id', $person->getKey())
-                ->get();
-
-            foreach ($pending as $request) {
-                $cancelled = ApprovalRequest::query()
-                    ->whereKey($request->getKey())
-                    ->where('status', ApprovalRequestStatus::Pending)
-                    ->update([
-                        'status' => ApprovalRequestStatus::Cancelled,
-                        'cancelled_at' => now(),
-                    ]);
-
-                if ($cancelled === 0) {
-                    continue;
-                }
-
-                Audit\ApprovalCancelled::dispatch($organization, $user, $request, [
-                    'type' => $request->type->value,
-                    'reason' => 'member_left',
-                ]);
-            }
+            event(new MemberLeft($organization, $user, $person, 'self', period: $period));
 
             return true;
         });
-
-        if (! $left) {
-            return false;
-        }
-
-        try {
-            event(new MemberRemoved($organization, $person, null, ! $person->organizations()->exists()));
-        } catch (Throwable $exception) {
-            report($exception);
-        }
-
-        return true;
     }
 }
