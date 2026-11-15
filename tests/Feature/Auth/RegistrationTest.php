@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
@@ -95,6 +97,21 @@ test('new users register as members with a tenant organization owned by their pe
         ->whereStakeholder($organization)
         ->where('type', OrganizationRelationshipType::Customer)
         ->exists())->toBeTrue();
+
+    $created = AuditLog::query()
+        ->where('event', AuditEvent::OrganizationCreated)
+        ->where('organization_id', $organization->getKey())
+        ->sole();
+
+    $added = AuditLog::query()
+        ->where('event', AuditEvent::MemberAdded)
+        ->where('organization_id', $organization->getKey())
+        ->sole();
+
+    expect($created->actor_id)->toBe($user->getKey())
+        ->and($added->actor_id)->toBe($user->getKey())
+        ->and($added->subject_id)->toBe($person->getKey())
+        ->and($added->organization_relationship_period_id)->not->toBeNull();
 });
 
 test('registration rejects an email that differs only by case', function () {

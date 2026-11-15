@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,6 +47,13 @@ it('updates the membership role when an existing member is added again', functio
 
     expect($organization->members()->count())->toBe(1);
     expect($person->roleIn($organization))->toBe(Role::Owner);
+
+    $log = AuditLog::query()->where('event', AuditEvent::MemberRoleChanged)->sole();
+
+    expect($log->changes)->toMatchArray([
+        'from' => Role::Member->value,
+        'to' => Role::Owner->value,
+    ]);
 });
 
 it('does not assign a role to non-member relationships', function () {
@@ -67,7 +76,8 @@ it('does not duplicate a membership when added twice', function () {
     app(CreateMember::class)->attach($organization, $person);
     app(CreateMember::class)->attach($organization, $person);
 
-    expect($organization->members()->count())->toBe(1);
+    expect($organization->members()->count())->toBe(1)
+        ->and(AuditLog::query()->where('event', AuditEvent::MemberAdded)->count())->toBe(1);
 });
 
 it('keeps an existing counterparty relationship when adding a member', function () {

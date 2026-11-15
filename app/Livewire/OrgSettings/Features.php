@@ -17,6 +17,7 @@ use App\Support\Feature\Registration;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -72,6 +73,10 @@ class Features extends Component
 
         $this->authorizeManager();
 
+        if ($this->featureEnabled($organization, Registration::FEATURE) === $enabled) {
+            return;
+        }
+
         DB::transaction(function () use ($organization, $enabled): void {
             if ($enabled) {
                 Registration::activate($organization);
@@ -99,6 +104,10 @@ class Features extends Component
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
         $this->authorizeManager();
+
+        if ($this->featureEnabled($organization, ProfileSelfEdit::FEATURE) === $enabled) {
+            return;
+        }
 
         DB::transaction(function () use ($organization, $enabled): void {
             if ($enabled) {
@@ -128,6 +137,10 @@ class Features extends Component
 
         $this->authorizeManager();
 
+        if ($this->featureEnabled($organization, ContactGender::FEATURE) === $enabled) {
+            return;
+        }
+
         DB::transaction(function () use ($organization, $enabled): void {
             if ($enabled) {
                 ContactGender::activate($organization);
@@ -155,6 +168,10 @@ class Features extends Component
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
         $this->authorizeManager();
+
+        if ($this->featureEnabled($organization, MemberDeletion::FEATURE) === $enabled) {
+            return;
+        }
 
         DB::transaction(function () use ($organization, $enabled): void {
             if ($enabled) {
@@ -184,6 +201,10 @@ class Features extends Component
 
         $this->authorizeManager();
 
+        if ($this->featureEnabled($organization, ContactDeletion::FEATURE) === $enabled) {
+            return;
+        }
+
         DB::transaction(function () use ($organization, $enabled): void {
             if ($enabled) {
                 ContactDeletion::activate($organization);
@@ -208,5 +229,10 @@ class Features extends Component
             'feature' => $feature,
             'enabled' => $enabled,
         ]);
+    }
+
+    private function featureEnabled(Organization $organization, string $feature): bool
+    {
+        return (bool) Feature::for($organization)->active($feature);
     }
 }

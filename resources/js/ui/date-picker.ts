@@ -245,6 +245,16 @@ function presetAllowed(
 }
 
 /**
+ * Resolve the civil date used to build presets.
+ *
+ * A server-provided date wins so presets follow the user's profile timezone
+ * even when the browser clock is in another zone.
+ */
+export function presetToday(today: string | null): string {
+    return today ?? localTodayKey()
+}
+
+/**
  * Create the Alpine data for a date picker.
  *
  * Writes a `Y-m-d` string for single mode and `{ start, end }` for range mode.
@@ -479,7 +489,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
         /** Rebuild the presets from the current local date and bounds. */
         buildPresets() {
-            const today = config.today ?? localTodayKey()
+            const today = presetToday(config.today)
             const startDay = config.startDay ?? firstDayOfWeek(locale)
             const min = config.min === 'today' ? today : toDateKey(config.min)
             const max = config.max === 'today' ? today : toDateKey(config.max)

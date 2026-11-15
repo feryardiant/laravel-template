@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\Features;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
@@ -198,6 +200,18 @@ it('forbids plain members', function () {
     actingAsMember($organization, Role::Member);
 
     Livewire::test(Features::class)->assertForbidden();
+});
+
+it('does not audit a feature toggle that changes nothing', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(Features::class);
+
+    $component->set('memberDeletion', true);
+
+    expect(AuditLog::query()->where('event', AuditEvent::FeatureToggled)->count())->toBe(0);
 });
 
 it('rolls back the feature toggle when the audit write fails', function () {

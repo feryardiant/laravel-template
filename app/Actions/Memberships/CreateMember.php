@@ -107,6 +107,15 @@ final class CreateMember
                     ->update(['is_primary' => null]);
             }
 
+            $existing = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->whereStakeholder($member)
+                ->where('type', OrganizationRelationshipType::Member)
+                ->lockForUpdate()
+                ->first();
+
+            $previousRole = $existing?->role;
+
             OrganizationRelationship::query()->updateOrCreate(
                 [
                     'organization_id' => $organization->getKey(),
@@ -130,9 +139,16 @@ final class CreateMember
 
             $period = $this->timeline->open($relationship);
 
-            $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $member, [
-                'role' => $role->value,
-            ], $period);
+            if ($existing === null) {
+                $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $member, [
+                    'role' => $role->value,
+                ], $period);
+            } elseif ($previousRole instanceof Role && $previousRole !== $role) {
+                $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $member, [
+                    'from' => $previousRole->value,
+                    'to' => $role->value,
+                ], $period);
+            }
         });
     }
 }

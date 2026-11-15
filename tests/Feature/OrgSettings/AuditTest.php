@@ -378,6 +378,10 @@ test('the log is paginated newest first', function () {
     $component->set('paginators.page', 2);
     $component->set('event', AuditEvent::ContactCreated->value);
     $component->assertSet('paginators.page', 1);
+
+    $component->set('paginators.page', 2);
+    $component->set('range', ['start' => '2026-11-15', 'end' => '2026-11-18']);
+    $component->assertSet('paginators.page', 1);
 });
 
 test('a soft deleted subject still shows its name', function () {

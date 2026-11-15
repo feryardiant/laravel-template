@@ -8,7 +8,6 @@ use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\AuditEvent;
-use App\Exceptions\FileDeletionFailed;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
 use Flux\Flux;
@@ -118,16 +117,8 @@ class General extends Component
                 if ($newLogoPath !== null) {
                     // Replacement cleanup runs after commit; a failure is logged.
                     DB::afterCommit(fn () => $fileStorage->delete($previousLogo));
-                } elseif ($removeLogo && ! $fileStorage->delete($previousLogo)) {
-                    throw new FileDeletionFailed('Unable to remove the organization logo.');
                 }
             });
-        } catch (FileDeletionFailed) {
-            $this->logo_url = $previousLogo;
-
-            Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
-
-            return;
         } catch (Throwable $exception) {
             if ($newLogoPath !== null) {
                 $fileStorage->delete($newLogoPath);
@@ -136,6 +127,15 @@ class General extends Component
             $this->logo_url = $previousLogo;
 
             throw $exception;
+        }
+
+        if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
+            $organization->forceFill(['logo_url' => $previousLogo])->save();
+            $this->logo_url = $previousLogo;
+
+            Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
+
+            return;
         }
 
         unset($this->pendingApproval);
