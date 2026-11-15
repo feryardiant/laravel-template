@@ -21,9 +21,9 @@ class Remove extends Component
 
     public bool $showModal = false;
 
-    public ?int $removingOrganizationId = null;
+    public ?int $organizationId = null;
 
-    public ?string $removingOrganizationName = null;
+    public ?string $organizationName = null;
 
     public string $confirmation = '';
 
@@ -31,12 +31,12 @@ class Remove extends Component
      * Select an organization to remove.
      */
     #[On('remove-organization')]
-    public function confirmRemove(int $organizationId): void
+    public function confirm(int $organizationId): void
     {
         $organization = $this->removableOrganization($organizationId);
 
-        $this->removingOrganizationId = $organization->getKey();
-        $this->removingOrganizationName = $organization->name;
+        $this->organizationId = $organization->getKey();
+        $this->organizationName = $organization->name;
         $this->confirmation = '';
         $this->showModal = true;
     }
@@ -49,9 +49,9 @@ class Remove extends Component
         /** @var User|null $user */
         $user = Auth::user();
 
-        abort_if($this->removingOrganizationId === null || ! $user instanceof User, 404);
+        abort_if($this->organizationId === null || ! $user instanceof User, 404);
 
-        $organization = $this->removableOrganization($this->removingOrganizationId);
+        $organization = $this->removableOrganization($this->organizationId);
 
         if ($this->confirmation !== $organization->name) {
             $this->addError('confirmation', __('The name does not match.'));
@@ -65,7 +65,7 @@ class Remove extends Component
             session()->forget(CurrentOrganization::SESSION_KEY);
         }
 
-        $this->reset('showModal', 'removingOrganizationId', 'removingOrganizationName', 'confirmation');
+        $this->reset('showModal', 'organizationId', 'organizationName', 'confirmation');
         $this->dispatch('memberships-changed');
 
         Flux::toast(

@@ -38,9 +38,9 @@ test('the recipient can accept and become the owner', function () {
         ->assertSee(__('Respond'));
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
+        ->call('respond', $organization->getKey())
         ->assertSet('showModal', true)
-        ->call('acceptApproval')
+        ->call('accept')
         ->assertSet('showModal', false);
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Owner)
@@ -62,8 +62,8 @@ test('the recipient can decline and the owner remains in place', function () {
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
-        ->call('declineApproval')
+        ->call('respond', $organization->getKey())
+        ->call('decline')
         ->assertSet('showModal', false);
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Member)
@@ -96,7 +96,7 @@ test('the transfer modal opens from the email query and an expired request canno
         ->assertDontSeeHtml("dispatch('review-approval'");
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
+        ->call('respond', $organization->getKey())
         ->assertNotFound();
 });
 
@@ -128,8 +128,8 @@ test('accepting after the recipient lost their membership keeps the owner in pla
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
-        ->call('acceptApproval')
+        ->call('respond', $organization->getKey())
+        ->call('accept')
         ->assertSet('showModal', false)
         ->assertDispatched(
             'toast-show',
@@ -153,12 +153,12 @@ test('a modal left open on a stale request reports it as invalid', function () {
     loginAsTransferRecipient($recipient, $organization);
 
     $component = Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
+        ->call('respond', $organization->getKey())
         ->assertSet('showModal', true);
 
     $transfer->update(['expires_at' => now()->subMinute()]);
 
-    $component->call('acceptApproval')
+    $component->call('accept')
         ->assertSet('showModal', false)
         ->assertDispatched(
             'toast-show',
@@ -178,14 +178,14 @@ test('accepting or declining without an open transfer reports it as invalid', fu
 
     $component = Livewire::test(TransferApproval::class);
 
-    $component->call('acceptApproval')
+    $component->call('accept')
         ->assertSet('showModal', false)
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __('This request is no longer valid.'),
         );
 
-    $component->call('declineApproval')
+    $component->call('decline')
         ->assertSet('showModal', false)
         ->assertDispatched(
             'toast-show',
@@ -206,7 +206,7 @@ test('a transfer opened by another recipient is treated as invalid', function ()
     Livewire::test(TransferApproval::class)
         ->set('approvalId', $transfer->getKey())
         ->set('approvalType', 'ownership_transfer')
-        ->call('acceptApproval')
+        ->call('accept')
         ->assertSet('showModal', false)
         ->assertDispatched(
             'toast-show',
@@ -233,9 +233,9 @@ test('the owner can approve an admin leave request', function () {
         ->assertSee(__('Leave request from :name', ['name' => $admin->name]));
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
+        ->call('respond', $organization->getKey())
         ->assertSet('showModal', true)
-        ->call('acceptApproval')
+        ->call('accept')
         ->assertSet('showModal', false);
 
     expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Accepted)
@@ -255,8 +255,8 @@ test('the owner can decline an admin leave request', function () {
     actingAs($owner);
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
-        ->call('declineApproval');
+        ->call('respond', $organization->getKey())
+        ->call('decline');
 
     expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Declined)
         ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();

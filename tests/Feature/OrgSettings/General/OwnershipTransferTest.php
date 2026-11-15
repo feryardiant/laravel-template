@@ -114,8 +114,8 @@ test('the root organization can be transferred', function () {
     loginAsTransferRecipient($recipient, $root);
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $root->getKey())
-        ->call('acceptApproval');
+        ->call('respond', $root->getKey())
+        ->call('accept');
 
     expect($recipient->person->roleIn($root))->toBe(Role::Owner)
         ->and($owner->person->roleIn($root))->toBe(Role::Admin)
@@ -177,8 +177,8 @@ test('a member cannot be removed after they become the owner', function () {
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(TransferApproval::class)
-        ->call('openApproval', $organization->getKey())
-        ->call('acceptApproval');
+        ->call('respond', $organization->getKey())
+        ->call('accept');
 
     app(RemoveMember::class)->handle($organization, $recipient->person, $owner);
 

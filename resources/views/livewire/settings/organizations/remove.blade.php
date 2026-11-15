@@ -2,18 +2,18 @@
     wire:model.self="showModal"
     width="md:w-lg"
     :title="__('Remove organization')"
-    :subtitle="$removingOrganizationName"
+    :subtitle="$organizationName"
 >
     <div class="space-y-6">
         <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This action cannot be undone.')">
             <flux:callout.text>
-                {{ __('All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.', ['name' => $removingOrganizationName]) }}
+                {{ __('All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.', ['name' => $organizationName]) }}
             </flux:callout.text>
         </flux:callout>
 
         <flux:input
             wire:model.live.debounce.300ms="confirmation"
-            :label="__('Type :name to confirm', ['name' => $removingOrganizationName])"
+            :label="__('Type :name to confirm', ['name' => $organizationName])"
             autocomplete="off"
         />
 
@@ -27,7 +27,7 @@
             <flux:button
                 variant="danger"
                 wire:click="remove"
-                :disabled="$confirmation !== $removingOrganizationName"
+                :disabled="$confirmation !== $organizationName"
             >
                 {{ __('Remove organization') }}
             </flux:button>

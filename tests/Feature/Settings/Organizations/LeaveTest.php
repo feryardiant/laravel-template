@@ -30,7 +30,7 @@ uses(RefreshDatabase::class);
 function requestAdminLeaveForTest(Organization $organization): ApprovalRequest
 {
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->call('confirm', $organization->getKey(), $organization->name)
         ->call('leave')
         ->assertHasNoErrors();
 
@@ -61,7 +61,7 @@ test('a member leaves immediately without an approval request', function () {
     $member = actingAsMember($organization, Role::Member);
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->call('confirm', $organization->getKey(), $organization->name)
         ->call('leave')
         ->assertRedirect(route('dashboard'));
 
@@ -80,7 +80,7 @@ test('the admin can cancel their own pending leave request', function () {
         ->assertSee(__('Leave request pending'));
 
     Livewire::test(Leave::class)
-        ->call('cancelLeaveRequest', $request->getKey());
+        ->call('cancelRequest', $request->getKey());
 
     expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled)
         ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();

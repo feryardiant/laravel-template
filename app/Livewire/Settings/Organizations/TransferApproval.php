@@ -26,9 +26,9 @@ class TransferApproval extends Component
 
     public ?string $approvalType = null;
 
-    public ?string $approvalOrganizationName = null;
+    public ?string $organizationName = null;
 
-    public ?string $approvalRequesterName = null;
+    public ?string $requesterName = null;
 
     /**
      * Open a request review when the signed email link sent us here.
@@ -50,15 +50,15 @@ class TransferApproval extends Component
             ->first();
 
         if ($approval !== null) {
-            $this->openApprovalModal($approval);
+            $this->openModal($approval);
         }
     }
 
     /**
      * Open the review modal for an organization's pending request.
      */
-    #[On('review-approval')]
-    public function openApproval(int $organizationId): void
+    #[On('respond')]
+    public function respond(int $organizationId): void
     {
         $user = Auth::user();
 
@@ -73,13 +73,13 @@ class TransferApproval extends Component
 
         abort_if($approval === null, 404);
 
-        $this->openApprovalModal($approval);
+        $this->openModal($approval);
     }
 
     /**
      * Accept the pending request.
      */
-    public function acceptApproval(
+    public function accept(
         AcceptOwnershipTransfer $acceptTransfer,
         AcceptMembershipLeave $acceptLeave,
     ): void {
@@ -92,7 +92,7 @@ class TransferApproval extends Component
         if ($approval === null) {
             $invalidMessage = $this->invalidMessage();
 
-            $this->dismissApproval();
+            $this->dismiss();
             Flux::toast(variant: 'danger', text: $invalidMessage);
 
             return;
@@ -106,7 +106,7 @@ class TransferApproval extends Component
         $organizationName = $approval->organization->name;
         $invalidMessage = $this->invalidMessageFor($approval->type);
 
-        $this->dismissApproval();
+        $this->dismiss();
 
         Flux::toast(
             variant: $accepted ? 'success' : 'danger',
@@ -121,7 +121,7 @@ class TransferApproval extends Component
     /**
      * Decline the pending request.
      */
-    public function declineApproval(
+    public function decline(
         DeclineOwnershipTransfer $declineTransfer,
         DeclineMembershipLeave $declineLeave,
     ): void {
@@ -134,7 +134,7 @@ class TransferApproval extends Component
         if ($approval === null) {
             $invalidMessage = $this->invalidMessage();
 
-            $this->dismissApproval();
+            $this->dismiss();
             Flux::toast(variant: 'danger', text: $invalidMessage);
 
             return;
@@ -147,7 +147,7 @@ class TransferApproval extends Component
 
         $invalidMessage = $this->invalidMessageFor($approval->type);
 
-        $this->dismissApproval();
+        $this->dismiss();
 
         Flux::toast(
             variant: $declined ? 'success' : 'danger',
@@ -199,9 +199,9 @@ class TransferApproval extends Component
     /**
      * Close the approval modal and drop its cached data.
      */
-    private function dismissApproval(): void
+    private function dismiss(): void
     {
-        $this->reset('showModal', 'approvalId', 'approvalType', 'approvalOrganizationName', 'approvalRequesterName');
+        $this->reset('showModal', 'approvalId', 'approvalType', 'organizationName', 'requesterName');
 
         $this->dispatch('memberships-changed');
     }
@@ -209,14 +209,14 @@ class TransferApproval extends Component
     /**
      * Fill the approval modal from the request.
      */
-    private function openApprovalModal(ApprovalRequest $approval): void
+    private function openModal(ApprovalRequest $approval): void
     {
         $approval->loadMissing(['organization', 'requester']);
 
         $this->approvalId = $approval->getKey();
         $this->approvalType = $approval->type->value;
-        $this->approvalOrganizationName = $approval->organization->name;
-        $this->approvalRequesterName = $approval->requester->name;
+        $this->organizationName = $approval->organization->name;
+        $this->requesterName = $approval->requester->name;
         $this->showModal = true;
     }
 

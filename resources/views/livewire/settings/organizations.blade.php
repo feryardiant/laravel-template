@@ -123,7 +123,7 @@
                                         <flux:button
                                             size="sm"
                                             variant="primary"
-                                            wire:click="$dispatch('review-approval', { organizationId: {{ $organization->id }} })"
+                                            wire:click="$dispatch('respond', { organizationId: {{ $organization->id }} })"
                                         >
                                             {{ __('Respond') }}
                                         </flux:button>

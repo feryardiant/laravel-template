@@ -135,7 +135,7 @@ test('the last owner can only remove the organization', function () {
         ->assertSeeHtml("dispatch('remove-organization'");
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->call('confirm', $organization->getKey(), $organization->name)
         ->call('leave')
         ->assertDispatched(
             'toast-show',
@@ -154,7 +154,7 @@ test('the last owner queues the organization removal after confirming its name',
     $user = actingAsMember($organization, Role::Owner);
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $organization->getKey())
+        ->call('confirm', $organization->getKey())
         ->assertSet('showModal', true)
         ->set('confirmation', 'Acme')
         ->call('remove')
@@ -183,7 +183,7 @@ test('the last owner can remove an organization that still has members', functio
     User::factory()->asMemberOf($organization, Role::Member)->create();
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $organization->getKey())
+        ->call('confirm', $organization->getKey())
         ->set('confirmation', 'Acme')
         ->call('remove')
         ->assertHasNoErrors();
@@ -199,7 +199,7 @@ test('the last owner must type the exact organization name to remove it', functi
     actingAsMember($organization, Role::Owner);
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $organization->getKey())
+        ->call('confirm', $organization->getKey())
         ->set('confirmation', 'acme')
         ->call('remove')
         ->assertHasErrors('confirmation');
@@ -218,7 +218,7 @@ test('the root organization cannot be removed', function () {
         ->assertDontSeeHtml("dispatch('remove-organization'");
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $root->getKey())
+        ->call('confirm', $root->getKey())
         ->assertForbidden();
 
     Queue::assertNothingPushed();
@@ -232,7 +232,7 @@ test('an admin cannot remove an organization', function () {
     actingAsMember($organization, Role::Admin);
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $organization->getKey())
+        ->call('confirm', $organization->getKey())
         ->assertForbidden();
 
     Queue::assertNothingPushed();
@@ -247,7 +247,7 @@ test('a non-member cannot remove an organization', function () {
     actingAsMember($organization, Role::Owner);
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $other->getKey())
+        ->call('confirm', $other->getKey())
         ->assertNotFound();
 
     Queue::assertNothingPushed();
@@ -264,7 +264,7 @@ test('removing another organization keeps the current one', function () {
     app(CreateMember::class)->attach($other, $user->person, role: Role::Owner);
 
     Livewire::test(Remove::class)
-        ->call('confirmRemove', $other->getKey())
+        ->call('confirm', $other->getKey())
         ->set('confirmation', 'Other Org')
         ->call('remove')
         ->assertNoRedirect();
@@ -294,7 +294,7 @@ test('a member can leave the current organization', function () {
     $user = actingAsMember($organization, Role::Member);
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->call('confirm', $organization->getKey(), $organization->name)
         ->call('leave')
         ->assertRedirect(route('dashboard'));
 
@@ -310,8 +310,8 @@ test('an admin leave asks the owner for approval', function () {
     $admin = actingAsMember($organization, Role::Admin);
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
-        ->assertSet('leaveNeedsApproval', true)
+        ->call('confirm', $organization->getKey(), $organization->name)
+        ->assertSet('needsApproval', true)
         ->call('leave')
         ->assertNoRedirect();
 
@@ -329,7 +329,7 @@ test('leaving another organization keeps the current one', function () {
     app(CreateMember::class)->attach($other, $user->person, startDate: now(), role: Role::Member);
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $other->getKey(), $other->name)
+        ->call('confirm', $other->getKey(), $other->name)
         ->call('leave')
         ->assertNoRedirect();
 
@@ -369,7 +369,7 @@ test('leaving stores a confirmation notification when it was the last membership
     $user = actingAsMember($organization, Role::Member);
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->call('confirm', $organization->getKey(), $organization->name)
         ->call('leave');
 
     $notification = $user->notifications()->firstOrFail();
@@ -389,7 +389,7 @@ test('leaving notifies the other owners in the database only', function () {
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
     Livewire::test(Leave::class)
-        ->call('confirmLeave', $organization->getKey(), $organization->name)
+        ->call('confirm', $organization->getKey(), $organization->name)
         ->call('leave');
 
     Notification::assertSentTo(
