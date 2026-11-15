@@ -84,7 +84,14 @@ class General extends Component
             $this->logo = null;
             $this->logo_url = $path;
         } elseif ($previousLogo !== $this->logo_url) {
-            $fileStorage->delete($previousLogo);
+            if (! $fileStorage->delete($previousLogo)) {
+                $this->logo_url = $previousLogo;
+
+                Flux::toast(variant: 'danger', text: __('Unable to remove the logo. Please try again.'));
+
+                return;
+            }
+
             $organization->logo_url = $this->logo_url;
         }
 

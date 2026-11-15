@@ -231,6 +231,46 @@ test('the user avatar can be uploaded', function () {
     expect(Storage::disk()->allFiles('avatars'))->not->toBeEmpty();
 });
 
+test('the user avatar can be removed', function () {
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/old.jpg']);
+    Storage::disk()->put('avatars/old.jpg', 'avatar');
+
+    actingAs($user);
+
+    Livewire::test(Profile::class)
+        ->call('clearAvatar')
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors()
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success');
+
+    expect($user->person->fresh()->getRawOriginal('photo_url'))->toBeNull();
+    expect(Storage::disk()->exists('avatars/old.jpg'))->toBeFalse();
+});
+
+test('the user avatar path is kept when removal fails', function () {
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/blocked']);
+
+    // A directory at the object path cannot be unlinked, which forces the failure.
+    Storage::disk()->makeDirectory('avatars/blocked');
+
+    actingAs($user);
+
+    Livewire::test(Profile::class)
+        ->call('clearAvatar')
+        ->call('updateProfileInformation')
+        ->assertSet('avatar_url', 'avatars/blocked')
+        ->assertNotDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success')
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
+
+    expect($user->person->fresh()->getRawOriginal('photo_url'))->toBe('avatars/blocked');
+});
+
 test('the user avatar renders as a circle', function () {
     $user = User::factory()->create(['avatar_url' => 'avatars/avatar.jpg']);
 

@@ -256,7 +256,13 @@ class Edit extends Component
             if ($this->photo instanceof UploadedFile) {
                 $photoUrl = $fileStorage->replace($this->photo, 'photos', $previousPhoto);
             } elseif ($previousPhoto !== $this->photo_url) {
-                $fileStorage->delete($previousPhoto);
+                if (! $fileStorage->delete($previousPhoto)) {
+                    $this->photo_url = $previousPhoto;
+
+                    Flux::toast(variant: 'danger', text: __('Unable to remove the photo. Please try again.'));
+
+                    return;
+                }
             }
         }
 
