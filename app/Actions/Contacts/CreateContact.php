@@ -86,7 +86,9 @@ final class CreateContact
                     return $stakeholder;
                 }
 
-                $this->attach($tenant, $stakeholder, $role, $data);
+                $period = $this->attach($tenant, $stakeholder, $role, $data);
+
+                Audit\ContactCreated::dispatch($tenant, $actor, $stakeholder, $this->contactAuditChanges($stakeholder, $role, $data), $period);
 
                 return $stakeholder;
             });

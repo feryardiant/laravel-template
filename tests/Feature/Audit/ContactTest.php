@@ -12,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -58,6 +59,40 @@ test('creating a contact records the actor and period', function () {
     expect($log->organization_id)->toBe($organization->getKey())
         ->and($log->actor_id)->toBe($actor->getKey())
         ->and($log->subject_id)->toBe($entity->getKey())
+        ->and($log->changes)->toMatchArray([
+            'kind' => 'individual',
+            'type' => OrganizationRelationshipType::Customer->value,
+            'fields' => ['code'],
+        ])
+        ->and($log->organization_relationship_period_id)->not->toBeNull();
+});
+
+test('reusing a referenced contact records a creation for the new tenant', function () {
+    $first = Organization::factory()->create();
+    $second = Organization::factory()->create();
+    $actor = actingAsMember($second, Role::Admin);
+
+    $person = Person::factory()->withoutCredential()->create([
+        'owner_organization_id' => $first->getKey(),
+    ]);
+
+    $first->personCounterparties(OrganizationRelationshipType::Customer)->attach($person, [
+        'type' => OrganizationRelationshipType::Customer,
+        'start_date' => now(),
+    ]);
+
+    app(CreateContact::class)->handle($second, contactDataForAudit([
+        'name' => $person->name,
+        'code' => 'B-1',
+        'reference' => 'individual:'.$person->uuid,
+    ]), actor: $actor);
+
+    $log = AuditLog::query()
+        ->where('organization_id', $second->getKey())
+        ->where('event', AuditEvent::ContactCreated)
+        ->sole();
+
+    expect($log->subject_id)->toBe($person->getKey())
         ->and($log->changes)->toMatchArray([
             'kind' => 'individual',
             'type' => OrganizationRelationshipType::Customer->value,
