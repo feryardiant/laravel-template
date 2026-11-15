@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\AuditEvent;
 use App\Models\ApprovalRequest;
 use App\Models\User;
 use App\Notifications\OwnershipTransferDeclinedNotification;
@@ -14,6 +16,11 @@ use InvalidArgumentException;
 
 final class DeclineOwnershipTransfer
 {
+    public function __construct(private RecordAudit $audit)
+    {
+        // .
+    }
+
     /**
      * Decline a pending ownership transfer.
      *
@@ -27,7 +34,7 @@ final class DeclineOwnershipTransfer
             throw new InvalidArgumentException('This transfer does not belong to you.');
         }
 
-        $request = DB::transaction(function () use ($request, $person): ?ApprovalRequest {
+        $request = DB::transaction(function () use ($request, $person, $actor): ?ApprovalRequest {
             $request = ApprovalRequest::query()
                 ->whereKey($request->getKey())
                 ->lockForUpdate()
@@ -43,6 +50,10 @@ final class DeclineOwnershipTransfer
             $request->update([
                 'status' => ApprovalRequestStatus::Declined,
                 'declined_at' => now(),
+            ]);
+
+            $this->audit->handle($request->organization, $actor, AuditEvent::ApprovalDeclined, $request, [
+                'type' => $request->type->value,
             ]);
 
             return $request;

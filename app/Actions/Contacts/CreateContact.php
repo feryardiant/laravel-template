@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -27,6 +30,7 @@ final class CreateContact
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
+        private RecordAudit $audit,
     ) {
         // .
     }
@@ -77,7 +81,13 @@ final class CreateContact
                         'finish_date' => null,
                     ]);
 
-                    $this->timeline->open($existing->refresh());
+                    $period = $this->timeline->open($existing->refresh());
+
+                    $this->audit->handle($tenant, $actor, AuditEvent::ContactRenewed, $stakeholder, [
+                        'kind' => $stakeholder instanceof Organization ? 'organization' : 'individual',
+                        'role' => $role->value,
+                        'code' => $data['code'] ?? null,
+                    ], $period);
 
                     return $stakeholder;
                 }
@@ -93,7 +103,7 @@ final class CreateContact
             : null;
 
         try {
-            return DB::transaction(function () use ($tenant, $data, $role, $photoPath): Entity {
+            return DB::transaction(function () use ($tenant, $data, $role, $photoPath, $actor): Entity {
                 $stakeholder = ($data['type'] ?? 'individual') === 'organization'
                     ? $this->createOrganization(
                         name: $data['name'],
@@ -114,7 +124,13 @@ final class CreateContact
                         owner: $tenant,
                     );
 
-                $this->attach($tenant, $stakeholder, $role, $data);
+                $period = $this->attach($tenant, $stakeholder, $role, $data);
+
+                $this->audit->handle($tenant, $actor, AuditEvent::ContactCreated, $stakeholder, [
+                    'kind' => $stakeholder instanceof Organization ? 'organization' : 'individual',
+                    'role' => $role->value,
+                    'code' => $data['code'] ?? null,
+                ], $period);
 
                 return $stakeholder;
             });
@@ -132,7 +148,7 @@ final class CreateContact
      *
      * @param  array<string, mixed>  $data
      */
-    private function attach(Organization $tenant, Organization|Person $stakeholder, OrganizationRelationshipType $role, array $data): void
+    private function attach(Organization $tenant, Organization|Person $stakeholder, OrganizationRelationshipType $role, array $data): OrganizationRelationshipPeriod
     {
         OrganizationRelationship::create([
             'organization_id' => $tenant->getKey(),
@@ -151,6 +167,6 @@ final class CreateContact
             ->latest('id')
             ->firstOrFail();
 
-        $this->timeline->open($relationship);
+        return $this->timeline->open($relationship);
     }
 }

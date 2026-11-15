@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
+use App\Enums\AuditEvent;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -56,7 +60,7 @@ class General extends Component
     /**
      * Update the current organization's name.
      */
-    public function update(FileStorage $fileStorage): void
+    public function update(FileStorage $fileStorage, RecordAudit $audit): void
     {
         $organization = $this->currentOrganization();
 
@@ -96,6 +100,16 @@ class General extends Component
         }
 
         $organization->save();
+
+        $fields = array_values(array_diff(array_keys($organization->getChanges()), ['updated_at']));
+
+        if ($fields !== []) {
+            $actor = Auth::user();
+
+            $audit->handle($organization, $actor instanceof User ? $actor : null, AuditEvent::OrganizationUpdated, $organization, [
+                'fields' => $fields,
+            ]);
+        }
 
         unset($this->pendingApproval);
 

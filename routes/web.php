@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('features', OrgSettings\Features::class)->name('org-settings.features');
         Route::livewire('subsidiaries', OrgSettings\Subsidiaries::class)->name('org-settings.subsidiaries');
         Route::livewire('approval-history', OrgSettings\ApprovalHistory::class)->name('org-settings.approval-history');
+        Route::livewire('audit', OrgSettings\Audit::class)->name('org-settings.audit');
     });
 
     Route::livewire('notifications', NotificationIndex::class)->name('notifications.index');

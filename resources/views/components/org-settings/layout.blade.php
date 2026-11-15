@@ -17,6 +17,9 @@
             @if ($role?->isOwner())
                 <flux:navlist.item :href="route('org-settings.approval-history')" wire:navigate>{{ __('Approvals history') }}</flux:navlist.item>
             @endif
+            @if ($role?->isOwner() || $role?->isAdmin())
+                <flux:navlist.item :href="route('org-settings.audit')" wire:navigate>{{ __('Audit log') }}</flux:navlist.item>
+            @endif
         </flux:navlist>
     </x-slot:nav>
 

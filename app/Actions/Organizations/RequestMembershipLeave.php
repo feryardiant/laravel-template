@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -17,6 +19,11 @@ use InvalidArgumentException;
 
 final class RequestMembershipLeave
 {
+    public function __construct(private RecordAudit $audit)
+    {
+        // .
+    }
+
     /**
      * Ask an owner to approve an admin's leave.
      */
@@ -28,7 +35,7 @@ final class RequestMembershipLeave
             throw new InvalidArgumentException('Only an admin needs approval to leave.');
         }
 
-        $request = DB::transaction(function () use ($organization, $person): ApprovalRequest {
+        $request = DB::transaction(function () use ($organization, $person, $actor): ApprovalRequest {
             $organization = Organization::query()
                 ->whereKey($organization->getKey())
                 ->lockForUpdate()
@@ -50,7 +57,7 @@ final class RequestMembershipLeave
                 throw new InvalidArgumentException('The organization has no owner to approve the request.');
             }
 
-            return ApprovalRequest::create([
+            $request = ApprovalRequest::create([
                 'organization_id' => $organization->getKey(),
                 'type' => ApprovalRequestType::MembershipLeave,
                 'requester_person_id' => $person->getKey(),
@@ -59,6 +66,12 @@ final class RequestMembershipLeave
                 'payload' => ['role' => Role::Admin->value],
                 'expires_at' => now()->addDays(7),
             ]);
+
+            $this->audit->handle($organization, $actor, AuditEvent::ApprovalRequested, $request, [
+                'type' => $request->type->value,
+            ]);
+
+            return $request;
         });
 
         $request->loadMissing(['organization', 'requester', 'approver']);

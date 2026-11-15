@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Events\MemberRemoved;
@@ -20,8 +22,10 @@ use Throwable;
 
 final class RemoveMember
 {
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+        private RecordAudit $audit,
+    ) {
         // .
     }
 
@@ -68,6 +72,8 @@ final class RemoveMember
                     fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
                 );
 
+            $periods = [];
+
             if ($removed->isNotEmpty()) {
                 $relationships = OrganizationRelationship::query()
                     ->forOrganization($organization)
@@ -77,7 +83,11 @@ final class RemoveMember
                     ->get();
 
                 foreach ($relationships as $relationship) {
-                    $this->timeline->close($relationship, RelationshipPeriodReason::Removed, $actor);
+                    $periods[$relationship->stakeholder_id] = $this->timeline->close(
+                        $relationship,
+                        RelationshipPeriodReason::Removed,
+                        $actor,
+                    );
                 }
             }
 
@@ -94,6 +104,13 @@ final class RemoveMember
                         'status' => ApprovalRequestStatus::Cancelled,
                         'cancelled_at' => now(),
                     ]);
+
+                foreach ($removed as $person) {
+                    $this->audit->handle($organization, $actor, AuditEvent::MemberRemoved, $person, [
+                        'via' => $actor === null ? 'system' : 'manager',
+                        'last_membership' => ! $person->organizations()->exists(),
+                    ], $periods[$person->getKey()] ?? null);
+                }
             }
 
             return $removed;

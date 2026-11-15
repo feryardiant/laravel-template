@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\ApprovalRequest;
@@ -18,6 +20,11 @@ use InvalidArgumentException;
 
 final class AcceptOwnershipTransfer
 {
+    public function __construct(private RecordAudit $audit)
+    {
+        // .
+    }
+
     /**
      * Accept a pending ownership transfer and swap the roles.
      *
@@ -33,7 +40,7 @@ final class AcceptOwnershipTransfer
         }
 
         try {
-            $request = DB::transaction(function () use ($request, $person): ?ApprovalRequest {
+            $request = DB::transaction(function () use ($request, $person, $actor): ?ApprovalRequest {
                 // Lock the organization first, matching RequestOwnershipTransfer,
                 // so an accept and a new request cannot deadlock.
                 $organization = Organization::query()
@@ -74,6 +81,10 @@ final class AcceptOwnershipTransfer
                 $request->update([
                     'status' => ApprovalRequestStatus::Accepted,
                     'accepted_at' => now(),
+                ]);
+
+                $this->audit->handle($organization, $actor, AuditEvent::ApprovalAccepted, $request, [
+                    'type' => $request->type->value,
                 ]);
 
                 return $request;

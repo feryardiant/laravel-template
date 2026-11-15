@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
+use App\Actions\Audit\RecordAudit;
+use App\Enums\AuditEvent;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Models\Organization;
+use App\Models\User;
 use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\ContactGender;
 use App\Support\Feature\MemberDeletion;
 use App\Support\Feature\ProfileSelfEdit;
 use App\Support\Feature\Registration;
 use Flux\Flux;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -72,6 +77,8 @@ class Features extends Component
             Registration::deactivate($organization);
         }
 
+        $this->recordToggle($organization, Registration::FEATURE, $enabled);
+
         Flux::toast(
             variant: 'success',
             text: $enabled ? __('Registration enabled.') : __('Registration disabled.'),
@@ -95,6 +102,8 @@ class Features extends Component
         } else {
             ProfileSelfEdit::deactivate($organization);
         }
+
+        $this->recordToggle($organization, ProfileSelfEdit::FEATURE, $enabled);
 
         Flux::toast(
             variant: 'success',
@@ -120,6 +129,8 @@ class Features extends Component
             ContactGender::deactivate($organization);
         }
 
+        $this->recordToggle($organization, ContactGender::FEATURE, $enabled);
+
         Flux::toast(
             variant: 'success',
             text: $enabled ? __('Contact gender enabled.') : __('Contact gender disabled.'),
@@ -143,6 +154,8 @@ class Features extends Component
         } else {
             MemberDeletion::deactivate($organization);
         }
+
+        $this->recordToggle($organization, MemberDeletion::FEATURE, $enabled);
 
         Flux::toast(
             variant: 'success',
@@ -168,9 +181,21 @@ class Features extends Component
             ContactDeletion::deactivate($organization);
         }
 
+        $this->recordToggle($organization, ContactDeletion::FEATURE, $enabled);
+
         Flux::toast(
             variant: 'success',
             text: $enabled ? __('Contact deletion enabled.') : __('Contact deletion disabled.'),
         );
+    }
+
+    private function recordToggle(Organization $organization, string $feature, bool $enabled): void
+    {
+        $actor = Auth::user();
+
+        app(RecordAudit::class)->handle($organization, $actor instanceof User ? $actor : null, AuditEvent::FeatureToggled, $organization, [
+            'feature' => $feature,
+            'enabled' => $enabled,
+        ]);
     }
 }

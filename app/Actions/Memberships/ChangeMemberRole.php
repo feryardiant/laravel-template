@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
@@ -14,13 +16,16 @@ use App\Events\MemberRoleChanged;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 
 final class ChangeMemberRole
 {
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+        private RecordAudit $audit,
+    ) {
         // .
     }
 
@@ -54,6 +59,13 @@ final class ChangeMemberRole
         }
 
         $this->updateRole($organization, $person, $newRole, $actor);
+
+        $period = $this->openPeriod($organization, $person);
+
+        $this->audit->handle($organization, $actor, AuditEvent::MemberRoleChanged, $person, [
+            'from' => $currentRole->value,
+            'to' => $newRole->value,
+        ], $period);
 
         event(new MemberRoleChanged($organization, $person, $actor, $currentRole, $newRole));
 
@@ -93,6 +105,17 @@ final class ChangeMemberRole
         }
 
         return ! $newRole->isOwner();
+    }
+
+    private function openPeriod(Organization $organization, Person $person): ?OrganizationRelationshipPeriod
+    {
+        return OrganizationRelationshipPeriod::query()
+            ->where('organization_id', $organization->getKey())
+            ->where('stakeholder_type', $person->getMorphClass())
+            ->where('stakeholder_id', $person->getKey())
+            ->whereNull('closed_at')
+            ->latest('id')
+            ->first();
     }
 
     private function updateRole(Organization $organization, Person $person, Role $role, User $actor): void

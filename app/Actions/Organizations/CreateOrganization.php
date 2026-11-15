@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\CreateMember;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
@@ -21,6 +23,7 @@ final class CreateOrganization
     public function __construct(
         private CreateMember $membership,
         private FileStorage $fileStorage,
+        private RecordAudit $audit,
     ) {
         // .
     }
@@ -50,7 +53,7 @@ final class CreateOrganization
         $logoPath = $logo instanceof UploadedFile ? $this->fileStorage->handle($logo, 'logos') : null;
 
         try {
-            return DB::transaction(function () use ($person, $name, $parent, $logoPath, $root, $kind): Organization {
+            return DB::transaction(function () use ($person, $name, $parent, $logoPath, $root, $kind, $actor): Organization {
                 $organization = Organization::create([
                     'contact_id' => $person->getKey(),
                     'name' => $name,
@@ -75,6 +78,11 @@ final class CreateOrganization
                         'start_date' => now(),
                     ]);
                 }
+
+                $this->audit->handle($organization, $actor, AuditEvent::OrganizationCreated, $organization, [
+                    'parent_id' => $parent?->getKey(),
+                    'kind' => $parent !== null ? ($kind ?? SubsidiaryKind::Subsidiary)->value : null,
+                ]);
 
                 return $organization;
             });

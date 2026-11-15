@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\FileStorage;
 use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -38,8 +40,10 @@ final class DeleteOrganization implements ShouldQueue
     /**
      * Delete the organization and every nested organization under it.
      */
-    public function handle(FileStorage $fileStorage): void
+    public function handle(FileStorage $fileStorage, ?RecordAudit $audit = null): void
     {
+        $audit ??= app(RecordAudit::class);
+
         $organization = $this->organization->fresh();
 
         if (! $organization instanceof Organization || $organization->isRootTenant()) {
@@ -67,8 +71,10 @@ final class DeleteOrganization implements ShouldQueue
         $logoPaths = [];
         $notifications = [];
 
-        DB::transaction(function () use ($branch, &$logoPaths, &$notifications): void {
+        DB::transaction(function () use ($branch, $audit, $actor, &$logoPaths, &$notifications): void {
             foreach (array_reverse($branch) as $subsidiary) {
+                $audit->handle($subsidiary, $actor, AuditEvent::OrganizationDeleted, $subsidiary);
+
                 $members = $this->activeMembers($subsidiary)
                     ->reject(fn (User $user): bool => $user->getKey() === $this->actorId)
                     ->values();

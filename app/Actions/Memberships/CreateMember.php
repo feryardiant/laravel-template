@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -21,8 +23,10 @@ final class CreateMember
 {
     use ToManageEntities;
 
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+        private RecordAudit $audit,
+    ) {
         // .
     }
 
@@ -54,6 +58,10 @@ final class CreateMember
                 role: $role,
                 actor: $actor,
             );
+
+            $this->audit->handle($organization, $actor, AuditEvent::MemberAdded, $person, [
+                'role' => $role->value,
+            ]);
 
             return $person;
         });

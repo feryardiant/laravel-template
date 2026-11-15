@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Audit\RecordAudit;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\AuditEvent;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\Person;
@@ -16,6 +18,11 @@ use InvalidArgumentException;
 
 final class RequestOwnershipTransfer
 {
+    public function __construct(private RecordAudit $audit)
+    {
+        // .
+    }
+
     /**
      * Ask another member to take ownership of the organization.
      */
@@ -31,7 +38,7 @@ final class RequestOwnershipTransfer
             throw new InvalidArgumentException('The recipient must be an active member with a login credential.');
         }
 
-        $request = DB::transaction(function () use ($organization, $owner, $recipient): ApprovalRequest {
+        $request = DB::transaction(function () use ($organization, $owner, $recipient, $actor): ApprovalRequest {
             $organization = Organization::query()
                 ->whereKey($organization->getKey())
                 ->lockForUpdate()
@@ -45,7 +52,7 @@ final class RequestOwnershipTransfer
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }
 
-            return ApprovalRequest::create([
+            $request = ApprovalRequest::create([
                 'organization_id' => $organization->getKey(),
                 'type' => ApprovalRequestType::OwnershipTransfer,
                 'requester_person_id' => $owner->getKey(),
@@ -53,6 +60,12 @@ final class RequestOwnershipTransfer
                 'status' => ApprovalRequestStatus::Pending,
                 'expires_at' => now()->addDays(7),
             ]);
+
+            $this->audit->handle($organization, $actor, AuditEvent::ApprovalRequested, $request, [
+                'type' => $request->type->value,
+            ]);
+
+            return $request;
         });
 
         $request->loadMissing(['organization', 'requester', 'approver']);

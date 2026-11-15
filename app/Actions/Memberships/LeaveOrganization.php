@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Events\MemberRemoved;
@@ -18,8 +20,10 @@ use Throwable;
 
 final class LeaveOrganization
 {
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+        private RecordAudit $audit,
+    ) {
         // .
     }
 
@@ -55,11 +59,15 @@ final class LeaveOrganization
                 ->where('type', OrganizationRelationshipType::Member)
                 ->first();
 
-            if ($relationship !== null) {
-                $this->timeline->close($relationship, RelationshipPeriodReason::Left);
-            }
+            $period = $relationship !== null
+                ? $this->timeline->close($relationship, RelationshipPeriodReason::Left)
+                : null;
 
             $organization->members()->detach($person->getKey());
+
+            $this->audit->handle($organization, null, AuditEvent::MemberLeft, $person, [
+                'via' => 'self',
+            ], $period);
 
             ApprovalRequest::query()
                 ->pending()

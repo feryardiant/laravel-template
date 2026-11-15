@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Actions\Audit\RecordAudit;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Events\MemberRemoved;
@@ -21,8 +23,10 @@ use Throwable;
 
 final class AcceptMembershipLeave
 {
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+        private RecordAudit $audit,
+    ) {
         // .
     }
 
@@ -40,7 +44,7 @@ final class AcceptMembershipLeave
             throw new InvalidArgumentException('This request does not belong to you.');
         }
 
-        $requester = DB::transaction(function () use ($request, $person): ?Person {
+        $requester = DB::transaction(function () use ($request, $person, $actor): ?Person {
             $organization = Organization::query()
                 ->whereKey($request->organization_id)
                 ->lockForUpdate()
@@ -71,9 +75,9 @@ final class AcceptMembershipLeave
                 ->where('type', OrganizationRelationshipType::Member)
                 ->first();
 
-            if ($relationship !== null) {
-                $this->timeline->close($relationship, RelationshipPeriodReason::Left);
-            }
+            $period = $relationship !== null
+                ? $this->timeline->close($relationship, RelationshipPeriodReason::Left)
+                : null;
 
             $organization->members()->detach($requester->getKey());
 
@@ -81,6 +85,15 @@ final class AcceptMembershipLeave
                 'status' => ApprovalRequestStatus::Accepted,
                 'accepted_at' => now(),
             ]);
+
+            $this->audit->handle($organization, $actor, AuditEvent::ApprovalAccepted, $request, [
+                'type' => $request->type->value,
+            ]);
+
+            $this->audit->handle($organization, $actor, AuditEvent::MemberLeft, $requester, [
+                'via' => 'approval',
+                'approval_id' => $request->getKey(),
+            ], $period);
 
             return $requester;
         });
