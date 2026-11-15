@@ -98,7 +98,7 @@ test('the owner can cancel a pending transfer and the recipient row returns to n
     loginAsTransferRecipient($recipient, $organization);
 
     Livewire::test(Organizations::class)
-        ->assertDontSeeHtml("dispatch('review-approval'")
+        ->assertDontSeeHtml("dispatch('respond'")
         ->assertSee(__('Leave'));
 });
 
