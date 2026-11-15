@@ -4,14 +4,25 @@
         :subheading="__('Every recorded change in this organization')"
         width="max-w-none"
     >
-        <div class="max-w-xs">
-            <flux:select wire:model.live="event" :label="__('Event')">
-                <flux:select.option value="">{{ __('All events') }}</flux:select.option>
-                @foreach ($events as $case)
-                    <flux:select.option :value="$case->value">{{ $case->label() }}</flux:select.option>
-                @endforeach
-            </flux:select>
-        </div>
+        <x-slot:actions>
+            <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
+                <flux:select wire:model.live="event" :label="__('Event')" class="w-full sm:w-40">
+                    <flux:select.option value="">{{ __('All events') }}</flux:select.option>
+                    @foreach ($events as $case)
+                        <flux:select.option :value="$case->value">{{ $case->label() }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <x-ui.date-picker
+                    wire:model.live="range"
+                    mode="range"
+                    :label="__('Date range')"
+                    with-presets
+                    start-day="0"
+                    class="w-full sm:w-60"
+                />
+            </div>
+        </x-slot:actions>
 
         <flux:table :paginate="$this->logs">
             <flux:table.columns>

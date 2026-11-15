@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
+use Tests\TestCase;
 
 use function Pest\Laravel\get;
 
@@ -64,7 +65,10 @@ test('owners and admins can open the audit log', function (Role $role) {
 
     Livewire::test(Audit::class)
         ->assertOk()
-        ->assertSee(__('No audit entries yet.'));
+        ->assertSee(__('No audit entries yet.'))
+        ->assertSee(__('Date range'))
+        ->assertSee('data-ui-date-picker', false)
+        ->assertSee('data-ui-presets', false);
 })->with([Role::Owner, Role::Admin]);
 
 test('the log only lists the current organization entries', function () {
@@ -117,17 +121,108 @@ test('the event filter narrows the list and resets an invalid value', function (
     expect($component->instance()->logs->total())->toBe(2);
 });
 
-test('the log is paginated newest first', function () {
+test('the default range covers this week', function () {
+    /** @var TestCase $this */
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(Audit::class)
+        ->assertSet('range', ['start' => '2026-11-15', 'end' => '2026-11-21']);
+});
+
+test('the range filter excludes entries outside the selected dates', function () {
+    /** @var TestCase $this */
+    $this->travelTo('2026-11-18 12:00:00');
+
     $organization = Organization::factory()->create();
     $owner = actingAsMember($organization, Role::Owner);
 
-    foreach (range(1, 21) as $day) {
+    $old = auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-04 12:00'),
+    );
+
+    $recent = auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-18 12:00'),
+    );
+
+    $component = Livewire::test(Audit::class);
+
+    expect($component->instance()->logs->pluck('id')->all())->toBe([$recent->getKey()]);
+
+    $component->set('range', ['start' => '2026-11-01', 'end' => '2026-11-18']);
+
+    expect($component->instance()->logs->pluck('id')->all())->toBe([
+        $recent->getKey(),
+        $old->getKey(),
+    ]);
+});
+
+test('an invalid range falls back to this week', function () {
+    /** @var TestCase $this */
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(Audit::class)
+        ->set('range', ['start' => 'not-a-date', 'end' => null])
+        ->assertSet('range', ['start' => '2026-11-15', 'end' => '2026-11-21']);
+});
+
+test('the range filter uses the signed-in user timezone', function () {
+    /** @var TestCase $this */
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $owner->update(['timezone' => 'Asia/Jakarta']);
+
+    auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-14 16:00:00', 'UTC'),
+    );
+
+    $boundary = auditEntryForPage(
+        $organization,
+        AuditEvent::ContactCreated,
+        $owner,
+        $owner->person,
+        createdAt: Carbon::parse('2026-11-14 18:00:00', 'UTC'),
+    );
+
+    expect(Livewire::test(Audit::class)->instance()->logs->pluck('id')->all())
+        ->toBe([$boundary->getKey()]);
+});
+
+test('the log is paginated newest first', function () {
+    /** @var TestCase $this */
+    $this->travelTo('2026-11-18 12:00:00');
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    foreach (range(1, 21) as $minute) {
         auditEntryForPage(
             $organization,
             AuditEvent::ContactCreated,
             $owner,
             $owner->person,
-            createdAt: Carbon::parse('2026-01-01 00:00')->addDays($day),
+            createdAt: Carbon::parse('2026-11-18 00:00')->addMinutes($minute),
         );
     }
 
@@ -135,7 +230,7 @@ test('the log is paginated newest first', function () {
 
     expect($component->instance()->logs->total())->toBe(21)
         ->and($component->instance()->logs->perPage())->toBe(20)
-        ->and($component->instance()->logs->items()[0]->created_at->toDateString())->toBe('2026-01-22');
+        ->and($component->instance()->logs->items()[0]->created_at->toDateString())->toBe('2026-11-18');
 });
 
 test('a soft deleted subject still shows its name', function () {
