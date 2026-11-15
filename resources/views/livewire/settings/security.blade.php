@@ -1,6 +1,4 @@
-<section class="w-full">
-    @include('partials.settings-heading')
-
+<x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
     <flux:heading level="2" class="sr-only">{{ __('Security settings') }}</flux:heading>
 
     <x-settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
@@ -241,5 +239,4 @@
         @endif
 
     </x-settings.layout>
-
-</section>
+</x-page>

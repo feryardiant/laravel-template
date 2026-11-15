@@ -1,6 +1,7 @@
-<section
-    class="w-full"
-    x-data="{
+<x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
+    <flux:heading level="2" class="sr-only">{{ __('Preferences settings') }}</flux:heading>
+
+    <div x-data="{
         locale: @js($locale),
         timezone: @js($timezone),
         saved: {
@@ -79,71 +80,67 @@
                 });
             }
         },
-    }"
->
-    @include('partials.settings-heading')
+    }">
+        <x-settings.layout :heading="__('Preferences')" :subheading="__('Manage your appearance and localization preferences')">
+            <div class="my-6 space-y-8">
+                <section class="space-y-3">
+                    <div>
+                        <flux:heading id="appearance-heading" size="lg">{{ __('Appearance') }}</flux:heading>
+                        <flux:subheading id="appearance-description">{{ __('Update the appearance settings for your account') }}</flux:subheading>
+                    </div>
 
-    <flux:heading level="2" class="sr-only">{{ __('Preferences settings') }}</flux:heading>
+                    <flux:radio.group
+                        x-data
+                        variant="segmented"
+                        x-model="$flux.appearance"
+                        x-on:change="save('appearance', $event.target.value)"
+                        aria-labelledby="appearance-heading"
+                        aria-describedby="appearance-description"
+                    >
+                        <flux:radio value="light" icon="sun">{{ __('Light') }}</flux:radio>
+                        <flux:radio value="dark" icon="moon">{{ __('Dark') }}</flux:radio>
+                        <flux:radio value="system" icon="computer-desktop">{{ __('System') }}</flux:radio>
+                    </flux:radio.group>
+                </section>
 
-    <x-settings.layout :heading="__('Preferences')" :subheading="__('Manage your appearance and localization preferences')">
-        <div class="my-6 space-y-8">
-            <section class="space-y-3">
-                <div>
-                    <flux:heading id="appearance-heading" size="lg">{{ __('Appearance') }}</flux:heading>
-                    <flux:subheading id="appearance-description">{{ __('Update the appearance settings for your account') }}</flux:subheading>
-                </div>
+                <section class="space-y-3">
+                    <div>
+                        <flux:heading id="locale-heading" size="lg">{{ __('Locale') }}</flux:heading>
+                        <flux:subheading id="locale-description">{{ __('Choose your preferred language') }}</flux:subheading>
+                    </div>
 
-                <flux:radio.group
-                    x-data
-                    variant="segmented"
-                    x-model="$flux.appearance"
-                    x-on:change="save('appearance', $event.target.value)"
-                    aria-labelledby="appearance-heading"
-                    aria-describedby="appearance-description"
-                >
-                    <flux:radio value="light" icon="sun">{{ __('Light') }}</flux:radio>
-                    <flux:radio value="dark" icon="moon">{{ __('Dark') }}</flux:radio>
-                    <flux:radio value="system" icon="computer-desktop">{{ __('System') }}</flux:radio>
-                </flux:radio.group>
-            </section>
+                    <flux:radio.group
+                        x-data
+                        variant="segmented"
+                        x-model="locale"
+                        x-on:change="save('locale', $event.target.value)"
+                        aria-labelledby="locale-heading"
+                        aria-describedby="locale-description"
+                    >
+                        @foreach ($locales as $option)
+                            <flux:radio :value="$option->value">{{ $option->label() }}</flux:radio>
+                        @endforeach
+                    </flux:radio.group>
+                </section>
 
-            <section class="space-y-3">
-                <div>
-                    <flux:heading id="locale-heading" size="lg">{{ __('Locale') }}</flux:heading>
-                    <flux:subheading id="locale-description">{{ __('Choose your preferred language') }}</flux:subheading>
-                </div>
+                <section class="space-y-3">
+                    <div>
+                        <flux:heading id="timezone-heading" size="lg">{{ __('Timezone') }}</flux:heading>
+                        <flux:subheading id="timezone-description">{{ __('Choose your local timezone') }}</flux:subheading>
+                    </div>
 
-                <flux:radio.group
-                    x-data
-                    variant="segmented"
-                    x-model="locale"
-                    x-on:change="save('locale', $event.target.value)"
-                    aria-labelledby="locale-heading"
-                    aria-describedby="locale-description"
-                >
-                    @foreach ($locales as $option)
-                        <flux:radio :value="$option->value">{{ $option->label() }}</flux:radio>
-                    @endforeach
-                </flux:radio.group>
-            </section>
-
-            <section class="space-y-3">
-                <div>
-                    <flux:heading id="timezone-heading" size="lg">{{ __('Timezone') }}</flux:heading>
-                    <flux:subheading id="timezone-description">{{ __('Choose your local timezone') }}</flux:subheading>
-                </div>
-
-                <flux:select
-                    x-model="timezone"
-                    x-on:change="save('timezone', $event.target.value)"
-                    aria-labelledby="timezone-heading"
-                    aria-describedby="timezone-description"
-                >
-                    @foreach ($timezones as $timezone)
-                        <option value="{{ $timezone }}">{{ $timezone }}</option>
-                    @endforeach
-                </flux:select>
-            </section>
-        </div>
-    </x-settings.layout>
-</section>
+                    <flux:select
+                        x-model="timezone"
+                        x-on:change="save('timezone', $event.target.value)"
+                        aria-labelledby="timezone-heading"
+                        aria-describedby="timezone-description"
+                    >
+                        @foreach ($timezones as $timezone)
+                            <option value="{{ $timezone }}">{{ $timezone }}</option>
+                        @endforeach
+                    </flux:select>
+                </section>
+            </div>
+        </x-settings.layout>
+    </div>
+</x-page>

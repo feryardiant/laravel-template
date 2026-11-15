@@ -1,33 +1,33 @@
-<div class="flex w-full flex-1 flex-col gap-6">
+<x-page>
     @php($roleColor = $role?->isOwner() ? 'amber' : ($role?->isAdmin() ? 'blue' : 'zinc'))
 
-    <div class="flex items-start justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <flux:avatar :initials="$person->initials()" :src="$person->photo_url" size="lg" />
+    <x-slot:leading>
+        <flux:avatar :initials="$person->initials()" :src="$person->photo_url" size="lg" />
+    </x-slot:leading>
 
-            <div class="relative w-full">
-                <flux:heading size="xl" level="1">
-                    {{ $person->name }}
-                    @if ($role !== null)
-                        <flux:badge :color="$roleColor">{{ $role->label() }}</flux:badge>
-                    @endif
-                </flux:heading>
+    <x-slot:heading>
+        {{ $person->name }}
+        @if ($role !== null)
+            <flux:badge :color="$roleColor">{{ $role->label() }}</flux:badge>
+        @endif
+    </x-slot:heading>
 
-                <flux:subheading class="flex flex-wrap items-center gap-2">
-                    <span><x-local-time :date="$joinedAt" /></span>
+    <x-slot:subheading>
+        <flux:subheading class="flex flex-wrap items-center gap-2">
+            <span><x-local-time :date="$joinedAt" /></span>
 
-                    @if ($person->user !== null)
-                        <span>|</span>
-                        <span>{{ $person->user->email }}</span>
-                        <x-verification-badge :user="$person->user" />
-                    @else
-                        <span>|</span>
-                        <span>{{ __('No login credential') }}</span>
-                    @endif
-                </flux:subheading>
-            </div>
-        </div>
+            @if ($person->user !== null)
+                <span>|</span>
+                <span>{{ $person->user->email }}</span>
+                <x-verification-badge :user="$person->user" />
+            @else
+                <span>|</span>
+                <span>{{ __('No login credential') }}</span>
+            @endif
+        </flux:subheading>
+    </x-slot:subheading>
 
+    <x-slot:actions>
         @if ($canManage)
             <div class="hidden items-center gap-2 sm:flex">
                 @if ($role?->isMember())
@@ -69,9 +69,7 @@
                 </flux:menu>
             </flux:dropdown>
         @endif
-    </div>
-
-    <flux:separator variant="subtle" />
+    </x-slot:actions>
 
     <flux:card class="max-w-lg space-y-4">
         <div>
@@ -128,4 +126,4 @@
             </div>
         </div>
     </x-modal>
-</div>
+</x-page>

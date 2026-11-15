@@ -1,10 +1,4 @@
-<section class="w-full">
-    <div class="relative mb-6 w-full">
-        <flux:heading size="xl" level="1">{{ __('Organization settings') }}</flux:heading>
-        <flux:subheading class="mb-6">{{ __('Manage your organization settings') }}</flux:subheading>
-        <flux:separator variant="subtle" />
-    </div>
-
+<x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
     <flux:heading level="2" class="sr-only">{{ __('Subsidiaries') }}</flux:heading>
 
     <x-org-settings.layout
@@ -111,4 +105,4 @@
             </div>
         </div>
     </x-modal>
-</section>
+</x-page>

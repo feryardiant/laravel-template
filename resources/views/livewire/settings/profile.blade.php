@@ -1,6 +1,4 @@
-<section class="w-full">
-    @include('partials.settings-heading')
-
+<x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
     <flux:heading level="2" class="sr-only">{{ __('Profile settings') }}</flux:heading>
 
     <x-settings.layout :heading="__('Profile')" :subheading="__('Update your name, profile, and email address')">
@@ -97,4 +95,4 @@
             <livewire:settings.profile.delete-user-form />
         @endif
     </x-settings.layout>
-</section>
+</x-page>

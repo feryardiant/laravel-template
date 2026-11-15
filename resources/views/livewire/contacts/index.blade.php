@@ -1,14 +1,13 @@
-<div class="flex w-full flex-1 flex-col gap-6">
-    <div class="flex items-start justify-between gap-4">
-        <div class="relative w-full">
-            <flux:heading size="xl" level="1">{{ __('Contacts') }}</flux:heading>
-            <flux:subheading>
-                {{ $organization === null
-                    ? __('You are not a member of any organization.')
-                    : __('Contacts of :organization', ['organization' => $organization->name]) }}
-            </flux:subheading>
-        </div>
+<x-page :heading="__('Contacts')">
+    <x-slot:subheading>
+        <flux:subheading>
+            {{ $organization === null
+                ? __('You are not a member of any organization.')
+                : __('Contacts of :organization', ['organization' => $organization->name]) }}
+        </flux:subheading>
+    </x-slot:subheading>
 
+    <x-slot:actions>
         @if ($canManage)
             <div class="hidden items-center gap-2 sm:flex">
                 <flux:button variant="primary" icon="plus" wire:click="createContact">
@@ -60,9 +59,7 @@
                 </flux:menu>
             </flux:dropdown>
         @endif
-    </div>
-
-    <flux:separator variant="subtle" />
+    </x-slot:actions>
 
     @if ($organization === null)
         <flux:card class="max-w-lg">
@@ -294,4 +291,4 @@
     </x-modal>
 
     <livewire:contacts.edit />
-</div>
+</x-page>
