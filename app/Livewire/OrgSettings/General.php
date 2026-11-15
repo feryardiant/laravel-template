@@ -8,6 +8,7 @@ use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
 use App\Events\Audit;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Models\Organization;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -129,7 +130,21 @@ class General extends Component
         }
 
         if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
-            $organization->forceFill(['logo_url' => $previousLogo])->save();
+            $restored = Organization::query()
+                ->whereKey($organization->getKey())
+                ->whereNull('logo_url')
+                ->update(['logo_url' => $previousLogo]);
+
+            if ($restored === 0) {
+                $organization->refresh();
+                $this->logo_url = $organization->getRawOriginal('logo_url');
+
+                Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
+
+                return;
+            }
+
+            $organization->refresh();
 
             $actor = Auth::user();
 
