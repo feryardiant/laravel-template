@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Livewire\OrgSettings\General\TransferOwnership;
+use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Database\Factories\OrganizationFactory;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Livewire;
 use Pest\Browser\ServerManager;
 use Tests\TestCase;
 
@@ -142,6 +146,37 @@ function contactRelationshipId(Organization $organization, Organization|Person $
     return (int) OrganizationRelationship::forOrganization($organization)
         ->whereStakeholder($stakeholder)
         ->value('id');
+}
+
+/**
+ * Create a pending ownership transfer to the given member, as the signed-in owner.
+ */
+function requestOwnershipTransferForTest(Organization $organization, string $confirmation = 'Acme', ?Person $recipient = null): ApprovalRequest
+{
+    $recipientId = (string) ($recipient?->getKey() ?? $organization->members()
+        ->whereKeyNot(Auth::user()?->person?->getKey())
+        ->whereHas('user')
+        ->firstOrFail()
+        ->getKey());
+
+    Livewire::test(TransferOwnership::class)
+        ->call('confirmTransfer')
+        ->set('recipientId', $recipientId)
+        ->set('confirmation', $confirmation)
+        ->call('transfer')
+        ->assertHasNoErrors();
+
+    return ApprovalRequest::query()->latest('id')->firstOrFail();
+}
+
+/**
+ * Sign in the member who received an ownership transfer.
+ */
+function loginAsTransferRecipient(User $user, Organization $organization): void
+{
+    test()->actingAs($user);
+
+    session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);
 }
 
 /**

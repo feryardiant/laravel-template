@@ -12,12 +12,11 @@ use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\Role;
 use App\Livewire\Settings\Organizations;
+use App\Livewire\Settings\Organizations\Leave;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
-use App\Notifications\MembershipLeaveDeclinedNotification;
 use App\Notifications\MembershipLeaveRequestedNotification;
-use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
@@ -30,7 +29,7 @@ uses(RefreshDatabase::class);
 
 function requestAdminLeaveForTest(Organization $organization): ApprovalRequest
 {
-    Livewire::test(Organizations::class)
+    Livewire::test(Leave::class)
         ->call('confirmLeave', $organization->getKey(), $organization->name)
         ->call('leave')
         ->assertHasNoErrors();
@@ -61,57 +60,13 @@ test('a member leaves immediately without an approval request', function () {
     $organization = Organization::factory()->create();
     $member = actingAsMember($organization, Role::Member);
 
-    Livewire::test(Organizations::class)
+    Livewire::test(Leave::class)
         ->call('confirmLeave', $organization->getKey(), $organization->name)
         ->call('leave')
         ->assertRedirect(route('dashboard'));
 
     expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeFalse()
         ->and(ApprovalRequest::query()->exists())->toBeFalse();
-});
-
-test('the owner can approve an admin leave request', function () {
-    Notification::fake();
-
-    $organization = Organization::factory()->create(['name' => 'Acme']);
-    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
-
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
-
-    actingAs($owner);
-
-    Livewire::test(Organizations::class)
-        ->assertSee(__('Leave request from :name', ['name' => $admin->name]))
-        ->call('openApproval', $organization->getKey())
-        ->assertSet('showApprovalModal', true)
-        ->call('acceptApproval')
-        ->assertSet('showApprovalModal', false);
-
-    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Accepted)
-        ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeFalse()
-        ->and($admin->fresh())->not->toBeNull();
-});
-
-test('the owner can decline an admin leave request', function () {
-    Notification::fake();
-
-    $organization = Organization::factory()->create(['name' => 'Acme']);
-    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
-
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
-
-    actingAs($owner);
-
-    Livewire::test(Organizations::class)
-        ->call('openApproval', $organization->getKey())
-        ->call('declineApproval');
-
-    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Declined)
-        ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();
-
-    Notification::assertSentTo($admin, MembershipLeaveDeclinedNotification::class);
 });
 
 test('the admin can cancel their own pending leave request', function () {
@@ -122,7 +77,9 @@ test('the admin can cancel their own pending leave request', function () {
     $request = requestAdminLeaveForTest($organization);
 
     Livewire::test(Organizations::class)
-        ->assertSee(__('Leave request pending'))
+        ->assertSee(__('Leave request pending'));
+
+    Livewire::test(Leave::class)
         ->call('cancelLeaveRequest', $request->getKey());
 
     expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled)
@@ -233,22 +190,4 @@ test('the signed link lets the owner review but rejects the requester', function
     actingAs($owner);
 
     get($url)->assertRedirect(route('organizations.index', ['approval' => $request->uuid]));
-});
-
-test('an approved leave request opens the review from the email query', function () {
-    $organization = Organization::factory()->create(['name' => 'Acme']);
-    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
-    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
-
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
-
-    actingAs($owner);
-    session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);
-    test()->withSession(['auth.password_confirmed_at' => time()]);
-
-    get(route('organizations.index', ['approval' => $request->uuid]))
-        ->assertOk()
-        ->assertSee(__('Leave request'))
-        ->assertSee(__('Approve'))
-        ->assertSee(__('Decline'));
 });
