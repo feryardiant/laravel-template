@@ -8,8 +8,8 @@ use App\Actions\FileStorage;
 use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
-use App\Events\Audit;
 use App\Models\ApprovalRequest;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
@@ -69,10 +69,8 @@ final class DeleteOrganization implements ShouldQueue
         $logoPaths = [];
         $notifications = [];
 
-        DB::transaction(function () use ($branch, $actor, &$logoPaths, &$notifications): void {
+        DB::transaction(function () use ($branch, &$logoPaths, &$notifications): void {
             foreach (array_reverse($branch) as $subsidiary) {
-                Audit\OrganizationDeleted::dispatch($subsidiary, $actor, $subsidiary);
-
                 $members = $this->activeMembers($subsidiary)
                     ->reject(fn (User $user): bool => $user->getKey() === $this->actorId)
                     ->values();
@@ -81,7 +79,7 @@ final class DeleteOrganization implements ShouldQueue
                     $notifications[] = [$subsidiary->name, $members];
                 }
 
-                $logoPaths[] = $this->purge($subsidiary, $actor);
+                $logoPaths[] = $this->purge($subsidiary);
             }
         });
 
@@ -122,9 +120,13 @@ final class DeleteOrganization implements ShouldQueue
      * Organizations referenced by other tenants keep a minimal tombstone so
      * those relationships can still be displayed.
      */
-    private function purge(Organization $organization, ?User $actor): ?string
+    private function purge(Organization $organization): ?string
     {
         $logoPath = $organization->getRawOriginal('logo_url');
+
+        AuditLog::query()
+            ->where('organization_id', $organization->getKey())
+            ->delete();
 
         $organization->address()->delete();
 
@@ -137,11 +139,6 @@ final class DeleteOrganization implements ShouldQueue
             $request->update([
                 'status' => ApprovalRequestStatus::Cancelled,
                 'cancelled_at' => now(),
-            ]);
-
-            Audit\ApprovalCancelled::dispatch($organization, $actor, $request, [
-                'type' => $request->type->value,
-                'reason' => 'organization_deleted',
             ]);
         }
 

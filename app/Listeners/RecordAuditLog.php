@@ -6,6 +6,7 @@ namespace App\Listeners;
 
 use App\Events\Audit\AuditEventOccurred;
 use App\Models\AuditLog;
+use App\Models\Organization;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 final class RecordAuditLog implements ShouldQueue
@@ -16,6 +17,14 @@ final class RecordAuditLog implements ShouldQueue
 
     public function handle(AuditEventOccurred $event): void
     {
+        if ($event->organizationId !== null) {
+            $organization = Organization::withTrashed()->find($event->organizationId);
+
+            if ($organization === null || $organization->trashed()) {
+                return;
+            }
+        }
+
         AuditLog::create([
             'organization_id' => $event->organizationId,
             'actor_id' => $event->actorId,

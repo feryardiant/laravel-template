@@ -75,7 +75,7 @@ test('an update with no changes writes no entry', function () {
     expect(AuditLog::query()->where('event', AuditEvent::OrganizationUpdated)->count())->toBe(0);
 });
 
-test('deleting an organization records the actor and subject', function () {
+test('deleting an organization prunes its audit log', function () {
     Notification::fake();
 
     $root = Organization::factory()->asRootTenant()->create(['name' => 'Root']);
@@ -84,12 +84,18 @@ test('deleting an organization records the actor and subject', function () {
     $organization = Organization::factory()->asTenantOf($root)->create(['name' => 'Branch']);
     $root->subsidiaries()->attach($organization, ['type' => OrganizationRelationshipType::Subsidiary]);
 
+    AuditLog::create([
+        'organization_id' => $organization->getKey(),
+        'actor_id' => $owner->getKey(),
+        'event' => AuditEvent::ContactCreated,
+        'subject_type' => Organization::class,
+        'subject_id' => $organization->getKey(),
+        'changes' => ['type' => 'customer'],
+    ]);
+
     (new DeleteOrganization($organization, $owner->getKey()))
         ->handle(app(FileStorage::class));
 
-    $log = AuditLog::query()->where('event', AuditEvent::OrganizationDeleted)->sole();
-
-    expect($log->actor_id)->toBe($owner->getKey())
-        ->and($log->subject_id)->toBe($organization->getKey())
-        ->and($log->subject_type)->toBe(Organization::class);
+    expect(AuditLog::query()->where('organization_id', $organization->getKey())->count())->toBe(0)
+        ->and(AuditLog::query()->where('event', AuditEvent::OrganizationDeleted)->count())->toBe(0);
 });

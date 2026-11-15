@@ -18,7 +18,6 @@ use App\Events\Audit\MemberLeft;
 use App\Events\Audit\MemberRemoved;
 use App\Events\Audit\MemberRoleChanged;
 use App\Events\Audit\OrganizationCreated;
-use App\Events\Audit\OrganizationDeleted;
 use App\Events\Audit\OrganizationUpdated;
 use App\Listeners\RecordAuditLog;
 use App\Support\Feature\ContactDeletion;
@@ -71,7 +70,6 @@ class AppServiceProvider extends ServiceProvider
             MemberRemoved::class,
             MemberRoleChanged::class,
             OrganizationCreated::class,
-            OrganizationDeleted::class,
             OrganizationUpdated::class,
         ], RecordAuditLog::class);
 

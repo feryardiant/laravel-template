@@ -160,7 +160,7 @@ test('removing an admin audits the cancelled leave request', function () {
         ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
 });
 
-test('deleting an organization audits its cancelled leave request', function () {
+test('deleting an organization prunes its audit log and approvals', function () {
     Notification::fake();
 
     $root = Organization::factory()->asRootTenant()->create();
@@ -176,13 +176,8 @@ test('deleting an organization audits its cancelled leave request', function () 
     (new DeleteOrganization($subsidiary, $rootOwner->getKey()))
         ->handle(app(FileStorage::class));
 
-    $cancelled = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
-
-    expect($cancelled->actor_id)->toBe($rootOwner->getKey())
-        ->and($cancelled->changes)->toMatchArray([
-            'type' => ApprovalRequestType::MembershipLeave->value,
-            'reason' => 'organization_deleted',
-        ])
+    expect(AuditLog::query()->where('organization_id', $subsidiary->getKey())->count())->toBe(0)
+        ->and(AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->count())->toBe(0)
         ->and(ApprovalRequest::query()->whereKey($request->getKey())->exists())->toBeFalse();
 });
 
