@@ -44,9 +44,9 @@ class Address extends Component
     {
         $children = [
             'postal_code' => ['province_code', 'regency_code', 'district_code', 'village_code'],
-            'province_code' => ['regency_code', 'district_code', 'village_code'],
-            'regency_code' => ['district_code', 'village_code'],
-            'district_code' => ['village_code'],
+            'province_code' => ['regency_code', 'district_code', 'village_code', 'postal_code'],
+            'regency_code' => ['district_code', 'village_code', 'postal_code'],
+            'district_code' => ['village_code', 'postal_code'],
         ];
 
         foreach ($children[$key ?? ''] ?? [] as $child) {

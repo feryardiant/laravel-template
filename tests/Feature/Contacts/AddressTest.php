@@ -58,12 +58,15 @@ test('an address line is required once another address field is filled', functio
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    $component = Livewire::test(Edit::class)
         ->call('openCreate')
         ->set('name', 'Partial Address')
         ->set('address.postal_code', $fields['postal_code'])
         ->call('save')
         ->assertHasErrors('address.line');
+
+    // The child component keeps its own error bag, so the parent renders the message.
+    $component->assertSee($component->errors()->first('address.line'));
 });
 
 test('a regency outside the selected province is rejected', function () {

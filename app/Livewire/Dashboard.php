@@ -13,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -104,7 +105,7 @@ class Dashboard extends Component
     public function expiringContacts(): Collection
     {
         return $this->expiringQuery()
-            ->with('stakeholder')
+            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()])
             ->orderBy('finish_date')
             ->limit(5)
             ->get();

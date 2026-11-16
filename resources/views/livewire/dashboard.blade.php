@@ -80,13 +80,17 @@
 
                     <div wire:key="expiring-{{ $contact->id }}" class="flex items-center justify-between gap-4">
                         <div class="min-w-0">
-                            <a
-                                href="{{ route('contacts.view', ['stakeholder' => $stakeholder]) }}"
-                                wire:navigate
-                                class="rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
-                            >
-                                <flux:heading>{{ $stakeholder?->name ?? '—' }}</flux:heading>
-                            </a>
+                            @if ($stakeholder !== null)
+                                <a
+                                    href="{{ route('contacts.view', ['stakeholder' => $stakeholder]) }}"
+                                    wire:navigate
+                                    class="rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
+                                >
+                                    <flux:heading>{{ $stakeholder->name }}</flux:heading>
+                                </a>
+                            @else
+                                <flux:heading>—</flux:heading>
+                            @endif
 
                             <flux:text class="text-xs">
                                 {{ $contact->type?->label() ?? '—' }}

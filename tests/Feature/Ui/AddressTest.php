@@ -29,10 +29,12 @@ it('clears the dependent region codes when a parent changes', function () {
         ->set('address.regency_code', $fields['regency_code'])
         ->set('address.district_code', $fields['district_code'])
         ->set('address.village_code', $fields['village_code'])
+        ->assertNotSet('address.postal_code', '')
         ->set('address.province_code', $otherProvince)
         ->assertSet('address.regency_code', '')
         ->assertSet('address.district_code', '')
-        ->assertSet('address.village_code', '');
+        ->assertSet('address.village_code', '')
+        ->assertSet('address.postal_code', '');
 });
 
 it('fills the region chain from a postal code and enables every select', function () {

@@ -16,6 +16,8 @@
                 </div>
 
                 <livewire:address wire:model="address" />
+
+                <flux:error name="address.line" />
             </flux:card>
 
             <div class="flex items-center gap-4">

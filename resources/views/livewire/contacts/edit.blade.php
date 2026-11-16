@@ -64,6 +64,8 @@
                     </div>
 
                     <livewire:address wire:model="address" />
+
+                    <flux:error name="address.line" />
                 </flux:card>
             @endunless
 
