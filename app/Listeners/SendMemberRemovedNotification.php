@@ -15,6 +15,7 @@ class SendMemberRemovedNotification
             $event->organization,
             $event->actor,
             $event->lastMembership,
+            $event->via,
         ));
     }
 }

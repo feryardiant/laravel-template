@@ -50,10 +50,13 @@ final class ChangeMemberRole
         $currentRole = null;
 
         $changed = DB::transaction(function () use ($organization, $person, $newRole, $actor, &$currentRole): bool {
+            $today = now()->toDateString();
+
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($person)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->whereStakeholder($person, OrganizationRelationshipType::Member)
+                ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
+                ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
                 ->lockForUpdate()
                 ->first();
 
@@ -65,9 +68,7 @@ final class ChangeMemberRole
                 return false;
             }
 
-            $this->updateRole($organization, $person, $newRole, $actor, $relationship);
-
-            $period = $this->openPeriod($organization, $person);
+            $period = $this->updateRole($organization, $person, $newRole, $actor, $relationship);
 
             event(new MemberRoleChanged($organization, $currentRole, $newRole, $person, $actor, $period));
 
@@ -114,29 +115,18 @@ final class ChangeMemberRole
         return ! $newRole->isOwner();
     }
 
-    private function openPeriod(Organization $organization, Person $person): ?OrganizationRelationshipPeriod
-    {
-        return OrganizationRelationshipPeriod::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('stakeholder_type', $person->getMorphClass())
-            ->where('stakeholder_id', $person->getKey())
-            ->whereNull('closed_at')
-            ->latest('id')
-            ->first();
-    }
-
     private function updateRole(
         Organization $organization,
         Person $person,
         Role $role,
         User $actor,
         OrganizationRelationship $relationship,
-    ): void {
+    ): OrganizationRelationshipPeriod {
         $this->timeline->close($relationship, RelationshipPeriodReason::RoleChanged, $actor);
 
         $relationship->update(['role' => $role]);
 
-        $this->timeline->open($relationship->refresh(), today());
+        $period = $this->timeline->open($relationship->refresh(), today());
 
         // A role change invalidates an admin's pending request to leave.
         $pending = ApprovalRequest::query()
@@ -161,5 +151,7 @@ final class ChangeMemberRole
 
             event(new ApprovalCancelled($request, $actor, 'role_changed'));
         }
+
+        return $period;
     }
 }

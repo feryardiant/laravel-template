@@ -296,6 +296,19 @@ test('a member removal stores one notification for the removed user', function (
     ]));
 });
 
+test('a system removal notification does not claim the user left', function () {
+    $organization = Organization::factory()->create();
+    $user = User::factory()->withProfile()->create();
+
+    $notification = new MembershipRemovedNotification($organization, null, false, 'system');
+    $data = $notification->toDatabase($user);
+
+    expect($data['title'])->toBe(__('You were removed from :organization', ['organization' => $organization->name]))
+        ->and($data['description'])->toBe(__('Your membership in :organization was removed.', [
+            'organization' => $organization->name,
+        ]));
+});
+
 test('a removal notification renders in the inbox', function () {
     $organization = Organization::factory()->create();
     $actor = User::factory()->withProfile()->create();

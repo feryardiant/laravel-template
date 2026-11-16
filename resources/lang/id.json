@@ -470,6 +470,7 @@
     "You left :organization": "Anda keluar dari :organization",
     "You left :organization.": "Anda keluar dari :organization.",
     "You were removed from :organization": "Anda dihapus dari :organization",
+    "Your membership in :organization was removed.": "Keanggotaan Anda di :organization telah dihapus.",
     "You will lose access to this organization. An owner or admin can add you back later.": "Anda akan kehilangan akses ke organisasi ini. Pemilik atau admin dapat menambahkan Anda kembali nanti.",
     ":actor removed you from :organization.": ":actor menghapus Anda dari :organization.",
     "Member left :organization": "Anggota keluar dari :organization",

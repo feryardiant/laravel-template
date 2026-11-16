@@ -15,10 +15,14 @@ class MembershipRemovedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * @param  'manager'|'approval'|'system'|'self'  $via
+     */
     public function __construct(
         public Organization $organization,
         public ?User $actor = null,
         public bool $lastMembership = false,
+        public string $via = 'manager',
     ) {
         $this->afterCommit = true;
     }
@@ -61,7 +65,7 @@ class MembershipRemovedNotification extends Notification implements ShouldQueue
 
     private function subject(): string
     {
-        return $this->actor === null
+        return \in_array($this->via, ['self', 'approval'], true)
             ? __('You left :organization', ['organization' => $this->organization->name])
             : __('You were removed from :organization', ['organization' => $this->organization->name]);
     }
@@ -73,12 +77,18 @@ class MembershipRemovedNotification extends Notification implements ShouldQueue
 
     private function description(): string
     {
-        return $this->actor === null
-            ? __('You left :organization.', ['organization' => $this->organization->name])
-            : __(':actor removed you from :organization.', [
-                'actor' => $this->actor->name,
-                'organization' => $this->organization->name,
-            ]);
+        if (\in_array($this->via, ['self', 'approval'], true)) {
+            return __('You left :organization.', ['organization' => $this->organization->name]);
+        }
+
+        if ($this->via === 'system' || $this->actor === null) {
+            return __('Your membership in :organization was removed.', ['organization' => $this->organization->name]);
+        }
+
+        return __(':actor removed you from :organization.', [
+            'actor' => $this->actor->name,
+            'organization' => $this->organization->name,
+        ]);
     }
 
     private function lastMembershipLine(): string

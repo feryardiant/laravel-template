@@ -54,7 +54,20 @@ final class OwnershipTransfer
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (ApprovalRequest::query()->pending()->where('organization_id', $organization->getKey())->exists()) {
+            ApprovalRequest::query()
+                ->where('organization_id', $organization->getKey())
+                ->where('status', ApprovalRequestStatus::Pending)
+                ->where('expires_at', '<=', now())
+                ->update([
+                    'status' => ApprovalRequestStatus::Cancelled,
+                    'cancelled_at' => now(),
+                ]);
+
+            if (ApprovalRequest::query()
+                ->pending()
+                ->where('organization_id', $organization->getKey())
+                ->where('expires_at', '>', now())
+                ->exists()) {
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }
 
@@ -150,7 +163,7 @@ final class OwnershipTransfer
                 }
 
                 if ($approverRole instanceof Role) {
-                    event(new MemberRoleChanged($organization, $requesterRole, Role::Owner, $request->approver, $actor, $requesterPeriod));
+                    event(new MemberRoleChanged($organization, $approverRole, Role::Owner, $request->approver, $actor, $approverPeriod));
                 }
 
                 $request->update([

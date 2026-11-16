@@ -130,20 +130,13 @@ final class DeleteOrganization implements ShouldQueue
 
         $organization->address()->delete();
 
-        $pending = ApprovalRequest::query()
+        ApprovalRequest::query()
             ->where('organization_id', $organization->getKey())
             ->where('status', ApprovalRequestStatus::Pending)
-            ->get();
-
-        foreach ($pending as $request) {
-            ApprovalRequest::query()
-                ->whereKey($request->getKey())
-                ->where('status', ApprovalRequestStatus::Pending)
-                ->update([
-                    'status' => ApprovalRequestStatus::Cancelled,
-                    'cancelled_at' => now(),
-                ]);
-        }
+            ->update([
+                'status' => ApprovalRequestStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
 
         DB::table('features')
             ->where('scope', app(FeatureManager::class)->serializeScope($organization))

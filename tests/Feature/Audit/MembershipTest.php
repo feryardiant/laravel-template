@@ -7,6 +7,7 @@ use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\LeaveOrganization;
 use App\Actions\Memberships\RemoveMember;
+use App\Enums\ApprovalRequestStatus;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Models\AuditLog;
@@ -98,6 +99,23 @@ test('a repeated removal writes no second entry', function () {
     app(RemoveMember::class)->handle($organization, $member->person, $owner);
 
     expect(AuditLog::query()->where('event', AuditEvent::MemberRemoved)->count())->toBe(1);
+});
+
+test('a system removal with a pending approval keeps a null actor', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    actingAsMember($organization, Role::Owner);
+    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
+
+    $request = app(MembershipLeave::class)->request($organization, $admin);
+
+    app(RemoveMember::class)->handle($organization, $admin->person, null);
+
+    $log = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
+
+    expect($log->actor_id)->toBeNull()
+        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
 });
 
 test('a self leave records the user as the actor', function () {

@@ -22,6 +22,7 @@ use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use InvalidArgumentException;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -67,6 +68,14 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
         ->and($newOwnerPeriod->role)->toBe(Role::Owner)
         ->and($newOwnerPeriod->isOpen())->toBeTrue();
 
+    $requesterLog = $roleLogs->first(fn (AuditLog $log): bool => $log->subject_id === $owner->person->getKey());
+    $approverLog = $roleLogs->first(fn (AuditLog $log): bool => $log->subject_id === $recipient->person->getKey());
+
+    expect($requesterLog->changes['from'])->toBe(Role::Owner->value)
+        ->and($requesterLog->organization_relationship_period_id)->toBe($previousOwnerPeriod->getKey())
+        ->and($approverLog->changes['from'])->toBe(Role::Member->value)
+        ->and($approverLog->organization_relationship_period_id)->toBe($newOwnerPeriod->getKey());
+
     $secondOwner = $accepted->subject->approver->user;
     \assert($secondOwner instanceof User);
 
@@ -87,6 +96,70 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
 
     expect($cancelled->actor_id)->toBe($secondOwner->getKey())
         ->and($cancelled->subject_id)->toBe($cancelRequest->getKey());
+});
+
+test('cancelling a stale pending request does not overwrite a decision', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $request = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
+    $stale = ApprovalRequest::query()->findOrFail($request->getKey());
+
+    $request->update([
+        'status' => ApprovalRequestStatus::Accepted,
+        'accepted_at' => now(),
+    ]);
+
+    expect(app(CancelApprovalRequest::class)->handle($stale, $owner))->toBeFalse()
+        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Accepted);
+});
+
+test('an expired pending request does not block a new ownership transfer', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $old = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
+    $old->update(['expires_at' => now()->subMinute()]);
+
+    $new = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
+
+    expect($new->getKey())->not->toBe($old->getKey())
+        ->and($old->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+});
+
+test('an expired pending request does not block a new leave request', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+    actingAsMember($organization, Role::Owner);
+    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
+
+    $old = app(MembershipLeave::class)->request($organization, $admin);
+    $old->update(['expires_at' => now()->subMinute()]);
+
+    $new = app(MembershipLeave::class)->request($organization, $admin);
+
+    expect($new->getKey())->not->toBe($old->getKey())
+        ->and($old->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+});
+
+test('membership leave requires an active owner', function () {
+    $organization = Organization::factory()->create();
+    $admin = actingAsMember($organization, Role::Admin);
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+
+    $organization->members()->updateExistingPivot($owner->person->getKey(), [
+        'finish_date' => now()->subDay(),
+    ]);
+
+    expect(fn () => app(MembershipLeave::class)->request($organization, $admin))
+        ->toThrow(InvalidArgumentException::class);
 });
 
 test('a membership leave decline and cancellation are recorded', function () {

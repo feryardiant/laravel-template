@@ -49,11 +49,31 @@ final class MembershipLeave
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (ApprovalRequest::query()->pending()->where('organization_id', $organization->getKey())->exists()) {
+            ApprovalRequest::query()
+                ->where('organization_id', $organization->getKey())
+                ->where('status', ApprovalRequestStatus::Pending)
+                ->where('expires_at', '<=', now())
+                ->update([
+                    'status' => ApprovalRequestStatus::Cancelled,
+                    'cancelled_at' => now(),
+                ]);
+
+            if (ApprovalRequest::query()
+                ->pending()
+                ->where('organization_id', $organization->getKey())
+                ->where('expires_at', '>', now())
+                ->exists()) {
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }
 
-            $owner = $organization->owners()->first();
+            $today = now()->toDateString();
+
+            $owner = $organization->owners()
+                ->where(fn ($query) => $query->whereNull('organization_relationships.start_date')
+                    ->orWhere('organization_relationships.start_date', '<=', $today))
+                ->where(fn ($query) => $query->whereNull('organization_relationships.finish_date')
+                    ->orWhere('organization_relationships.finish_date', '>=', $today))
+                ->first();
 
             if (! $owner instanceof Person) {
                 throw new InvalidArgumentException('The organization has no owner to approve the request.');

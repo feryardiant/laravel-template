@@ -7,6 +7,7 @@ use App\Events\Contacts\ContactCreated;
 use App\Listeners\RecordAuditLog;
 use App\Models\AuditLog;
 use App\Models\Organization;
+use App\Models\User;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -38,6 +39,23 @@ test('late audit events are skipped after the organization is deleted', function
     app(RecordAuditLog::class)->handle($event);
 
     expect(AuditLog::query()->where('organization_id', $organization->getKey())->count())->toBe(0);
+});
+
+test('audit rows drop an actor that was deleted before the listener runs', function () {
+    $organization = Organization::factory()->create();
+    $actor = User::factory()->withProfile()->create();
+
+    $event = new ContactCreated($organization, $actor, $organization, [
+        'type' => 'customer',
+    ]);
+
+    $actor->delete();
+
+    app(RecordAuditLog::class)->handle($event);
+
+    $log = AuditLog::query()->where('organization_id', $organization->getKey())->sole();
+
+    expect($log->actor_id)->toBeNull();
 });
 
 test('audit rows keep the event occurrence time instead of the queue time', function () {

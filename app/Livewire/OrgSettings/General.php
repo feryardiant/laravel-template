@@ -121,10 +121,17 @@ class General extends Component
             });
         } catch (Throwable $exception) {
             if ($newLogoPath !== null) {
-                $fileStorage->delete($newLogoPath);
+                $storedLogo = Organization::withTrashed()
+                    ->whereKey($organization->getKey())
+                    ->value('logo_url');
+
+                if ($storedLogo !== $newLogoPath) {
+                    $fileStorage->delete($newLogoPath);
+                }
             }
 
-            $this->logo_url = $previousLogo;
+            $organization->refresh();
+            $this->logo_url = $organization->getRawOriginal('logo_url');
 
             throw $exception;
         }

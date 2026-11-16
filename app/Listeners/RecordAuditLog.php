@@ -7,6 +7,7 @@ namespace App\Listeners;
 use App\Events\AuditableEvent;
 use App\Models\AuditLog;
 use App\Models\Organization;
+use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 
 final class RecordAuditLog implements ShouldQueueAfterCommit
@@ -27,7 +28,9 @@ final class RecordAuditLog implements ShouldQueueAfterCommit
 
         AuditLog::create([
             'organization_id' => $event->organizationId,
-            'actor_id' => $event->actorId,
+            'actor_id' => $event->actorId !== null && User::query()->whereKey($event->actorId)->exists()
+                ? $event->actorId
+                : null,
             'event' => $event->auditEvent(),
             'subject_type' => $event->subjectType,
             'subject_id' => $event->subjectId,

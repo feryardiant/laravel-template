@@ -15,7 +15,7 @@ abstract class ApprovableEvent extends AuditableEvent
 
     public function __construct(
         public ApprovalRequest $request,
-        public User $actor,
+        ?User $actor,
         public ?string $reason = null,
     ) {
         parent::__construct($request->organization, $actor, $request, array_filter([

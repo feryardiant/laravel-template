@@ -32,13 +32,22 @@ final class CancelApprovalRequest
             return false;
         }
 
-        $canceled = $request->update([
-            'status' => ApprovalRequestStatus::Cancelled,
-            'cancelled_at' => now(),
-        ]);
+        $canceled = ApprovalRequest::query()
+            ->whereKey($request->getKey())
+            ->where('status', ApprovalRequestStatus::Pending)
+            ->update([
+                'status' => ApprovalRequestStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
+
+        if ($canceled === 0) {
+            return false;
+        }
+
+        $request->refresh();
 
         event(new ApprovalCancelled($request, $actor));
 
-        return $canceled;
+        return true;
     }
 }

@@ -49,9 +49,10 @@ final class CreateOrganization
         }
 
         $logoPath = $logo instanceof UploadedFile ? $this->fileStorage->handle($logo, 'logos') : null;
+        $organization = null;
 
         try {
-            return DB::transaction(function () use ($person, $name, $parent, $logoPath, $root, $kind, $actor): Organization {
+            return DB::transaction(function () use ($person, $name, $parent, $logoPath, $root, $kind, $actor, &$organization): Organization {
                 $organization = Organization::create([
                     'contact_id' => $person->getKey(),
                     'name' => $name,
@@ -86,7 +87,9 @@ final class CreateOrganization
                 return $organization;
             });
         } catch (Throwable $exception) {
-            if ($logoPath !== null) {
+            if ($logoPath !== null
+                && ! ($organization instanceof Organization
+                    && Organization::query()->whereKey($organization->getKey())->exists())) {
                 $this->fileStorage->delete($logoPath);
             }
 
