@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\General;
 
-use App\Actions\Organizations\CancelApprovalRequest;
-use App\Actions\Organizations\RequestOwnershipTransfer;
+use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\OwnershipTransfer;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
@@ -126,7 +126,7 @@ class TransferOwnership extends Component
     /**
      * Send an ownership transfer request to another member.
      */
-    public function transfer(RequestOwnershipTransfer $transferOwnership): void
+    public function transfer(OwnershipTransfer $transferOwnership): void
     {
         $organization = $this->currentOrganization();
 
@@ -150,7 +150,7 @@ class TransferOwnership extends Component
         abort_unless($user instanceof User, 403);
 
         try {
-            $transferOwnership->handle($organization, $user, $recipient);
+            $transferOwnership->request($organization, $user, $recipient);
         } catch (InvalidArgumentException) {
             $this->reset('showTransferModal', 'recipientId', 'confirmation');
 

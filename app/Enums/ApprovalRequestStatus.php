@@ -26,4 +26,29 @@ enum ApprovalRequestStatus: string
             self::Cancelled => __('Cancelled'),
         };
     }
+
+    public function isFinished(): bool
+    {
+        return $this !== self::Pending;
+    }
+
+    public function isPending(): bool
+    {
+        return $this === self::Pending;
+    }
+
+    public function isAccepted(): bool
+    {
+        return $this === self::Accepted;
+    }
+
+    public function isDeclined(): bool
+    {
+        return $this === self::Declined;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this === self::Cancelled;
+    }
 }

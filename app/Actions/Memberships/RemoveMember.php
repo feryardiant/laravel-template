@@ -8,7 +8,8 @@ use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
-use App\Events\MemberRemoved;
+use App\Events\Approvals\ApprovalCancelled;
+use App\Events\Memberships\MemberRemoved;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -16,12 +17,12 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 final class RemoveMember
 {
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+    ) {
         // .
     }
 
@@ -44,7 +45,7 @@ final class RemoveMember
             return;
         }
 
-        $removed = DB::transaction(function () use ($organization, $persons, $actor): Collection {
+        DB::transaction(function () use ($organization, $persons, $actor): Collection {
             $organization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
             if ($organization === null) {
@@ -68,6 +69,8 @@ final class RemoveMember
                     fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
                 );
 
+            $periods = [];
+
             if ($removed->isNotEmpty()) {
                 $relationships = OrganizationRelationship::query()
                     ->forOrganization($organization)
@@ -77,39 +80,54 @@ final class RemoveMember
                     ->get();
 
                 foreach ($relationships as $relationship) {
-                    $this->timeline->close($relationship, RelationshipPeriodReason::Removed, $actor);
+                    $periods[$relationship->stakeholder_id] = $this->timeline->close(
+                        $relationship,
+                        RelationshipPeriodReason::Removed,
+                        $actor,
+                    );
                 }
             }
 
             $organization->members()->detach($removed->modelKeys());
 
             if ($removed->isNotEmpty()) {
-                ApprovalRequest::query()
+                $pending = ApprovalRequest::query()
                     ->pending()
                     ->where('organization_id', $organization->getKey())
                     ->where(fn ($query) => $query
                         ->whereIn('requester_person_id', $removed->modelKeys())
                         ->orWhereIn('approver_person_id', $removed->modelKeys()))
-                    ->update([
-                        'status' => ApprovalRequestStatus::Cancelled,
-                        'cancelled_at' => now(),
-                    ]);
+                    ->get();
+
+                foreach ($pending as $request) {
+                    $cancelled = ApprovalRequest::query()
+                        ->whereKey($request->getKey())
+                        ->where('status', ApprovalRequestStatus::Pending)
+                        ->update([
+                            'status' => ApprovalRequestStatus::Cancelled,
+                            'cancelled_at' => now(),
+                        ]);
+
+                    if ($cancelled === 0) {
+                        continue;
+                    }
+
+                    event(new ApprovalCancelled($request, $actor, 'member_removed'));
+                }
+
+                foreach ($removed as $person) {
+                    event(new MemberRemoved(
+                        $organization,
+                        $actor,
+                        $person,
+                        $actor === null ? 'system' : 'manager',
+                        ! $person->organizations()->exists(),
+                        $periods[$person->getKey()] ?? null
+                    ));
+                }
             }
 
             return $removed;
         });
-
-        foreach ($removed as $person) {
-            try {
-                event(new MemberRemoved(
-                    $organization,
-                    $person,
-                    $actor,
-                    ! $person->organizations()->exists(),
-                ));
-            } catch (Throwable $exception) {
-                report($exception);
-            }
-        }
     }
 }

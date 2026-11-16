@@ -50,6 +50,10 @@ export interface DatePickerConfig {
     withConfirmation: boolean
     withPresets: boolean
     presetKeys: string[]
+    /** Optional server-provided civil date for presets. */
+    today: string | null
+    /** Optional IANA timezone used to refresh the preset civil date. */
+    timezone: string | null
     placeholder: string | null
     clearable: boolean
     disabled: boolean
@@ -240,6 +244,38 @@ function presetAllowed(
     const to = compareKeys(bounds.start, bounds.end) <= 0 ? bounds.end : bounds.start
 
     return !unavailable.some((key) => compareKeys(key, from) >= 0 && compareKeys(key, to) <= 0)
+}
+
+/**
+ * Resolve the civil date used to build presets.
+ *
+ * A timezone refreshes the date on every open, so a picker left mounted across
+ * midnight stays current. Without a timezone, the server-provided date wins
+ * over the browser date.
+ */
+export function presetToday(today: string | null, timezone: string | null = null): string {
+    if (timezone !== null) {
+        try {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+            }).formatToParts(new Date())
+
+            const year = parts.find((part) => part.type === 'year')?.value
+            const month = parts.find((part) => part.type === 'month')?.value
+            const day = parts.find((part) => part.type === 'day')?.value
+
+            if (year !== undefined && month !== undefined && day !== undefined) {
+                return `${year}-${month}-${day}`
+            }
+        } catch {
+            // Fall through to the server/browser date.
+        }
+    }
+
+    return today ?? localTodayKey()
 }
 
 /**
@@ -477,7 +513,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
         /** Rebuild the presets from the current local date and bounds. */
         buildPresets() {
-            const today = localTodayKey()
+            const today = presetToday(config.today, config.timezone)
             const startDay = config.startDay ?? firstDayOfWeek(locale)
             const min = config.min === 'today' ? today : toDateKey(config.min)
             const max = config.max === 'today' ? today : toDateKey(config.max)
@@ -543,7 +579,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
             const start = this.draftStart
             const end = this.draftEnd ?? this.draftStart
-            const today = localTodayKey()
+            const today = presetToday(config.today, config.timezone)
             const min = config.min === 'today' ? today : toDateKey(config.min)
             const max = config.max === 'today' ? today : toDateKey(config.max)
 

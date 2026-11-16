@@ -34,8 +34,8 @@ function approvalForHistory(
         'approver_person_id' => $approver->getKey(),
         'status' => $status,
         'expires_at' => $changedAt ?? now()->addDay(),
-        'accepted_at' => $status === ApprovalRequestStatus::Accepted ? $changedAt : null,
-        'declined_at' => $status === ApprovalRequestStatus::Declined ? $changedAt : null,
+        'accepted_at' => $status->isAccepted() ? $changedAt : null,
+        'declined_at' => $status->isDeclined() ? $changedAt : null,
     ]);
 
     if ($createdAt !== null) {

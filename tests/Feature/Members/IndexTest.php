@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
-use App\Events\MemberRoleChanged;
+use App\Events\Memberships\MemberRoleChanged;
 use App\Livewire\Members\Index;
 use App\Models\Organization;
 use App\Models\User;
@@ -170,8 +170,8 @@ test('a role change dispatches the member role changed event', function () {
         MemberRoleChanged::class,
         fn (MemberRoleChanged $event) => $event->organization->is($organization)
             && $event->person->is($member->person)
-            && $event->previousRole === Role::Member
-            && $event->newRole === Role::Admin,
+            && $event->fromRole === Role::Member
+            && $event->toRole === Role::Admin,
     );
 });
 

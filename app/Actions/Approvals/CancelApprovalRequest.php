@@ -2,16 +2,21 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Approvals;
 
 use App\Enums\ApprovalRequestStatus;
+use App\Events\Approvals\ApprovalCancelled;
 use App\Models\ApprovalRequest;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 final class CancelApprovalRequest
 {
+    public function __construct()
+    {
+        // .
+    }
+
     /**
      * Cancel a pending approval request as its requester.
      */
@@ -23,23 +28,26 @@ final class CancelApprovalRequest
             throw new InvalidArgumentException('This request does not belong to you.');
         }
 
-        return DB::transaction(function () use ($request, $person): bool {
-            $request = ApprovalRequest::query()
-                ->whereKey($request->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
+        if ($request->status->isFinished()) {
+            return false;
+        }
 
-            if ($request->status !== ApprovalRequestStatus::Pending
-                || ! $person->is($request->requester)) {
-                return false;
-            }
-
-            $request->update([
+        $canceled = ApprovalRequest::query()
+            ->whereKey($request->getKey())
+            ->where('status', ApprovalRequestStatus::Pending)
+            ->update([
                 'status' => ApprovalRequestStatus::Cancelled,
                 'cancelled_at' => now(),
             ]);
 
-            return true;
-        });
+        if ($canceled === 0) {
+            return false;
+        }
+
+        $request->refresh();
+
+        event(new ApprovalCancelled($request, $actor));
+
+        return true;
     }
 }

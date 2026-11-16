@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\RequestMembershipLeave;
+use App\Actions\Approvals\MembershipLeave;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\Role;
 use App\Livewire\Settings\Organizations;
@@ -225,7 +225,7 @@ test('the owner can approve an admin leave request', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     actingAs($owner);
 
@@ -250,7 +250,7 @@ test('the owner can decline an admin leave request', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     actingAs($owner);
 
@@ -269,7 +269,7 @@ test('an approved leave request opens the review from the email query', function
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     actingAs($owner);
     session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);

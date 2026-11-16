@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings\Organizations;
 
-use App\Actions\Organizations\AcceptMembershipLeave;
-use App\Actions\Organizations\AcceptOwnershipTransfer;
-use App\Actions\Organizations\DeclineMembershipLeave;
-use App\Actions\Organizations\DeclineOwnershipTransfer;
+use App\Actions\Approvals\MembershipLeave;
+use App\Actions\Approvals\OwnershipTransfer;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Models\ApprovalRequest;
@@ -80,8 +78,8 @@ class TransferApproval extends Component
      * Accept the pending request.
      */
     public function accept(
-        AcceptOwnershipTransfer $acceptTransfer,
-        AcceptMembershipLeave $acceptLeave,
+        OwnershipTransfer $transferOwnership,
+        MembershipLeave $leaveMembership,
     ): void {
         $user = Auth::user();
 
@@ -99,8 +97,8 @@ class TransferApproval extends Component
         }
 
         $accepted = match ($approval->type) {
-            ApprovalRequestType::OwnershipTransfer => $acceptTransfer->handle($approval, $user),
-            ApprovalRequestType::MembershipLeave => $acceptLeave->handle($approval, $user),
+            ApprovalRequestType::OwnershipTransfer => $transferOwnership->accept($approval, $user),
+            ApprovalRequestType::MembershipLeave => $leaveMembership->accept($approval, $user),
         };
 
         $organizationName = $approval->organization->name;
@@ -122,8 +120,8 @@ class TransferApproval extends Component
      * Decline the pending request.
      */
     public function decline(
-        DeclineOwnershipTransfer $declineTransfer,
-        DeclineMembershipLeave $declineLeave,
+        OwnershipTransfer $transferOwnership,
+        MembershipLeave $leaveMembership,
     ): void {
         $user = Auth::user();
 
@@ -141,8 +139,8 @@ class TransferApproval extends Component
         }
 
         $declined = match ($approval->type) {
-            ApprovalRequestType::OwnershipTransfer => $declineTransfer->handle($approval, $user),
-            ApprovalRequestType::MembershipLeave => $declineLeave->handle($approval, $user),
+            ApprovalRequestType::OwnershipTransfer => $transferOwnership->decline($approval, $user),
+            ApprovalRequestType::MembershipLeave => $leaveMembership->decline($approval, $user),
         };
 
         $invalidMessage = $this->invalidMessageFor($approval->type);

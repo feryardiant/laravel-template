@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Organizations\RequestOwnershipTransfer;
+use App\Actions\Approvals\OwnershipTransfer;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -18,7 +18,7 @@ it('lets the recipient dismiss, respond, and accept an ownership transfer', func
     $organization = Organization::query()->firstOrFail();
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $transfer = app(RequestOwnershipTransfer::class)->handle($organization, $owner, $recipient->person);
+    $transfer = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
 
     actingAs($recipient);
 

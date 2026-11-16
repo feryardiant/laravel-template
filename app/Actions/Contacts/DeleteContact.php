@@ -7,6 +7,7 @@ namespace App\Actions\Contacts;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\RelationshipPeriodReason;
+use App\Events\Contacts\ContactDeleted;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
@@ -65,13 +66,17 @@ final class DeleteContact
                     : [$stakeholder->getRawOriginal('photo_url')];
             }
 
-            $this->timeline->close($contact, RelationshipPeriodReason::Deleted, $actor);
+            $period = $this->timeline->close($contact, RelationshipPeriodReason::Deleted, $actor);
 
             OrganizationRelationship::query()
                 ->forOrganization($tenant)
                 ->external()
                 ->whereKey($contact->getKey())
                 ->delete();
+
+            event(new ContactDeleted($tenant, $actor, $stakeholder, [
+                'detached_only' => ! $removeOwned,
+            ], $period));
 
             if (! $removeOwned) {
                 return;

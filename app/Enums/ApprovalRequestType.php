@@ -12,4 +12,12 @@ enum ApprovalRequestType: string
     case OwnershipTransfer = 'ownership_transfer';
 
     case MembershipLeave = 'membership_leave';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::OwnershipTransfer => __('Ownership transfer'),
+            self::MembershipLeave => __('Membership leave'),
+        };
+    }
 }

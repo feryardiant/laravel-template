@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\OwnershipTransfer;
 use App\Actions\Memberships\RemoveMember;
-use App\Actions\Organizations\AcceptOwnershipTransfer;
-use App\Actions\Organizations\CancelApprovalRequest;
-use App\Actions\Organizations\DeclineOwnershipTransfer;
-use App\Actions\Organizations\RequestOwnershipTransfer;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General\TransferOwnership;
@@ -74,7 +72,7 @@ test('a pending request blocks a new transfer', function () {
 
     $firstTransfer = requestOwnershipTransferForTest($organization);
 
-    expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, Auth::user(), $second->person))
+    expect(fn () => app(OwnershipTransfer::class)->request($organization, Auth::user(), $second->person))
         ->toThrow(InvalidArgumentException::class);
 
     expect($firstTransfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
@@ -154,8 +152,8 @@ test('an expired request can no longer be accepted or declined', function () {
     $transfer = requestOwnershipTransferForTest($organization);
     $transfer->update(['expires_at' => now()->subMinute()]);
 
-    expect(app(AcceptOwnershipTransfer::class)->handle($transfer->fresh(), $recipient))->toBeFalse()
-        ->and(app(DeclineOwnershipTransfer::class)->handle($transfer->fresh(), $recipient))->toBeFalse();
+    expect(app(OwnershipTransfer::class)->accept($transfer->fresh(), $recipient))->toBeFalse()
+        ->and(app(OwnershipTransfer::class)->decline($transfer->fresh(), $recipient))->toBeFalse();
 
     expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($owner->person->roleIn($organization))->toBe(Role::Owner)
@@ -193,7 +191,7 @@ test('only an owner can request an ownership transfer', function () {
     $admin = actingAsMember($organization, Role::Admin);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, $admin, $recipient->person))
+    expect(fn () => app(OwnershipTransfer::class)->request($organization, $admin, $recipient->person))
         ->toThrow(InvalidArgumentException::class);
 
     expect(ApprovalRequest::query()->count())->toBe(0);
@@ -212,7 +210,7 @@ test('the recipient must be another active member with a credential', function (
         default => Person::factory()->create(),
     };
 
-    expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, $owner, $target))
+    expect(fn () => app(OwnershipTransfer::class)->request($organization, $owner, $target))
         ->toThrow(InvalidArgumentException::class);
 
     expect(ApprovalRequest::query()->count())->toBe(0);
@@ -230,8 +228,8 @@ test('the wrong person cannot accept, decline, or cancel a transfer', function (
     $outsider = User::factory()->create();
 
     $attempt = match ($action) {
-        'accept' => fn () => app(AcceptOwnershipTransfer::class)->handle($transfer, $outsider),
-        'decline' => fn () => app(DeclineOwnershipTransfer::class)->handle($transfer, $outsider),
+        'accept' => fn () => app(OwnershipTransfer::class)->accept($transfer, $outsider),
+        'decline' => fn () => app(OwnershipTransfer::class)->decline($transfer, $outsider),
         'cancel' => fn () => app(CancelApprovalRequest::class)->handle($transfer, $recipient),
     };
 
@@ -255,12 +253,12 @@ test('a handled transfer cannot be accepted, declined, or cancelled again', func
 
     $transfer = requestOwnershipTransferForTest($organization);
 
-    expect(app(AcceptOwnershipTransfer::class)->handle($transfer, $recipient))->toBeTrue();
+    expect(app(OwnershipTransfer::class)->accept($transfer, $recipient))->toBeTrue();
 
     $handled = $transfer->fresh();
 
-    expect(app(AcceptOwnershipTransfer::class)->handle($handled, $recipient))->toBeFalse()
-        ->and(app(DeclineOwnershipTransfer::class)->handle($handled, $recipient))->toBeFalse()
+    expect(app(OwnershipTransfer::class)->accept($handled, $recipient))->toBeFalse()
+        ->and(app(OwnershipTransfer::class)->decline($handled, $recipient))->toBeFalse()
         ->and(app(CancelApprovalRequest::class)->handle($handled, $owner))->toBeFalse();
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Owner)

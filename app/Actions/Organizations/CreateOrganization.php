@@ -9,6 +9,7 @@ use App\Actions\Memberships\CreateMember;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
+use App\Events\Organizations\OrganizationCreated;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -48,9 +49,10 @@ final class CreateOrganization
         }
 
         $logoPath = $logo instanceof UploadedFile ? $this->fileStorage->handle($logo, 'logos') : null;
+        $organization = null;
 
         try {
-            return DB::transaction(function () use ($person, $name, $parent, $logoPath, $root, $kind): Organization {
+            return DB::transaction(function () use ($person, $name, $parent, $logoPath, $root, $kind, $actor, &$organization): Organization {
                 $organization = Organization::create([
                     'contact_id' => $person->getKey(),
                     'name' => $name,
@@ -66,6 +68,7 @@ final class CreateOrganization
                     $person,
                     startDate: now(),
                     role: Role::Owner,
+                    actor: $actor,
                 );
 
                 if ($parent !== null) {
@@ -76,10 +79,17 @@ final class CreateOrganization
                     ]);
                 }
 
+                event(new OrganizationCreated($organization, $actor, $organization, [
+                    'parent_id' => $parent?->getKey(),
+                    'kind' => $parent !== null ? ($kind ?? SubsidiaryKind::Subsidiary)->value : null,
+                ]));
+
                 return $organization;
             });
         } catch (Throwable $exception) {
-            if ($logoPath !== null) {
+            if ($logoPath !== null
+                && ! ($organization instanceof Organization
+                    && Organization::query()->whereKey($organization->getKey())->exists())) {
                 $this->fileStorage->delete($logoPath);
             }
 

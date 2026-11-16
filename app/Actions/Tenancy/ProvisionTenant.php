@@ -6,6 +6,7 @@ namespace App\Actions\Tenancy;
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
+use App\Events\Organizations\OrganizationCreated;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -15,8 +16,9 @@ use Illuminate\Support\Str;
 
 final class ProvisionTenant
 {
-    public function __construct(private CreateMember $membership)
-    {
+    public function __construct(
+        private CreateMember $membership,
+    ) {
         // .
     }
 
@@ -52,12 +54,18 @@ final class ProvisionTenant
 
             $organization->update(['owner_organization_id' => $organization->getKey()]);
 
+            event(new OrganizationCreated($organization, $user, $organization, [
+                'parent_id' => null,
+                'kind' => null,
+            ]));
+
             $this->membership->attach(
                 $organization,
                 $person,
                 isPrimary: true,
                 startDate: now(),
                 role: Role::Owner,
+                actor: $user,
             );
 
             session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);

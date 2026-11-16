@@ -59,7 +59,7 @@ class Remove extends Component
             return;
         }
 
-        DeleteOrganization::dispatch($organization, $user->getKey());
+        dispatch(new DeleteOrganization($organization, $user->getKey()));
 
         if ($this->currentOrganization()?->is($organization) === true) {
             session()->forget(CurrentOrganization::SESSION_KEY);

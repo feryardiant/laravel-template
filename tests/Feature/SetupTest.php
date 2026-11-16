@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Tenancy\ProvisionTenant;
+use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Livewire\Setup;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -97,6 +99,21 @@ test('setup provisions the root tenant and owner', function () {
     expect($person->defaultOrganization()?->is($organization))->toBeTrue();
     expect(Auth::id())->toBe($user->getKey());
     expect(session(CurrentOrganization::SESSION_KEY))->toBe($organization->getKey());
+
+    $created = AuditLog::query()
+        ->where('event', AuditEvent::OrganizationCreated)
+        ->where('organization_id', $organization->getKey())
+        ->sole();
+
+    $added = AuditLog::query()
+        ->where('event', AuditEvent::MemberAdded)
+        ->where('organization_id', $organization->getKey())
+        ->sole();
+
+    expect($created->actor_id)->toBe($user->getKey())
+        ->and($added->actor_id)->toBe($user->getKey())
+        ->and($added->subject_id)->toBe($person->getKey())
+        ->and($added->organization_relationship_period_id)->not->toBeNull();
 });
 
 test('setup rejects the seeded email address', function () {

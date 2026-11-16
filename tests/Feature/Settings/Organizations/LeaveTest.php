@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Actions\Approvals\MembershipLeave;
+use App\Actions\Approvals\OwnershipTransfer;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
-use App\Actions\Organizations\AcceptMembershipLeave;
-use App\Actions\Organizations\DeclineMembershipLeave;
-use App\Actions\Organizations\RequestMembershipLeave;
-use App\Actions\Organizations\RequestOwnershipTransfer;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\Role;
@@ -16,6 +14,7 @@ use App\Livewire\Settings\Organizations\Leave;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\MemberLeftNotification;
 use App\Notifications\MembershipLeaveRequestedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -86,6 +85,31 @@ test('the admin can cancel their own pending leave request', function () {
         ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();
 });
 
+test('leaving notifies the other owners in the database only', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    $leaver = actingAsMember($organization, Role::Member);
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
+
+    Livewire::test(Leave::class)
+        ->call('confirm', $organization->getKey(), $organization->name)
+        ->call('leave');
+
+    Notification::assertSentTo(
+        $owner,
+        MemberLeftNotification::class,
+        fn (MemberLeftNotification $notification): bool => $notification->organization->is($organization)
+            && $notification->memberName === $leaver->name,
+    );
+
+    Notification::assertNotSentTo($leaver, MemberLeftNotification::class);
+    Notification::assertNotSentTo($admin, MemberLeftNotification::class);
+    expect((new MemberLeftNotification($organization, 'Someone'))->via($owner))->toBe(['database']);
+});
+
 test('a pending leave request blocks an ownership transfer', function () {
     Notification::fake();
 
@@ -93,9 +117,9 @@ test('a pending leave request blocks an ownership transfer', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    app(RequestMembershipLeave::class)->handle($organization, $admin);
+    app(MembershipLeave::class)->request($organization, $admin);
 
-    expect(fn () => app(RequestOwnershipTransfer::class)->handle($organization, $owner, $admin->person))
+    expect(fn () => app(OwnershipTransfer::class)->request($organization, $owner, $admin->person))
         ->toThrow(InvalidArgumentException::class);
 
     expect(ApprovalRequest::query()->pending()->count())->toBe(1);
@@ -108,9 +132,9 @@ test('a pending transfer blocks an admin leave request', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    app(RequestOwnershipTransfer::class)->handle($organization, $owner, $admin->person);
+    app(OwnershipTransfer::class)->request($organization, $owner, $admin->person);
 
-    expect(fn () => app(RequestMembershipLeave::class)->handle($organization, $admin))
+    expect(fn () => app(MembershipLeave::class)->request($organization, $admin))
         ->toThrow(InvalidArgumentException::class);
 
     expect(ApprovalRequest::query()->pending()->count())->toBe(1);
@@ -121,7 +145,7 @@ test('removing the admin cancels their pending leave request', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     app(RemoveMember::class)->handle($organization, $admin->person, $owner);
 
@@ -134,7 +158,7 @@ test('demoting the admin cancels their pending leave request', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner);
 
@@ -149,11 +173,11 @@ test('an expired request can no longer be approved or declined', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
     $request->update(['expires_at' => now()->subMinute()]);
 
-    expect(app(AcceptMembershipLeave::class)->handle($request->fresh(), $owner))->toBeFalse()
-        ->and(app(DeclineMembershipLeave::class)->handle($request->fresh(), $owner))->toBeFalse();
+    expect(app(MembershipLeave::class)->accept($request->fresh(), $owner))->toBeFalse()
+        ->and(app(MembershipLeave::class)->decline($request->fresh(), $owner))->toBeFalse();
 
     expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
         ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();
@@ -164,9 +188,9 @@ test('the requester cannot respond to their own leave request', function () {
     User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
-    expect(fn () => app(AcceptMembershipLeave::class)->handle($request, $admin))
+    expect(fn () => app(MembershipLeave::class)->accept($request, $admin))
         ->toThrow(InvalidArgumentException::class);
 });
 
@@ -175,7 +199,7 @@ test('the signed link lets the owner review but rejects the requester', function
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
 
-    $request = app(RequestMembershipLeave::class)->handle($organization, $admin);
+    $request = app(MembershipLeave::class)->request($organization, $admin);
 
     $url = URL::temporarySignedRoute(
         'organizations.approval.link',

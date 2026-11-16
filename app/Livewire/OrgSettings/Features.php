@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
+use App\Events\FeatureToggled;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Models\Organization;
+use App\Models\User;
 use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\ContactGender;
 use App\Support\Feature\MemberDeletion;
 use App\Support\Feature\ProfileSelfEdit;
 use App\Support\Feature\Registration;
 use Flux\Flux;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -66,11 +72,19 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            Registration::activate($organization);
-        } else {
-            Registration::deactivate($organization);
+        if ($this->featureEnabled($organization, Registration::FEATURE) === $enabled) {
+            return;
         }
+
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                Registration::activate($organization);
+            } else {
+                Registration::deactivate($organization);
+            }
+
+            $this->recordToggle($organization, Registration::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -90,11 +104,19 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            ProfileSelfEdit::activate($organization);
-        } else {
-            ProfileSelfEdit::deactivate($organization);
+        if ($this->featureEnabled($organization, ProfileSelfEdit::FEATURE) === $enabled) {
+            return;
         }
+
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                ProfileSelfEdit::activate($organization);
+            } else {
+                ProfileSelfEdit::deactivate($organization);
+            }
+
+            $this->recordToggle($organization, ProfileSelfEdit::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -114,11 +136,19 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            ContactGender::activate($organization);
-        } else {
-            ContactGender::deactivate($organization);
+        if ($this->featureEnabled($organization, ContactGender::FEATURE) === $enabled) {
+            return;
         }
+
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                ContactGender::activate($organization);
+            } else {
+                ContactGender::deactivate($organization);
+            }
+
+            $this->recordToggle($organization, ContactGender::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -138,11 +168,19 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            MemberDeletion::activate($organization);
-        } else {
-            MemberDeletion::deactivate($organization);
+        if ($this->featureEnabled($organization, MemberDeletion::FEATURE) === $enabled) {
+            return;
         }
+
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                MemberDeletion::activate($organization);
+            } else {
+                MemberDeletion::deactivate($organization);
+            }
+
+            $this->recordToggle($organization, MemberDeletion::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
@@ -162,15 +200,38 @@ class Features extends Component
 
         $this->authorizeManager();
 
-        if ($enabled) {
-            ContactDeletion::activate($organization);
-        } else {
-            ContactDeletion::deactivate($organization);
+        if ($this->featureEnabled($organization, ContactDeletion::FEATURE) === $enabled) {
+            return;
         }
+
+        DB::transaction(function () use ($organization, $enabled): void {
+            if ($enabled) {
+                ContactDeletion::activate($organization);
+            } else {
+                ContactDeletion::deactivate($organization);
+            }
+
+            $this->recordToggle($organization, ContactDeletion::FEATURE, $enabled);
+        });
 
         Flux::toast(
             variant: 'success',
             text: $enabled ? __('Contact deletion enabled.') : __('Contact deletion disabled.'),
         );
+    }
+
+    private function recordToggle(Organization $organization, string $feature, bool $enabled): void
+    {
+        $actor = Auth::user();
+
+        event(new FeatureToggled($organization, $actor instanceof User ? $actor : null, $organization, [
+            'feature' => $feature,
+            'enabled' => $enabled,
+        ]));
+    }
+
+    private function featureEnabled(Organization $organization, string $feature): bool
+    {
+        return (bool) Feature::for($organization)->active($feature);
     }
 }

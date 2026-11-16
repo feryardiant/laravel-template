@@ -7,8 +7,11 @@ namespace App\Actions\Contacts;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Events\Contacts\ContactUpdated;
+use App\Models\Entity;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
+use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -60,10 +63,15 @@ final class UpdateContact
             : null;
 
         try {
-            DB::transaction(function () use ($tenant, $contact, $data, $role, &$locked, $stakeholder, $newPhoto, $removePhoto, $column, &$previous, $validatedSharedFieldsLocked): void {
+            DB::transaction(function () use ($tenant, $contact, $data, $role, &$locked, $stakeholder, $newPhoto, $removePhoto, $column, &$previous, $validatedSharedFieldsLocked, $actor): void {
                 // Serialize with a concurrent reuse or credential change.
                 $stakeholder = $stakeholder->newQuery()
                     ->whereKey($stakeholder->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $contact = $contact->newQuery()
+                    ->whereKey($contact->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
 
@@ -87,6 +95,8 @@ final class UpdateContact
                     ]);
                 }
 
+                $linkBefore = $contact->getRawOriginal();
+
                 OrganizationRelationship::query()
                     ->forOrganization($tenant)
                     ->external()
@@ -99,9 +109,19 @@ final class UpdateContact
                     ]);
 
                 $contact->refresh();
-                $this->timeline->sync($contact);
+                $period = $this->timeline->sync($contact);
+
+                $fields = [];
+
+                foreach (['code', 'type', 'start_date', 'finish_date'] as $field) {
+                    if (($linkBefore[$field] ?? null) !== $contact->getRawOriginal($field)) {
+                        $fields[] = $field;
+                    }
+                }
 
                 if ($locked) {
+                    $this->recordUpdate($tenant, $actor, $stakeholder, $fields, $period);
+
                     return;
                 }
 
@@ -122,6 +142,14 @@ final class UpdateContact
 
                 $stakeholder->update($attributes);
 
+                $fields = [
+                    ...$fields,
+                    ...array_keys(array_intersect_key(
+                        $stakeholder->getChanges(),
+                        array_flip(['name', 'summary', 'gender', 'photo_url', 'logo_url']),
+                    )),
+                ];
+
                 if ($stakeholder instanceof Organization) {
                     $contactAttributes = [
                         'name' => $data['contact_name'],
@@ -132,8 +160,17 @@ final class UpdateContact
                         $contactAttributes['gender'] = $data['contact_gender'];
                     }
 
-                    $stakeholder->primaryContact?->update($contactAttributes);
+                    $contactPerson = $stakeholder->primaryContact;
+                    $contactPerson?->update($contactAttributes);
+
+                    foreach (array_keys($contactPerson?->getChanges() ?? []) as $field) {
+                        if (\in_array($field, ['name', 'summary', 'gender'], true)) {
+                            $fields[] = 'contact_'.$field;
+                        }
+                    }
                 }
+
+                $this->recordUpdate($tenant, $actor, $stakeholder, $fields, $period);
             });
         } catch (Throwable $exception) {
             if ($newPhoto !== null) {
@@ -154,5 +191,26 @@ final class UpdateContact
         if ($newPhoto !== null || $removePhoto) {
             $this->fileStorage->delete($previous);
         }
+    }
+
+    /**
+     * @param  list<string>  $fields
+     */
+    private function recordUpdate(
+        Organization $tenant,
+        ?User $actor,
+        Entity $stakeholder,
+        array $fields,
+        OrganizationRelationshipPeriod $period,
+    ): void {
+        $fields = array_values(array_unique($fields));
+
+        if ($fields === []) {
+            return;
+        }
+
+        event(new ContactUpdated($tenant, $actor, $stakeholder, [
+            'fields' => $fields,
+        ], $period));
     }
 }

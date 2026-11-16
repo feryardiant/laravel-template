@@ -7,7 +7,10 @@ namespace App\Actions\Memberships;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
+use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
+use App\Events\Memberships\MemberAdded;
+use App\Events\Memberships\MemberRoleChanged;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -21,8 +24,9 @@ final class CreateMember
 {
     use ToManageEntities;
 
-    public function __construct(private RelationshipTimeline $timeline)
-    {
+    public function __construct(
+        private RelationshipTimeline $timeline,
+    ) {
         // .
     }
 
@@ -77,7 +81,7 @@ final class CreateMember
         Role $role = Role::Member,
         ?User $actor = null,
     ): void {
-        DB::transaction(function () use ($organization, $member, $isPrimary, $startDate, $finishDate, $role): void {
+        DB::transaction(function () use ($organization, $member, $isPrimary, $startDate, $finishDate, $role, $actor): void {
             $member->newQuery()
                 ->whereKey($member->getKey())
                 ->lockForUpdate()
@@ -103,6 +107,38 @@ final class CreateMember
                     ->update(['is_primary' => null]);
             }
 
+            $existing = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->whereStakeholder($member)
+                ->where('type', OrganizationRelationshipType::Member)
+                ->lockForUpdate()
+                ->first();
+
+            $previousRole = $existing?->role;
+            $roleChanged = $existing !== null && $previousRole instanceof Role && $previousRole !== $role;
+
+            if ($roleChanged) {
+                $this->timeline->close($existing, RelationshipPeriodReason::RoleChanged, $actor);
+            }
+
+            $attributes = [
+                'is_primary' => $isPrimary ? true : null,
+                'role' => $role,
+            ];
+
+            if ($existing === null) {
+                $attributes['start_date'] = $startDate;
+                $attributes['finish_date'] = $finishDate;
+            } else {
+                if ($startDate !== null) {
+                    $attributes['start_date'] = $startDate;
+                }
+
+                if ($finishDate !== null) {
+                    $attributes['finish_date'] = $finishDate;
+                }
+            }
+
             OrganizationRelationship::query()->updateOrCreate(
                 [
                     'organization_id' => $organization->getKey(),
@@ -110,12 +146,7 @@ final class CreateMember
                     'stakeholder_id' => $member->getKey(),
                     'type' => OrganizationRelationshipType::Member,
                 ],
-                [
-                    'is_primary' => $isPrimary ? true : null,
-                    'role' => $role,
-                    'start_date' => $startDate,
-                    'finish_date' => $finishDate,
-                ],
+                $attributes,
             );
 
             $relationship = OrganizationRelationship::query()
@@ -124,7 +155,18 @@ final class CreateMember
                 ->where('type', OrganizationRelationshipType::Member)
                 ->firstOrFail();
 
-            $this->timeline->open($relationship);
+            $period = $this->timeline->open(
+                $relationship,
+                $roleChanged ? ($startDate ?? today()) : null,
+            );
+
+            if ($existing === null) {
+                event(new MemberAdded($organization, $actor, $member, [
+                    'role' => $role->value,
+                ], $period));
+            } elseif ($roleChanged) {
+                event(new MemberRoleChanged($organization, $previousRole, $role, $member, $actor, $period));
+            }
         });
     }
 }

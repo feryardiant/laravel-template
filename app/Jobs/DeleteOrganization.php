@@ -9,6 +9,7 @@ use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
 use App\Models\ApprovalRequest;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
@@ -40,6 +41,7 @@ final class DeleteOrganization implements ShouldQueue
      */
     public function handle(FileStorage $fileStorage): void
     {
+
         $organization = $this->organization->fresh();
 
         if (! $organization instanceof Organization || $organization->isRootTenant()) {
@@ -122,7 +124,19 @@ final class DeleteOrganization implements ShouldQueue
     {
         $logoPath = $organization->getRawOriginal('logo_url');
 
+        AuditLog::query()
+            ->where('organization_id', $organization->getKey())
+            ->delete();
+
         $organization->address()->delete();
+
+        ApprovalRequest::query()
+            ->where('organization_id', $organization->getKey())
+            ->where('status', ApprovalRequestStatus::Pending)
+            ->update([
+                'status' => ApprovalRequestStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
 
         DB::table('features')
             ->where('scope', app(FeatureManager::class)->serializeScope($organization))
@@ -148,14 +162,6 @@ final class DeleteOrganization implements ShouldQueue
             ->whereStakeholder($organization)
             ->whereIn('type', OrganizationRelationshipType::internals())
             ->delete();
-
-        ApprovalRequest::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
-            ->update([
-                'status' => ApprovalRequestStatus::Cancelled,
-                'cancelled_at' => now(),
-            ]);
 
         $organization->update([
             'summary' => null,

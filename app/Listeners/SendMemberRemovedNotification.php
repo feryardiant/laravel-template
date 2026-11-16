@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Events\MemberRemoved;
+use App\Events\Memberships\MemberRemoved;
 use App\Notifications\MembershipRemovedNotification;
 
 class SendMemberRemovedNotification
@@ -15,6 +15,7 @@ class SendMemberRemovedNotification
             $event->organization,
             $event->actor,
             $event->lastMembership,
+            $event->via,
         ));
     }
 }
