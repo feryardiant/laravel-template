@@ -65,7 +65,9 @@
 
                     <livewire:address wire:model="address" />
 
-                    <flux:error name="address.line" />
+                    @foreach (['line', 'rt', 'rw', 'postal_code', 'province_code', 'regency_code', 'district_code', 'village_code'] as $field)
+                        <flux:error :name="'address.'.$field" />
+                    @endforeach
                 </flux:card>
             @endunless
 

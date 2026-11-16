@@ -113,9 +113,13 @@ test('lists a soft-deleted contact with its name instead of a broken link', func
 
     actingAsMember($organization, Role::Owner);
 
-    dashboardContact($organization, 'Deleted Contact', '2026-11-01', '2026-11-18')->delete();
+    $person = dashboardContact($organization, 'Deleted Contact', '2026-11-01', '2026-11-18');
+    $person->delete();
 
-    Livewire::test(Dashboard::class)->assertSee('Deleted Contact');
+    // `FindContact::byUuid()` does not resolve trashed people, so no link.
+    Livewire::test(Dashboard::class)
+        ->assertSee('Deleted Contact')
+        ->assertDontSeeHtml(route('contacts.view', ['stakeholder' => $person]));
 });
 
 test('counts only unread notifications created inside the range', function () {

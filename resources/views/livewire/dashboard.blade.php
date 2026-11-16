@@ -79,8 +79,10 @@
                     @php($stakeholder = $contact->stakeholder)
 
                     <div wire:key="expiring-{{ $contact->id }}" class="flex items-center justify-between gap-4">
+                        @php($reachable = $stakeholder !== null && (! $stakeholder->trashed() || $stakeholder instanceof \App\Models\Organization))
+
                         <div class="min-w-0">
-                            @if ($stakeholder !== null)
+                            @if ($reachable)
                                 <a
                                     href="{{ route('contacts.view', ['stakeholder' => $stakeholder]) }}"
                                     wire:navigate
@@ -89,7 +91,7 @@
                                     <flux:heading>{{ $stakeholder->name }}</flux:heading>
                                 </a>
                             @else
-                                <flux:heading>—</flux:heading>
+                                <flux:heading>{{ $stakeholder?->name ?? '—' }}</flux:heading>
                             @endif
 
                             <flux:text class="text-xs">

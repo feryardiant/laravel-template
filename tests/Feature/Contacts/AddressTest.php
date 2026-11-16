@@ -69,6 +69,21 @@ test('an address line is required once another address field is filled', functio
     $component->assertSee($component->errors()->first('address.line'));
 });
 
+test('every rejected address field shows its message', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $component = Livewire::test(Edit::class)
+        ->call('openCreate')
+        ->set('name', 'Bad Postal')
+        ->set('address', validAddress(['postal_code' => '123']))
+        ->call('save')
+        ->assertHasErrors('address.postal_code');
+
+    $component->assertSee($component->errors()->first('address.postal_code'));
+});
+
 test('a regency outside the selected province is rejected', function () {
     $organization = Organization::factory()->create();
     $fields = validAddress();
