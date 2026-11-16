@@ -85,6 +85,12 @@
         </div>
     </flux:card>
 
+    @php($address = $isOrganization ? $stakeholder->address()->first() : $stakeholder->addresses()->first())
+
+    @if ($address !== null)
+        <x-address-summary :address="$address" />
+    @endif
+
     <x-relationship-history :periods="$this->history" />
 
     @if ($isOrganization && ! $stakeholder->trashed())

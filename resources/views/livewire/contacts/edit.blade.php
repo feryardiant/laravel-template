@@ -7,7 +7,7 @@
     :subtitle="$contactId === null ? __('Add a contact for this organization.') : $name"
     class="flex flex-col"
 >
-    <form wire:submit="save" class="flex flex-1 flex-col gap-6">
+    <form wire:submit="save" class="-mb-6 flex flex-1 flex-col gap-6">
         <div class="space-y-6">
             @if ($this->sharedFieldsLocked)
                 <flux:field>
@@ -55,6 +55,17 @@
                 :label="__('Summary')"
                 :disabled="$this->sharedFieldsLocked"
             />
+
+            @unless ($this->sharedFieldsLocked)
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading>{{ __('Address') }}</flux:heading>
+                        <flux:separator variant="subtle" class="mt-2" />
+                    </div>
+
+                    <livewire:address wire:model="address" />
+                </flux:card>
+            @endunless
 
             <flux:select wire:model="role" :label="__('Role')">
                 @foreach ($this->roles as $roleOption)
@@ -145,7 +156,7 @@
             @endif
         </div>
 
-        <div class="mt-auto flex items-center justify-between">
+        <div class="sticky bottom-0 -mx-8 mt-auto flex items-center justify-between bg-white px-8 before:absolute before:inset-x-0 before:top-full before:h-8 before:bg-white before:content-[''] dark:bg-zinc-800 dark:before:bg-zinc-800">
             <flux:modal.close>
                 <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
             </flux:modal.close>

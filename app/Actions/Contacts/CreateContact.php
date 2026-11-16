@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
+use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
@@ -27,6 +28,7 @@ final class CreateContact
     use ToManageEntities;
 
     public function __construct(
+        private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
@@ -120,6 +122,8 @@ final class CreateContact
                         photoPath: $photoPath,
                         owner: $tenant,
                     );
+
+                $this->saveAddress->handle($stakeholder, $data['address'] ?? null);
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);
 

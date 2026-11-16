@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships;
 
+use App\Actions\Addresses\SaveAddress;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\OrganizationRelationshipType;
@@ -25,6 +26,7 @@ final class CreateMember
     use ToManageEntities;
 
     public function __construct(
+        private SaveAddress $saveAddress,
         private RelationshipTimeline $timeline,
     ) {
         // .
@@ -32,6 +34,8 @@ final class CreateMember
 
     /**
      * Create a person, optional credential, and organization membership.
+     *
+     * @param  array<string, mixed>|null  $address
      */
     public function handle(
         Organization $organization,
@@ -40,6 +44,7 @@ final class CreateMember
         ?string $email = null,
         ?string $photoUrl = null,
         ?User $actor = null,
+        ?array $address = null,
     ): Person {
         if ($role->isOwner()) {
             throw new InvalidArgumentException('Owner is assigned by transferring ownership.');
@@ -47,9 +52,11 @@ final class CreateMember
 
         $user = null;
 
-        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, $actor, &$user): Person {
+        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, $actor, $address, &$user): Person {
             $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl, owner: $organization);
             $user = $person->user;
+
+            $this->saveAddress->handle($person, $address);
 
             $this->attach(
                 $organization,

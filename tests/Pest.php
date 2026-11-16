@@ -11,6 +11,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Creasi\Nusa\Models\Village;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
@@ -146,6 +147,29 @@ function contactRelationshipId(Organization $organization, Organization|Person $
     return (int) OrganizationRelationship::forOrganization($organization)
         ->whereStakeholder($stakeholder)
         ->value('id');
+}
+
+/**
+ * A valid nusa region chain for address form tests.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, string>
+ */
+function validAddress(array $overrides = []): array
+{
+    $village = Village::query()->firstOrFail();
+
+    return [
+        'line' => 'Jl. Mawar 1',
+        'rt' => '1',
+        'rw' => '2',
+        'postal_code' => (string) $village->postal_code,
+        'province_code' => $village->province_code,
+        'regency_code' => $village->regency_code,
+        'district_code' => $village->district_code,
+        'village_code' => $village->code,
+        ...$overrides,
+    ];
 }
 
 /**

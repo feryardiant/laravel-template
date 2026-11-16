@@ -100,6 +100,12 @@
         </div>
     </flux:card>
 
+    @php($address = $person->addresses()->first())
+
+    @if ($address !== null)
+        <x-address-summary :address="$address" />
+    @endif
+
     <x-relationship-history :periods="$this->history" />
 
     @if ($canManage)

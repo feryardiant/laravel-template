@@ -9,6 +9,15 @@
 
             <flux:textarea wire:model="summary" :label="__('Summary')" rows="3" />
 
+            <flux:card class="space-y-4">
+                <div>
+                    <flux:heading>{{ __('Address') }}</flux:heading>
+                    <flux:separator variant="subtle" class="mt-2" />
+                </div>
+
+                <livewire:address wire:model="address" />
+            </flux:card>
+
             <div class="flex items-center gap-4">
                 <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
             </div>

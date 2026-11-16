@@ -7,7 +7,7 @@
     :subtitle="$person === null ? __('Add a person to this organization.') : $person->name"
     class="flex flex-col"
 >
-    <form wire:submit="save" class="flex flex-1 flex-col">
+    <form wire:submit="save" class="-mb-6 flex flex-1 flex-col">
         <div class="space-y-6">
             @unless ($this->canEditProfile)
                 <flux:callout variant="secondary" icon="lock-closed">
@@ -72,6 +72,15 @@
             @endif
 
             @if ($this->canEditProfile)
+                <flux:card class="space-y-4">
+                    <div>
+                        <flux:heading>{{ __('Address') }}</flux:heading>
+                        <flux:separator variant="subtle" class="mt-2" />
+                    </div>
+
+                    <livewire:address wire:model="address" />
+                </flux:card>
+
                 @if ($hasCredential)
                     <flux:input
                         wire:model="email"
@@ -106,7 +115,7 @@
             @endif
         </div>
 
-        <div class="mt-auto flex items-center justify-between pt-6">
+        <div class="sticky bottom-0 -mx-8 mt-auto flex items-center justify-between bg-white px-8 pt-6 before:absolute before:inset-x-0 before:top-full before:h-8 before:bg-white before:content-[''] dark:bg-zinc-800 dark:before:bg-zinc-800">
             <flux:modal.close>
                 <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
             </flux:modal.close>
