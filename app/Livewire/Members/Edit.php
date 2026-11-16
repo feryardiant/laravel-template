@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
+use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
@@ -12,6 +13,7 @@ use App\Concerns\ProfileValidationRules;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
@@ -35,7 +37,7 @@ use Livewire\WithFileUploads;
  */
 class Edit extends Component
 {
-    use HasCurrentOrganization, ProfileValidationRules, WithFileUploads;
+    use HasCurrentOrganization, ManagesAddress, ProfileValidationRules, WithFileUploads;
 
     public ?Person $person = null;
 
@@ -104,6 +106,7 @@ class Edit extends Component
 
         $this->role = Role::Member->value;
         $this->genderEnabled = false;
+        $this->resetAddress();
         $this->resetValidation();
 
         $this->showModal = true;
@@ -130,6 +133,7 @@ class Edit extends Component
                 ? $this->emailRules()
                 : ['nullable', 'string', 'email', 'max:255'],
             'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
+            ...$this->addressRules(),
         ]);
 
         $role = Role::from((int) $validated['role']);
@@ -147,6 +151,7 @@ class Edit extends Component
             $hasCredential ? $validated['email'] : null,
             $photoUrl,
             Auth::user(),
+            $this->addressPayload(),
         );
 
         $this->photo = null;
@@ -165,7 +170,7 @@ class Edit extends Component
     /**
      * Save the form, either creating a member or updating the selected one.
      */
-    public function save(CreateMember $createMember, FileStorage $fileStorage): void
+    public function save(CreateMember $createMember, FileStorage $fileStorage, SaveAddress $saveAddress): void
     {
         if ($this->person === null) {
             $this->create($createMember, $fileStorage);
@@ -173,13 +178,13 @@ class Edit extends Component
             return;
         }
 
-        $this->update($fileStorage);
+        $this->update($fileStorage, $saveAddress);
     }
 
     /**
      * Update the selected member.
      */
-    public function update(FileStorage $fileStorage): void
+    public function update(FileStorage $fileStorage, SaveAddress $saveAddress): void
     {
         $organization = $this->requireOrganization();
 
@@ -222,6 +227,8 @@ class Edit extends Component
             if ($this->genderEnabled && $this->genderEditable) {
                 $rules['gender'] = ['nullable', Rule::enum(Gender::class)];
             }
+
+            $rules = [...$rules, ...$this->addressRules()];
         }
 
         $validated = $this->validate($rules);
@@ -272,7 +279,7 @@ class Edit extends Component
             ? ($validated['gender'] ?? null)
             : null;
 
-        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, &$emailChanged, &$credentialCreated): void {
+        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, $saveAddress, &$emailChanged, &$credentialCreated): void {
             if ($canEditProfile) {
                 $attributes = [
                     'name' => $validated['name'],
@@ -284,6 +291,8 @@ class Edit extends Component
                 }
 
                 $this->person->update($attributes);
+
+                $saveAddress->handle($this->person, $this->addressPayload());
             }
 
             if ($canEditProfile && $this->hasCredential) {
@@ -386,6 +395,7 @@ class Edit extends Component
         $this->email = $person->user_id === null ? '' : $person->user->email;
         $this->gender = $person->gender?->value;
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
+        $this->fillAddress($person->addresses()->first());
     }
 
     /**

@@ -404,3 +404,31 @@ it('does not navigate when selecting text in a user row', function () {
 
     $page->assertPathIs('/members');
 });
+
+it('covers the content behind the sticky edit flyout actions', function () {
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
+
+    actingAs($owner);
+
+    visit('/members')->on()->mobile()
+        ->click("[aria-label=\"Tindakan untuk {$member->name}\"]")
+        ->wait(0.3)
+        ->click('Edit anggota')
+        ->wait(0.6)
+        ->assertScript(<<<'JS'
+            (() => {
+                const dialog = document.querySelector("dialog[open]");
+                dialog.scrollTop = dialog.scrollHeight;
+
+                const rect = dialog.getBoundingClientRect();
+                const points = [rect.left + 24, rect.left + rect.width / 2, rect.right - 24];
+
+                return points.every((x) => {
+                    const el = document.elementFromPoint(x, rect.bottom - 10);
+
+                    return el !== null && el.closest(".sticky") !== null;
+                });
+            })()
+            JS);
+});

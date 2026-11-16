@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
+use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
 use App\Events\Organizations\OrganizationUpdated;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Organization;
 use App\Models\User;
 use Flux\Flux;
@@ -23,7 +25,7 @@ use Throwable;
 
 class General extends Component
 {
-    use HasCurrentOrganization, ProfileValidationRules, WithFileUploads;
+    use HasCurrentOrganization, ManagesAddress, ProfileValidationRules, WithFileUploads;
 
     public string $name = '';
 
@@ -51,6 +53,7 @@ class General extends Component
         $this->name = $organization->name;
         $this->summary = (string) $organization->summary;
         $this->logo_url = $organization->getRawOriginal('logo_url');
+        $this->fillAddress($organization->address()->first());
     }
 
     #[Computed]
@@ -62,7 +65,7 @@ class General extends Component
     /**
      * Update the current organization's name.
      */
-    public function update(FileStorage $fileStorage): void
+    public function update(FileStorage $fileStorage, SaveAddress $saveAddress): void
     {
         $organization = $this->currentOrganization();
 
@@ -77,6 +80,7 @@ class General extends Component
         $validated = $this->validate([
             'name' => $this->nameRules(),
             'summary' => ['nullable', 'string', 'max:255'],
+            ...$this->addressRules(),
         ]);
 
         $previousLogo = $organization->getRawOriginal('logo_url');
@@ -92,7 +96,7 @@ class General extends Component
         }
 
         try {
-            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage): void {
+            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $saveAddress): void {
                 $organization->name = $validated['name'];
                 $organization->summary = $validated['summary'] ?? null;
 
@@ -103,6 +107,8 @@ class General extends Component
                 }
 
                 $organization->save();
+
+                $saveAddress->handle($organization, $this->addressPayload());
 
                 $fields = array_values(array_diff(array_keys($organization->getChanges()), ['updated_at']));
 

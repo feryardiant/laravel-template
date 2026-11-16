@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
+use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
@@ -24,6 +25,7 @@ final class UpdateContact
     use ToManageEntities;
 
     public function __construct(
+        private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
@@ -141,6 +143,8 @@ final class UpdateContact
                 }
 
                 $stakeholder->update($attributes);
+
+                $this->saveAddress->handle($stakeholder, $data['address'] ?? null);
 
                 $fields = [
                     ...$fields,

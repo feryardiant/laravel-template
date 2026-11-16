@@ -11,6 +11,7 @@ use App\Concerns\ProfileValidationRules;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -38,7 +39,7 @@ use Throwable;
  */
 class Edit extends Component
 {
-    use HasCurrentOrganization, ProfileValidationRules, WithFileUploads;
+    use HasCurrentOrganization, ManagesAddress, ProfileValidationRules, WithFileUploads;
 
     public bool $showModal = false;
 
@@ -121,6 +122,7 @@ class Edit extends Component
         $this->type = 'individual';
         $this->role = OrganizationRelationshipType::Customer->value;
         $this->start_date = now()->format('Y-m-d');
+        $this->resetAddress();
 
         $this->resetValidation();
         $this->showModal = true;
@@ -166,6 +168,7 @@ class Edit extends Component
         $this->resetReuse(false);
 
         $this->selectedEntity = $reference;
+        $this->resetAddress();
         $this->reusedContactId = OrganizationRelationship::query()
             ->external()
             ->forOrganization($organization)
@@ -242,6 +245,7 @@ class Edit extends Component
             'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
             'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
             'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
+            'address' => $this->addressPayload(),
         ];
 
         if ($this->genderEnabled) {
@@ -390,6 +394,10 @@ class Edit extends Component
             }
         }
 
+        if (! $sharedFieldsLocked) {
+            $rules = [...$rules, ...$this->addressRules()];
+        }
+
         return $rules;
     }
 
@@ -419,6 +427,10 @@ class Edit extends Component
         $this->contact_name = '';
         $this->contact_summary = '';
 
+        $this->fillAddress($stakeholder instanceof Organization
+            ? $stakeholder->address()->first()
+            : $stakeholder->addresses()->first());
+
         if ($stakeholder instanceof Organization) {
             $contactPerson = $stakeholder->primaryContact;
             $this->contact_name = (string) $contactPerson?->name;
@@ -443,6 +455,7 @@ class Edit extends Component
         $this->contact_gender = null;
         $this->contact_summary = '';
         $this->type = 'individual';
+        $this->resetAddress();
 
         if ($resetName) {
             $this->name = '';

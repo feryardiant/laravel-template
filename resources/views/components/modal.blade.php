@@ -9,6 +9,7 @@
 ])
 
 @php
+    $width = $flyout ? 'md:w-lg' : $width;
     $hasHeading = filled($title);
     $headingId = $hasHeading ? $id.'-heading' : null;
     $labelledBy = $hasHeading
@@ -21,7 +22,7 @@
         :$flyout
         :$position
         :$variant
-        {{ $attributes->class([$width, 'space-y-6']) }}
+        {{ $attributes->class(['space-y-6 w-full', $width]) }}
         x-init="{{ $labelledBy }}"
     >
         @if ($hasHeading)
