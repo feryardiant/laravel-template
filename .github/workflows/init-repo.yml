@@ -30,6 +30,12 @@ jobs:
           php-version: ${{ env.PHP_VERSION }}
           coverage: xdebug
 
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          cache: true
+          run-install: false
+
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --ansi
 
@@ -39,10 +45,10 @@ jobs:
       - name: Regenerate lock files
         run: |
           set -euo pipefail
-          composer update --ansi --prefer-dist --no-interaction --no-progress
-          if command -v npm >/dev/null; then
-            npm install --no-audit --no-fund
-          fi
+          # Composer scripts need a dev environment (`.env`, `boost.json`) this
+          # job does not have; the lock files do not.
+          composer install --no-scripts --no-interaction --no-progress --ansi
+          vp install
 
       - name: Verify changes
         run: |
