@@ -29,6 +29,7 @@ updates:
       - dependency-name: '@voidzero-dev/vite-plus-core'
       - dependency-name: '@types/node'
       - dependency-name: typescript
+      - dependency-name: vite
       - dependency-name: vite-plus
     versioning-strategy: increase-if-necessary
     groups:
