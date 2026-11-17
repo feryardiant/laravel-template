@@ -81,7 +81,7 @@ test('the admin can cancel their own pending leave request', function () {
     Livewire::test(Leave::class)
         ->call('cancelRequest', $request->getKey());
 
-    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled)
+    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled)
         ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue();
 });
 
@@ -149,7 +149,7 @@ test('removing the admin cancels their pending leave request', function () {
 
     app(RemoveMember::class)->handle($organization, $admin->person, $owner);
 
-    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled)
+    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled)
         ->and($organization->members()->whereKey($admin->person->getKey())->exists())->toBeFalse();
 });
 
@@ -162,7 +162,7 @@ test('demoting the admin cancels their pending leave request', function () {
 
     app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner);
 
-    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled)
+    expect($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled)
         ->and($admin->person->roleIn($organization))->toBe(Role::Member);
 });
 

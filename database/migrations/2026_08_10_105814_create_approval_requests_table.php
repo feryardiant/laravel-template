@@ -29,7 +29,7 @@ return new class extends Migration
             $table->timestamp('expires_at');
             $table->timestamp('accepted_at')->nullable();
             $table->timestamp('declined_at')->nullable();
-            $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('canceled_at')->nullable();
             $table->timestamps();
 
             $table->index(['organization_id', 'status']);

@@ -92,10 +92,10 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
 
     expect(app(CancelApprovalRequest::class)->handle($cancelRequest, $secondOwner))->toBeTrue();
 
-    $cancelled = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
+    $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
-    expect($cancelled->actor_id)->toBe($secondOwner->getKey())
-        ->and($cancelled->subject_id)->toBe($cancelRequest->getKey());
+    expect($canceled->actor_id)->toBe($secondOwner->getKey())
+        ->and($canceled->subject_id)->toBe($cancelRequest->getKey());
 });
 
 test('cancelling a stale pending request does not overwrite a decision', function () {
@@ -130,7 +130,7 @@ test('an expired pending request does not block a new ownership transfer', funct
     $new = app(OwnershipTransfer::class)->request($organization, $owner, $recipient->person);
 
     expect($new->getKey())->not->toBe($old->getKey())
-        ->and($old->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+        ->and($old->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
 test('an expired pending request does not block a new leave request', function () {
@@ -146,7 +146,7 @@ test('an expired pending request does not block a new leave request', function (
     $new = app(MembershipLeave::class)->request($organization, $admin);
 
     expect($new->getKey())->not->toBe($old->getKey())
-        ->and($old->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+        ->and($old->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
 test('membership leave requires an active owner', function () {
@@ -182,13 +182,13 @@ test('a membership leave decline and cancellation are recorded', function () {
 
     expect(app(CancelApprovalRequest::class)->handle($cancelRequest, $admin))->toBeTrue();
 
-    $cancelled = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
+    $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
-    expect($cancelled->actor_id)->toBe($admin->getKey())
-        ->and($cancelled->subject_id)->toBe($cancelRequest->getKey());
+    expect($canceled->actor_id)->toBe($admin->getKey())
+        ->and($canceled->subject_id)->toBe($cancelRequest->getKey());
 });
 
-test('demoting an admin audits the cancelled leave request', function () {
+test('demoting an admin audits the canceled leave request', function () {
     Notification::fake();
 
     $organization = Organization::factory()->create();
@@ -199,17 +199,17 @@ test('demoting an admin audits the cancelled leave request', function () {
 
     app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner);
 
-    $cancelled = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
+    $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
-    expect($cancelled->actor_id)->toBe($owner->getKey())
-        ->and($cancelled->changes)->toMatchArray([
+    expect($canceled->actor_id)->toBe($owner->getKey())
+        ->and($canceled->changes)->toMatchArray([
             'type' => ApprovalRequestType::MembershipLeave->value,
             'reason' => 'role_changed',
         ])
-        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
-test('removing an admin audits the cancelled leave request', function () {
+test('removing an admin audits the canceled leave request', function () {
     Notification::fake();
 
     $organization = Organization::factory()->create();
@@ -220,14 +220,14 @@ test('removing an admin audits the cancelled leave request', function () {
 
     app(RemoveMember::class)->handle($organization, $admin->person, $owner);
 
-    $cancelled = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
+    $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
-    expect($cancelled->actor_id)->toBe($owner->getKey())
-        ->and($cancelled->changes)->toMatchArray([
+    expect($canceled->actor_id)->toBe($owner->getKey())
+        ->and($canceled->changes)->toMatchArray([
             'type' => ApprovalRequestType::MembershipLeave->value,
             'reason' => 'member_removed',
         ])
-        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
 test('deleting an organization prunes its audit log and approvals', function () {
@@ -247,7 +247,7 @@ test('deleting an organization prunes its audit log and approvals', function () 
         ->handle(app(FileStorage::class));
 
     expect(AuditLog::query()->where('organization_id', $subsidiary->getKey())->count())->toBe(0)
-        ->and(AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->count())->toBe(0)
+        ->and(AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->count())->toBe(0)
         ->and(ApprovalRequest::query()->whereKey($request->getKey())->exists())->toBeFalse();
 });
 

@@ -165,7 +165,7 @@ test('it cancels pending approval requests when a subsidiary is tombstoned', fun
 
     (new DeleteOrganization($subsidiary, $owner->getKey()))->handle(app(FileStorage::class));
 
-    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
 test('it refuses to delete a tenant outside the internal subsidiary tree', function () {

@@ -6,10 +6,10 @@ namespace App\Events\Approvals;
 
 use App\Enums\AuditEvent;
 
-final class ApprovalCancelled extends ApprovableEvent
+final class ApprovalCanceled extends ApprovableEvent
 {
     public function auditEvent(): AuditEvent
     {
-        return AuditEvent::ApprovalCancelled;
+        return AuditEvent::ApprovalCanceled;
     }
 }

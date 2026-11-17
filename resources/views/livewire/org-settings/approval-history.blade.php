@@ -14,14 +14,14 @@
                             \App\Enums\ApprovalRequestStatus::Pending => 'amber',
                             \App\Enums\ApprovalRequestStatus::Accepted => 'green',
                             \App\Enums\ApprovalRequestStatus::Declined => 'red',
-                            \App\Enums\ApprovalRequestStatus::Cancelled => 'zinc',
+                            \App\Enums\ApprovalRequestStatus::Canceled => 'zinc',
                         };
 
                         $changedAt = match ($approval->status) {
                             \App\Enums\ApprovalRequestStatus::Pending => [__('Expires at'), $approval->expires_at],
                             \App\Enums\ApprovalRequestStatus::Accepted => [__('Accepted at'), $approval->accepted_at],
                             \App\Enums\ApprovalRequestStatus::Declined => [__('Declined at'), $approval->declined_at],
-                            \App\Enums\ApprovalRequestStatus::Cancelled => null,
+                            \App\Enums\ApprovalRequestStatus::Canceled => null,
                         };
                     @endphp
 

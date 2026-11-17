@@ -112,10 +112,10 @@ test('a system removal with a pending approval keeps a null actor', function () 
 
     app(RemoveMember::class)->handle($organization, $admin->person, null);
 
-    $log = AuditLog::query()->where('event', AuditEvent::ApprovalCancelled)->sole();
+    $log = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
     expect($log->actor_id)->toBeNull()
-        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+        ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
 test('a self leave records the user as the actor', function () {

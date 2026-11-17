@@ -28,7 +28,7 @@ enum AuditEvent: string
     case ApprovalRequested = 'approval.requested';
     case ApprovalAccepted = 'approval.accepted';
     case ApprovalDeclined = 'approval.declined';
-    case ApprovalCancelled = 'approval.cancelled';
+    case ApprovalCanceled = 'approval.canceled';
 
     public function label(): string
     {
@@ -48,7 +48,7 @@ enum AuditEvent: string
             self::ApprovalRequested => __('Approval requested'),
             self::ApprovalAccepted => __('Approval accepted'),
             self::ApprovalDeclined => __('Approval declined'),
-            self::ApprovalCancelled => __('Approval cancelled'),
+            self::ApprovalCanceled => __('Approval canceled'),
         };
     }
 }
