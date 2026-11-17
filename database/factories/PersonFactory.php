@@ -91,9 +91,9 @@ class PersonFactory extends Factory
         ?true $isPrimary = null,
     ): static {
         // @phpstan-ignore-next-line
-        return $this->hasAttached($organization, fn (Person $person) => [
+        return $this->hasAttached($organization, fn () => [
             'type' => OrganizationRelationshipType::Member,
-            'role' => $role ?: $person->user?->role ?: Role::Member,
+            'role' => $role ?: Role::Member,
             'is_primary' => $isPrimary,
             'start_date' => now(),
         ], 'organizationRelationships')->afterCreating(function (Person $person): void {
