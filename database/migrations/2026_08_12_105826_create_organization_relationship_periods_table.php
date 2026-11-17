@@ -52,7 +52,6 @@ return new class extends Migration
                 ['organization_id', 'stakeholder_type', 'stakeholder_id', 'start_date'],
                 'org_rel_period_entity_index',
             );
-
         });
 
         // shortcut: only pgsql/sqlite support partial indexes, add an

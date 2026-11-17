@@ -30,15 +30,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Kept from the package stub, but unused by this app.
-        // Schema::create('has_one_addresses', function (Blueprint $table) {
-        //     $table->id();
-        // });
-
-        // Schema::create('has_many_addresses', function (Blueprint $table) {
-        //     $table->id();
-        // });
-
         // An organization has exactly one address; a person may have many.
         // shortcut: only pgsql/sqlite support partial indexes, add an
         // application-level check if another driver is ever supported.
@@ -57,8 +48,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('has_many_addresses');
-        Schema::dropIfExists('has_one_addresses');
         Schema::dropIfExists('addresses');
     }
 };
