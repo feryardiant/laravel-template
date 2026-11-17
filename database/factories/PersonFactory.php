@@ -90,7 +90,6 @@ class PersonFactory extends Factory
         ?Role $role = null,
         ?true $isPrimary = null,
     ): static {
-        // @phpstan-ignore-next-line
         return $this->hasAttached($organization, fn () => [
             'type' => OrganizationRelationshipType::Member,
             'role' => $role ?: Role::Member,
