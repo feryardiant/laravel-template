@@ -35,3 +35,12 @@ it('streams the file', function () {
         ->assertStreamed()
         ->assertOk();
 });
+
+it('streams an attachment without a presigned round trip', function () {
+    $path = app(FileStorage::class)->handle(UploadedFile::fake()->image('brief.jpg'), 'attachments');
+
+    get(route('uploads', ['path' => $path]))
+        ->assertStreamed()
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/jpeg');
+});
