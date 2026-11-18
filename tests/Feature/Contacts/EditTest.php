@@ -6,7 +6,7 @@ use App\Actions\Contacts\UpdateContact;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
-use App\Livewire\Contacts\Edit;
+use App\Livewire\Contacts\Form;
 use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -33,7 +33,7 @@ test('editing a contact updates its per-tenant and shared fields', function () {
     $contactPerson = $contact->primaryContact;
     $relationshipId = contactRelationshipId($organization, $contact);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->assertSet('name', 'Acme Corp')
         ->assertSet('type', 'organization')
@@ -71,7 +71,7 @@ test('editing keeps the contact type even when the client changes it', function 
     $contact = contactOrganization($organization, ['name' => 'Typed Org']);
     $relationshipId = contactRelationshipId($organization, $contact);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('type', 'individual')
         ->set('name', 'Typed Org')
@@ -95,7 +95,7 @@ test('a user-linked contact keeps its shared fields', function () {
     ]);
     $relationshipId = contactRelationshipId($organization, $person);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('name', 'Tampered Linked Name')
         ->set('code', 'LINKED-1')
@@ -119,7 +119,7 @@ test('a shared contact keeps its shared fields and still updates per-tenant fiel
 
     $relationshipId = contactRelationshipId($other, $contact);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('name', 'Tampered Name')
         ->set('summary', 'Tampered summary')
@@ -148,7 +148,7 @@ test('editing an individual contact updates the gender', function () {
     $person = contactIndividual($organization, ['name' => 'Gender Person', 'gender' => null]);
     $relationshipId = contactRelationshipId($organization, $person);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->assertSet('gender', null)
         ->set('gender', Gender::Female->value)
@@ -168,7 +168,7 @@ test('an existing individual can keep a blank gender on update', function () {
     $person = contactIndividual($organization, ['name' => 'Blank Gender', 'gender' => null]);
     $relationshipId = contactRelationshipId($organization, $person);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->assertSet('gender', null)
         ->set('code', 'BLANK-1')
@@ -184,7 +184,7 @@ test('the gender field is hidden when the feature is off', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->assertDontSee(__('Gender'));
 });
@@ -196,7 +196,7 @@ test('the gender field is shown when the feature is on', function () {
 
     ContactGender::activate($organization);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->assertSee(__('Gender'));
 });
@@ -209,7 +209,7 @@ test('editing a contact preserves gender when the feature is off', function () {
     $person = contactIndividual($organization, ['name' => 'Preserved Gender', 'gender' => Gender::Female]);
     $relationshipId = contactRelationshipId($organization, $person);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('name', 'Renamed Gender')
         ->set('summary', 'Updated')
@@ -224,7 +224,7 @@ test('a hidden gender is not submitted when the feature is off', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'No Gender Field')
         ->set('gender', Gender::Male->value)
@@ -247,7 +247,7 @@ test('a contact photo can be replaced and cleared', function () {
 
     $relationshipId = contactRelationshipId($organization, $person);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('photo', UploadedFile::fake()->image('new.jpg'))
         ->call('save')
@@ -263,7 +263,7 @@ test('a contact photo can be replaced and cleared', function () {
     /** @disregard */
     Storage::disk()->assertExists($newPath);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->call('clearPhoto')
         ->call('save')
@@ -291,13 +291,13 @@ test('a contact code stays unique on update', function () {
 
     $relationshipId = contactRelationshipId($organization, $second);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('code', 'CODE-1')
         ->call('save')
         ->assertHasErrors('code');
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('code', 'CODE-2')
         ->call('save')
@@ -312,7 +312,7 @@ test('a plain member cannot open the edit flyout', function () {
     $contact = contactIndividual($organization, ['name' => 'Read Only']);
     $relationshipId = contactRelationshipId($organization, $contact);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->assertForbidden();
 });
@@ -341,7 +341,7 @@ test('the owner can edit a shared contact profile', function () {
 
     $other->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Customer]);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('name', 'Renamed Org')
         ->set('summary', 'Updated summary')
@@ -363,7 +363,7 @@ test('a shared contact ignores empty shared fields on save', function () {
 
     $relationshipId = contactRelationshipId($other, $contact);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('name', '')
         ->set('summary', '')
@@ -415,7 +415,7 @@ test('an individual edit ignores the contact person summary', function () {
     $contact = contactIndividual($organization, ['name' => 'Individual Contact']);
     $relationshipId = contactRelationshipId($organization, $contact);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
         ->set('contact_summary', str_repeat('x', 300))
         ->call('save')
@@ -472,7 +472,7 @@ test('the edit flyout is a floating right-side flyout with a bottom footer', fun
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->assertSeeHtml('data-flux-flyout')
         ->assertSeeHtml('ml-auto')
         ->assertSeeHtml('rounded-xl')
@@ -490,7 +490,7 @@ test('the gender flag is refreshed before saving', function () {
     $person = contactIndividual($organization, ['name' => 'Refresh Gender', 'gender' => Gender::Female]);
     $relationshipId = contactRelationshipId($organization, $person);
 
-    $component = Livewire::test(Edit::class)->call('openEdit', $relationshipId);
+    $component = Livewire::test(Form::class)->call('openEdit', $relationshipId);
 
     ContactGender::deactivate($organization);
 

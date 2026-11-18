@@ -295,5 +295,5 @@
         </div>
     </x-modal>
 
-    <livewire:contacts.edit />
+    <livewire:contacts.form />
 </x-page>

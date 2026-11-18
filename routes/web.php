@@ -12,7 +12,7 @@ use App\Livewire\Contacts\Index as ContactIndex;
 use App\Livewire\Contacts\View as ContactView;
 use App\Livewire\Dashboard;
 use App\Livewire\Members\Index as MemberIndex;
-use App\Livewire\Members\Show as MemberShow;
+use App\Livewire\Members\View as MemberView;
 use App\Livewire\Notifications\Index as NotificationIndex;
 use App\Livewire\OrgSettings;
 use App\Livewire\Settings\Organizations;
@@ -34,7 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('dashboard', Dashboard::class)->name('dashboard');
 
     Route::livewire('members', MemberIndex::class)->name('members.index');
-    Route::livewire('members/{person}', MemberShow::class)->name('members.show');
+    Route::livewire('members/{person}', MemberView::class)->name('members.show');
 
     Route::livewire('contacts', ContactIndex::class)->name('contacts.index');
     Route::get('contacts/lookup', ContactLookupController::class)

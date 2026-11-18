@@ -12,14 +12,14 @@ use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 use Flux\Flux;
-use Illuminate\Contracts\View\View;
+use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-class Show extends Component
+class View extends Component
 {
     use HasCurrentOrganization;
 
@@ -122,7 +122,7 @@ class Show extends Component
         return $this->roleChangeTo === Role::Admin->value;
     }
 
-    public function render(): View
+    public function render(): ViewContract
     {
         $currentRole = $this->currentRole();
         $role = $this->person->roleIn($this->requireOrganization());
@@ -136,7 +136,7 @@ class Show extends Component
             ?->pivot->start_date ?? $this->person->created_at;
 
         /** @disregard P1013 */
-        return view('livewire.members.show', [
+        return view('livewire.members.view', [
             'organization' => $this->requireOrganization(),
             'role' => $role,
             'joinedAt' => $joinedAt,

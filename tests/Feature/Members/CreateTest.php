@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
-use App\Livewire\Members\Edit;
+use App\Livewire\Members\Form;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Notifications\VerifyEmailForNewUser;
@@ -21,7 +21,7 @@ test('an admin can add a person without a credential', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)->call('openCreate')
+    Livewire::test(Form::class)->call('openCreate')
         ->set('name', 'No Credential')
         ->set('role', Role::Member->value)
         ->set('createCredential', false)
@@ -42,7 +42,7 @@ test('an admin can add a member with an invite credential', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)->call('openCreate')
+    Livewire::test(Form::class)->call('openCreate')
         ->set('name', 'Invited Member')
         ->set('email', 'invited@example.com')
         ->set('createCredential', true)
@@ -68,7 +68,7 @@ test('the owner role cannot be assigned when adding a member', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    $component = Livewire::test(Edit::class)->call('openCreate');
+    $component = Livewire::test(Form::class)->call('openCreate');
 
     expect($component->instance()->roles())->toBe([Role::Admin, Role::Member]);
 
@@ -85,7 +85,7 @@ test('a plain member cannot add members', function () {
 
     actingAsMember($organization, Role::Member);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('create')
         ->assertForbidden();
 
@@ -100,7 +100,7 @@ test('an admin can add a member with a photo', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)->call('openCreate')
+    Livewire::test(Form::class)->call('openCreate')
         ->set('name', 'Photo Member')
         ->set('role', Role::Member->value)
         ->set('photo', UploadedFile::fake()->image('member.jpg'))

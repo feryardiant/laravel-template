@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Gender;
 use App\Enums\Role;
-use App\Livewire\Members\Edit;
+use App\Livewire\Members\Form;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -28,7 +28,7 @@ test('editing a member updates the person and the per-organization role', functi
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('name', 'Renamed Member')
         ->set('role', Role::Admin->value)
         ->call('update')
@@ -48,7 +48,7 @@ test('editing a member can create a credential', function () {
     $person = Person::factory()->withoutCredential()->create();
     app(CreateMember::class)->attach($organization, $person, startDate: now());
 
-    Livewire::test(Edit::class, ['person' => $person])
+    Livewire::test(Form::class, ['person' => $person])
         ->set('createCredential', true)
         ->set('email', 'credential@example.com')
         ->call('update')
@@ -72,7 +72,7 @@ test('a self-owned member profile is read-only for managers', function () {
 
     $original = $member->person->name;
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->assertSee(__('This person controls their profile.'))
         ->set('name', 'Tampered Name')
         ->call('update')
@@ -80,7 +80,7 @@ test('a self-owned member profile is read-only for managers', function () {
 
     expect($member->person->fresh()->name)->toBe($original);
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('role', Role::Admin->value)
         ->call('update')
         ->assertHasNoErrors();
@@ -98,7 +98,7 @@ test('gender can only be set once for an org-owned member', function () {
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $member->person->update(['gender' => null]);
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->assertSee(__('Gender'))
         ->set('gender', Gender::Male->value)
         ->call('update')
@@ -106,7 +106,7 @@ test('gender can only be set once for an org-owned member', function () {
 
     expect($member->person->fresh()->gender)->toBe(Gender::Male);
 
-    Livewire::test(Edit::class, ['person' => $member->person->fresh()])
+    Livewire::test(Form::class, ['person' => $member->person->fresh()])
         ->set('gender', Gender::Female->value)
         ->call('update')
         ->assertHasNoErrors();
@@ -121,7 +121,7 @@ test('an admin cannot edit an owner', function () {
 
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
 
-    Livewire::test(Edit::class, ['person' => $owner->person])
+    Livewire::test(Form::class, ['person' => $owner->person])
         ->set('email', 'attacker@example.com')
         ->call('update')
         ->assertForbidden();
@@ -139,7 +139,7 @@ test('an admin cannot change the email of a credential shared with another organ
 
     actingAsMember($guest, Role::Admin);
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('email', 'attacker@example.com')
         ->call('update')
         ->assertForbidden();
@@ -156,7 +156,7 @@ test('an owner can change the email of a member credential', function () {
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('email', 'renamed@example.com')
         ->call('update')
         ->assertHasNoErrors();
@@ -171,7 +171,7 @@ test('the owner role cannot be assigned when editing a member', function () {
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $component = Livewire::test(Edit::class, ['person' => $member->person]);
+    $component = Livewire::test(Form::class, ['person' => $member->person]);
 
     expect($component->instance()->roles())->toBe([Role::Admin, Role::Member]);
 
@@ -189,7 +189,7 @@ test('the member photo path cannot be changed from the client', function () {
 
     $member = User::factory()->asMemberOf($organization)->create();
 
-    expect(fn () => Livewire::test(Edit::class, ['person' => $member->person])
+    expect(fn () => Livewire::test(Form::class, ['person' => $member->person])
         ->set('photo_url', 'photos/other.jpg'))
         ->toThrow(CannotUpdateLockedPropertyException::class);
 });
@@ -205,7 +205,7 @@ test('a member photo can be removed', function () {
     $member->person->update(['photo_url' => 'photos/old.jpg']);
     Storage::disk()->put('photos/old.jpg', 'photo');
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->call('clearPhoto')
         ->call('update')
         ->assertHasNoErrors();
@@ -227,7 +227,7 @@ test('the member photo path is kept when removal fails', function () {
     // A directory at the object path cannot be unlinked, which forces the failure.
     Storage::disk()->makeDirectory('photos/blocked');
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->call('clearPhoto')
         ->call('update')
         ->assertSet('photo_url', 'photos/blocked')
@@ -244,7 +244,7 @@ test('the edit member modal is a floating right-side flyout with a bottom footer
 
     $member = User::factory()->asMemberOf($organization)->create();
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->assertSeeHtml('data-flux-flyout')
         ->assertSeeHtml('ml-auto')
         ->assertSeeHtml('rounded-xl')
@@ -263,7 +263,7 @@ test('a member photo can be updated', function () {
 
     $member = User::factory()->asMemberOf($organization)->create();
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('photo', UploadedFile::fake()->image('updated.jpg'))
         ->call('update')
         ->assertHasNoErrors();
@@ -282,7 +282,7 @@ test('a photo picked for a new member does not follow into an edit', function ()
     $member = User::factory()->asMemberOf($organization)->create();
     $member->person->update(['photo_url' => 'photos/original.jpg']);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('photo', UploadedFile::fake()->image('pending.jpg'))
         ->call('editMember', $member->person->getKey())

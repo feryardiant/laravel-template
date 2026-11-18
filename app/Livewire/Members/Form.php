@@ -35,7 +35,7 @@ use Livewire\WithFileUploads;
  * @property-read bool $canEditProfile
  * @property-read bool $genderEditable
  */
-class Edit extends Component
+class Form extends Component
 {
     use HasCurrentOrganization, ManagesAddress, ProfileValidationRules, WithFileUploads;
 
@@ -378,7 +378,7 @@ class Edit extends Component
 
     public function render(): View
     {
-        return view('livewire.members.edit');
+        return view('livewire.members.form');
     }
 
     /**

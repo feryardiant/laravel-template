@@ -119,7 +119,7 @@
     </div>
 
     @if ($canManage)
-        <livewire:members.edit :person="$person" />
+        <livewire:members.form :person="$person" />
     @endif
 
     <x-modal
