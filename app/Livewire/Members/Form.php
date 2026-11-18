@@ -173,8 +173,11 @@ class Form extends Component
                 $validated['contact_phone'] ?? null,
             );
         } catch (Throwable $exception) {
-            // The person was rolled back; the upload must not outlive it.
-            $fileStorage->delete($photoUrl);
+            // A failure after the commit (such as the invite email) must not
+            // delete a photo the committed member already references.
+            if ($photoUrl !== null && ! Person::query()->where('photo_url', $photoUrl)->exists()) {
+                $fileStorage->delete($photoUrl);
+            }
 
             throw $exception;
         }
@@ -359,7 +362,8 @@ class Form extends Component
         }
 
         if ($stagedPhoto !== null) {
-            // Only drop the previous file once the new path is committed.
+            // The replacement is committed; a failed cleanup only leaves an
+            // orphaned file, so it is logged rather than rolled back.
             $fileStorage->delete($previousPhoto);
         }
 

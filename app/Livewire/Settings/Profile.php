@@ -212,7 +212,8 @@ class Profile extends Component
         }
 
         if ($stagedAvatar !== null) {
-            // Only drop the previous file once the new path is committed.
+            // The replacement is committed; a failed cleanup only leaves an
+            // orphaned file, so it is logged rather than rolled back.
             $fileStorage->delete($previousAvatar);
         }
 

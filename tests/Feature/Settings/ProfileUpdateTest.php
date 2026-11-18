@@ -252,6 +252,32 @@ test('the user avatar can be removed', function () {
     expect(Storage::disk()->exists('avatars/old.jpg'))->toBeFalse();
 });
 
+test('an avatar replacement keeps the new path when the old file cannot be deleted', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/blocked']);
+
+    // A directory at the object path cannot be unlinked, which forces the failure.
+    Storage::disk()->makeDirectory('avatars/blocked');
+
+    actingAs($user);
+
+    Livewire::test(Profile::class)
+        ->set('avatar', UploadedFile::fake()->image('new.jpg'))
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors()
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success');
+
+    $stored = $user->person->fresh()?->getRawOriginal('photo_url');
+
+    expect($stored)->toContain('avatars/')
+        ->and($stored)->not->toBe('avatars/blocked')
+        ->and(Storage::disk()->exists((string) $stored))->toBeTrue()
+        ->and(Storage::disk()->directoryExists('avatars/blocked'))->toBeTrue();
+});
+
 test('a failed profile save removes the staged avatar', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();

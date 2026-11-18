@@ -184,6 +184,34 @@ test('the owner role cannot be assigned when editing a member', function () {
     expect($member->person->fresh()->roleIn($organization))->toBe(Role::Member);
 });
 
+test('a member photo replacement keeps the new path when the old file cannot be deleted', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/blocked']);
+
+    // A directory at the object path cannot be unlinked, which forces the failure.
+    Storage::disk()->makeDirectory('photos/blocked');
+
+    Livewire::test(Form::class, ['person' => $member->person])
+        ->set('photo', UploadedFile::fake()->image('new.jpg'))
+        ->call('update')
+        ->assertHasNoErrors()
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success');
+
+    $stored = $member->person->fresh()->getRawOriginal('photo_url');
+
+    expect($stored)->toContain('photos/')
+        ->and($stored)->not->toBe('photos/blocked')
+        ->and(Storage::disk()->exists((string) $stored))->toBeTrue()
+        ->and(Storage::disk()->directoryExists('photos/blocked'))->toBeTrue();
+});
+
 test('a failed member update keeps the previous photo', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();
