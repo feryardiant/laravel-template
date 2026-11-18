@@ -19,7 +19,7 @@ Laravel 13 / PHP 8.4: Blade + Livewire 4 + Flux UI 2 + Tailwind 4, Fortify auth,
 | One test | `vendor/bin/pest tests/Feature/DashboardTest.php --filter=testName` |
 
 - Before running tests outside `composer test`, run `php artisan config:clear`. A cached `bootstrap/cache/config.php` freezes `APP_ENV`, so `.env.testing` is skipped and `RefreshDatabase` wipes the development database. `composer test` already clears it.
-- `.env` and `.env.testing` are gitignored; `.env.testing` sets `DB_DATABASE=testing` and `APP_URL=http://localhost:8080`. Without it (fresh clone, CI), tests use the `.env` connection.
+- `.env` and `.env.testing` are gitignored; `.env.testing` sets `DB_DATABASE=testing` and `APP_URL=http://localhost:8080`. `scripts/docker/init-database.sql` already creates the `testing` database on the first `docker compose up` (fresh `pgsql-data` volume), but the env file is not: copy `.env` to `.env.testing` and set `DB_DATABASE=testing` before running any test. Without it, tests use the `.env` connection and `RefreshDatabase` drops the development database.
 - Browser tests need built assets and Chromium: `npm run build`, then once per clone `vpx playwright install chromium`. CI installs only the headless shell (`--only-shell`); install the full browser locally for headed debugging.
 - Use npm: `package-lock.json` is committed (pnpm/yarn lockfiles are ignored). Versions come from `mise.toml` (PHP 8.4, Node 24).
 - Lint, format, and staged-file settings live in `vite.config.ts`; `npm run *` delegates to Vite+ (`vp`). Commitlint is configured in `package.json`; there are no ESLint/Prettier config files.
