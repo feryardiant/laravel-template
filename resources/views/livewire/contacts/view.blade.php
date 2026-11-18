@@ -23,7 +23,7 @@
         </flux:subheading>
     </x-slot:subheading>
 
-    <div class="flex gap-6">
+    <div class="flex flex-col gap-6 md:flex-row">
         <div class="flex flex-col gap-4 w-full md:w-5/8">
             @if ($stakeholder->trashed())
                 <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This organization has been deleted.')">

@@ -69,7 +69,7 @@
         @endif
     </x-slot:actions>
 
-    <div class="flex gap-6">
+    <div class="flex flex-col gap-6 md:flex-row">
         <div class="flex flex-col gap-4 w-full md:w-5/8">
             {{--  --}}
         </div>
