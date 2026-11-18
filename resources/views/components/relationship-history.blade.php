@@ -11,7 +11,7 @@
         @else
             <x-ui.timeline>
                 @foreach ($periods as $period)
-                    <x-ui.timeline.item wire:key="period-{{ $period->id }}" :status="$loop->first ? 'current' : 'complete'">
+                    <x-ui.timeline.item wire:key="period-{{ $period->id }}" :status="$period->isOpen() ? 'current' : 'complete'">
                         <flux:heading>
                             {{ $period->start_date->format('Y-m-d') }}
                             —
