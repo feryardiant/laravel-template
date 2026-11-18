@@ -72,7 +72,7 @@ class Leave extends Component
 
         $this->dispatch('memberships-changed');
 
-        Flux::toast(variant: 'success', text: __('Leave request cancelled.'));
+        Flux::toast(variant: 'success', text: __('Leave request canceled.'));
     }
 
     /**

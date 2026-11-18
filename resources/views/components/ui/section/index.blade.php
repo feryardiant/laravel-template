@@ -7,7 +7,7 @@
     $variant = in_array($variant, ['default', 'danger'], true) ? $variant : 'default';
 @endphp
 
-<section {{ $attributes->class('space-y-4') }}>
+<section {{ $attributes->class('flex flex-col gap-4') }}>
     @if ($title !== null)
         <flux:heading size="lg">{{ $title }}</flux:heading>
     @endif

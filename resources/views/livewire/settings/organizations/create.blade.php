@@ -9,7 +9,7 @@
         class="flex flex-col"
     >
         <form wire:submit="create" class="flex flex-1 flex-col">
-            <div class="space-y-6">
+            <div class="flex flex-col gap-6">
                 <x-ui.file-upload wire:model="logo" accept="image/*" :label="__('Organization Logo')">
                     <x-ui.file-upload.avatar :url="$logo" shape="rounded" remove="clearLogo" />
                 </x-ui.file-upload>

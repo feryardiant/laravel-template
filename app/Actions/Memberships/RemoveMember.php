@@ -8,7 +8,7 @@ use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
-use App\Events\Approvals\ApprovalCancelled;
+use App\Events\Approvals\ApprovalCanceled;
 use App\Events\Memberships\MemberRemoved;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
@@ -100,19 +100,19 @@ final class RemoveMember
                     ->get();
 
                 foreach ($pending as $request) {
-                    $cancelled = ApprovalRequest::query()
+                    $canceled = ApprovalRequest::query()
                         ->whereKey($request->getKey())
                         ->where('status', ApprovalRequestStatus::Pending)
                         ->update([
-                            'status' => ApprovalRequestStatus::Cancelled,
-                            'cancelled_at' => now(),
+                            'status' => ApprovalRequestStatus::Canceled,
+                            'canceled_at' => now(),
                         ]);
 
-                    if ($cancelled === 0) {
+                    if ($canceled === 0) {
                         continue;
                     }
 
-                    event(new ApprovalCancelled($request, $actor, 'member_removed'));
+                    event(new ApprovalCanceled($request, $actor, 'member_removed'));
                 }
 
                 foreach ($removed as $person) {

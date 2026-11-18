@@ -54,8 +54,8 @@ final class MembershipLeave
                 ->where('status', ApprovalRequestStatus::Pending)
                 ->where('expires_at', '<=', now())
                 ->update([
-                    'status' => ApprovalRequestStatus::Cancelled,
-                    'cancelled_at' => now(),
+                    'status' => ApprovalRequestStatus::Canceled,
+                    'canceled_at' => now(),
                 ]);
 
             if (ApprovalRequest::query()

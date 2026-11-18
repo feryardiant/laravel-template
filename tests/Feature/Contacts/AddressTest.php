@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
-use App\Livewire\Contacts\Edit;
+use App\Livewire\Contacts\Form;
 use App\Models\Address;
 use App\Models\Organization;
 use App\Models\Person;
@@ -20,7 +20,7 @@ test('creating an individual contact stores the address', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Addressed Person')
         ->set('address', $fields)
@@ -41,7 +41,7 @@ test('creating a contact without address fields stores nothing', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'No Address Person')
         ->call('save')
@@ -58,7 +58,7 @@ test('an address line is required once another address field is filled', functio
 
     actingAsMember($organization, Role::Admin);
 
-    $component = Livewire::test(Edit::class)
+    $component = Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Partial Address')
         ->set('address.postal_code', $fields['postal_code'])
@@ -74,7 +74,7 @@ test('every rejected address field shows its message', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    $component = Livewire::test(Edit::class)
+    $component = Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Bad Postal')
         ->set('address', validAddress(['postal_code' => '123']))
@@ -93,7 +93,7 @@ test('a regency outside the selected province is rejected', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Mismatched Region')
         ->set('address', validAddress(['regency_code' => $otherRegency]))
@@ -108,7 +108,7 @@ test('editing a contact updates its address in place', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($organization, $person))
         ->assertSet('address.line', 'Old line')
         ->set('address.line', 'New line')
@@ -126,7 +126,7 @@ test('clearing every address field removes the address', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($organization, $person))
         ->set('address', array_fill_keys(array_keys(validAddress()), ''))
         ->call('save')
@@ -148,7 +148,7 @@ test('a profile-locked contact keeps its address', function () {
 
     actingAsMember($other, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($other, $person))
         ->set('address.line', 'Tampered line')
         ->call('save')

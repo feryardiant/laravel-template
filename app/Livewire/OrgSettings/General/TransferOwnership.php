@@ -106,7 +106,7 @@ class TransferOwnership extends Component
 
         unset($this->pendingApproval);
 
-        Flux::toast(variant: 'success', text: __('Transfer request cancelled.'));
+        Flux::toast(variant: 'success', text: __('Transfer request canceled.'));
     }
 
     /**

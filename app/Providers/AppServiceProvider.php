@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Events\Approvals\ApprovalAccepted;
-use App\Events\Approvals\ApprovalCancelled;
+use App\Events\Approvals\ApprovalCanceled;
 use App\Events\Approvals\ApprovalDeclined;
 use App\Events\Approvals\ApprovalRequested;
 use App\Events\Contacts\ContactCreated;
@@ -57,7 +57,7 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen([
             ApprovalAccepted::class,
-            ApprovalCancelled::class,
+            ApprovalCanceled::class,
             ApprovalDeclined::class,
             ApprovalRequested::class,
             ContactCreated::class,

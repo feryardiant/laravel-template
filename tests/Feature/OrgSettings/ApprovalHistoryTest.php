@@ -137,17 +137,17 @@ test('accepted and declined rows show their handled timestamps', function () {
         ->assertSee($declined->declined_at->translatedFormat('d M Y H:i'));
 });
 
-test('a cancelled row shows only the created timestamp', function () {
+test('a canceled row shows only the created timestamp', function () {
     $organization = Organization::factory()->create();
     $owner = actingAsMember($organization, Role::Owner);
     $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    $cancelled = approvalForHistory($organization, $owner->person, $recipient->person, status: ApprovalRequestStatus::Cancelled);
+    $canceled = approvalForHistory($organization, $owner->person, $recipient->person, status: ApprovalRequestStatus::Canceled);
 
     Livewire::test(ApprovalHistory::class)
         ->assertSee(__('Dibatalkan'))
         ->assertSee(__('Dibuat pada'))
-        ->assertSee($cancelled->created_at->translatedFormat('d M Y H:i'))
+        ->assertSee($canceled->created_at->translatedFormat('d M Y H:i'))
         ->assertDontSee(__('Kedaluwarsa pada'))
         ->assertDontSee(__('Diterima pada'))
         ->assertDontSee(__('Ditolak pada'));

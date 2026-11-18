@@ -30,9 +30,13 @@ services:
     environment:
       AUTORUN_LARAVEL_MIGRATION: true
       AUTORUN_LARAVEL_MIGRATION_SEED: true
-      AWS_ENDPOINT: http://rustfs:9000
       LARAVEL_SAIL: 1
       LOG_STACK: daily,stderr
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      AWS_ENDPOINT: http://rustfs:9000
       TZ: Asia/Jakarta
     labels:
       dev.orbstack.http-port: 8080
@@ -51,8 +55,13 @@ services:
     env_file: ../../.env
     environment:
       AUTORUN_ENABLED: false
-      AWS_ENDPOINT: http://rustfs:9000
       LARAVEL_SAIL: 1
+      LOG_STACK: daily,stderr
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      AWS_ENDPOINT: http://rustfs:9000
       TZ: Asia/Jakarta
     stop_signal: SIGTERM
     stop_grace_period: 90s

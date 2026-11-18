@@ -1,12 +1,12 @@
-<div class="space-y-8">
-    <div class="space-y-2">
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-2">
         <h1 data-ui-outside class="text-2xl font-semibold">Date picker</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Readonly trigger with a popover calendar, ranges, presets and a confirmation footer.
         </p>
     </div>
 
-    <section data-ui-demo="date-picker-single" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-single" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker wire:model.live="date" label="Publish date" clearable with-today />
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
@@ -16,7 +16,7 @@
         <flux:button size="sm" wire:click="moveDate" data-ui-test="move-date">Set date +5 days</flux:button>
     </section>
 
-    <section data-ui-demo="date-picker-confirm" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-confirm" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             wire:model.live="confirmed"
             label="Confirmed date"
@@ -30,7 +30,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="date-picker-range" class="max-w-md space-y-3">
+    <section data-ui-demo="date-picker-range" class="max-w-md flex flex-col gap-3">
         <x-ui.date-picker
             wire:model.live="range"
             mode="range"
@@ -47,7 +47,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="date-picker-single-presets" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-single-presets" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             label="Single with presets"
             with-presets
@@ -57,7 +57,7 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-preset-constraints" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-preset-constraints" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             mode="range"
             label="Constrained presets"
@@ -67,7 +67,7 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-preset-unavailable" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-preset-unavailable" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             mode="range"
             label="Unavailable preset"
@@ -77,7 +77,7 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-preset-empty" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-preset-empty" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             mode="range"
             label="Empty presets"
@@ -87,7 +87,7 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-preset-alltime" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-preset-alltime" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             mode="range"
             label="All time without min"
@@ -97,7 +97,7 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-out-of-bounds" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-out-of-bounds" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             label="Out of bounds"
             value="2026-01-01"
@@ -106,7 +106,7 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-bounded" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-bounded" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker
             label="Bounded"
             value="2026-02-15"
@@ -118,8 +118,8 @@
         />
     </section>
 
-    <section data-ui-demo="date-picker-plain" class="max-w-sm space-y-3">
-        <form method="get" action="{{ route('ui.date-picker') }}" class="space-y-4">
+    <section data-ui-demo="date-picker-plain" class="max-w-sm flex flex-col gap-3">
+        <form method="get" action="{{ route('ui.date-picker') }}" class="flex flex-col gap-4">
             <x-ui.date-picker name="plain_date" value="2024-02-15" open-to="2024-02-01" label="Plain date" />
             <x-ui.date-picker
                 name="plain_range"
@@ -131,11 +131,11 @@
         </form>
     </section>
 
-    <section data-ui-demo="date-picker-disabled" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-disabled" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker value="2026-02-15" disabled />
     </section>
 
-    <section data-ui-demo="date-picker-invalid" class="max-w-sm space-y-3">
+    <section data-ui-demo="date-picker-invalid" class="max-w-sm flex flex-col gap-3">
         <x-ui.date-picker label="Invalid date" value="2026-02-15" open-to="2026-02-01" invalid />
     </section>
 </div>

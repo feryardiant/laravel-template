@@ -1,12 +1,12 @@
-<div class="space-y-8">
-    <div class="space-y-2">
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-2">
         <h1 data-ui-outside class="text-2xl font-semibold">Timeline</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Ordered events with connector lines, statuses and a horizontal layout.
         </p>
     </div>
 
-    <section data-ui-demo="timeline-vertical" class="space-y-3">
+    <section data-ui-demo="timeline-vertical" class="flex flex-col gap-3">
         <x-ui.timeline>
             <x-ui.timeline.item status="complete" indicator:icon="check">
                 <flux:heading>Order confirmed</flux:heading>
@@ -25,7 +25,7 @@
         </x-ui.timeline>
     </section>
 
-    <section data-ui-demo="timeline-vertical-aligned" class="space-y-3">
+    <section data-ui-demo="timeline-vertical-aligned" class="flex flex-col gap-3">
         <x-ui.timeline>
             <x-ui.timeline.item align="start" indicator:icon="arrow-up">
                 <flux:heading>Start align</flux:heading>
@@ -44,7 +44,7 @@
         </x-ui.timeline>
     </section>
 
-    <section data-ui-demo="timeline-horizontal" class="space-y-3">
+    <section data-ui-demo="timeline-horizontal" class="flex flex-col gap-3">
         <x-ui.timeline mode="horizontal">
             <x-ui.timeline.item status="complete" indicator:icon="credit-card">
                 <flux:heading>Order confirmed</flux:heading>
@@ -72,7 +72,7 @@
         </x-ui.timeline>
     </section>
 
-    <section data-ui-demo="timeline-horizontal-aligned" class="space-y-3">
+    <section data-ui-demo="timeline-horizontal-aligned" class="flex flex-col gap-3">
         <x-ui.timeline mode="horizontal">
             <x-ui.timeline.item align="start" indicator:icon="arrow-left">
                 <flux:heading>Start align</flux:heading>
@@ -91,7 +91,7 @@
         </x-ui.timeline>
     </section>
 
-    <section data-ui-demo="timeline-dots" class="space-y-3">
+    <section data-ui-demo="timeline-dots" class="flex flex-col gap-3">
         <x-ui.timeline align="start">
             <x-ui.timeline.item>
                 <flux:text>Draft created · 2 days ago</flux:text>
@@ -107,7 +107,7 @@
         </x-ui.timeline>
     </section>
 
-    <section data-ui-demo="timeline-bare" class="space-y-3">
+    <section data-ui-demo="timeline-bare" class="flex flex-col gap-3">
         <x-ui.timeline>
             <x-ui.timeline.item status="complete" indicator:icon="document-text" indicator:variant="bare">
                 <flux:heading>Draft created</flux:heading>

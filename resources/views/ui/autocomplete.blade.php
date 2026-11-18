@@ -1,12 +1,12 @@
-<div class="space-y-8">
-    <div class="space-y-2">
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-2">
         <h1 data-ui-outside class="text-2xl font-semibold">Autocomplete</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Text suggestions from local items or a remote endpoint.
         </p>
     </div>
 
-    <section data-ui-demo="autocomplete-local" class="space-y-2">
+    <section data-ui-demo="autocomplete-local" class="flex flex-col gap-2">
         <x-ui.autocomplete
             wire:model.live="state"
             value-model="stateValue"
@@ -35,7 +35,7 @@
         <flux:button size="sm" wire:click="setState">Set New York</flux:button>
     </section>
 
-    <section data-ui-demo="autocomplete-remote" class="space-y-2">
+    <section data-ui-demo="autocomplete-remote" class="flex flex-col gap-2">
         <x-ui.autocomplete
             wire:model.live="remoteState"
             value-model="remoteStateValue"
@@ -54,26 +54,26 @@
         </p>
     </section>
 
-    <section data-ui-demo="autocomplete-disabled" class="space-y-2">
+    <section data-ui-demo="autocomplete-disabled" class="flex flex-col gap-2">
         <x-ui.autocomplete label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="California" clearable disabled>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
         </x-ui.autocomplete>
     </section>
 
-    <section data-ui-demo="autocomplete-invalid" class="space-y-2">
+    <section data-ui-demo="autocomplete-invalid" class="flex flex-col gap-2">
         <x-ui.autocomplete label="Invalid" placeholder="Start typing..." value="California" invalid>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
         </x-ui.autocomplete>
     </section>
 
-    <section data-ui-demo="autocomplete-unlabeled" class="space-y-2">
+    <section data-ui-demo="autocomplete-unlabeled" class="flex flex-col gap-2">
         <x-ui.autocomplete placeholder="Choose a state" clearable>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
             <x-ui.autocomplete.item>New York</x-ui.autocomplete.item>
         </x-ui.autocomplete>
     </section>
 
-    <section data-ui-demo="autocomplete-no-name" class="space-y-2">
+    <section data-ui-demo="autocomplete-no-name" class="flex flex-col gap-2">
         <x-ui.autocomplete>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>
             <x-ui.autocomplete.item>New York</x-ui.autocomplete.item>

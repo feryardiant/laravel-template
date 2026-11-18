@@ -91,7 +91,7 @@ test('the owner can cancel a pending transfer and the recipient row returns to n
         ->call('cancelTransfer')
         ->assertDontSee(__('Pending transfer to :name', ['name' => $recipient->name]));
 
-    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Cancelled);
+    expect($transfer->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 
     loginAsTransferRecipient($recipient, $organization);
 
@@ -244,7 +244,7 @@ test('the wrong person cannot accept, decline, or cancel a transfer', function (
     Notification::assertNotSentTo($owner, OwnershipTransferDeclinedNotification::class);
 })->with(['accept', 'decline', 'cancel']);
 
-test('a handled transfer cannot be accepted, declined, or cancelled again', function () {
+test('a handled transfer cannot be accepted, declined, or canceled again', function () {
     Notification::fake();
 
     $organization = Organization::factory()->create(['name' => 'Acme']);

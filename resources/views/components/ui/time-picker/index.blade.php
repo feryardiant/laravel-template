@@ -201,7 +201,7 @@
                 on-select-pm="setMeridiem('pm')"
             />
 
-            <div x-show="multiple" x-cloak class="mt-2 space-y-2 border-t border-zinc-200 pt-2 dark:border-white/10">
+            <div x-show="multiple" x-cloak class="mt-2 flex flex-col gap-2 border-t border-zinc-200 pt-2 dark:border-white/10">
                 <div
                     id="{{ $selectedId }}"
                     data-ui-selected

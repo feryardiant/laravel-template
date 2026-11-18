@@ -15,7 +15,20 @@ enum ApprovalRequestStatus: string
 
     case Declined = 'declined';
 
-    case Cancelled = 'cancelled';
+    case Canceled = 'canceled';
+
+    /**
+     * Get the badge color for the status.
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Pending => 'amber',
+            self::Accepted => 'green',
+            self::Declined => 'red',
+            self::Canceled => 'zinc',
+        };
+    }
 
     public function label(): string
     {
@@ -23,7 +36,7 @@ enum ApprovalRequestStatus: string
             self::Pending => __('Pending'),
             self::Accepted => __('Accepted'),
             self::Declined => __('Declined'),
-            self::Cancelled => __('Cancelled'),
+            self::Canceled => __('Canceled'),
         };
     }
 
@@ -47,8 +60,8 @@ enum ApprovalRequestStatus: string
         return $this === self::Declined;
     }
 
-    public function isCancelled(): bool
+    public function isCanceled(): bool
     {
-        return $this === self::Cancelled;
+        return $this === self::Canceled;
     }
 }

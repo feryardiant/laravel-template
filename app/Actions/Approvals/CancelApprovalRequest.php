@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Approvals;
 
 use App\Enums\ApprovalRequestStatus;
-use App\Events\Approvals\ApprovalCancelled;
+use App\Events\Approvals\ApprovalCanceled;
 use App\Models\ApprovalRequest;
 use App\Models\User;
 use InvalidArgumentException;
@@ -36,8 +36,8 @@ final class CancelApprovalRequest
             ->whereKey($request->getKey())
             ->where('status', ApprovalRequestStatus::Pending)
             ->update([
-                'status' => ApprovalRequestStatus::Cancelled,
-                'cancelled_at' => now(),
+                'status' => ApprovalRequestStatus::Canceled,
+                'canceled_at' => now(),
             ]);
 
         if ($canceled === 0) {
@@ -46,7 +46,7 @@ final class CancelApprovalRequest
 
         $request->refresh();
 
-        event(new ApprovalCancelled($request, $actor));
+        event(new ApprovalCanceled($request, $actor));
 
         return true;
     }

@@ -107,7 +107,7 @@
         @if ($draft) data-draft @endif
         :data-start-day="startDay"
         @if ($invalid) data-invalid @endif
-        class="w-full space-y-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500"
+        class="w-full flex flex-col gap-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500"
     >
         @if ($isPlain && $mode === 'single')
             <input
@@ -196,7 +196,7 @@
             :class="monthsData.length > 1 ? 'flex-col sm:flex-row' : ''"
         >
             <template x-for="month in monthsData" :key="month.key">
-                <div class="min-w-0 flex-1 space-y-2">
+                <div class="min-w-0 flex-1 flex flex-col gap-2">
                     <table
                         role="grid"
                         :aria-label="month.label"

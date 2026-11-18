@@ -66,11 +66,11 @@ export default defineConfig(({ mode }): UserConfig => {
             }),
             tailwindcss(),
         ]),
-        server: configureServer(appUrl),
+        server: configureServer(appUrl, Number(env.DEV_PORT)),
     }
 })
 
-function configureServer(appUrl: URL): UserConfig['server'] {
+function configureServer(appUrl: URL, devPort: number): UserConfig['server'] {
     const server: UserConfig['server'] = {
         watch: {
             ignored: [
@@ -82,6 +82,10 @@ function configureServer(appUrl: URL): UserConfig['server'] {
                 '**/vendor/**',
             ],
         },
+    }
+
+    if (Number(devPort) === devPort) {
+        server.port = devPort
     }
 
     if (appUrl.hostname !== 'localhost') {

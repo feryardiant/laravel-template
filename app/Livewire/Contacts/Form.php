@@ -37,7 +37,7 @@ use Throwable;
  * @property-read bool $sharedFieldsLocked
  * @property-read ?string $photoPreviewUrl
  */
-class Edit extends Component
+class Form extends Component
 {
     use HasCurrentOrganization, ManagesAddress, ProfileValidationRules, WithFileUploads;
 
@@ -342,7 +342,7 @@ class Edit extends Component
 
     public function render(): View
     {
-        return view('livewire.contacts.edit');
+        return view('livewire.contacts.form');
     }
 
     /**

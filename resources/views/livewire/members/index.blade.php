@@ -65,9 +65,14 @@
     @php($isOwner = $currentRole?->isOwner() ?? false)
 
     @if ($organization === null)
-        <flux:card class="max-w-lg">
-            <flux:heading>{{ __('No organization') }}</flux:heading>
-            <flux:text class="mt-2">{{ __('You are not a member of any organization.') }}</flux:text>
+        <flux:card body="divided" class="max-w-lg">
+            <flux:card.header>
+                <flux:heading>{{ __('No organization') }}</flux:heading>
+            </flux:card.header>
+
+            <flux:card.body>
+                <flux:text>{{ __('You are not a member of any organization.') }}</flux:text>
+            </flux:card.body>
         </flux:card>
     @else
         <div class="flex justify-end">
@@ -267,7 +272,7 @@
         :title="__('Remove member')"
         :subtitle="__('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -285,7 +290,7 @@
         :title="__('Remove members')"
         :subtitle="__('Remove :count selected members from this organization?', ['count' => count($selected)])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -303,7 +308,7 @@
         :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
         :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -319,5 +324,5 @@
         </div>
     </x-modal>
 
-    <livewire:members.edit />
+    <livewire:members.form />
 </x-page>

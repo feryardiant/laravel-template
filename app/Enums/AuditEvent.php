@@ -28,7 +28,21 @@ enum AuditEvent: string
     case ApprovalRequested = 'approval.requested';
     case ApprovalAccepted = 'approval.accepted';
     case ApprovalDeclined = 'approval.declined';
-    case ApprovalCancelled = 'approval.cancelled';
+    case ApprovalCanceled = 'approval.canceled';
+
+    /**
+     * Get the badge color for the event group.
+     */
+    public function badgeColor(): string
+    {
+        return match (true) {
+            str_starts_with($this->value, 'member.') => 'sky',
+            str_starts_with($this->value, 'contact.') => 'emerald',
+            str_starts_with($this->value, 'organization.') => 'amber',
+            str_starts_with($this->value, 'feature.') => 'violet',
+            default => 'indigo',
+        };
+    }
 
     public function label(): string
     {
@@ -48,7 +62,7 @@ enum AuditEvent: string
             self::ApprovalRequested => __('Approval requested'),
             self::ApprovalAccepted => __('Approval accepted'),
             self::ApprovalDeclined => __('Approval declined'),
-            self::ApprovalCancelled => __('Approval cancelled'),
+            self::ApprovalCanceled => __('Approval canceled'),
         };
     }
 }

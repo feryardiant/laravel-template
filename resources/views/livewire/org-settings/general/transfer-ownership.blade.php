@@ -6,7 +6,7 @@
         @if ($this->pendingApproval !== null)
             <flux:callout variant="warning" icon="clock" :heading="__('Approval request pending')">
                 <flux:callout.text>
-                    <flux:badge size="sm" color="amber" class="mb-2">
+                    <flux:badge size="sm" :color="$this->pendingApproval->status->badgeColor()" class="mb-2">
                         {{ $this->pendingApproval->status->label() }}
                     </flux:badge>
 
@@ -54,7 +54,7 @@
         :title="__('Transfer ownership')"
         :subtitle="$organization?->name"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('You will become an Admin.')">
                 <flux:callout.text>
                     {{ __('The selected member must accept the transfer. Until then, you remain the owner.') }}

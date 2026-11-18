@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
-use App\Livewire\Members\Edit;
+use App\Livewire\Members\Form;
 use App\Models\Address;
 use App\Models\Organization;
 use App\Models\Person;
@@ -20,7 +20,7 @@ test('adding a member stores their address', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Addressed Member')
         ->set('role', Role::Member->value)
@@ -45,7 +45,7 @@ test('editing a member updates their address in place', function () {
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $member->person->addresses()->save(Address::factory()->make(['line' => 'Old line']));
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->assertSet('address.line', 'Old line')
         ->set('address.line', 'New line')
         ->call('update')
@@ -63,7 +63,7 @@ test('clearing every address field removes the member address', function () {
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $member->person->addresses()->save(Address::factory()->make());
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('address', array_fill_keys(array_keys(validAddress()), ''))
         ->call('update')
         ->assertHasNoErrors();
@@ -82,7 +82,7 @@ test('a self-owned member address is left untouched by managers', function () {
     app(CreateMember::class)
         ->attach($organization, $member->person, startDate: now(), role: Role::Member);
 
-    Livewire::test(Edit::class, ['person' => $member->person])
+    Livewire::test(Form::class, ['person' => $member->person])
         ->set('address.line', 'Tampered line')
         ->call('update')
         ->assertHasNoErrors();

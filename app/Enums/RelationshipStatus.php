@@ -16,6 +16,18 @@ enum RelationshipStatus
     case Expired;
 
     /**
+     * Get the badge color for the status.
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Scheduled => 'amber',
+            self::Active => 'green',
+            self::Expired => 'zinc',
+        };
+    }
+
+    /**
      * Get the human-readable label for the status.
      */
     public function label(): string

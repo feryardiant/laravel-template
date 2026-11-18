@@ -62,9 +62,14 @@
     </x-slot:actions>
 
     @if ($organization === null)
-        <flux:card class="max-w-lg">
-            <flux:heading>{{ __('No organization') }}</flux:heading>
-            <flux:text class="mt-2">{{ __('You are not a member of any organization.') }}</flux:text>
+        <flux:card body="divided" class="max-w-lg">
+            <flux:card.header>
+                <flux:heading>{{ __('No organization') }}</flux:heading>
+            </flux:card.header>
+
+            <flux:card.body>
+                <flux:text>{{ __('You are not a member of any organization.') }}</flux:text>
+            </flux:card.body>
         </flux:card>
     @else
         <div class="flex justify-end">
@@ -158,7 +163,7 @@
                                         {{ $stakeholder->name }}
                                     </a>
 
-                                    <flux:badge size="sm" color="zinc">
+                                    <flux:badge size="sm" :color="$contact->type->badgeColor()">
                                         {{ $contact->type->label() }}
                                     </flux:badge>
 
@@ -259,7 +264,7 @@
         :title="__('Delete contact')"
         :subtitle="__('Delete :name from your contacts?', ['name' => $deletingContactName ?? __('this contact')])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -277,7 +282,7 @@
         :title="__('Delete contacts')"
         :subtitle="__('Delete :count selected contacts?', ['count' => count($selected)])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -290,5 +295,5 @@
         </div>
     </x-modal>
 
-    <livewire:contacts.edit />
+    <livewire:contacts.form />
 </x-page>

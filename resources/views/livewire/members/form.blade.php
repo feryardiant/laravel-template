@@ -8,7 +8,7 @@
     class="flex flex-col"
 >
     <form wire:submit="save" class="-mb-6 flex flex-1 flex-col">
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             @unless ($this->canEditProfile)
                 <flux:callout variant="secondary" icon="lock-closed">
                     <flux:callout.text>
@@ -72,17 +72,18 @@
             @endif
 
             @if ($this->canEditProfile)
-                <flux:card class="space-y-4">
-                    <div>
+                <flux:card body="divided">
+                    <flux:card.header>
                         <flux:heading>{{ __('Address') }}</flux:heading>
-                        <flux:separator variant="subtle" class="mt-2" />
-                    </div>
+                    </flux:card.header>
 
-                    <livewire:address wire:model="address" />
+                    <flux:card.body class="flex flex-col gap-4">
+                        <livewire:address wire:model="address" />
 
-                    @foreach (['line', 'rt', 'rw', 'postal_code', 'province_code', 'regency_code', 'district_code', 'village_code'] as $field)
-                        <flux:error :name="'address.'.$field" />
-                    @endforeach
+                        @foreach (['line', 'rt', 'rw', 'postal_code', 'province_code', 'regency_code', 'district_code', 'village_code'] as $field)
+                            <flux:error :name="'address.'.$field" />
+                        @endforeach
+                    </flux:card.body>
                 </flux:card>
 
                 @if ($hasCredential)

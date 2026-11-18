@@ -51,7 +51,7 @@
                                         @if ($role !== null)
                                             <flux:badge
                                                 size="sm"
-                                                :color="$role->isOwner() ? 'amber' : ($role->isAdmin() ? 'blue' : 'zinc')"
+                                                :color="$role->badgeColor()"
                                             >
                                                 {{ $role->label() }}
                                             </flux:badge>
@@ -116,7 +116,7 @@
                                             @endif
                                         </flux:text>
 
-                                        <flux:badge size="sm" color="sky">
+                                        <flux:badge size="sm" :color="$pendingApproval->status->badgeColor()">
                                             {{ $pendingApproval->status->label() }}
                                         </flux:badge>
 

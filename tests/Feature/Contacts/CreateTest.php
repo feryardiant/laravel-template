@@ -6,7 +6,7 @@ use App\Actions\Contacts\CreateContact;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
-use App\Livewire\Contacts\Edit;
+use App\Livewire\Contacts\Form;
 use App\Livewire\Contacts\Index;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -35,7 +35,7 @@ test('typing a new name keeps the selected organization type', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('type', 'organization')
         ->set('selectedEntity', '')
@@ -50,7 +50,7 @@ test('selecting a candidate locks shared fields and typing unlocks them', functi
 
     actingAsMember($target, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->assertSet('name', 'Locked Candidate')
@@ -65,7 +65,7 @@ test('an invalid candidate reference is discarded', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('selectedEntity', 'individual:not-a-real-uuid')
         ->assertSet('selectedEntity', null);
@@ -78,7 +78,7 @@ test('an admin can create an individual contact', function () {
 
     ContactGender::activate($organization);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->assertSet('type', 'individual')
         ->assertSet('role', OrganizationRelationshipType::Customer->value)
@@ -110,7 +110,7 @@ test('an admin can create an organization contact with a contact person', functi
 
     ContactGender::activate($organization);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('type', 'organization')
         ->set('name', 'Acme Corp')
@@ -135,7 +135,7 @@ test('contact creation validates its required fields', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', '')
         ->set('type', '')
@@ -149,7 +149,7 @@ test('a finish date before the start date is rejected', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Invalid Date')
         ->set('gender', Gender::Male->value)
@@ -166,7 +166,7 @@ test('an individual contact requires a gender on create', function () {
 
     ContactGender::activate($organization);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'No Gender')
         ->call('save')
@@ -180,7 +180,7 @@ test('an organization contact requires contact person details', function () {
 
     ContactGender::activate($organization);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('type', 'organization')
         ->set('name', 'No Contact Person')
@@ -193,7 +193,7 @@ test('an invalid role is rejected', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Bad Role')
         ->set('gender', Gender::Male->value)
@@ -213,7 +213,7 @@ test('a contact code is unique per tenant', function () {
         ->whereStakeholder($contact)
         ->update(['code' => 'DUP-1']);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Duplicate Code')
         ->set('gender', Gender::Male->value)
@@ -229,7 +229,7 @@ test('a contact photo is stored', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Photo Contact')
         ->set('gender', Gender::Male->value)
@@ -255,7 +255,7 @@ test('an admin can attach an existing contact from another tenant', function () 
 
     actingAsMember($target, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->assertSet('name', 'Shared Person')
@@ -325,7 +325,7 @@ test('an expired contact is renewed in place', function () {
             'finish_date' => now()->subDay(),
         ]);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->set('role', OrganizationRelationshipType::Supplier->value)
@@ -357,7 +357,7 @@ test('a scheduled contact cannot be selected for reuse', function () {
         ->whereKey(contactRelationshipId($organization, $person))
         ->update(['start_date' => now()->addWeek(), 'finish_date' => null]);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->assertSet('selectedEntity', null);
@@ -375,7 +375,7 @@ test('a contact already in the tenant list cannot be selected for reuse', functi
 
     actingAsMember($target, Role::Admin);
 
-    Livewire::test(Edit::class)
+    Livewire::test(Form::class)
         ->call('openCreate')
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->assertSet('selectedEntity', null);

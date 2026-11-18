@@ -80,8 +80,8 @@
         },
     }">
         <x-settings.layout :heading="__('Preferences')" :subheading="__('Manage your appearance and localization preferences')">
-            <div class="my-6 space-y-8">
-                <section class="space-y-3">
+            <div class="my-6 flex flex-col gap-8">
+                <section class="flex flex-col gap-3">
                     <div>
                         <flux:heading id="appearance-heading" size="lg">{{ __('Appearance') }}</flux:heading>
                         <flux:subheading id="appearance-description">{{ __('Update the appearance settings for your account') }}</flux:subheading>
@@ -101,7 +101,7 @@
                     </flux:radio.group>
                 </section>
 
-                <section class="space-y-3">
+                <section class="flex flex-col gap-3">
                     <div>
                         <flux:heading id="locale-heading" size="lg">{{ __('Locale') }}</flux:heading>
                         <flux:subheading id="locale-description">{{ __('Choose your preferred language') }}</flux:subheading>
@@ -121,7 +121,7 @@
                     </flux:radio.group>
                 </section>
 
-                <section class="space-y-3">
+                <section class="flex flex-col gap-3">
                     <div>
                         <flux:heading id="timezone-heading" size="lg">{{ __('Timezone') }}</flux:heading>
                         <flux:subheading id="timezone-description">{{ __('Choose your local timezone') }}</flux:subheading>

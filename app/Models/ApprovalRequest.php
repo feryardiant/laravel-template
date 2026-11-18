@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
  * @property Carbon $expires_at
  * @property Carbon|null $accepted_at
  * @property Carbon|null $declined_at
- * @property Carbon|null $cancelled_at
+ * @property Carbon|null $canceled_at
  * @property-read Organization $organization
  * @property-read Person $requester
  * @property-read Person $approver
@@ -44,7 +44,7 @@ use Illuminate\Support\Str;
     'expires_at',
     'accepted_at',
     'declined_at',
-    'cancelled_at',
+    'canceled_at',
 ])]
 #[RouteKey('uuid')]
 class ApprovalRequest extends Model
@@ -61,7 +61,7 @@ class ApprovalRequest extends Model
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
             'declined_at' => 'datetime',
-            'cancelled_at' => 'datetime',
+            'canceled_at' => 'datetime',
         ];
     }
 
