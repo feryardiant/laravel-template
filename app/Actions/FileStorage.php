@@ -39,18 +39,6 @@ final class FileStorage
     }
 
     /**
-     * Replace a previously stored file with a new upload.
-     */
-    public function replace(UploadedFile $file, string $directory, ?string $previousPath = null): string
-    {
-        $path = $this->handle($file, $directory);
-
-        $this->delete($previousPath);
-
-        return $path;
-    }
-
-    /**
      * Delete a previously stored file. Returns false when the object survives.
      */
     public function delete(?string $path): bool

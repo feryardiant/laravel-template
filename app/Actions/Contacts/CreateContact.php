@@ -8,6 +8,7 @@ use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Events\Contacts\ContactCreated;
@@ -128,18 +129,16 @@ final class CreateContact
 
                 // Contact records only; never pass these to createIndividual(),
                 // whose $email argument creates a login user.
-                $this->saveContactDetails->handle(
-                    $stakeholder,
-                    $data['contact_email'] ?? null,
-                    $data['contact_phone'] ?? null,
-                );
+                $this->saveContactDetails->handle($stakeholder, [
+                    ContactDetailType::Email->value => $data['contact_email'] ?? null,
+                    ContactDetailType::Phone->value => $data['contact_phone'] ?? null,
+                ]);
 
                 if ($stakeholder instanceof Organization && $stakeholder->primaryContact !== null) {
-                    $this->saveContactDetails->handle(
-                        $stakeholder->primaryContact,
-                        $data['contact_person_email'] ?? null,
-                        $data['contact_person_phone'] ?? null,
-                    );
+                    $this->saveContactDetails->handle($stakeholder->primaryContact, [
+                        ContactDetailType::Email->value => $data['contact_person_email'] ?? null,
+                        ContactDetailType::Phone->value => $data['contact_person_phone'] ?? null,
+                    ]);
                 }
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);

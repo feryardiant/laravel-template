@@ -8,6 +8,7 @@ use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Enums\ContactDetailType;
 use App\Events\Contacts\ContactUpdated;
 use App\Models\Entity;
 use App\Models\Organization;
@@ -209,33 +210,47 @@ final class UpdateContact
      */
     private function saveContactDetailsFor(Organization|Person $stakeholder, array $data): array
     {
-        $fields = [];
-
-        if (\array_key_exists('contact_email', $data)) {
-            $fields = $this->saveContactDetails->handle(
-                $stakeholder,
-                $data['contact_email'],
-                $data['contact_phone'] ?? null,
-            );
-        }
+        $fields = $this->saveDetails($stakeholder, $data, [
+            'contact_email' => ContactDetailType::Email,
+            'contact_phone' => ContactDetailType::Phone,
+        ]);
 
         $contactPerson = $stakeholder instanceof Organization ? $stakeholder->primaryContact : null;
 
-        if ($contactPerson !== null && \array_key_exists('contact_person_email', $data)) {
-            $fields = [
-                ...$fields,
-                ...array_map(
-                    fn (string $field): string => 'contact_'.$field,
-                    $this->saveContactDetails->handle(
-                        $contactPerson,
-                        $data['contact_person_email'],
-                        $data['contact_person_phone'] ?? null,
-                    ),
-                ),
-            ];
+        if ($contactPerson === null) {
+            return $fields;
         }
 
-        return $fields;
+        return [
+            ...$fields,
+            ...array_map(
+                fn (string $field): string => 'contact_'.$field,
+                $this->saveDetails($contactPerson, $data, [
+                    'contact_person_email' => ContactDetailType::Email,
+                    'contact_person_phone' => ContactDetailType::Phone,
+                ]),
+            ),
+        ];
+    }
+
+    /**
+     * Write only the detail keys the form submitted.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, ContactDetailType>  $map
+     * @return list<string>
+     */
+    private function saveDetails(Entity $entity, array $data, array $map): array
+    {
+        $details = [];
+
+        foreach ($map as $key => $type) {
+            if (\array_key_exists($key, $data)) {
+                $details[$type->value] = $data[$key];
+            }
+        }
+
+        return $this->saveContactDetails->handle($entity, $details);
     }
 
     /**

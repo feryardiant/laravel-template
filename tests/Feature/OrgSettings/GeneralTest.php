@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Enums\AuditEvent;
 use App\Enums\ContactDetailType;
 use App\Enums\Role;
@@ -207,6 +208,22 @@ test('the danger zone is visible only to the owner', function () {
     get(route('org-settings.general'))
         ->assertOk()
         ->assertDontSee(__('Danger Zone'));
+});
+
+it('saving the organization profile keeps contact details saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(General::class);
+
+    app(SaveContactDetails::class)->handle($organization, [
+        ContactDetailType::Email->value => 'newer@acme.test',
+    ]);
+
+    $component->set('summary', 'Updated summary')->call('update')->assertHasNoErrors();
+
+    expect($organization->fresh()->contactDetailValue(ContactDetailType::Email))->toBe('newer@acme.test');
 });
 
 it('updates the organization contact details', function () {

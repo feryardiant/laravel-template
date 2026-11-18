@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Memberships\CreateMember;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
@@ -251,6 +252,91 @@ test('the user avatar can be removed', function () {
     expect(Storage::disk()->exists('avatars/old.jpg'))->toBeFalse();
 });
 
+test('a failed profile save removes the staged avatar', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    actingAs($user = User::factory()->create());
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Profile::class)
+            ->set('contact_phone', '0899 000')
+            ->set('avatar', UploadedFile::fake()->image('avatar.jpg'))
+            ->call('updateProfileInformation');
+    } catch (RuntimeException) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and(Storage::disk()->allFiles('avatars'))->toBe([])
+        ->and($user->fresh()?->person)->toBeNull();
+});
+
+test('a failed profile update keeps the previous avatar', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/old.jpg']);
+    Storage::disk()->put('avatars/old.jpg', 'avatar');
+
+    actingAs($user);
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Profile::class)
+            ->set('contact_phone', '0899 000')
+            ->set('avatar', UploadedFile::fake()->image('new.jpg'))
+            ->call('updateProfileInformation');
+    } catch (RuntimeException) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($user->person->fresh()->getRawOriginal('photo_url'))->toBe('avatars/old.jpg')
+        ->and(Storage::disk()->allFiles('avatars'))->toBe(['avatars/old.jpg']);
+});
+
+test('a failed profile update keeps an avatar being removed', function () {
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/old.jpg']);
+    Storage::disk()->put('avatars/old.jpg', 'avatar');
+
+    actingAs($user);
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Profile::class)
+            ->set('contact_phone', '0899 000')
+            ->call('clearAvatar')
+            ->call('updateProfileInformation');
+    } catch (RuntimeException) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($user->person->fresh()->getRawOriginal('photo_url'))->toBe('avatars/old.jpg')
+        ->and(Storage::disk()->exists('avatars/old.jpg'))->toBeTrue();
+});
+
 test('the user avatar path is kept when removal fails', function () {
     Storage::fake();
 
@@ -295,6 +381,20 @@ test('a non-image avatar is rejected', function () {
         ->assertHasErrors(['avatar']);
 
     expect($user->fresh()->person?->getRawOriginal('photo_url'))->toBeNull();
+});
+
+test('saving the profile keeps a contact detail saved by another session', function () {
+    actingAs($user = User::factory()->withProfile()->create());
+
+    $component = Livewire::test(Profile::class);
+
+    app(SaveContactDetails::class)->handle($user->person, [
+        ContactDetailType::Phone->value => '0899 000',
+    ]);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()?->person?->contactDetailValue(ContactDetailType::Phone))->toBe('0899 000');
 });
 
 test('contact details are stored without changing the login email', function () {

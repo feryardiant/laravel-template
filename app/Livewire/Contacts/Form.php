@@ -96,6 +96,14 @@ class Form extends Component
 
     public string $contact_person_phone = '';
 
+    /**
+     * The detail values loaded when the form opened; only changes are submitted.
+     *
+     * @var array<string, string>
+     */
+    #[Locked]
+    public array $originalDetails = [];
+
     #[Locked]
     public bool $genderEnabled = false;
 
@@ -130,6 +138,7 @@ class Form extends Component
             'contact_phone',
             'contact_person_email',
             'contact_person_phone',
+            'originalDetails',
         );
 
         $this->type = 'individual';
@@ -265,11 +274,8 @@ class Form extends Component
             'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
             'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
             'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
-            'contact_email' => $this->contact_email,
-            'contact_phone' => $this->contact_phone,
-            'contact_person_email' => $this->contact_person_email,
-            'contact_person_phone' => $this->contact_person_phone,
             'address' => $this->addressPayload(),
+            ...$this->changedContactDetails(),
         ];
 
         if ($this->genderEnabled) {
@@ -319,6 +325,7 @@ class Form extends Component
         }
 
         $this->showModal = false;
+        $this->rememberContactDetails();
         $this->dispatch('contact-updated', contactId: $entity?->getKey());
 
         Flux::toast(variant: 'success', text: $message);
@@ -481,7 +488,38 @@ class Form extends Component
             $this->contact_person_phone = (string) $contactPerson?->contactDetailValue(ContactDetailType::Phone);
         }
 
+        $this->originalDetails = $this->contactDetailValues();
         $this->resetValidation();
+    }
+
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
+    {
+        return [
+            'contact_email' => $this->contact_email,
+            'contact_phone' => $this->contact_phone,
+            'contact_person_email' => $this->contact_person_email,
+            'contact_person_phone' => $this->contact_person_phone,
+        ];
+    }
+
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
+    {
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
+
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
     }
 
     private function resetReuse(bool $resetName = false): void
@@ -501,6 +539,7 @@ class Form extends Component
         $this->contact_phone = '';
         $this->contact_person_email = '';
         $this->contact_person_phone = '';
+        $this->originalDetails = [];
         $this->type = 'individual';
         $this->resetAddress();
 

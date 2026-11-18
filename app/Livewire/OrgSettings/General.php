@@ -38,6 +38,14 @@ class General extends Component
     public string $contact_phone = '';
 
     /**
+     * The detail values loaded when the form opened; only changes are submitted.
+     *
+     * @var array<string, string>
+     */
+    #[Locked]
+    public array $originalDetails = [];
+
+    /**
      * @var mixed
      */
     public $logo = null;
@@ -62,6 +70,35 @@ class General extends Component
         $this->contact_phone = (string) $organization->contactDetailValue(ContactDetailType::Phone);
         $this->logo_url = $organization->getRawOriginal('logo_url');
         $this->fillAddress($organization->address()->first());
+        $this->originalDetails = $this->contactDetailValues();
+    }
+
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
+    {
+        return [
+            ContactDetailType::Email->value => $this->contact_email,
+            ContactDetailType::Phone->value => $this->contact_phone,
+        ];
+    }
+
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
+    {
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
+
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
     }
 
     #[Computed]
@@ -119,11 +156,7 @@ class General extends Component
 
                 $saveAddress->handle($organization, $this->addressPayload());
 
-                $details = $saveContactDetails->handle(
-                    $organization,
-                    $validated['contact_email'] ?? null,
-                    $validated['contact_phone'] ?? null,
-                );
+                $details = $saveContactDetails->handle($organization, $this->changedContactDetails());
 
                 $fields = [
                     ...array_values(array_diff(array_keys($organization->getChanges()), ['updated_at'])),
@@ -159,6 +192,8 @@ class General extends Component
 
             throw $exception;
         }
+
+        $this->rememberContactDetails();
 
         if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
             $restored = Organization::query()

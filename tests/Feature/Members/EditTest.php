@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Memberships\CreateMember;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
@@ -183,6 +184,70 @@ test('the owner role cannot be assigned when editing a member', function () {
     expect($member->person->fresh()->roleIn($organization))->toBe(Role::Member);
 });
 
+test('a failed member update keeps the previous photo', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/old.jpg']);
+    Storage::disk()->put('photos/old.jpg', 'photo');
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Form::class, ['person' => $member->person])
+            ->set('name', 'Renamed Member')
+            ->set('contact_phone', '0899 111')
+            ->set('photo', UploadedFile::fake()->image('new.jpg'))
+            ->call('update');
+    } catch (RuntimeException) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/old.jpg')
+        ->and(Storage::disk()->allFiles('photos'))->toBe(['photos/old.jpg']);
+});
+
+test('a failed member update keeps a photo being removed', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/old.jpg']);
+    Storage::disk()->put('photos/old.jpg', 'photo');
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Form::class, ['person' => $member->person])
+            ->set('contact_phone', '0899 111')
+            ->call('clearPhoto')
+            ->call('update');
+    } catch (RuntimeException) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/old.jpg')
+        ->and(Storage::disk()->exists('photos/old.jpg'))->toBeTrue();
+});
+
 test('the member photo path cannot be changed from the client', function () {
     $organization = Organization::factory()->create();
 
@@ -291,6 +356,43 @@ test('a photo picked for a new member does not follow into an edit', function ()
         ->assertHasNoErrors();
 
     expect($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/original.jpg');
+});
+
+test('saving a member keeps a contact detail saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    app(SaveContactDetails::class)->handle($member->person, [
+        ContactDetailType::Email->value => 'newer@example.test',
+    ]);
+
+    $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
+
+    expect($member->person->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('newer@example.test');
+});
+
+test('clearing a member contact detail deletes it', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+    $member->person->contactDetails()->create([
+        'type' => ContactDetailType::Email,
+        'value' => 'clear@example.test',
+    ]);
+
+    Livewire::test(Form::class, ['person' => $member->person])
+        ->set('contact_email', '')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($member->person->fresh()?->contactDetailValue(ContactDetailType::Email))->toBeNull();
 });
 
 test('contact details stay editable when the profile is managed elsewhere', function () {

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Contacts\UpdateContact;
 use App\Enums\AuditEvent;
 use App\Enums\ContactDetailType;
@@ -553,6 +554,26 @@ test('a stale reuse reference cannot skip contact detail validation on edit', fu
         ->set('contact_email', 'not-an-email')
         ->call('save')
         ->assertHasErrors('contact_email');
+});
+
+test('saving an unrelated field keeps a contact detail saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Stale Details']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    $form = Livewire::test(Form::class)->call('openEdit', $relationshipId);
+
+    app(SaveContactDetails::class)->handle($contact, [
+        ContactDetailType::Email->value => 'newer@acme.test',
+    ]);
+
+    $form->set('code', 'STALE-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('newer@acme.test')
+        ->and(OrganizationRelationship::query()->whereKey($relationshipId)->value('code'))->toBe('STALE-1');
 });
 
 test('an organization contact person email and phone are editable and clearable', function () {

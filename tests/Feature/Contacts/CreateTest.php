@@ -431,7 +431,10 @@ test('blank contact values are not stored', function () {
 
     $contact = contactIndividual($organization, ['name' => 'Blank Details']);
 
-    app(SaveContactDetails::class)->handle($contact, '   ', '  ');
+    app(SaveContactDetails::class)->handle($contact, [
+        ContactDetailType::Email->value => '   ',
+        ContactDetailType::Phone->value => '  ',
+    ]);
 
     expect(ContactDetail::query()->count())->toBe(0);
 });
