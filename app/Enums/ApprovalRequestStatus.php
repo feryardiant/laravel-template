@@ -17,6 +17,19 @@ enum ApprovalRequestStatus: string
 
     case Canceled = 'canceled';
 
+    /**
+     * Get the badge color for the status.
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Pending => 'amber',
+            self::Accepted => 'green',
+            self::Declined => 'red',
+            self::Canceled => 'zinc',
+        };
+    }
+
     public function label(): string
     {
         return match ($this) {

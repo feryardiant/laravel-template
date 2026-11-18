@@ -107,14 +107,6 @@
                         if (isset($changes['detached_only']) && $changes['detached_only']) {
                             $details[] = __('Entity kept');
                         }
-
-                        $color = match (true) {
-                            str_starts_with($log->event->value, 'member.') => 'sky',
-                            str_starts_with($log->event->value, 'contact.') => 'emerald',
-                            str_starts_with($log->event->value, 'organization.') => 'amber',
-                            str_starts_with($log->event->value, 'feature.') => 'violet',
-                            default => 'indigo',
-                        };
                     @endphp
 
                     <flux:table.row :key="$log->id">
@@ -122,7 +114,7 @@
                             <x-local-time :date="$log->created_at" format="d M Y H:i" />
                         </flux:table.cell>
                         <flux:table.cell>
-                            <flux:badge size="sm" :color="$color">{{ $log->event->label() }}</flux:badge>
+                            <flux:badge size="sm" :color="$log->event->badgeColor()">{{ $log->event->label() }}</flux:badge>
                         </flux:table.cell>
                         <flux:table.cell>{{ $log->actor?->name ?? __('System') }}</flux:table.cell>
                         <flux:table.cell>{{ $log->subjectLabel() }}</flux:table.cell>

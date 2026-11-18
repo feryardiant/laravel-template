@@ -37,6 +37,34 @@ enum OrganizationRelationshipType: string
     case Vendor = 'vendor';
 
     /**
+     * Get the badge color for the relationship type.
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Subsidiary => 'indigo',
+            self::Member => 'zinc',
+            self::Customer => 'sky',
+            self::Supplier => 'emerald',
+            self::Vendor => 'amber',
+        };
+    }
+
+    /**
+     * Get the human-readable label for the relationship type.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Subsidiary => __('Subsidiary'),
+            self::Member => __('Member'),
+            self::Customer => __('Customer'),
+            self::Supplier => __('Supplier'),
+            self::Vendor => __('Vendor'),
+        };
+    }
+
+    /**
      * Get the internal relationship types.
      *
      * @return list<self>
@@ -70,19 +98,5 @@ enum OrganizationRelationshipType: string
     public function isExternal(): bool
     {
         return \in_array($this, self::externals(), true);
-    }
-
-    /**
-     * Get the human-readable label for the relationship type.
-     */
-    public function label(): string
-    {
-        return match ($this) {
-            self::Subsidiary => __('Subsidiary'),
-            self::Member => __('Member'),
-            self::Customer => __('Customer'),
-            self::Supplier => __('Supplier'),
-            self::Vendor => __('Vendor'),
-        };
     }
 }

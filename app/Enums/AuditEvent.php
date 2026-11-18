@@ -30,6 +30,20 @@ enum AuditEvent: string
     case ApprovalDeclined = 'approval.declined';
     case ApprovalCanceled = 'approval.canceled';
 
+    /**
+     * Get the badge color for the event group.
+     */
+    public function badgeColor(): string
+    {
+        return match (true) {
+            str_starts_with($this->value, 'member.') => 'sky',
+            str_starts_with($this->value, 'contact.') => 'emerald',
+            str_starts_with($this->value, 'organization.') => 'amber',
+            str_starts_with($this->value, 'feature.') => 'violet',
+            default => 'indigo',
+        };
+    }
+
     public function label(): string
     {
         return match ($this) {

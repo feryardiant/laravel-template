@@ -1,6 +1,4 @@
 <x-page>
-    @php($roleColor = $role?->isOwner() ? 'amber' : ($role?->isAdmin() ? 'blue' : 'zinc'))
-
     <x-slot:leading>
         <flux:avatar :initials="$person->initials()" :src="$person->photo_url" size="lg" />
     </x-slot:leading>
@@ -8,7 +6,7 @@
     <x-slot:heading>
         {{ $person->name }}
         @if ($role !== null)
-            <flux:badge :color="$roleColor">{{ $role->label() }}</flux:badge>
+            <flux:badge :color="$role->badgeColor()">{{ $role->label() }}</flux:badge>
         @endif
     </x-slot:heading>
 

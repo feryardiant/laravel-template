@@ -6,7 +6,7 @@
         @if ($this->pendingApproval !== null)
             <flux:callout variant="warning" icon="clock" :heading="__('Approval request pending')">
                 <flux:callout.text>
-                    <flux:badge size="sm" color="amber" class="mb-2">
+                    <flux:badge size="sm" :color="$this->pendingApproval->status->badgeColor()" class="mb-2">
                         {{ $this->pendingApproval->status->label() }}
                     </flux:badge>
 

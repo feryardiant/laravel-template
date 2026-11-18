@@ -47,7 +47,7 @@
                                     <flux:heading class="truncate">{{ $organization->name }}</flux:heading>
 
                                     @if ($kind !== null)
-                                        <flux:badge size="sm" color="zinc">{{ $kind->label() }}</flux:badge>
+                                        <flux:badge size="sm" :color="$kind->badgeColor()">{{ $kind->label() }}</flux:badge>
                                     @endif
                                 </div>
 

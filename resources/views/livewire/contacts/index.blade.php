@@ -163,7 +163,7 @@
                                         {{ $stakeholder->name }}
                                     </a>
 
-                                    <flux:badge size="sm" color="zinc">
+                                    <flux:badge size="sm" :color="$contact->type->badgeColor()">
                                         {{ $contact->type->label() }}
                                     </flux:badge>
 

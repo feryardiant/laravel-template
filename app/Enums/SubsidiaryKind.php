@@ -33,6 +33,19 @@ enum SubsidiaryKind: string
     case BusinessUnit = 'business_unit';
 
     /**
+     * Get the badge color for the kind.
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Subsidiary => 'sky',
+            self::Branch => 'emerald',
+            self::Division => 'violet',
+            self::BusinessUnit => 'amber',
+        };
+    }
+
+    /**
      * Get the human-readable label for the kind.
      */
     public function label(): string

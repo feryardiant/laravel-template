@@ -59,17 +59,9 @@
                         <flux:heading>{{ $contact->type?->label() ?? '—' }}</flux:heading>
                     </div>
 
-                    @php
-                        $statusColor = match ($contact->status) {
-                            \App\Enums\RelationshipStatus::Active => 'green',
-                            \App\Enums\RelationshipStatus::Scheduled => 'amber',
-                            \App\Enums\RelationshipStatus::Expired => 'zinc',
-                        };
-                    @endphp
-
                     <div>
                         <flux:text>{{ __('Status') }}</flux:text>
-                        <flux:badge size="sm" :color="$statusColor">
+                        <flux:badge size="sm" :color="$contact->status->badgeColor()">
                             {{ $contact->status->label() }}
                         </flux:badge>
                     </div>

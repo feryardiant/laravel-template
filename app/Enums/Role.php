@@ -25,6 +25,21 @@ enum Role: int
         return $this === self::Member;
     }
 
+    /**
+     * Get the badge color for the role.
+     */
+    public function badgeColor(): string
+    {
+        return match ($this) {
+            self::Owner => 'amber',
+            self::Admin => 'indigo',
+            self::Member => 'sky',
+        };
+    }
+
+    /**
+     * Get the human-readable label for the kind.
+     */
     public function label(): string
     {
         return match ($this) {
