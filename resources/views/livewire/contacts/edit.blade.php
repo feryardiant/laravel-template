@@ -8,7 +8,7 @@
     class="flex flex-col"
 >
     <form wire:submit="save" class="-mb-6 flex flex-1 flex-col gap-6">
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             @if ($this->sharedFieldsLocked)
                 <flux:field>
                     <flux:label>{{ __('Photo') }}</flux:label>

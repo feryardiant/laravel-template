@@ -1,12 +1,12 @@
-<div class="space-y-8">
-    <div class="space-y-2">
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-2">
         <h1 data-ui-outside class="text-2xl font-semibold">Select</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Custom listbox and pillbox, bound to Livewire.
         </p>
     </div>
 
-    <section data-ui-demo="select-single" class="space-y-2">
+    <section data-ui-demo="select-single" class="flex flex-col gap-2">
         <x-ui.select wire:model.live="industry" label="Industry" placeholder="Choose industry..." empty="No industries found" clearable>
             <x-ui.select.option value="photography" icon="camera">Photography</x-ui.select.option>
             <x-ui.select.option value="design" icon="paint-brush">Design services</x-ui.select.option>
@@ -33,7 +33,7 @@
         <flux:button size="sm" wire:click="resetIndustry">Set legal</flux:button>
     </section>
 
-    <section data-ui-demo="select-multiple" class="space-y-2">
+    <section data-ui-demo="select-multiple" class="flex flex-col gap-2">
         <x-ui.select wire:model.live="industries" label="Industries" placeholder="Choose industries..." multiple clearable>
             <x-ui.select.option value="photography" icon="camera">Photography</x-ui.select.option>
             <x-ui.select.option value="design" icon="paint-brush">Design services</x-ui.select.option>
@@ -48,7 +48,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="select-pillbox" class="space-y-2">
+    <section data-ui-demo="select-pillbox" class="flex flex-col gap-2">
         <x-ui.select wire:model.live="tags" variant="pillbox" label="Tags" placeholder="Choose tags..." clearable>
             <x-ui.select.option value="design">Design</x-ui.select.option>
             <x-ui.select.option value="development">Development</x-ui.select.option>
@@ -65,36 +65,36 @@
         </p>
     </section>
 
-    <section data-ui-demo="select-disabled" class="space-y-2">
+    <section data-ui-demo="select-disabled" class="flex flex-col gap-2">
         <x-ui.select label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="web" clearable disabled>
             <x-ui.select.option value="web">Web development</x-ui.select.option>
             <x-ui.select.option value="design">Design services</x-ui.select.option>
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-invalid" class="space-y-2">
+    <section data-ui-demo="select-invalid" class="flex flex-col gap-2">
         <x-ui.select label="Invalid" placeholder="Choose industry..." value="web" invalid>
             <x-ui.select.option value="web">Web development</x-ui.select.option>
             <x-ui.select.option value="design">Design services</x-ui.select.option>
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-unlabeled" class="space-y-2">
+    <section data-ui-demo="select-unlabeled" class="flex flex-col gap-2">
         <x-ui.select placeholder="Choose something" clearable>
             <x-ui.select.option value="one">First option</x-ui.select.option>
             <x-ui.select.option value="two">Second option</x-ui.select.option>
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-disabled-options" class="space-y-2">
+    <section data-ui-demo="select-disabled-options" class="flex flex-col gap-2">
         <x-ui.select label="Disabled options" placeholder="Choose an option...">
             <x-ui.select.option value="blocked" disabled>Blocked option</x-ui.select.option>
             <x-ui.select.option value="available">Available option</x-ui.select.option>
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-plain" class="space-y-3">
-        <form method="get" action="{{ route('ui.select') }}" class="space-y-3">
+    <section data-ui-demo="select-plain" class="flex flex-col gap-3">
+        <form method="get" action="{{ route('ui.select') }}" class="flex flex-col gap-3">
             <x-ui.select name="plain_industry" value="design" label="Plain single" placeholder="Choose industry...">
                 <x-ui.select.option value="web">Web development</x-ui.select.option>
                 <x-ui.select.option value="design">Design services</x-ui.select.option>
@@ -109,7 +109,7 @@
         </form>
     </section>
 
-    <section data-ui-demo="select-duplicate-model" class="space-y-2">
+    <section data-ui-demo="select-duplicate-model" class="flex flex-col gap-2">
         <x-ui.select wire:model="industry" label="Duplicate A" placeholder="Choose industry...">
             <x-ui.select.option value="web">Web development</x-ui.select.option>
             <x-ui.select.option value="design">Design services</x-ui.select.option>
@@ -121,14 +121,14 @@
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-no-name" class="space-y-2">
+    <section data-ui-demo="select-no-name" class="flex flex-col gap-2">
         <x-ui.select>
             <x-ui.select.option value="one">First option</x-ui.select.option>
             <x-ui.select.option value="two">Second option</x-ui.select.option>
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-wide" class="space-y-2">
+    <section data-ui-demo="select-wide" class="flex flex-col gap-2">
         <x-ui.select label="Wide options" placeholder="Choose..." options:class="w-[40rem]">
             <x-ui.select.option value="long">
                 VeryLongOptionLabelWithoutAnySpacesThatWouldOverflowTheViewportOnMobile
@@ -136,7 +136,7 @@
         </x-ui.select>
     </section>
 
-    <section data-ui-demo="select-field-nested" class="space-y-2">
+    <section data-ui-demo="select-field-nested" class="flex flex-col gap-2">
         <flux:field>
             <flux:label>Nested field</flux:label>
 
@@ -149,8 +149,8 @@
         </flux:field>
     </section>
 
-    <section data-ui-demo="select-form-reset" class="space-y-2">
-        <form class="space-y-2">
+    <section data-ui-demo="select-form-reset" class="flex flex-col gap-2">
+        <form class="flex flex-col gap-2">
             <x-ui.select name="reset_industry" value="web" label="Reset industry">
                 <x-ui.select.option value="web">Web development</x-ui.select.option>
                 <x-ui.select.option value="design">Design services</x-ui.select.option>

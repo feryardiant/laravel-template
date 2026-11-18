@@ -22,7 +22,7 @@
         :$flyout
         :$position
         :$variant
-        {{ $attributes->class(['space-y-6 w-full', $width]) }}
+        {{ $attributes->class(['flex flex-col gap-6 w-full', $width]) }}
         x-init="{{ $labelledBy }}"
     >
         @if ($hasHeading)

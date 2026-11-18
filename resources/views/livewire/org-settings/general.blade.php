@@ -1,6 +1,6 @@
 <x-page :heading="__('Organization settings')" :subheading="__('Manage your organization settings')">
     <x-org-settings.layout :heading="__('General')" :subheading="__('Update your organization profile')">
-        <form wire:submit="update" class="my-6 w-full space-y-6">
+        <form wire:submit="update" class="my-6 w-full flex flex-col gap-6">
             <x-ui.file-upload wire:model="logo" accept="image/*" :label="__('Organization Logo')">
                 <x-ui.file-upload.avatar :url="$logo ?? $this->logoPreviewUrl" shape="rounded" remove="clearLogo" />
             </x-ui.file-upload>

@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="flex flex-col gap-6">
     <flux:input
         wire:model="address.line"
         type="text"

@@ -1,12 +1,12 @@
-<div class="space-y-8">
-    <div class="space-y-2">
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-2">
         <h1 data-ui-outside class="text-2xl font-semibold">File upload</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Dropzone, drag and drop, Livewire upload progress and removable file items.
         </p>
     </div>
 
-    <section data-ui-demo="file-upload-photos" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-photos" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload
             wire:model="photos"
             multiple
@@ -46,7 +46,7 @@
         <flux:button size="sm" wire:click="$refresh" data-ui-test="refresh">Refresh component</flux:button>
     </section>
 
-    <section data-ui-demo="file-upload-avatar" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-avatar" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload
             wire:model="avatar"
             accept="image/*"
@@ -76,7 +76,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="file-upload-custom" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-custom" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload
             wire:model="customAvatar"
             accept="image/*"
@@ -121,7 +121,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="file-upload-documents" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-documents" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload
             wire:model="documents"
             multiple
@@ -154,24 +154,24 @@
         </p>
     </section>
 
-    <section data-ui-demo="file-upload-disabled" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-disabled" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload name="disabled_files" disabled>
             <x-ui.file-upload.dropzone heading="Uploads are disabled" />
         </x-ui.file-upload>
     </section>
 
-    <section data-ui-demo="file-upload-invalid" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-invalid" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload name="invalid_files" label="Invalid upload" error="The file is too large">
             <x-ui.file-upload.dropzone heading="Upload a smaller file" />
         </x-ui.file-upload>
     </section>
 
-    <section data-ui-demo="file-upload-plain" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-plain" class="max-w-lg flex flex-col gap-3">
         <form
             method="post"
             action="{{ route('ui.file-upload.plain') }}"
             enctype="multipart/form-data"
-            class="space-y-3"
+            class="flex flex-col gap-3"
         >
             @csrf
 
@@ -188,13 +188,13 @@
         @endif
     </section>
 
-    <section data-ui-demo="file-upload-items" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-items" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload.item heading="photo.png" :size="1536" />
         <x-ui.file-upload.item heading="report.pdf" :size="2097152" />
         <x-ui.file-upload.item heading="broken.pdf" :size="1024" invalid />
     </section>
 
-    <section data-ui-demo="file-upload-remove" class="max-w-lg space-y-3">
+    <section data-ui-demo="file-upload-remove" class="max-w-lg flex flex-col gap-3">
         <x-ui.file-upload.item heading="removable.pdf" :size="1024">
             <x-slot:actions>
                 <x-ui.file-upload.item.remove

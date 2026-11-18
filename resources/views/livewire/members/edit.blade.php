@@ -8,7 +8,7 @@
     class="flex flex-col"
 >
     <form wire:submit="save" class="-mb-6 flex flex-1 flex-col">
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             @unless ($this->canEditProfile)
                 <flux:callout variant="secondary" icon="lock-closed">
                     <flux:callout.text>

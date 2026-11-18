@@ -3,7 +3,7 @@
     :title="__('Remove subsidiary')"
     :subtitle="__('Remove :name?', ['name' => $removingName])"
 >
-    <div class="space-y-6">
+    <div class="flex flex-col gap-6">
         <flux:text>
             {{ __('This permanently deletes the organization, its members, contacts, addresses and logo. People and login credentials are kept, and the deletion runs in the background.') }}
 

@@ -264,7 +264,7 @@
         :title="__('Delete contact')"
         :subtitle="__('Delete :name from your contacts?', ['name' => $deletingContactName ?? __('this contact')])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -282,7 +282,7 @@
         :title="__('Delete contacts')"
         :subtitle="__('Delete :count selected contacts?', ['count' => count($selected)])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>

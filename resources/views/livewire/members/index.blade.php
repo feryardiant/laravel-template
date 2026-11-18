@@ -272,7 +272,7 @@
         :title="__('Remove member')"
         :subtitle="__('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -290,7 +290,7 @@
         :title="__('Remove members')"
         :subtitle="__('Remove :count selected members from this organization?', ['count' => count($selected)])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
@@ -308,7 +308,7 @@
         :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
         :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>

@@ -4,7 +4,7 @@
     :title="$approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value ? __('Ownership transfer request') : __('Leave request')"
     :subtitle="$organizationName"
 >
-    <div class="space-y-6">
+    <div class="flex flex-col gap-6">
         <flux:text>
             @if ($approvalType === \App\Enums\ApprovalRequestType::OwnershipTransfer->value)
                 {{ __(':owner wants to transfer ownership of :organization to you. Accepting makes you the owner and the current owner an Admin.', ['owner' => $requesterName, 'organization' => $organizationName]) }}

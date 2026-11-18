@@ -54,7 +54,7 @@
         :title="__('Transfer ownership')"
         :subtitle="$organization?->name"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('You will become an Admin.')">
                 <flux:callout.text>
                     {{ __('The selected member must accept the transfer. Until then, you remain the owner.') }}

@@ -164,8 +164,8 @@
         @if ($this->selectedNotification)
             @php($data = $this->selectedNotification->data)
 
-            <div class="space-y-6">
-                <div class="space-y-3 text-sm">
+            <div class="flex flex-col gap-6">
+                <div class="flex flex-col gap-3 text-sm">
                     @if (! empty($data['greeting']))
                         <p class="font-medium">{{ $data['greeting'] }}</p>
                     @endif

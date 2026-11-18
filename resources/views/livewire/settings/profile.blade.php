@@ -1,6 +1,6 @@
 <x-page :heading="__('Settings')" :subheading="__('Manage your profile and account settings')">
     <x-settings.layout :heading="__('Profile')" :subheading="__('Update your name, profile, and email address')">
-        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
+        <form wire:submit="updateProfileInformation" class="my-6 w-full flex flex-col gap-6">
             @unless ($this->canEditOwnProfile)
                 <flux:callout variant="secondary" icon="lock-closed">
                     <flux:callout.text>
@@ -64,7 +64,7 @@
             />
 
             @if ($this->genderEnabled)
-                <div class="space-y-2">
+                <div class="flex flex-col gap-2">
                     <flux:radio.group
                         wire:model="gender"
                         :label="__('Gender')"

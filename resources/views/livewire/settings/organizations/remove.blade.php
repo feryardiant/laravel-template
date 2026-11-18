@@ -4,7 +4,7 @@
     :title="__('Remove organization')"
     :subtitle="$organizationName"
 >
-    <div class="space-y-6">
+    <div class="flex flex-col gap-6">
         <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('This action cannot be undone.')">
             <flux:callout.text>
                 {{ __('All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.', ['name' => $organizationName]) }}

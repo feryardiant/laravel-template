@@ -127,7 +127,7 @@
         :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
         :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $person->name]) : __('Demote :name to Member?', ['name' => $person->name])"
     >
-        <div class="space-y-6">
+        <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <flux:modal.close>
                     <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>

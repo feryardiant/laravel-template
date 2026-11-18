@@ -1,12 +1,12 @@
-<div class="space-y-8">
-    <div class="space-y-2">
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-2">
         <h1 data-ui-outside class="text-2xl font-semibold">Date and time picker</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Calendar and time columns in one popover, with single and range modes.
         </p>
     </div>
 
-    <section data-ui-demo="datetime-picker-single" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-single" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker
             wire:model.live="startAt"
             label="Starts at"
@@ -22,7 +22,7 @@
         <flux:button size="sm" wire:click="moveStartAt" data-ui-test="move-start">Set to 10 Nov 14:30</flux:button>
     </section>
 
-    <section data-ui-demo="datetime-picker-empty" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-empty" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker wire:model.live="emptyAt" label="Empty starts at" default-time="09:00" open-to="2026-11-01" clearable />
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
@@ -30,7 +30,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="datetime-picker-confirm" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-confirm" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker
             wire:model.live="confirmedAt"
             label="Confirmed starts at"
@@ -44,7 +44,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="datetime-picker-range-empty" class="max-w-md space-y-3">
+    <section data-ui-demo="datetime-picker-range-empty" class="max-w-md flex flex-col gap-3">
         <x-ui.datetime-picker
             mode="range"
             label="Empty schedule"
@@ -54,7 +54,7 @@
         />
     </section>
 
-    <section data-ui-demo="datetime-picker-range" class="max-w-md space-y-3">
+    <section data-ui-demo="datetime-picker-range" class="max-w-md flex flex-col gap-3">
         <x-ui.datetime-picker
             wire:model.live="schedule"
             mode="range"
@@ -71,7 +71,7 @@
         </p>
     </section>
 
-    <section data-ui-demo="datetime-picker-same-day" class="max-w-md space-y-3">
+    <section data-ui-demo="datetime-picker-same-day" class="max-w-md flex flex-col gap-3">
         <x-ui.datetime-picker
             mode="range"
             label="Same-day range"
@@ -81,7 +81,7 @@
         />
     </section>
 
-    <section data-ui-demo="datetime-picker-constrained" class="max-w-md space-y-3">
+    <section data-ui-demo="datetime-picker-constrained" class="max-w-md flex flex-col gap-3">
         <x-ui.datetime-picker
             label="Constrained"
             value="2026-02-15T10:00"
@@ -95,7 +95,7 @@
         />
     </section>
 
-    <section data-ui-demo="datetime-picker-invalid-time" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-invalid-time" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker
             label="Invalid time repair"
             value="2026-02-15T10:30"
@@ -106,7 +106,7 @@
         />
     </section>
 
-    <section data-ui-demo="datetime-picker-range-invalid" class="max-w-md space-y-3">
+    <section data-ui-demo="datetime-picker-range-invalid" class="max-w-md flex flex-col gap-3">
         <x-ui.datetime-picker
             mode="range"
             label="Range time repair"
@@ -118,12 +118,12 @@
         />
     </section>
 
-    <section data-ui-demo="datetime-picker-now" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-now" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker label="From now" min="now" open-to="today" with-today />
     </section>
 
-    <section data-ui-demo="datetime-picker-plain" class="max-w-md space-y-3">
-        <form method="get" action="{{ route('ui.datetime-picker') }}" class="space-y-4">
+    <section data-ui-demo="datetime-picker-plain" class="max-w-md flex flex-col gap-3">
+        <form method="get" action="{{ route('ui.datetime-picker') }}" class="flex flex-col gap-4">
             <x-ui.datetime-picker name="plain_at" value="2024-02-15T14:30" label="Plain datetime" />
             <x-ui.datetime-picker
                 name="plain_schedule"
@@ -134,11 +134,11 @@
         </form>
     </section>
 
-    <section data-ui-demo="datetime-picker-disabled" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-disabled" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker value="2026-11-08T10:30" disabled />
     </section>
 
-    <section data-ui-demo="datetime-picker-invalid" class="max-w-sm space-y-3">
+    <section data-ui-demo="datetime-picker-invalid" class="max-w-sm flex flex-col gap-3">
         <x-ui.datetime-picker label="Invalid datetime" value="2026-11-08T10:30" invalid />
     </section>
 </div>
