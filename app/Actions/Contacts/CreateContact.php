@@ -32,6 +32,7 @@ final class CreateContact
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
+        private SaveContactDetails $saveContactDetails,
     ) {
         // .
     }
@@ -124,6 +125,22 @@ final class CreateContact
                     );
 
                 $this->saveAddress->handle($stakeholder, $data['address'] ?? null);
+
+                // Contact records only; never pass these to createIndividual(),
+                // whose $email argument creates a login user.
+                $this->saveContactDetails->handle(
+                    $stakeholder,
+                    $data['contact_email'] ?? null,
+                    $data['contact_phone'] ?? null,
+                );
+
+                if ($stakeholder instanceof Organization && $stakeholder->primaryContact !== null) {
+                    $this->saveContactDetails->handle(
+                        $stakeholder->primaryContact,
+                        $data['contact_person_email'] ?? null,
+                        $data['contact_person_phone'] ?? null,
+                    );
+                }
 
                 $period = $this->attach($tenant, $stakeholder, $role, $data);
 

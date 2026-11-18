@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\FindContact;
+use App\Enums\ContactDetailType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -55,11 +56,19 @@ class View extends Component
 
         abort_if($stakeholder === null, 404);
 
+        $contactPerson = $stakeholder instanceof Organization && ! $stakeholder->trashed()
+            ? $stakeholder->primaryContact
+            : null;
+
         /** @disregard P1013 */
         return view('livewire.contacts.view', [
             'stakeholder' => $stakeholder,
             'isOrganization' => $this->contact->isOrganization(),
-            'contactPerson' => $stakeholder instanceof Organization && ! $stakeholder->trashed() ? $stakeholder->primaryContact : null,
+            'contactPerson' => $contactPerson,
+            'contactEmail' => $stakeholder->contactDetailValue(ContactDetailType::Email),
+            'contactPhone' => $stakeholder->contactDetailValue(ContactDetailType::Phone),
+            'contactPersonEmail' => $contactPerson?->contactDetailValue(ContactDetailType::Email),
+            'contactPersonPhone' => $contactPerson?->contactDetailValue(ContactDetailType::Phone),
             'showGender' => ContactGender::enabled($this->currentOrganization()),
         ])->title(__('Contact details'));
     }

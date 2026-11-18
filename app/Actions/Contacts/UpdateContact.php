@@ -29,6 +29,7 @@ final class UpdateContact
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
+        private SaveContactDetails $saveContactDetails,
     ) {
         // .
     }
@@ -121,6 +122,9 @@ final class UpdateContact
                     }
                 }
 
+                $details = $this->saveContactDetailsFor($stakeholder, $data);
+                $fields = [...$fields, ...$details];
+
                 if ($locked) {
                     $this->recordUpdate($tenant, $actor, $stakeholder, $fields, $period);
 
@@ -195,6 +199,43 @@ final class UpdateContact
         if ($newPhoto !== null || $removePhoto) {
             $this->fileStorage->delete($previous);
         }
+    }
+
+    /**
+     * Save the entity and contact person communication records.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    private function saveContactDetailsFor(Organization|Person $stakeholder, array $data): array
+    {
+        $fields = [];
+
+        if (\array_key_exists('contact_email', $data)) {
+            $fields = $this->saveContactDetails->handle(
+                $stakeholder,
+                $data['contact_email'],
+                $data['contact_phone'] ?? null,
+            );
+        }
+
+        $contactPerson = $stakeholder instanceof Organization ? $stakeholder->primaryContact : null;
+
+        if ($contactPerson !== null && \array_key_exists('contact_person_email', $data)) {
+            $fields = [
+                ...$fields,
+                ...array_map(
+                    fn (string $field): string => 'contact_'.$field,
+                    $this->saveContactDetails->handle(
+                        $contactPerson,
+                        $data['contact_person_email'],
+                        $data['contact_person_phone'] ?? null,
+                    ),
+                ),
+            ];
+        }
+
+        return $fields;
     }
 
     /**

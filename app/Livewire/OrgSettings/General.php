@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings;
 
 use App\Actions\Addresses\SaveAddress;
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
+use App\Enums\ContactDetailType;
 use App\Events\Organizations\OrganizationUpdated;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
@@ -31,6 +33,10 @@ class General extends Component
 
     public string $summary = '';
 
+    public string $contact_email = '';
+
+    public string $contact_phone = '';
+
     /**
      * @var mixed
      */
@@ -52,6 +58,8 @@ class General extends Component
 
         $this->name = $organization->name;
         $this->summary = (string) $organization->summary;
+        $this->contact_email = (string) $organization->contactDetailValue(ContactDetailType::Email);
+        $this->contact_phone = (string) $organization->contactDetailValue(ContactDetailType::Phone);
         $this->logo_url = $organization->getRawOriginal('logo_url');
         $this->fillAddress($organization->address()->first());
     }
@@ -65,7 +73,7 @@ class General extends Component
     /**
      * Update the current organization's name.
      */
-    public function update(FileStorage $fileStorage, SaveAddress $saveAddress): void
+    public function update(FileStorage $fileStorage, SaveAddress $saveAddress, SaveContactDetails $saveContactDetails): void
     {
         $organization = $this->currentOrganization();
 
@@ -80,6 +88,7 @@ class General extends Component
         $validated = $this->validate([
             'name' => $this->nameRules(),
             'summary' => ['nullable', 'string', 'max:255'],
+            ...$this->contactDetailRules(),
             ...$this->addressRules(),
         ]);
 
@@ -96,7 +105,7 @@ class General extends Component
         }
 
         try {
-            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $saveAddress): void {
+            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $saveAddress, $saveContactDetails): void {
                 $organization->name = $validated['name'];
                 $organization->summary = $validated['summary'] ?? null;
 
@@ -110,7 +119,16 @@ class General extends Component
 
                 $saveAddress->handle($organization, $this->addressPayload());
 
-                $fields = array_values(array_diff(array_keys($organization->getChanges()), ['updated_at']));
+                $details = $saveContactDetails->handle(
+                    $organization,
+                    $validated['contact_email'] ?? null,
+                    $validated['contact_phone'] ?? null,
+                );
+
+                $fields = [
+                    ...array_values(array_diff(array_keys($organization->getChanges()), ['updated_at'])),
+                    ...$details,
+                ];
 
                 if ($fields !== []) {
                     $actor = Auth::user();

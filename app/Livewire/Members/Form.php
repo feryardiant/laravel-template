@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Addresses\SaveAddress;
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\FileStorage;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -46,6 +48,10 @@ class Form extends Component
     public string $name = '';
 
     public string $email = '';
+
+    public string $contact_email = '';
+
+    public string $contact_phone = '';
 
     #[Locked]
     public bool $hasCredential = false;
@@ -102,7 +108,7 @@ class Form extends Component
     {
         $this->authorizeManager();
 
-        $this->reset('person', 'name', 'email', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
+        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
 
         $this->role = Role::Member->value;
         $this->genderEnabled = false;
@@ -133,6 +139,7 @@ class Form extends Component
                 ? $this->emailRules()
                 : ['nullable', 'string', 'email', 'max:255'],
             'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
+            ...$this->contactDetailRules(),
             ...$this->addressRules(),
         ]);
 
@@ -152,6 +159,8 @@ class Form extends Component
             $photoUrl,
             Auth::user(),
             $this->addressPayload(),
+            $validated['contact_email'] ?? null,
+            $validated['contact_phone'] ?? null,
         );
 
         $this->photo = null;
@@ -170,7 +179,7 @@ class Form extends Component
     /**
      * Save the form, either creating a member or updating the selected one.
      */
-    public function save(CreateMember $createMember, FileStorage $fileStorage, SaveAddress $saveAddress): void
+    public function save(CreateMember $createMember, FileStorage $fileStorage, SaveAddress $saveAddress, SaveContactDetails $saveContactDetails): void
     {
         if ($this->person === null) {
             $this->create($createMember, $fileStorage);
@@ -178,13 +187,13 @@ class Form extends Component
             return;
         }
 
-        $this->update($fileStorage, $saveAddress);
+        $this->update($fileStorage, $saveAddress, $saveContactDetails);
     }
 
     /**
      * Update the selected member.
      */
-    public function update(FileStorage $fileStorage, SaveAddress $saveAddress): void
+    public function update(FileStorage $fileStorage, SaveAddress $saveAddress, SaveContactDetails $saveContactDetails): void
     {
         $organization = $this->requireOrganization();
 
@@ -216,6 +225,7 @@ class Form extends Component
 
         $rules = [
             'role' => ['required', Rule::in([Role::Admin->value, Role::Member->value])],
+            ...$this->contactDetailRules(),
         ];
 
         if ($canEditProfile) {
@@ -279,7 +289,7 @@ class Form extends Component
             ? ($validated['gender'] ?? null)
             : null;
 
-        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, $saveAddress, &$emailChanged, &$credentialCreated): void {
+        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, $saveAddress, $saveContactDetails, &$emailChanged, &$credentialCreated): void {
             if ($canEditProfile) {
                 $attributes = [
                     'name' => $validated['name'],
@@ -294,6 +304,13 @@ class Form extends Component
 
                 $saveAddress->handle($this->person, $this->addressPayload());
             }
+
+            // Communication records stay editable even when the profile is managed elsewhere.
+            $saveContactDetails->handle(
+                $this->person,
+                $validated['contact_email'] ?? null,
+                $validated['contact_phone'] ?? null,
+            );
 
             if ($canEditProfile && $this->hasCredential) {
                 $user = $this->person->user;
@@ -393,6 +410,8 @@ class Form extends Component
         $this->hasCredential = $person->user_id !== null;
         $this->createCredential = false;
         $this->email = $person->user_id === null ? '' : $person->user->email;
+        $this->contact_email = (string) $person->contactDetailValue(ContactDetailType::Email);
+        $this->contact_phone = (string) $person->contactDetailValue(ContactDetailType::Phone);
         $this->gender = $person->gender?->value;
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
         $this->fillAddress($person->addresses()->first());

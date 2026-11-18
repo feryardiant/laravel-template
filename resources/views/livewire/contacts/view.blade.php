@@ -80,6 +80,16 @@
                         <flux:text>{{ __('Summary') }}</flux:text>
                         <flux:heading>{{ $stakeholder->summary ?: '—' }}</flux:heading>
                     </div>
+
+                    <div>
+                        <flux:text>{{ __('Email') }}</flux:text>
+                        <flux:heading class="break-words">{{ $contactEmail ?: '—' }}</flux:heading>
+                    </div>
+
+                    <div>
+                        <flux:text>{{ __('Phone') }}</flux:text>
+                        <flux:heading class="break-words">{{ $contactPhone ?? '—' }}</flux:heading>
+                    </div>
                 </flux:card.body>
             </flux:card>
 
@@ -113,6 +123,16 @@
                         <div>
                             <flux:text>{{ __('Summary') }}</flux:text>
                             <flux:heading>{{ $contactPerson?->summary ?: '—' }}</flux:heading>
+                        </div>
+
+                        <div>
+                            <flux:text>{{ __('Email') }}</flux:text>
+                            <flux:heading class="break-words">{{ $contactPersonEmail ?: '—' }}</flux:heading>
+                        </div>
+
+                        <div>
+                            <flux:text>{{ __('Phone') }}</flux:text>
+                            <flux:heading class="break-words">{{ $contactPersonPhone ?? '—' }}</flux:heading>
                         </div>
                     </flux:card.body>
                 </flux:card>

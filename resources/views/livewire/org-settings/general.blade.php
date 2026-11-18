@@ -9,6 +9,10 @@
 
             <flux:textarea wire:model="summary" :label="__('Summary')" rows="3" />
 
+            <flux:input wire:model="contact_email" type="email" :label="__('Email')" autocomplete="off" />
+
+            <flux:input wire:model="contact_phone" type="tel" :label="__('Phone')" autocomplete="off" />
+
             <flux:card body="divided">
                 <flux:card.header>
                     <flux:heading>{{ __('Address') }}</flux:heading>

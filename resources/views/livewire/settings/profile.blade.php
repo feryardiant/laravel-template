@@ -63,6 +63,21 @@
                 rows="3"
             />
 
+            <flux:input
+                wire:model="contact_email"
+                :label="__('Contact email')"
+                :description="__('Used for communication, not for signing in.')"
+                type="email"
+                autocomplete="off"
+            />
+
+            <flux:input
+                wire:model="contact_phone"
+                :label="__('Contact phone')"
+                type="tel"
+                autocomplete="off"
+            />
+
             @if ($this->genderEnabled)
                 <div class="flex flex-col gap-2">
                     <flux:radio.group

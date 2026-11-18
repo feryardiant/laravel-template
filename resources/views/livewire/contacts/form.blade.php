@@ -15,7 +15,11 @@
                     <div>
                         <flux:avatar size="lg" :src="$this->photoPreviewUrl" />
                     </div>
-                    <flux:description>{{ __('Shared contact details are read-only.') }}</flux:description>
+                    <flux:description>
+                        {{ $this->reusing
+                            ? __('Shared contact details are read-only.')
+                            : __('Shared details are read-only. Email and phone are shared with every organization that knows this contact, and stay editable.') }}
+                    </flux:description>
                 </flux:field>
             @else
                 <x-ui.file-upload wire:model="photo" accept="image/*" :label="__('Photo')">
@@ -55,6 +59,21 @@
                 :label="__('Summary')"
                 :disabled="$this->sharedFieldsLocked"
             />
+
+            @unless ($this->reusing)
+                <flux:input
+                    wire:model="contact_email"
+                    type="email"
+                    :label="$this->isOrganizationType ? __('Organization email') : __('Email')"
+                    autocomplete="off"
+                />
+                <flux:input
+                    wire:model="contact_phone"
+                    type="tel"
+                    :label="$this->isOrganizationType ? __('Organization phone') : __('Phone')"
+                    autocomplete="off"
+                />
+            @endunless
 
             @unless ($this->sharedFieldsLocked)
                 <flux:card body="divided">
@@ -157,6 +176,11 @@
                             :label="__('Summary')"
                             :disabled="$this->sharedFieldsLocked"
                         />
+
+                        @unless ($this->reusing)
+                            <flux:input wire:model="contact_person_email" type="email" :label="__('Email')" autocomplete="off" />
+                            <flux:input wire:model="contact_person_phone" type="tel" :label="__('Phone')" autocomplete="off" />
+                        @endunless
                     </flux:card.body>
                 </flux:card>
             @endif

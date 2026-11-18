@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Settings\Profile;
@@ -294,4 +295,20 @@ test('a non-image avatar is rejected', function () {
         ->assertHasErrors(['avatar']);
 
     expect($user->fresh()->person?->getRawOriginal('photo_url'))->toBeNull();
+});
+
+test('contact details are stored without changing the login email', function () {
+    actingAs($user = User::factory()->create(['email' => 'login@example.test']));
+
+    Livewire::test(Profile::class)
+        ->set('contact_email', 'Reach@Example.Test')
+        ->set('contact_phone', '0812 3456')
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors();
+
+    $person = $user->fresh()?->person;
+
+    expect($person?->contactDetailValue(ContactDetailType::Email))->toBe('reach@example.test')
+        ->and($person?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 3456')
+        ->and($user->fresh()?->email)->toBe('login@example.test');
 });

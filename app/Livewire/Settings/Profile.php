@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings;
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\FileStorage;
 use App\Concerns\ProfileValidationRules;
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
@@ -43,6 +45,10 @@ class Profile extends Component
 
     public string $summary = '';
 
+    public string $contact_email = '';
+
+    public string $contact_phone = '';
+
     public ?string $gender = null;
 
     /**
@@ -63,6 +69,8 @@ class Profile extends Component
         $this->handle = $user->handle;
         $this->email = $user->email;
         $this->summary = (string) $person?->summary;
+        $this->contact_email = (string) $person?->contactDetailValue(ContactDetailType::Email);
+        $this->contact_phone = (string) $person?->contactDetailValue(ContactDetailType::Phone);
         $this->gender = $person?->gender?->value;
         $this->avatar_url = $person?->getRawOriginal('photo_url');
     }
@@ -76,7 +84,7 @@ class Profile extends Component
     /**
      * Update the profile information for the currently authenticated user.
      */
-    public function updateProfileInformation(FileStorage $fileStorage): void
+    public function updateProfileInformation(FileStorage $fileStorage, SaveContactDetails $saveContactDetails): void
     {
         /** @var User */
         $user = Auth::user();
@@ -88,6 +96,7 @@ class Profile extends Component
         $rules = [
             'handle' => $this->handleRules($user->id),
             'summary' => ['nullable', 'string', 'max:255'],
+            ...$this->contactDetailRules(),
         ];
 
         if ($canEdit) {
@@ -121,7 +130,7 @@ class Profile extends Component
             }
         }
 
-        DB::transaction(function () use ($user, $person, $canEdit, $validated, $photoPath): void {
+        DB::transaction(function () use ($user, $person, $canEdit, $validated, $photoPath, $saveContactDetails): void {
             if ($person === null) {
                 $person = $user->person()->create([
                     'name' => $canEdit ? $validated['name'] : $user->name,
@@ -130,6 +139,12 @@ class Profile extends Component
 
                 $user->setRelation('person', $person);
             }
+
+            $saveContactDetails->handle(
+                $person,
+                $validated['contact_email'] ?? null,
+                $validated['contact_phone'] ?? null,
+            );
 
             $attributes = [
                 'summary' => $validated['summary'] ?? null,

@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\CreateContact;
+use App\Actions\Contacts\SaveContactDetails;
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Contacts\Form;
 use App\Livewire\Contacts\Index;
+use App\Models\ContactDetail;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -379,4 +382,80 @@ test('a contact already in the tenant list cannot be selected for reuse', functi
         ->call('openCreate')
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->assertSet('selectedEntity', null);
+});
+
+test('creating a contact stores the entity and contact person records', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Form::class)
+        ->call('openCreate')
+        ->set('type', 'organization')
+        ->set('name', 'Acme Contact')
+        ->set('contact_name', 'Nara')
+        ->set('contact_email', 'Sales@Acme.Test')
+        ->set('contact_phone', '+62 812 3456')
+        ->set('contact_person_email', 'nara@acme.test')
+        ->set('contact_person_phone', '0812 000')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $contact = Organization::query()->where('name', 'Acme Contact')->firstOrFail();
+    $contactPerson = $contact->primaryContact;
+
+    expect($contact->contactDetailValue(ContactDetailType::Email))->toBe('sales@acme.test')
+        ->and($contact->contactDetailValue(ContactDetailType::Phone))->toBe('+62 812 3456')
+        ->and($contactPerson?->contactDetailValue(ContactDetailType::Email))->toBe('nara@acme.test')
+        ->and($contactPerson?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 000')
+        ->and($contactPerson?->user_id)->toBeNull();
+});
+
+test('an invalid contact email is rejected', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Form::class)
+        ->call('openCreate')
+        ->set('name', 'Invalid Email')
+        ->set('contact_email', 'not-an-email')
+        ->call('save')
+        ->assertHasErrors('contact_email');
+});
+
+test('blank contact values are not stored', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Blank Details']);
+
+    app(SaveContactDetails::class)->handle($contact, '   ', '  ');
+
+    expect(ContactDetail::query()->count())->toBe(0);
+});
+
+test('the contact phone accepts 32 characters and rejects 33', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    Livewire::test(Form::class)
+        ->call('openCreate')
+        ->set('name', 'Long Phone')
+        ->set('contact_phone', str_repeat('1', 32))
+        ->call('save')
+        ->assertHasNoErrors();
+
+    Livewire::test(Form::class)
+        ->call('openCreate')
+        ->set('name', 'Too Long Phone')
+        ->set('contact_phone', str_repeat('1', 33))
+        ->call('save')
+        ->assertHasErrors('contact_phone');
+
+    $person = Person::query()->where('name', 'Long Phone')->firstOrFail();
+
+    expect($person->contactDetailValue(ContactDetailType::Phone))->toHaveLength(32);
 });
