@@ -27,6 +27,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    secrets:
+      COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
 
   quality:
     name: Quality Gate
@@ -114,6 +116,7 @@ jobs:
 
       - name: Report test coverages
         uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
+        if: needs.prepare.outputs.has-coveralls == '1'
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         with:
