@@ -88,6 +88,16 @@
                     </div>
 
                     <div>
+                        <flux:text>{{ __('Contact email') }}</flux:text>
+                        <flux:heading class="break-words">{{ $contactEmail ?: '—' }}</flux:heading>
+                    </div>
+
+                    <div>
+                        <flux:text>{{ __('Contact phone') }}</flux:text>
+                        <flux:heading class="break-words">{{ $contactPhone ?: '—' }}</flux:heading>
+                    </div>
+
+                    <div>
                         <flux:text>{{ __('Role') }}</flux:text>
                         <flux:heading>{{ $role?->label() ?? '—' }}</flux:heading>
                     </div>

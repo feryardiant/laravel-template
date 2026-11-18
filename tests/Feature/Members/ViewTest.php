@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -62,4 +63,21 @@ test('the member view shows gender when the workspace enables it', function () {
         ->assertOk()
         ->assertSee(__('Gender'))
         ->assertSee(__('Female'));
+});
+
+test('the member view displays contact details', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create(['name' => 'Contactable Member']);
+    $member->person->contactDetails()->createMany([
+        ['type' => ContactDetailType::Email, 'value' => 'reach@example.test'],
+        ['type' => ContactDetailType::Phone, 'value' => '0812 3456'],
+    ]);
+
+    get(route('members.show', $member->person))
+        ->assertOk()
+        ->assertSee('reach@example.test')
+        ->assertSee('0812 3456');
 });

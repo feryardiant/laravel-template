@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ContactDetailType;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -31,6 +33,10 @@ abstract class Entity extends Model
         static::creating(function (Entity $entity): void {
             $entity->uuid ??= (string) Str::uuid7();
         });
+
+        static::forceDeleted(function (Entity $entity): void {
+            $entity->contactDetails()->delete();
+        });
     }
 
     /**
@@ -39,6 +45,24 @@ abstract class Entity extends Model
     public function ownerOrganization(): BelongsTo
     {
         return $this->belongsTo(Organization::class, 'owner_organization_id');
+    }
+
+    /**
+     * @return MorphMany<ContactDetail, $this>
+     */
+    public function contactDetails(): MorphMany
+    {
+        return $this->morphMany(ContactDetail::class, 'contactable');
+    }
+
+    /**
+     * Read a single communication record for display.
+     */
+    public function contactDetailValue(ContactDetailType $type): ?string
+    {
+        $value = $this->contactDetails()->where('type', $type)->value('value');
+
+        return \is_string($value) ? $value : null;
     }
 
     /**

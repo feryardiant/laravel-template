@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\DeleteContact;
+use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Contacts\Index;
+use App\Models\ContactDetail;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Feature\ContactDeletion;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -271,4 +275,47 @@ test('the contact view hides deletion controls when the workspace disables it', 
         ->assertDontSeeHtml('confirmDelete(')
         ->assertDontSeeHtml('confirmDeleteSelected')
         ->assertDontSee(__('Select all contacts'));
+});
+
+test('permanently deleting an entity removes its contact details', function () {
+    $owner = Organization::factory()->create();
+
+    $contact = contactOrganization($owner, ['name' => 'Purge Me']);
+    $contact->contactDetails()->create(['type' => ContactDetailType::Email, 'value' => 'purge@acme.test']);
+
+    $contactPerson = $contact->primaryContact;
+    $contactPerson?->contactDetails()->create(['type' => ContactDetailType::Phone, 'value' => '0812 111']);
+
+    $contact->forceDelete();
+
+    expect(ContactDetail::query()
+        ->where('contactable_type', Organization::class)
+        ->where('contactable_id', $contact->getKey())
+        ->exists())->toBeFalse()
+        ->and(ContactDetail::query()
+            ->where('contactable_type', Person::class)
+            ->where('contactable_id', $contactPerson?->getKey())
+            ->exists())->toBeTrue();
+});
+
+test('a rejected person force delete keeps its contact details', function () {
+    $person = Person::factory()->create();
+    Organization::factory()->create(['contact_id' => $person->getKey()]);
+
+    $person->contactDetails()->create([
+        'type' => ContactDetailType::Email,
+        'value' => 'keep@acme.test',
+    ]);
+
+    // Wrap in a savepoint so the failed delete does not abort the test transaction.
+    try {
+        DB::transaction(fn () => $person->forceDelete());
+    } catch (QueryException) {
+        // The restrictive contact_id foreign key rejects the delete.
+    }
+
+    expect(ContactDetail::query()
+        ->where('contactable_type', Person::class)
+        ->where('contactable_id', $person->getKey())
+        ->exists())->toBeTrue();
 });

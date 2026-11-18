@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AuditEvent;
+use App\Enums\ContactDetailType;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General;
 use App\Models\AuditLog;
@@ -206,4 +207,19 @@ test('the danger zone is visible only to the owner', function () {
     get(route('org-settings.general'))
         ->assertOk()
         ->assertDontSee(__('Danger Zone'));
+});
+
+it('updates the organization contact details', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Livewire::test(General::class)
+        ->set('contact_email', 'Hello@Acme.Test')
+        ->set('contact_phone', '0812 3456')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($organization->fresh()->contactDetailValue(ContactDetailType::Email))->toBe('hello@acme.test')
+        ->and($organization->fresh()->contactDetailValue(ContactDetailType::Phone))->toBe('0812 3456');
 });

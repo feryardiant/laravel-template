@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -111,4 +112,21 @@ test('a contact whose stakeholder is soft-deleted is not found', function () {
     $contact->delete();
 
     get(route('contacts.view', ['stakeholder' => $contact]))->assertNotFound();
+});
+
+test('the contact view displays the email and phone', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Member);
+
+    $contact = contactIndividual($organization, ['name' => 'Detail Individual']);
+    $contact->contactDetails()->createMany([
+        ['type' => ContactDetailType::Email, 'value' => 'detail@acme.test'],
+        ['type' => ContactDetailType::Phone, 'value' => '0812 999'],
+    ]);
+
+    get(route('contacts.view', ['stakeholder' => $contact]))
+        ->assertOk()
+        ->assertSee('detail@acme.test')
+        ->assertSee('0812 999');
 });

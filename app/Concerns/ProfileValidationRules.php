@@ -26,6 +26,19 @@ trait ProfileValidationRules
     }
 
     /**
+     * Get the validation rules used to validate an entity's communication records.
+     *
+     * @return array<string, array<int, string>>
+     */
+    protected function contactDetailRules(): array
+    {
+        return [
+            'contact_email' => ['nullable', 'string', 'email', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:32'],
+        ];
+    }
+
+    /**
      * Get the validation rules used to validate user names.
      *
      * @return array<int, Unique|ValidationRule|array<mixed>|string>

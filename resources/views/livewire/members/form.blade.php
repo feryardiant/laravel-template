@@ -15,7 +15,7 @@
                         {{ $person?->ownerOrganization !== null
                             ? __('Their profile is managed by :organization.', ['organization' => $person->ownerOrganization->name])
                             : __('This person controls their profile.') }}
-                        {{ __('You can still change their role.') }}
+                        {{ __('You can still change their role and contact details.') }}
                     </flux:callout.text>
                 </flux:callout>
             @endunless
@@ -118,6 +118,21 @@
                     <flux:heading>{{ $person?->user?->email ?? __('No login credential') }}</flux:heading>
                 </div>
             @endif
+
+            <flux:input
+                wire:model="contact_email"
+                type="email"
+                :label="__('Contact email')"
+                :description="__('Used for communication, not for signing in.')"
+                autocomplete="off"
+            />
+
+            <flux:input
+                wire:model="contact_phone"
+                type="tel"
+                :label="__('Contact phone')"
+                autocomplete="off"
+            />
         </div>
 
         <div class="sticky bottom-0 -mx-8 mt-auto flex items-center justify-between bg-white px-8 pt-6 before:absolute before:inset-x-0 before:top-full before:h-8 before:bg-white before:content-[''] dark:bg-zinc-800 dark:before:bg-zinc-800">

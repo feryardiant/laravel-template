@@ -3,11 +3,15 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\UpdateContact;
+use App\Enums\AuditEvent;
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Contacts\Form;
 use App\Livewire\Contacts\Index;
+use App\Models\AuditLog;
+use App\Models\ContactDetail;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -500,4 +504,100 @@ test('the gender flag is refreshed before saving', function () {
         ->assertHasNoErrors();
 
     expect($person->fresh()?->gender)->toBe(Gender::Female);
+});
+
+test('a shared contact still lets another tenant change its email and phone', function () {
+    $owner = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    $contact = contactOrganization($owner, ['name' => 'Shared Detail Org']);
+    $contact->contactDetails()->create(['type' => ContactDetailType::Email, 'value' => 'old@acme.test']);
+
+    $other->organizationCounterparties()->attach($contact, [
+        'type' => OrganizationRelationshipType::Customer,
+        'start_date' => now(),
+    ]);
+
+    actingAsMember($other, Role::Admin);
+
+    Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($other, $contact))
+        ->assertSet('contact_email', 'old@acme.test')
+        ->set('contact_email', 'new@acme.test')
+        ->set('contact_phone', '0812')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contact->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('new@acme.test')
+        ->and($contact->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBe('0812');
+});
+
+test('an organization contact person email and phone are editable and clearable', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Contact Person Details']);
+    $contactPerson = $contact->primaryContact;
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact))
+        ->set('contact_person_email', 'Person@Acme.Test')
+        ->set('contact_person_phone', '0812 444')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('person@acme.test')
+        ->and($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 444')
+        ->and(AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole()->changes)
+        ->toBe(['fields' => ['contact_email', 'contact_phone']]);
+
+    $form->set('contact_person_email', '')
+        ->set('contact_person_phone', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Email))->toBeNull()
+        ->and($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBeNull();
+});
+
+test('clearing a contact record deletes it', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Clearable']);
+    $contact->contactDetails()->create(['type' => ContactDetailType::Email, 'value' => 'clear@acme.test']);
+
+    Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact))
+        ->set('contact_email', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contact->fresh()?->contactDetailValue(ContactDetailType::Email))->toBeNull()
+        ->and(ContactDetail::query()->count())->toBe(0);
+});
+
+test('contact detail audit records field names without values', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Audited']);
+    $contact->contactDetails()->create(['type' => ContactDetailType::Email, 'value' => 'old@acme.test']);
+
+    Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact))
+        ->set('contact_email', 'new@acme.test')
+        ->set('contact_phone', '0812 777')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
+    $encoded = json_encode($log->changes);
+
+    expect($log->changes)->toBe(['fields' => ['email', 'phone']])
+        ->and($encoded)->not->toContain('new@acme.test')
+        ->and($encoded)->not->toContain('0812 777');
 });

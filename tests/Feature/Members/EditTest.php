@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Members\Form;
@@ -290,4 +291,25 @@ test('a photo picked for a new member does not follow into an edit', function ()
         ->assertHasNoErrors();
 
     expect($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/original.jpg');
+});
+
+test('contact details stay editable when the profile is managed elsewhere', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->withProfile()->create();
+    app(CreateMember::class)->attach($organization, $member->person, startDate: now(), role: Role::Member);
+
+    Livewire::test(Form::class, ['person' => $member->person])
+        ->set('contact_email', 'Reach@Example.Test')
+        ->set('contact_phone', '0812 3456')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    $person = $member->person->fresh();
+
+    expect($person?->contactDetailValue(ContactDetailType::Email))->toBe('reach@example.test')
+        ->and($person?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 3456')
+        ->and($person?->name)->toBe($member->name);
 });
