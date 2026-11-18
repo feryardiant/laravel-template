@@ -115,6 +115,12 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // `people` references `organizations` and `organizations` references `people`, so one
+        // of the two foreign keys has to go before either table can be dropped.
+        Schema::table('people', function (Blueprint $table): void {
+            $table->dropForeign(['owner_organization_id']);
+        });
+
         Schema::dropIfExists('organization_relationships');
         Schema::dropIfExists('organizations');
         Schema::dropIfExists('people_relatives');
