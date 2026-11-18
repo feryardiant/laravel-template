@@ -278,6 +278,24 @@ test('an avatar replacement keeps the new path when the old file cannot be delet
         ->and(Storage::disk()->directoryExists('avatars/blocked'))->toBeTrue();
 });
 
+test('a stale profile save keeps an avatar saved by another session', function () {
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    Storage::disk()->put('avatars/new.jpg', 'avatar');
+    $user->person->update(['photo_url' => 'avatars/new.jpg']);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->person->fresh()?->getRawOriginal('photo_url'))->toBe('avatars/new.jpg')
+        ->and(Storage::disk()->exists('avatars/new.jpg'))->toBeTrue();
+});
+
 test('a failed profile save removes the staged avatar', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();

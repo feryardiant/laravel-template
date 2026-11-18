@@ -45,6 +45,17 @@ class General extends Component
     #[Locked]
     public array $originalDetails = [];
 
+    #[Locked]
+    public ?string $originalLogoUrl = null;
+
+    /**
+     * The address payload loaded when the form opened.
+     *
+     * @var array<string, string|null>|null
+     */
+    #[Locked]
+    public ?array $originalAddress = null;
+
     /**
      * @var mixed
      */
@@ -71,6 +82,8 @@ class General extends Component
         $this->logo_url = $organization->getRawOriginal('logo_url');
         $this->fillAddress($organization->address()->first());
         $this->originalDetails = $this->contactDetailValues();
+        $this->originalLogoUrl = $this->logo_url;
+        $this->originalAddress = $this->addressPayload();
     }
 
     /**
@@ -137,7 +150,7 @@ class General extends Component
             $newLogoPath = $fileStorage->handle($this->logo, 'logos');
             $this->logo = null;
             $this->logo_url = $newLogoPath;
-        } elseif ($previousLogo !== $this->logo_url) {
+        } elseif ($this->logo_url === null && $this->originalLogoUrl !== null) {
             $removeLogo = true;
         }
 
@@ -154,7 +167,11 @@ class General extends Component
 
                 $organization->save();
 
-                $saveAddress->handle($organization, $this->addressPayload());
+                $address = $this->addressPayload();
+
+                if ($address !== $this->originalAddress) {
+                    $saveAddress->handle($organization, $address);
+                }
 
                 $details = $saveContactDetails->handle($organization, $this->changedContactDetails());
 
@@ -194,6 +211,7 @@ class General extends Component
         }
 
         $this->rememberContactDetails();
+        $this->originalAddress = $this->addressPayload();
 
         if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
             $restored = Organization::query()
@@ -204,6 +222,7 @@ class General extends Component
             if ($restored === 0) {
                 $organization->refresh();
                 $this->logo_url = $organization->getRawOriginal('logo_url');
+                $this->originalLogoUrl = $this->logo_url;
 
                 Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
@@ -220,11 +239,14 @@ class General extends Component
             ]));
 
             $this->logo_url = $previousLogo;
+            $this->originalLogoUrl = $this->logo_url;
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
             return;
         }
+
+        $this->originalLogoUrl = $this->logo_url;
 
         unset($this->pendingApproval);
 

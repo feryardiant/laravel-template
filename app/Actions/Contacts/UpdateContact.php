@@ -9,6 +9,7 @@ use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
 use App\Enums\ContactDetailType;
+use App\Enums\OrganizationRelationshipType;
 use App\Events\Contacts\ContactUpdated;
 use App\Models\Entity;
 use App\Models\Organization;
@@ -57,7 +58,9 @@ final class UpdateContact
 
         abort_if($stakeholder === null, 404);
 
-        $role = $this->ensureExternalRole($data['role'] ?? null);
+        $role = \array_key_exists('role', $data)
+            ? $this->ensureExternalRole($data['role'])
+            : ($contact->type instanceof OrganizationRelationshipType ? $contact->type : OrganizationRelationshipType::Customer);
         $locked = $contact->profileLockedFor($tenant);
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
         $previous = null;
@@ -101,16 +104,25 @@ final class UpdateContact
 
                 $linkBefore = $contact->getRawOriginal();
 
-                OrganizationRelationship::query()
-                    ->forOrganization($tenant)
-                    ->external()
-                    ->whereKey($contact->getKey())
-                    ->update([
-                        'code' => $data['code'] ?? null,
-                        'type' => $role,
-                        'start_date' => $data['start_date'] ?? null,
-                        'finish_date' => $data['finish_date'] ?? null,
-                    ]);
+                $attributes = [];
+
+                if (\array_key_exists('role', $data)) {
+                    $attributes['type'] = $role;
+                }
+
+                foreach (['code', 'start_date', 'finish_date'] as $field) {
+                    if (\array_key_exists($field, $data)) {
+                        $attributes[$field] = $data[$field];
+                    }
+                }
+
+                if ($attributes !== []) {
+                    OrganizationRelationship::query()
+                        ->forOrganization($tenant)
+                        ->external()
+                        ->whereKey($contact->getKey())
+                        ->update($attributes);
+                }
 
                 $contact->refresh();
                 $period = $this->timeline->sync($contact);
@@ -149,7 +161,9 @@ final class UpdateContact
 
                 $stakeholder->update($attributes);
 
-                $this->saveAddress->handle($stakeholder, $data['address'] ?? null);
+                if (\array_key_exists('address', $data)) {
+                    $this->saveAddress->handle($stakeholder, $data['address']);
+                }
 
                 $fields = [
                     ...$fields,

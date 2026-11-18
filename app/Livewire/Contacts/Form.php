@@ -104,6 +104,25 @@ class Form extends Component
     #[Locked]
     public array $originalDetails = [];
 
+    /**
+     * The relationship values loaded when the form opened.
+     *
+     * @var array<string, string|null>
+     */
+    #[Locked]
+    public array $originalRelationship = [];
+
+    #[Locked]
+    public ?string $originalPhotoUrl = null;
+
+    /**
+     * The address payload loaded when the form opened.
+     *
+     * @var array<string, string|null>|null
+     */
+    #[Locked]
+    public ?array $originalAddress = null;
+
     #[Locked]
     public bool $genderEnabled = false;
 
@@ -139,6 +158,9 @@ class Form extends Component
             'contact_person_email',
             'contact_person_phone',
             'originalDetails',
+            'originalRelationship',
+            'originalPhotoUrl',
+            'originalAddress',
         );
 
         $this->type = 'individual';
@@ -268,15 +290,17 @@ class Form extends Component
         $data = [
             'name' => $this->name,
             'summary' => $this->summary !== '' ? $this->summary : null,
-            'code' => $this->code !== '' ? $this->code : null,
-            'role' => OrganizationRelationshipType::from($this->role),
-            'start_date' => $this->start_date,
-            'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
             'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
             'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
-            'address' => $this->addressPayload(),
+            ...$this->changedRelationship(),
             ...$this->changedContactDetails(),
         ];
+
+        $address = $this->addressPayload();
+
+        if ($address !== $this->originalAddress) {
+            $data['address'] = $address;
+        }
 
         if ($this->genderEnabled) {
             $data['gender'] = $this->gender;
@@ -298,7 +322,7 @@ class Form extends Component
                     $this->contactId,
                     $data,
                     $this->photo instanceof UploadedFile ? $this->photo : null,
-                    $this->photo_url === null,
+                    $this->photo_url === null && $this->originalPhotoUrl !== null,
                     $sharedFieldsLocked,
                     $actor,
                 );
@@ -326,6 +350,7 @@ class Form extends Component
 
         $this->showModal = false;
         $this->rememberContactDetails();
+        $this->rememberBaselines();
         $this->dispatch('contact-updated', contactId: $entity?->getKey());
 
         Flux::toast(variant: 'success', text: $message);
@@ -489,6 +514,7 @@ class Form extends Component
         }
 
         $this->originalDetails = $this->contactDetailValues();
+        $this->rememberBaselines();
         $this->resetValidation();
     }
 
@@ -522,6 +548,38 @@ class Form extends Component
         $this->originalDetails = $this->contactDetailValues();
     }
 
+    /**
+     * The relationship values currently held by the form.
+     *
+     * @return array<string, string|null>
+     */
+    private function relationshipValues(): array
+    {
+        return [
+            'code' => $this->code !== '' ? $this->code : null,
+            'role' => $this->role,
+            'start_date' => $this->start_date,
+            'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
+        ];
+    }
+
+    /**
+     * The relationship values the editor changed.
+     *
+     * @return array<string, string|null>
+     */
+    private function changedRelationship(): array
+    {
+        return array_diff_assoc($this->relationshipValues(), $this->originalRelationship);
+    }
+
+    private function rememberBaselines(): void
+    {
+        $this->originalRelationship = $this->relationshipValues();
+        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalAddress = $this->addressPayload();
+    }
+
     private function resetReuse(bool $resetName = false): void
     {
         $this->selectedEntity = null;
@@ -540,6 +598,9 @@ class Form extends Component
         $this->contact_person_email = '';
         $this->contact_person_phone = '';
         $this->originalDetails = [];
+        $this->originalRelationship = [];
+        $this->originalPhotoUrl = null;
+        $this->originalAddress = null;
         $this->type = 'individual';
         $this->resetAddress();
 

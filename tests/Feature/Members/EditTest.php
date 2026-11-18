@@ -9,6 +9,7 @@ use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Members\Form;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
@@ -210,6 +211,77 @@ test('a member photo replacement keeps the new path when the old file cannot be 
         ->and($stored)->not->toBe('photos/blocked')
         ->and(Storage::disk()->exists((string) $stored))->toBeTrue()
         ->and(Storage::disk()->directoryExists('photos/blocked'))->toBeTrue();
+});
+
+test('a stale member save keeps a photo saved by another session', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    Storage::disk()->put('photos/new.jpg', 'photo');
+    $member->person->update(['photo_url' => 'photos/new.jpg']);
+
+    $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
+
+    expect($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/new.jpg')
+        ->and(Storage::disk()->exists('photos/new.jpg'))->toBeTrue();
+});
+
+test('a stale member save keeps an address saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    $member->person->addresses()->create(validAddress());
+
+    $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
+
+    expect($member->person->addresses()->exists())->toBeTrue();
+});
+
+test('a stale member save does not revert a role change', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->whereStakeholder($member->person)
+        ->update(['role' => Role::Admin->value]);
+
+    $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
+
+    expect($member->person->fresh()?->roleIn($organization))->toBe(Role::Admin);
+});
+
+test('a stale member save does not revert a login email change', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    $member->update(['email' => 'newer@example.test']);
+
+    $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
+
+    expect($member->fresh()->email)->toBe('newer@example.test');
 });
 
 test('a failed member update keeps the previous photo', function () {

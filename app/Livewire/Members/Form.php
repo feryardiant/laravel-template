@@ -16,6 +16,7 @@ use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
@@ -61,6 +62,23 @@ class Form extends Component
      */
     #[Locked]
     public array $originalDetails = [];
+
+    #[Locked]
+    public ?string $originalPhotoUrl = null;
+
+    /**
+     * The address payload loaded when the form opened.
+     *
+     * @var array<string, string|null>|null
+     */
+    #[Locked]
+    public ?array $originalAddress = null;
+
+    #[Locked]
+    public ?int $originalRole = null;
+
+    #[Locked]
+    public string $originalEmail = '';
 
     #[Locked]
     public bool $hasCredential = false;
@@ -117,7 +135,7 @@ class Form extends Component
     {
         $this->authorizeManager();
 
-        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'originalDetails', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
+        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
 
         $this->role = Role::Member->value;
         $this->genderEnabled = false;
@@ -231,7 +249,7 @@ class Form extends Component
             abort_if($this->createCredential, 403);
             abort_if($this->photo instanceof UploadedFile, 403);
 
-            if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+            if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email && $this->email !== $this->originalEmail) {
                 abort(403);
             }
         }
@@ -270,6 +288,11 @@ class Form extends Component
         $role = Role::from((int) $validated['role']);
         $currentRole = $this->person->roleIn($organization);
 
+        if ($role->value === $this->originalRole && $role !== $currentRole) {
+            // The editor did not change the role; keep the value saved elsewhere.
+            $role = $currentRole ?? $role;
+        }
+
         $this->authorizeTarget($this->person);
 
         if ($role !== $currentRole) {
@@ -279,7 +302,7 @@ class Form extends Component
         }
 
         // Credentials are global: editing an email shared with other organizations would hand them the account.
-        if ($canEditProfile && $this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+        if ($canEditProfile && $this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email && $this->email !== $this->originalEmail) {
             abort_if($this->person->organizations()->whereKeyNot($organization->getKey())->exists(), 403);
         }
 
@@ -289,12 +312,11 @@ class Form extends Component
         $removePhoto = false;
 
         if ($canEditProfile) {
-            $photoUrl = $this->photo_url;
-
             if ($this->photo instanceof UploadedFile) {
                 $stagedPhoto = $fileStorage->handle($this->photo, 'photos');
                 $photoUrl = $stagedPhoto;
-            } elseif ($previousPhoto !== $this->photo_url) {
+            } elseif ($this->photo_url === null && $this->originalPhotoUrl !== null) {
+                $photoUrl = null;
                 $removePhoto = true;
             }
         }
@@ -319,26 +341,32 @@ class Form extends Component
 
                     $this->person->update($attributes);
 
-                    $saveAddress->handle($this->person, $this->addressPayload());
+                    $address = $this->addressPayload();
+
+                    if ($address !== $this->originalAddress) {
+                        $saveAddress->handle($this->person, $address);
+                    }
                 }
 
                 // Communication records stay editable even when the profile is managed elsewhere.
                 $saveContactDetails->handle($this->person, $this->changedContactDetails());
 
                 if ($canEditProfile && $this->hasCredential) {
-                    $user = $this->person->user;
+                    if ($this->email !== $this->originalEmail) {
+                        $user = $this->person->user;
 
-                    abort_if($user === null, 404);
+                        abort_if($user === null, 404);
 
-                    $emailChanged = $user->email !== $this->email;
+                        $emailChanged = $user->email !== $this->email;
 
-                    $user->email = $this->email;
+                        $user->email = $this->email;
 
-                    if ($emailChanged) {
-                        $user->email_verified_at = null;
+                        if ($emailChanged) {
+                            $user->email_verified_at = null;
+                        }
+
+                        $user->save();
                     }
-
-                    $user->save();
                 } elseif ($canEditProfile && $this->createCredential) {
                     $user = app(CreateUser::class)->handle(
                         name: $this->person->name,
@@ -371,6 +399,7 @@ class Form extends Component
         $this->photo = null;
         $this->photo_url = $photoUrl;
         $this->rememberContactDetails();
+        $this->rememberBaselines($organization);
 
         if (($this->hasCredential && $emailChanged) || $credentialCreated) {
             $this->person->user?->notify(new VerifyEmailForNewUser);
@@ -385,6 +414,8 @@ class Form extends Component
             $this->photo_url = $restored === 0
                 ? ($this->person->refresh())->getRawOriginal('photo_url')
                 : $previousPhoto;
+
+            $this->rememberBaselines($organization);
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
 
@@ -456,6 +487,10 @@ class Form extends Component
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
         $this->fillAddress($person->addresses()->first());
         $this->originalDetails = $this->contactDetailValues();
+        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalAddress = $this->addressPayload();
+        $this->originalRole = (int) $this->role;
+        $this->originalEmail = Str::lower($this->email);
     }
 
     /**
@@ -484,6 +519,14 @@ class Form extends Component
     private function rememberContactDetails(): void
     {
         $this->originalDetails = $this->contactDetailValues();
+    }
+
+    private function rememberBaselines(Organization $organization): void
+    {
+        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalAddress = $this->addressPayload();
+        $this->originalRole = ($this->person?->roleIn($organization) ?? Role::Member)->value;
+        $this->originalEmail = Str::lower((string) $this->person?->user?->email);
     }
 
     /**

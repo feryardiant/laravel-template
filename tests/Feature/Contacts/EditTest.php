@@ -576,6 +576,67 @@ test('saving an unrelated field keeps a contact detail saved by another session'
         ->and(OrganizationRelationship::query()->whereKey($relationshipId)->value('code'))->toBe('STALE-1');
 });
 
+test('a stale contact save keeps a photo saved by another session', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Photo Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    Storage::disk()->put('logos/new.png', 'image');
+    $contact->update(['logo_url' => 'logos/new.png']);
+
+    $form->set('code', 'PHOTO-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->fresh()?->getRawOriginal('logo_url'))->toBe('logos/new.png')
+        ->and(Storage::disk()->exists('logos/new.png'))->toBeTrue();
+});
+
+test('a stale contact save keeps an address saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Address Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->addresses()->create(validAddress());
+
+    $form->set('code', 'ADDR-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->addresses()->exists())->toBeTrue();
+});
+
+test('a stale contact save keeps the code and role saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Terms Guard']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    $form = Livewire::test(Form::class)->call('openEdit', $relationshipId);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update([
+        'code' => 'NEW-CODE',
+        'type' => OrganizationRelationshipType::Supplier->value,
+    ]);
+
+    $form->set('name', 'Renamed Contact')->call('save')->assertHasNoErrors();
+
+    $relationship = OrganizationRelationship::query()->whereKey($relationshipId)->firstOrFail();
+
+    expect($relationship->code)->toBe('NEW-CODE')
+        ->and($relationship->type)->toBe(OrganizationRelationshipType::Supplier);
+});
+
 test('an organization contact person email and phone are editable and clearable', function () {
     $organization = Organization::factory()->create();
 

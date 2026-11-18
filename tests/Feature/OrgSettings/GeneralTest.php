@@ -210,6 +210,38 @@ test('the danger zone is visible only to the owner', function () {
         ->assertDontSee(__('Danger Zone'));
 });
 
+it('saving the organization profile keeps a logo saved by another session', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(General::class);
+
+    Storage::disk()->put('logos/new.png', 'image');
+    $organization->update(['logo_url' => 'logos/new.png']);
+
+    $component->set('summary', 'Updated summary')->call('update')->assertHasNoErrors();
+
+    expect($organization->fresh()->getRawOriginal('logo_url'))->toBe('logos/new.png')
+        ->and(Storage::disk()->exists('logos/new.png'))->toBeTrue();
+});
+
+it('saving the organization profile keeps an address saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(General::class);
+
+    $organization->address()->create(validAddress());
+
+    $component->set('summary', 'Updated summary')->call('update')->assertHasNoErrors();
+
+    expect($organization->address()->exists())->toBeTrue();
+});
+
 it('saving the organization profile keeps contact details saved by another session', function () {
     $organization = Organization::factory()->create();
 

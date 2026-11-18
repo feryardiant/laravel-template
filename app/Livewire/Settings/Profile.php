@@ -58,6 +58,9 @@ class Profile extends Component
     #[Locked]
     public array $originalDetails = [];
 
+    #[Locked]
+    public ?string $originalAvatarUrl = null;
+
     public ?string $gender = null;
 
     /**
@@ -83,6 +86,7 @@ class Profile extends Component
         $this->gender = $person?->gender?->value;
         $this->avatar_url = $person?->getRawOriginal('photo_url');
         $this->originalDetails = $this->contactDetailValues();
+        $this->originalAvatarUrl = $this->avatar_url;
     }
 
     /**
@@ -155,12 +159,11 @@ class Profile extends Component
         $removeAvatar = false;
 
         if ($canEdit) {
-            $photoPath = $this->avatar_url;
-
             if ($this->avatar instanceof UploadedFile) {
                 $stagedAvatar = $fileStorage->handle($this->avatar, 'avatars');
                 $photoPath = $stagedAvatar;
-            } elseif ($previousAvatar !== $this->avatar_url) {
+            } elseif ($this->avatar_url === null && $this->originalAvatarUrl !== null) {
+                $photoPath = null;
                 $removeAvatar = true;
             }
         }
@@ -232,10 +235,14 @@ class Profile extends Component
                 ? $user->fresh()?->person?->getRawOriginal('photo_url')
                 : $previousAvatar;
 
+            $this->originalAvatarUrl = $this->avatar_url;
+
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('User avatar')]));
 
             return;
         }
+
+        $this->originalAvatarUrl = $this->avatar_url;
 
         Flux::toast(variant: 'success', text: __('Profile updated.'));
     }
