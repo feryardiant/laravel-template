@@ -71,42 +71,52 @@
         @endif
     </x-slot:actions>
 
-    <flux:card class="max-w-lg space-y-4">
-        <div>
-            <flux:text>{{ __('Name') }}</flux:text>
-            <flux:heading>{{ $person->name }}</flux:heading>
+    <div class="flex gap-6">
+        <div class="flex flex-col gap-4 w-full md:w-5/8">
+            {{--  --}}
         </div>
 
-        <div>
-            <flux:text>{{ __('Email') }}</flux:text>
-            <flux:heading>{{ $person->user?->email ?? __('No login credential') }}</flux:heading>
+        <div class="flex flex-col gap-4 w-full md:w-3/8">
+            <flux:card class="max-w-lg">
+                <flux:card.body class="flex flex-col gap-4">
+                    <div>
+                        <flux:text>{{ __('Name') }}</flux:text>
+                        <flux:heading>{{ $person->name }}</flux:heading>
+                    </div>
+
+                    <div>
+                        <flux:text>{{ __('Email') }}</flux:text>
+                        <flux:heading>{{ $person->user?->email ?? __('No login credential') }}</flux:heading>
+                    </div>
+
+                    <div>
+                        <flux:text>{{ __('Role') }}</flux:text>
+                        <flux:heading>{{ $role?->label() ?? '—' }}</flux:heading>
+                    </div>
+
+                    @if (\App\Support\Feature\ContactGender::enabled($organization))
+                        <div>
+                            <flux:text>{{ __('Gender') }}</flux:text>
+                            <flux:heading>{{ $person->gender?->label() ?? '—' }}</flux:heading>
+                        </div>
+                    @endif
+
+                    <div>
+                        <flux:text>{{ __('Joined at') }}</flux:text>
+                        <flux:heading><x-local-time :date="$joinedAt" /></flux:heading>
+                    </div>
+                </flux:card.body>
+            </flux:card>
+
+            @php($address = $person->addresses()->first())
+
+            @if ($address !== null)
+                <x-address-summary :address="$address" />
+            @endif
+
+            <x-relationship-history :periods="$this->history" />
         </div>
-
-        <div>
-            <flux:text>{{ __('Role') }}</flux:text>
-            <flux:heading>{{ $role?->label() ?? '—' }}</flux:heading>
-        </div>
-
-        @if (\App\Support\Feature\ContactGender::enabled($organization))
-            <div>
-                <flux:text>{{ __('Gender') }}</flux:text>
-                <flux:heading>{{ $person->gender?->label() ?? '—' }}</flux:heading>
-            </div>
-        @endif
-
-        <div>
-            <flux:text>{{ __('Joined at') }}</flux:text>
-            <flux:heading><x-local-time :date="$joinedAt" /></flux:heading>
-        </div>
-    </flux:card>
-
-    @php($address = $person->addresses()->first())
-
-    @if ($address !== null)
-        <x-address-summary :address="$address" />
-    @endif
-
-    <x-relationship-history :periods="$this->history" />
+    </div>
 
     @if ($canManage)
         <livewire:members.edit :person="$person" />

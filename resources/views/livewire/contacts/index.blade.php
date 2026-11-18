@@ -62,9 +62,14 @@
     </x-slot:actions>
 
     @if ($organization === null)
-        <flux:card class="max-w-lg">
-            <flux:heading>{{ __('No organization') }}</flux:heading>
-            <flux:text class="mt-2">{{ __('You are not a member of any organization.') }}</flux:text>
+        <flux:card body="divided" class="max-w-lg">
+            <flux:card.header>
+                <flux:heading>{{ __('No organization') }}</flux:heading>
+            </flux:card.header>
+
+            <flux:card.body>
+                <flux:text>{{ __('You are not a member of any organization.') }}</flux:text>
+            </flux:card.body>
         </flux:card>
     @else
         <div class="flex justify-end">

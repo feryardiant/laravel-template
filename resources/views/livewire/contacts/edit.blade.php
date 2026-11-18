@@ -57,17 +57,18 @@
             />
 
             @unless ($this->sharedFieldsLocked)
-                <flux:card class="space-y-4">
-                    <div>
+                <flux:card body="divided">
+                    <flux:card.header>
                         <flux:heading>{{ __('Address') }}</flux:heading>
-                        <flux:separator variant="subtle" class="mt-2" />
-                    </div>
+                    </flux:card.header>
 
-                    <livewire:address wire:model="address" />
+                    <flux:card.body class="flex flex-col gap-4">
+                        <livewire:address wire:model="address" />
 
-                    @foreach (['line', 'rt', 'rw', 'postal_code', 'province_code', 'regency_code', 'district_code', 'village_code'] as $field)
-                        <flux:error :name="'address.'.$field" />
-                    @endforeach
+                        @foreach (['line', 'rt', 'rw', 'postal_code', 'province_code', 'regency_code', 'district_code', 'village_code'] as $field)
+                            <flux:error :name="'address.'.$field" />
+                        @endforeach
+                    </flux:card.body>
                 </flux:card>
             @endunless
 
@@ -123,39 +124,40 @@
             />
 
             @if ($this->isOrganizationType)
-                <flux:card class="space-y-4">
-                    <div>
+                <flux:card body="divided">
+                    <flux:card.header>
                         <flux:heading>{{ __('Contact person') }}</flux:heading>
-                        <flux:separator variant="subtle" class="mt-2" />
-                    </div>
+                    </flux:card.header>
 
-                    <flux:input
-                        wire:model="contact_name"
-                        type="text"
-                        :label="__('Name')"
-                        :disabled="$this->sharedFieldsLocked"
-                    />
-
-                    @if ($genderEnabled)
-                        <flux:radio.group
-                            wire:model="contact_gender"
-                            :label="__('Gender')"
-                            class="flex flex-wrap gap-x-6"
+                    <flux:card.body class="flex flex-col gap-4">
+                        <flux:input
+                            wire:model="contact_name"
+                            type="text"
+                            :label="__('Name')"
                             :disabled="$this->sharedFieldsLocked"
-                        >
-                            @foreach (\App\Enums\Gender::cases() as $gender)
-                                <flux:radio :value="$gender->value" :label="$gender->label()" />
-                            @endforeach
+                        />
 
-                            <flux:error name="contact_gender" />
-                        </flux:radio.group>
-                    @endif
+                        @if ($genderEnabled)
+                            <flux:radio.group
+                                wire:model="contact_gender"
+                                :label="__('Gender')"
+                                class="flex flex-wrap gap-x-6"
+                                :disabled="$this->sharedFieldsLocked"
+                            >
+                                @foreach (\App\Enums\Gender::cases() as $gender)
+                                    <flux:radio :value="$gender->value" :label="$gender->label()" />
+                                @endforeach
 
-                    <flux:textarea
-                        wire:model="contact_summary"
-                        :label="__('Summary')"
-                        :disabled="$this->sharedFieldsLocked"
-                    />
+                                <flux:error name="contact_gender" />
+                            </flux:radio.group>
+                        @endif
+
+                        <flux:textarea
+                            wire:model="contact_summary"
+                            :label="__('Summary')"
+                            :disabled="$this->sharedFieldsLocked"
+                        />
+                    </flux:card.body>
                 </flux:card>
             @endif
         </div>

@@ -1,44 +1,45 @@
 @props(['periods'])
 
-<flux:card class="max-w-2xl space-y-4">
-    <flux:heading>{{ __('History') }}</flux:heading>
-    <flux:separator variant="subtle" />
+<flux:card body="divided">
+    <flux:card.header>
+        <flux:heading>{{ __('History') }}</flux:heading>
+    </flux:card.header>
 
-    @forelse ($periods as $period)
-        <div wire:key="period-{{ $period->id }}" class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-                <flux:heading>
-                    {{ $period->start_date->format('Y-m-d') }}
-                    —
-                    {{ $period->finish_date?->format('Y-m-d') ?? __('Present') }}
-                </flux:heading>
+    <flux:card.body class="max-h-96 overflow-y-auto">
+        @if ($periods->isEmpty())
+            <flux:text class="text-sm">{{ __('No histories yet.') }}</flux:text>
+        @else
+            <x-ui.timeline>
+                @foreach ($periods as $period)
+                    <x-ui.timeline.item wire:key="period-{{ $period->id }}" :status="$loop->first ? 'current' : 'complete'">
+                        <flux:heading>
+                            {{ $period->start_date->format('Y-m-d') }}
+                            —
+                            {{ $period->finish_date?->format('Y-m-d') ?? __('Present') }}
+                        </flux:heading>
 
-                <flux:text class="text-xs">
-                    {{ $period->type->label() }}
+                        <flux:text size="sm">
+                            {{ $period->type->label() }}
 
-                    @if ($period->role !== null)
-                        · {{ $period->role->label() }}
-                    @endif
+                            @if ($period->role !== null)
+                                · {{ $period->role->label() }}
+                            @endif
 
-                    @if ($period->code !== null)
-                        · {{ $period->code }}
-                    @endif
+                            @if ($period->code !== null)
+                                · {{ $period->code }}
+                            @endif
 
-                    @if ($period->reason !== null)
-                        · {{ $period->reason->label() }}
-                    @endif
+                            @if ($period->reason !== null)
+                                · {{ $period->reason->label() }}
+                            @endif
 
-                    @if ($period->actor !== null)
-                        · {{ $period->actor->name }}
-                    @endif
-                </flux:text>
-            </div>
-
-            @if ($period->isOpen())
-                <flux:badge size="sm" color="green">{{ __('Current') }}</flux:badge>
-            @endif
-        </div>
-    @empty
-        <flux:text>{{ __('No history yet.') }}</flux:text>
-    @endforelse
+                            @if ($period->actor !== null)
+                                · {{ $period->actor->name }}
+                            @endif
+                        </flux:text>
+                    </x-ui.timeline.item>
+                @endforeach
+            </x-ui.timeline>
+        @endif
+    </flux:card.body>
 </flux:card>
