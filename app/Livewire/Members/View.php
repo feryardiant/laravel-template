@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -24,6 +25,7 @@ class View extends Component
 {
     use HasCurrentOrganization;
 
+    #[Locked]
     public Person $person;
 
     public bool $showRoleModal = false;
@@ -125,8 +127,13 @@ class View extends Component
 
     public function render(): ViewContract
     {
+        $organization = $this->requireOrganization();
+
+        // mount() only runs once; a later request must not render a removed member.
+        abort_unless($organization->members()->whereKey($this->person->getKey())->exists(), 404);
+
         $currentRole = $this->currentRole();
-        $role = $this->person->roleIn($this->requireOrganization());
+        $role = $this->person->roleIn($organization);
         $isOwner = $currentRole?->isOwner() ?? false;
         $canManage = $currentRole?->isOwner() || $currentRole?->isAdmin();
 
@@ -138,7 +145,7 @@ class View extends Component
 
         /** @disregard P1013 */
         return view('livewire.members.view', [
-            'organization' => $this->requireOrganization(),
+            'organization' => $organization,
             'role' => $role,
             'joinedAt' => $joinedAt,
             'contactEmail' => $this->person->contactDetailValue(ContactDetailType::Email),

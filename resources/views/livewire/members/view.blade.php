@@ -94,7 +94,7 @@
 
                     <div>
                         <flux:text>{{ __('Contact phone') }}</flux:text>
-                        <flux:heading class="break-words">{{ $contactPhone ?: '—' }}</flux:heading>
+                        <flux:heading class="break-words">{{ $contactPhone ?? '—' }}</flux:heading>
                     </div>
 
                     <div>

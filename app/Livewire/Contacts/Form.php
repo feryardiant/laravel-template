@@ -160,6 +160,11 @@ class Form extends Component
 
     public function updatedSelectedEntity(?string $reference): void
     {
+        // Reuse only applies while creating; an edited contact keeps its own values.
+        if ($this->contactId !== null) {
+            return;
+        }
+
         if ($reference === null || $reference === '') {
             if ($this->reusedName !== null || $this->reusedType !== null) {
                 $this->resetReuse();
@@ -331,7 +336,9 @@ class Form extends Component
     #[Computed]
     public function reusing(): bool
     {
-        return \is_string($this->selectedEntity) && $this->selectedEntity !== '';
+        return $this->contactId === null
+            && \is_string($this->selectedEntity)
+            && $this->selectedEntity !== '';
     }
 
     #[Computed]

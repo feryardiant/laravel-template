@@ -532,6 +532,29 @@ test('a shared contact still lets another tenant change its email and phone', fu
         ->and($contact->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBe('0812');
 });
 
+test('a stale reuse reference cannot skip contact detail validation on edit', function () {
+    $owner = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    $contact = contactOrganization($owner, ['name' => 'Reuse Guard']);
+
+    // An expired relationship keeps the contact reusable, so the reference resolves.
+    $other->organizationCounterparties()->attach($contact, [
+        'type' => OrganizationRelationshipType::Customer,
+        'start_date' => now()->subMonths(2),
+        'finish_date' => now()->subMonth(),
+    ]);
+
+    actingAsMember($other, Role::Admin);
+
+    Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($other, $contact))
+        ->set('selectedEntity', 'organization:'.$contact->uuid)
+        ->set('contact_email', 'not-an-email')
+        ->call('save')
+        ->assertHasErrors('contact_email');
+});
+
 test('an organization contact person email and phone are editable and clearable', function () {
     $organization = Organization::factory()->create();
 

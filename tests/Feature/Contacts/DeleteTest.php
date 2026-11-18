@@ -15,6 +15,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\Feature\ContactDeletion;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -298,7 +299,7 @@ test('permanently deleting an entity removes its contact details', function () {
             ->exists())->toBeTrue();
 });
 
-test('a rejected person force delete keeps its contact details', function () {
+test('a rejected person force delete never touches its contact details', function () {
     $person = Person::factory()->create();
     Organization::factory()->create(['contact_id' => $person->getKey()]);
 
@@ -307,6 +308,14 @@ test('a rejected person force delete keeps its contact details', function () {
         'value' => 'keep@acme.test',
     ]);
 
+    $detailDeletes = [];
+
+    DB::listen(function (QueryExecuted $query) use (&$detailDeletes): void {
+        if (str_starts_with(ltrim($query->sql), 'delete') && str_contains($query->sql, 'contact_details')) {
+            $detailDeletes[] = $query->sql;
+        }
+    });
+
     // Wrap in a savepoint so the failed delete does not abort the test transaction.
     try {
         DB::transaction(fn () => $person->forceDelete());
@@ -314,8 +323,9 @@ test('a rejected person force delete keeps its contact details', function () {
         // The restrictive contact_id foreign key rejects the delete.
     }
 
-    expect(ContactDetail::query()
-        ->where('contactable_type', Person::class)
-        ->where('contactable_id', $person->getKey())
-        ->exists())->toBeTrue();
+    expect($detailDeletes)->toBe([])
+        ->and(ContactDetail::query()
+            ->where('contactable_type', Person::class)
+            ->where('contactable_id', $person->getKey())
+            ->exists())->toBeTrue();
 });

@@ -88,7 +88,7 @@
 
                     <div>
                         <flux:text>{{ __('Phone') }}</flux:text>
-                        <flux:heading class="break-words">{{ $contactPhone ?: '—' }}</flux:heading>
+                        <flux:heading class="break-words">{{ $contactPhone ?? '—' }}</flux:heading>
                     </div>
                 </flux:card.body>
             </flux:card>
@@ -132,7 +132,7 @@
 
                         <div>
                             <flux:text>{{ __('Phone') }}</flux:text>
-                            <flux:heading class="break-words">{{ $contactPersonPhone ?: '—' }}</flux:heading>
+                            <flux:heading class="break-words">{{ $contactPersonPhone ?? '—' }}</flux:heading>
                         </div>
                     </flux:card.body>
                 </flux:card>
