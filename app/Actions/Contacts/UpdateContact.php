@@ -8,6 +8,8 @@ use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Enums\ContactDetailType;
+use App\Enums\OrganizationRelationshipType;
 use App\Events\Contacts\ContactUpdated;
 use App\Models\Entity;
 use App\Models\Organization;
@@ -17,6 +19,7 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -56,7 +59,9 @@ final class UpdateContact
 
         abort_if($stakeholder === null, 404);
 
-        $role = $this->ensureExternalRole($data['role'] ?? null);
+        $role = \array_key_exists('role', $data)
+            ? $this->ensureExternalRole($data['role'])
+            : ($contact->type instanceof OrganizationRelationshipType ? $contact->type : OrganizationRelationshipType::Customer);
         $locked = $contact->profileLockedFor($tenant);
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
         $previous = null;
@@ -100,16 +105,43 @@ final class UpdateContact
 
                 $linkBefore = $contact->getRawOriginal();
 
-                OrganizationRelationship::query()
-                    ->forOrganization($tenant)
-                    ->external()
-                    ->whereKey($contact->getKey())
-                    ->update([
-                        'code' => $data['code'] ?? null,
-                        'type' => $role,
-                        'start_date' => $data['start_date'] ?? null,
-                        'finish_date' => $data['finish_date'] ?? null,
-                    ]);
+                $startDate = \array_key_exists('start_date', $data)
+                    ? $data['start_date']
+                    : $contact->start_date?->toDateString();
+
+                $finishDate = \array_key_exists('finish_date', $data)
+                    ? $data['finish_date']
+                    : $contact->finish_date?->toDateString();
+
+                if ($finishDate !== null) {
+                    Validator::make(
+                        ['start_date' => $startDate, 'finish_date' => $finishDate],
+                        [
+                            'start_date' => ['required', 'date'],
+                            'finish_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+                        ],
+                    )->validate();
+                }
+
+                $attributes = [];
+
+                if (\array_key_exists('role', $data)) {
+                    $attributes['type'] = $role;
+                }
+
+                foreach (['code', 'start_date', 'finish_date'] as $field) {
+                    if (\array_key_exists($field, $data)) {
+                        $attributes[$field] = $data[$field];
+                    }
+                }
+
+                if ($attributes !== []) {
+                    OrganizationRelationship::query()
+                        ->forOrganization($tenant)
+                        ->external()
+                        ->whereKey($contact->getKey())
+                        ->update($attributes);
+                }
 
                 $contact->refresh();
                 $period = $this->timeline->sync($contact);
@@ -131,10 +163,15 @@ final class UpdateContact
                     return;
                 }
 
-                $attributes = [
-                    'name' => $data['name'],
-                    'summary' => $data['summary'] ?? null,
-                ];
+                $attributes = [];
+
+                if (\array_key_exists('name', $data)) {
+                    $attributes['name'] = $data['name'];
+                }
+
+                if (\array_key_exists('summary', $data)) {
+                    $attributes['summary'] = $data['summary'];
+                }
 
                 if ($stakeholder instanceof Person && \array_key_exists('gender', $data)) {
                     $attributes['gender'] = $data['gender'];
@@ -146,9 +183,13 @@ final class UpdateContact
                     $attributes[$column] = null;
                 }
 
-                $stakeholder->update($attributes);
+                if ($attributes !== []) {
+                    $stakeholder->update($attributes);
+                }
 
-                $this->saveAddress->handle($stakeholder, $data['address'] ?? null);
+                if (\array_key_exists('address', $data)) {
+                    $this->saveAddress->handle($stakeholder, $data['address']);
+                }
 
                 $fields = [
                     ...$fields,
@@ -159,17 +200,19 @@ final class UpdateContact
                 ];
 
                 if ($stakeholder instanceof Organization) {
-                    $contactAttributes = [
-                        'name' => $data['contact_name'],
-                        'summary' => $data['contact_summary'] ?? null,
-                    ];
+                    $contactAttributes = [];
 
-                    if (\array_key_exists('contact_gender', $data)) {
-                        $contactAttributes['gender'] = $data['contact_gender'];
+                    foreach (['contact_name' => 'name', 'contact_summary' => 'summary', 'contact_gender' => 'gender'] as $key => $attribute) {
+                        if (\array_key_exists($key, $data)) {
+                            $contactAttributes[$attribute] = $data[$key];
+                        }
                     }
 
                     $contactPerson = $stakeholder->primaryContact;
-                    $contactPerson?->update($contactAttributes);
+
+                    if ($contactAttributes !== []) {
+                        $contactPerson?->update($contactAttributes);
+                    }
 
                     foreach (array_keys($contactPerson?->getChanges() ?? []) as $field) {
                         if (\in_array($field, ['name', 'summary', 'gender'], true)) {
@@ -209,33 +252,47 @@ final class UpdateContact
      */
     private function saveContactDetailsFor(Organization|Person $stakeholder, array $data): array
     {
-        $fields = [];
-
-        if (\array_key_exists('contact_email', $data)) {
-            $fields = $this->saveContactDetails->handle(
-                $stakeholder,
-                $data['contact_email'],
-                $data['contact_phone'] ?? null,
-            );
-        }
+        $fields = $this->saveDetails($stakeholder, $data, [
+            'contact_email' => ContactDetailType::Email,
+            'contact_phone' => ContactDetailType::Phone,
+        ]);
 
         $contactPerson = $stakeholder instanceof Organization ? $stakeholder->primaryContact : null;
 
-        if ($contactPerson !== null && \array_key_exists('contact_person_email', $data)) {
-            $fields = [
-                ...$fields,
-                ...array_map(
-                    fn (string $field): string => 'contact_'.$field,
-                    $this->saveContactDetails->handle(
-                        $contactPerson,
-                        $data['contact_person_email'],
-                        $data['contact_person_phone'] ?? null,
-                    ),
-                ),
-            ];
+        if ($contactPerson === null) {
+            return $fields;
         }
 
-        return $fields;
+        return [
+            ...$fields,
+            ...array_map(
+                fn (string $field): string => 'contact_'.$field,
+                $this->saveDetails($contactPerson, $data, [
+                    'contact_person_email' => ContactDetailType::Email,
+                    'contact_person_phone' => ContactDetailType::Phone,
+                ]),
+            ),
+        ];
+    }
+
+    /**
+     * Write only the detail keys the form submitted.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, ContactDetailType>  $map
+     * @return list<string>
+     */
+    private function saveDetails(Entity $entity, array $data, array $map): array
+    {
+        $details = [];
+
+        foreach ($map as $key => $type) {
+            if (\array_key_exists($key, $data)) {
+                $details[$type->value] = $data[$key];
+            }
+        }
+
+        return $this->saveContactDetails->handle($entity, $details);
     }
 
     /**

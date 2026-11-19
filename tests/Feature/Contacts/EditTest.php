@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Contacts\UpdateContact;
 use App\Enums\AuditEvent;
 use App\Enums\ContactDetailType;
@@ -553,6 +554,179 @@ test('a stale reuse reference cannot skip contact detail validation on edit', fu
         ->set('contact_email', 'not-an-email')
         ->call('save')
         ->assertHasErrors('contact_email');
+});
+
+test('saving an unrelated field keeps a contact detail saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Stale Details']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    $form = Livewire::test(Form::class)->call('openEdit', $relationshipId);
+
+    app(SaveContactDetails::class)->handle($contact, [
+        ContactDetailType::Email->value => 'newer@acme.test',
+    ]);
+
+    $form->set('code', 'STALE-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('newer@acme.test')
+        ->and(OrganizationRelationship::query()->whereKey($relationshipId)->value('code'))->toBe('STALE-1');
+});
+
+test('a stale contact save keeps a photo saved by another session', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Photo Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    Storage::disk()->put('logos/new.png', 'image');
+    $contact->update(['logo_url' => 'logos/new.png']);
+
+    $form->set('code', 'PHOTO-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->fresh()?->getRawOriginal('logo_url'))->toBe('logos/new.png')
+        ->and(Storage::disk()->exists('logos/new.png'))->toBeTrue();
+});
+
+test('a stale contact save keeps an address saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Address Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->addresses()->create(validAddress());
+
+    $form->set('code', 'ADDR-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->addresses()->exists())->toBeTrue();
+});
+
+test('a stale contact save keeps the code and role saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Terms Guard']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    $form = Livewire::test(Form::class)->call('openEdit', $relationshipId);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update([
+        'code' => 'NEW-CODE',
+        'type' => OrganizationRelationshipType::Supplier->value,
+    ]);
+
+    $form->set('name', 'Renamed Contact')->call('save')->assertHasNoErrors();
+
+    $relationship = OrganizationRelationship::query()->whereKey($relationshipId)->firstOrFail();
+
+    expect($relationship->code)->toBe('NEW-CODE')
+        ->and($relationship->type)->toBe(OrganizationRelationshipType::Supplier);
+});
+
+test('editing an organization contact works when the contact person is deleted', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Deleted Person Org']);
+    $contact->primaryContact?->delete();
+
+    Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact))
+        ->set('contact_person_email', 'kept@acme.test')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contact->primaryContact?->contactDetailValue(ContactDetailType::Email))->toBe('kept@acme.test');
+});
+
+test('a stale finish date cannot invert the relationship dates', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Date Guard']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update(['start_date' => '2026-01-01']);
+
+    $form = Livewire::test(Form::class)->call('openEdit', $relationshipId);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update(['start_date' => '2026-06-01']);
+
+    $form->set('finish_date', '2026-03-01')->call('save')->assertHasErrors('finish_date');
+
+    expect(OrganizationRelationship::query()->whereKey($relationshipId)->value('finish_date'))->toBeNull();
+});
+
+test('a stale contact save keeps the name and summary saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Profile Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->update(['name' => 'Newer Name', 'summary' => 'Newer summary']);
+
+    $form->set('code', 'PROFILE-1')->call('save')->assertHasNoErrors();
+
+    $contact->refresh();
+
+    expect($contact->name)->toBe('Newer Name')
+        ->and($contact->summary)->toBe('Newer summary');
+});
+
+test('a stale contact save keeps the contact person name saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Person Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->primaryContact?->update(['name' => 'Newer Person Name']);
+
+    $form->set('code', 'PERSON-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->primaryContact?->fresh()->name)->toBe('Newer Person Name');
+});
+
+test('a stale contact save keeps a gender saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    ContactGender::activate($organization);
+
+    $contact = contactIndividual($organization, ['name' => 'Gender Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->update(['gender' => Gender::Female]);
+
+    $form->set('code', 'GENDER-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->fresh()?->gender)->toBe(Gender::Female);
 });
 
 test('an organization contact person email and phone are editable and clearable', function () {

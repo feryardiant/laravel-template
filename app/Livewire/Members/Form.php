@@ -16,6 +16,7 @@ use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
@@ -32,6 +33,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Throwable;
 
 /**
  * @property-read bool $canEditProfile
@@ -52,6 +54,34 @@ class Form extends Component
     public string $contact_email = '';
 
     public string $contact_phone = '';
+
+    /**
+     * The detail values loaded when the form opened; only changes are submitted.
+     *
+     * @var array<string, string>
+     */
+    #[Locked]
+    public array $originalDetails = [];
+
+    #[Locked]
+    public ?string $originalPhotoUrl = null;
+
+    /**
+     * The address payload loaded when the form opened.
+     *
+     * @var array<string, string|null>|null
+     */
+    #[Locked]
+    public ?array $originalAddress = null;
+
+    #[Locked]
+    public ?int $originalRole = null;
+
+    #[Locked]
+    public string $originalEmail = '';
+
+    #[Locked]
+    public string $originalName = '';
 
     #[Locked]
     public bool $hasCredential = false;
@@ -108,7 +138,7 @@ class Form extends Component
     {
         $this->authorizeManager();
 
-        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
+        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'originalName', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
 
         $this->role = Role::Member->value;
         $this->genderEnabled = false;
@@ -151,17 +181,27 @@ class Form extends Component
             ? $fileStorage->handle($this->photo, 'photos')
             : null;
 
-        $createMember->handle(
-            $organization,
-            $validated['name'],
-            $role,
-            $hasCredential ? $validated['email'] : null,
-            $photoUrl,
-            Auth::user(),
-            $this->addressPayload(),
-            $validated['contact_email'] ?? null,
-            $validated['contact_phone'] ?? null,
-        );
+        try {
+            $createMember->handle(
+                $organization,
+                $validated['name'],
+                $role,
+                $hasCredential ? $validated['email'] : null,
+                $photoUrl,
+                Auth::user(),
+                $this->addressPayload(),
+                $validated['contact_email'] ?? null,
+                $validated['contact_phone'] ?? null,
+            );
+        } catch (Throwable $exception) {
+            // A failure after the commit (such as the invite email) must not
+            // delete a photo the committed member already references.
+            if ($photoUrl !== null && ! Person::query()->where('photo_url', $photoUrl)->exists()) {
+                $fileStorage->delete($photoUrl);
+            }
+
+            throw $exception;
+        }
 
         $this->photo = null;
         $this->showModal = false;
@@ -208,11 +248,12 @@ class Form extends Component
         $canEditProfile = $this->canEditProfile;
 
         if (! $canEditProfile) {
-            abort_if($this->name !== $this->person->name, 403);
+            // Compare with what the form loaded: the member may have renamed themselves.
+            abort_if($this->name !== $this->originalName, 403);
             abort_if($this->createCredential, 403);
             abort_if($this->photo instanceof UploadedFile, 403);
 
-            if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+            if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email && $this->email !== $this->originalEmail) {
                 abort(403);
             }
         }
@@ -231,7 +272,9 @@ class Form extends Component
         if ($canEditProfile) {
             $rules['name'] = $this->nameRules();
             $rules['email'] = $this->hasCredential
-                ? $this->emailRules($this->person->user_id)
+                ? ($this->email !== $this->originalEmail
+                    ? $this->emailRules($this->person->user_id)
+                    : ['required', 'string', 'email', 'max:255'])
                 : ($this->createCredential ? $this->emailRules() : ['nullable', 'string', 'email', 'max:255']);
 
             if ($this->genderEnabled && $this->genderEditable) {
@@ -251,6 +294,11 @@ class Form extends Component
         $role = Role::from((int) $validated['role']);
         $currentRole = $this->person->roleIn($organization);
 
+        if ($role->value === $this->originalRole && $role !== $currentRole) {
+            // The editor did not change the role; keep the value saved elsewhere.
+            $role = $currentRole ?? $role;
+        }
+
         $this->authorizeTarget($this->person);
 
         if ($role !== $currentRole) {
@@ -260,26 +308,22 @@ class Form extends Component
         }
 
         // Credentials are global: editing an email shared with other organizations would hand them the account.
-        if ($canEditProfile && $this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email) {
+        if ($canEditProfile && $this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email && $this->email !== $this->originalEmail) {
             abort_if($this->person->organizations()->whereKeyNot($organization->getKey())->exists(), 403);
         }
 
         $previousPhoto = $this->person->getRawOriginal('photo_url');
         $photoUrl = $previousPhoto;
+        $stagedPhoto = null;
+        $removePhoto = false;
 
         if ($canEditProfile) {
-            $photoUrl = $this->photo_url;
-
             if ($this->photo instanceof UploadedFile) {
-                $photoUrl = $fileStorage->replace($this->photo, 'photos', $previousPhoto);
-            } elseif ($previousPhoto !== $this->photo_url) {
-                if (! $fileStorage->delete($previousPhoto)) {
-                    $this->photo_url = $previousPhoto;
-
-                    Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
-
-                    return;
-                }
+                $stagedPhoto = $fileStorage->handle($this->photo, 'photos');
+                $photoUrl = $stagedPhoto;
+            } elseif ($this->photo_url === null && $this->originalPhotoUrl !== null) {
+                $photoUrl = null;
+                $removePhoto = true;
             }
         }
 
@@ -289,66 +333,127 @@ class Form extends Component
             ? ($validated['gender'] ?? null)
             : null;
 
-        DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, $saveAddress, $saveContactDetails, &$emailChanged, &$credentialCreated): void {
-            if ($canEditProfile) {
-                $attributes = [
-                    'name' => $validated['name'],
-                    'photo_url' => $photoUrl,
-                ];
+        try {
+            DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $stagedPhoto, $removePhoto, $role, $currentRole, $canEditProfile, $gender, $saveAddress, $saveContactDetails, &$emailChanged, &$credentialCreated): void {
+                if ($canEditProfile) {
+                    $attributes = [];
 
-                if ($gender !== null) {
-                    $attributes['gender'] = $gender;
+                    if ($this->name !== $this->originalName) {
+                        $attributes['name'] = $validated['name'];
+                    }
+
+                    if ($stagedPhoto !== null || $removePhoto) {
+                        $attributes['photo_url'] = $photoUrl;
+                    }
+
+                    if ($gender !== null) {
+                        $attributes['gender'] = $gender;
+                    }
+
+                    if ($attributes !== []) {
+                        $this->person->update($attributes);
+                    }
+
+                    $address = $this->addressPayload();
+
+                    if ($address !== $this->originalAddress) {
+                        $saveAddress->handle($this->person, $address);
+                    }
                 }
 
-                $this->person->update($attributes);
+                // Communication records stay editable even when the profile is managed elsewhere.
+                $saveContactDetails->handle($this->person, $this->changedContactDetails());
 
-                $saveAddress->handle($this->person, $this->addressPayload());
-            }
+                if ($canEditProfile && $this->hasCredential) {
+                    if ($this->email !== $this->originalEmail) {
+                        $user = $this->person->user;
 
-            // Communication records stay editable even when the profile is managed elsewhere.
-            $saveContactDetails->handle(
-                $this->person,
-                $validated['contact_email'] ?? null,
-                $validated['contact_phone'] ?? null,
-            );
+                        abort_if($user === null, 404);
 
-            if ($canEditProfile && $this->hasCredential) {
-                $user = $this->person->user;
+                        $emailChanged = $user->email !== $this->email;
 
-                abort_if($user === null, 404);
+                        $user->email = $this->email;
 
-                $emailChanged = $user->email !== $this->email;
+                        if ($emailChanged) {
+                            $user->email_verified_at = null;
+                        }
 
-                $user->email = $this->email;
+                        $user->save();
+                    }
+                } elseif ($canEditProfile && $this->createCredential) {
+                    $hasUser = Person::query()
+                        ->whereKey($this->person->getKey())
+                        ->lockForUpdate()
+                        ->value('user_id') !== null;
 
-                if ($emailChanged) {
-                    $user->email_verified_at = null;
+                    if (! $hasUser) {
+                        $user = app(CreateUser::class)->handle(
+                            name: $this->person->name,
+                            email: $this->email,
+                            password: Str::random(16),
+                        );
+
+                        $this->person->update(['user_id' => $user->getKey()]);
+
+                        $credentialCreated = true;
+                    }
                 }
 
-                $user->save();
-            } elseif ($canEditProfile && $this->createCredential) {
-                $user = app(CreateUser::class)->handle(
-                    name: $this->person->name,
-                    email: $this->email,
-                    password: Str::random(16),
-                );
-
-                $this->person->update(['user_id' => $user->getKey()]);
-
-                $credentialCreated = true;
+                if ($role !== $currentRole) {
+                    app(ChangeMemberRole::class)->setRole($organization, $this->person, $role, $actor);
+                }
+            });
+        } catch (Throwable $exception) {
+            // A failure after the commit (an after-commit audit push) must not
+            // delete a photo the committed member references.
+            if ($stagedPhoto !== null && ! Person::query()->where('photo_url', $stagedPhoto)->exists()) {
+                $fileStorage->delete($stagedPhoto);
             }
 
-            if ($role !== $currentRole) {
-                app(ChangeMemberRole::class)->setRole($organization, $this->person, $role, $actor);
-            }
-        });
+            throw $exception;
+        }
+
+        if ($stagedPhoto !== null) {
+            // The replacement is committed; a failed cleanup only leaves an
+            // orphaned file, so it is logged rather than rolled back.
+            $fileStorage->delete($previousPhoto);
+        }
 
         $this->person = $this->person->fresh(['user']) ?? $this->person;
         $this->photo = null;
         $this->photo_url = $photoUrl;
 
+        $this->rememberContactDetails();
+        $this->rememberBaselines($organization);
+
+        $photoRemovalFailed = false;
+
+        if ($removePhoto && ! $fileStorage->delete($previousPhoto)) {
+            $restored = Person::query()
+                ->whereKey($this->person->getKey())
+                ->whereNull('photo_url')
+                ->update(['photo_url' => $previousPhoto]);
+
+            $this->photo_url = $restored === 0
+                ? ($this->person->refresh())->getRawOriginal('photo_url')
+                : $previousPhoto;
+
+            $this->rememberBaselines($organization);
+
+            $photoRemovalFailed = true;
+        }
+
         if (($this->hasCredential && $emailChanged) || $credentialCreated) {
             $this->person->user?->notify(new VerifyEmailForNewUser);
+        }
+
+        if ($photoRemovalFailed) {
+            Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
+
+            // The rest of the edit committed; let the list reload.
+            $this->dispatch('member-updated');
+
+            return;
         }
 
         $this->showModal = false;
@@ -415,6 +520,65 @@ class Form extends Component
         $this->gender = $person->gender?->value;
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
         $this->fillAddress($person->addresses()->first());
+        $this->originalDetails = $this->contactDetailValues();
+        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalAddress = $this->addressPayload();
+        $this->originalRole = (int) $this->role;
+        $this->originalEmail = Str::lower($this->email);
+        $this->originalName = $this->name;
+    }
+
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
+    {
+        return [
+            ContactDetailType::Email->value => $this->contact_email,
+            ContactDetailType::Phone->value => $this->contact_phone,
+        ];
+    }
+
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
+    {
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
+
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
+    }
+
+    private function rememberBaselines(Organization $organization): void
+    {
+        $role = ($this->person?->roleIn($organization) ?? Role::Member)->value;
+        $email = Str::lower((string) $this->person?->user?->email);
+        $name = (string) $this->person?->name;
+        $hasCredential = $this->person?->user_id !== null;
+
+        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalAddress = $this->addressPayload();
+        $this->originalRole = $role;
+        $this->originalEmail = $email;
+        $this->originalName = $name;
+
+        // Keep what the form displays in step with the new baselines, so a retry
+        // after a failed cleanup cannot resubmit a newer value as an edit.
+        $this->role = $role;
+        $this->email = $email;
+        $this->name = $name;
+        $this->hasCredential = $hasCredential;
+
+        if ($hasCredential) {
+            $this->createCredential = false;
+        }
     }
 
     /**

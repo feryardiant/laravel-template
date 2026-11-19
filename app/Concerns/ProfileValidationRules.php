@@ -53,7 +53,7 @@ trait ProfileValidationRules
      *
      * @return array<int, Unique|ValidationRule|array<mixed>|string>
      */
-    protected function handleRules(?int $userId = null, bool $forRegistration = false): array
+    protected function handleRules(?int $userId = null, bool $forRegistration = false, bool $unique = true): array
     {
         $rules = [
             'string',
@@ -61,10 +61,13 @@ trait ProfileValidationRules
             'alpha_num',
             'min:4',
             'max:15',
-            $userId === null
-                ? Rule::unique(User::class, 'handle')
-                : Rule::unique(User::class, 'handle')->ignore($userId),
         ];
+
+        if ($unique) {
+            $rules[] = $userId === null
+                ? Rule::unique(User::class, 'handle')
+                : Rule::unique(User::class, 'handle')->ignore($userId);
+        }
 
         return $forRegistration ? $rules : ['required', ...$rules];
     }

@@ -8,6 +8,7 @@ use App\Actions\Addresses\SaveAddress;
 use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Concerns\ToManageEntities;
+use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
@@ -62,7 +63,10 @@ final class CreateMember
 
             $this->saveAddress->handle($person, $address);
 
-            $this->saveContactDetails->handle($person, $contactEmail, $contactPhone);
+            $this->saveContactDetails->handle($person, [
+                ContactDetailType::Email->value => $contactEmail,
+                ContactDetailType::Phone->value => $contactPhone,
+            ]);
 
             $this->attach(
                 $organization,

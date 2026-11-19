@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Memberships\CreateMember;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
+use Tests\Support\ContactDetailWriteFailed;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -251,6 +253,212 @@ test('the user avatar can be removed', function () {
     expect(Storage::disk()->exists('avatars/old.jpg'))->toBeFalse();
 });
 
+test('an avatar replacement keeps the new path when the old file cannot be deleted', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/blocked']);
+
+    // A directory at the object path cannot be unlinked, which forces the failure.
+    Storage::disk()->makeDirectory('avatars/blocked');
+
+    actingAs($user);
+
+    Livewire::test(Profile::class)
+        ->set('avatar', UploadedFile::fake()->image('new.jpg'))
+        ->call('updateProfileInformation')
+        ->assertHasNoErrors()
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success');
+
+    $stored = $user->person->fresh()?->getRawOriginal('photo_url');
+
+    expect($stored)->toContain('avatars/')
+        ->and($stored)->not->toBe('avatars/blocked')
+        ->and(Storage::disk()->exists((string) $stored))->toBeTrue()
+        ->and(Storage::disk()->directoryExists('avatars/blocked'))->toBeTrue();
+});
+
+test('a stale profile save keeps an avatar saved by another session', function () {
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    Storage::disk()->put('avatars/new.jpg', 'avatar');
+    $user->person->update(['photo_url' => 'avatars/new.jpg']);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->person->fresh()?->getRawOriginal('photo_url'))->toBe('avatars/new.jpg')
+        ->and(Storage::disk()->exists('avatars/new.jpg'))->toBeTrue();
+});
+
+test('a stale profile save does not revert a login email change', function () {
+    $user = User::factory()->withProfile()->create(['email' => 'old@example.test']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['email' => 'newer@example.test']);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->email)->toBe('newer@example.test');
+});
+
+test('a stale profile save keeps a name and summary saved by another session', function () {
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['name' => 'Old Name', 'summary' => 'Old summary']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->person->update(['name' => 'Newer Name', 'summary' => 'Newer summary']);
+
+    $component->set('contact_phone', '0899 555')->call('updateProfileInformation')->assertHasNoErrors();
+
+    $person = $user->person->fresh();
+
+    expect($person?->name)->toBe('Newer Name')
+        ->and($person?->summary)->toBe('Newer summary');
+});
+
+test('a stale profile save keeps a handle saved by another session', function () {
+    $user = User::factory()->withProfile()->create();
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['handle' => 'newerhandle']);
+
+    $component->set('contact_phone', '0899 666')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->handle)->toBe('newerhandle');
+});
+
+test('a stale profile save still succeeds when the opening email is taken', function () {
+    $user = User::factory()->withProfile()->create(['email' => 'own@example.test']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['email' => 'newer@example.test']);
+    User::factory()->create(['email' => 'own@example.test']);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->email)->toBe('newer@example.test');
+});
+
+test('a stale profile save still succeeds when the opening handle is taken', function () {
+    $user = User::factory()->withProfile()->create(['handle' => 'oldhandle']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['handle' => 'newerhandle']);
+    User::factory()->create(['handle' => 'oldhandle']);
+
+    $component->set('contact_phone', '0899 777')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->handle)->toBe('newerhandle')
+        ->and($user->fresh()->person?->contactDetailValue(ContactDetailType::Phone))->toBe('0899 777');
+});
+
+test('a failed profile save removes the staged avatar', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    actingAs($user = User::factory()->create());
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Profile::class)
+            ->set('contact_phone', '0899 000')
+            ->set('avatar', UploadedFile::fake()->image('avatar.jpg'))
+            ->call('updateProfileInformation');
+    } catch (ContactDetailWriteFailed) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and(Storage::disk()->allFiles('avatars'))->toBe([])
+        ->and($user->fresh()?->person)->toBeNull();
+});
+
+test('a failed profile update keeps the previous avatar', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/old.jpg']);
+    Storage::disk()->put('avatars/old.jpg', 'avatar');
+
+    actingAs($user);
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Profile::class)
+            ->set('contact_phone', '0899 000')
+            ->set('avatar', UploadedFile::fake()->image('new.jpg'))
+            ->call('updateProfileInformation');
+    } catch (ContactDetailWriteFailed) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($user->person->fresh()->getRawOriginal('photo_url'))->toBe('avatars/old.jpg')
+        ->and(Storage::disk()->allFiles('avatars'))->toBe(['avatars/old.jpg']);
+});
+
+test('a failed profile update keeps an avatar being removed', function () {
+    Storage::fake();
+
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['photo_url' => 'avatars/old.jpg']);
+    Storage::disk()->put('avatars/old.jpg', 'avatar');
+
+    actingAs($user);
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Profile::class)
+            ->set('contact_phone', '0899 000')
+            ->call('clearAvatar')
+            ->call('updateProfileInformation');
+    } catch (ContactDetailWriteFailed) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($user->person->fresh()->getRawOriginal('photo_url'))->toBe('avatars/old.jpg')
+        ->and(Storage::disk()->exists('avatars/old.jpg'))->toBeTrue();
+});
+
 test('the user avatar path is kept when removal fails', function () {
     Storage::fake();
 
@@ -295,6 +503,20 @@ test('a non-image avatar is rejected', function () {
         ->assertHasErrors(['avatar']);
 
     expect($user->fresh()->person?->getRawOriginal('photo_url'))->toBeNull();
+});
+
+test('saving the profile keeps a contact detail saved by another session', function () {
+    actingAs($user = User::factory()->withProfile()->create());
+
+    $component = Livewire::test(Profile::class);
+
+    app(SaveContactDetails::class)->handle($user->person, [
+        ContactDetailType::Phone->value => '0899 000',
+    ]);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()?->person?->contactDetailValue(ContactDetailType::Phone))->toBe('0899 000');
 });
 
 test('contact details are stored without changing the login email', function () {

@@ -6,6 +6,7 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\General\TransferOwnership;
 use App\Models\ApprovalRequest;
+use App\Models\ContactDetail;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -16,6 +17,7 @@ use Database\Factories\OrganizationFactory;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 use Pest\Browser\ServerManager;
+use Tests\Support\ContactDetailWriteFailed;
 use Tests\TestCase;
 
 /*
@@ -67,6 +69,24 @@ function assertNoBackendErrors(): void
     expect($throwable)->toBeNull(
         'The last backend request threw: '.($throwable?->getMessage() ?? 'unknown'),
     );
+}
+
+/**
+ * Make contact-detail writes throw so the surrounding transaction rolls back.
+ */
+function failContactDetailWrites(): void
+{
+    ContactDetail::saving(function (): void {
+        throw new ContactDetailWriteFailed;
+    });
+}
+
+/**
+ * Remove the failing listener installed by failContactDetailWrites().
+ */
+function restoreContactDetailWrites(): void
+{
+    ContactDetail::getEventDispatcher()->forget('eloquent.saving: '.ContactDetail::class);
 }
 
 /**

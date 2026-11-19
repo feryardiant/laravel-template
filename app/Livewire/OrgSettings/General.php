@@ -38,6 +38,31 @@ class General extends Component
     public string $contact_phone = '';
 
     /**
+     * The detail values loaded when the form opened; only changes are submitted.
+     *
+     * @var array<string, string>
+     */
+    #[Locked]
+    public array $originalDetails = [];
+
+    #[Locked]
+    public ?string $originalLogoUrl = null;
+
+    #[Locked]
+    public string $originalName = '';
+
+    #[Locked]
+    public string $originalSummary = '';
+
+    /**
+     * The address payload loaded when the form opened.
+     *
+     * @var array<string, string|null>|null
+     */
+    #[Locked]
+    public ?array $originalAddress = null;
+
+    /**
      * @var mixed
      */
     public $logo = null;
@@ -62,6 +87,39 @@ class General extends Component
         $this->contact_phone = (string) $organization->contactDetailValue(ContactDetailType::Phone);
         $this->logo_url = $organization->getRawOriginal('logo_url');
         $this->fillAddress($organization->address()->first());
+        $this->originalDetails = $this->contactDetailValues();
+        $this->originalLogoUrl = $this->logo_url;
+        $this->originalAddress = $this->addressPayload();
+        $this->originalName = $this->name;
+        $this->originalSummary = $this->summary;
+    }
+
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
+    {
+        return [
+            ContactDetailType::Email->value => $this->contact_email,
+            ContactDetailType::Phone->value => $this->contact_phone,
+        ];
+    }
+
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
+    {
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
+
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
     }
 
     #[Computed]
@@ -100,14 +158,19 @@ class General extends Component
             $newLogoPath = $fileStorage->handle($this->logo, 'logos');
             $this->logo = null;
             $this->logo_url = $newLogoPath;
-        } elseif ($previousLogo !== $this->logo_url) {
+        } elseif ($this->logo_url === null && $this->originalLogoUrl !== null) {
             $removeLogo = true;
         }
 
         try {
             DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $saveAddress, $saveContactDetails): void {
-                $organization->name = $validated['name'];
-                $organization->summary = $validated['summary'] ?? null;
+                if ($this->name !== $this->originalName) {
+                    $organization->name = $validated['name'];
+                }
+
+                if ($this->summary !== $this->originalSummary) {
+                    $organization->summary = $validated['summary'] ?? null;
+                }
 
                 if ($newLogoPath !== null) {
                     $organization->logo_url = $newLogoPath;
@@ -117,13 +180,13 @@ class General extends Component
 
                 $organization->save();
 
-                $saveAddress->handle($organization, $this->addressPayload());
+                $address = $this->addressPayload();
 
-                $details = $saveContactDetails->handle(
-                    $organization,
-                    $validated['contact_email'] ?? null,
-                    $validated['contact_phone'] ?? null,
-                );
+                if ($address !== $this->originalAddress) {
+                    $saveAddress->handle($organization, $address);
+                }
+
+                $details = $saveContactDetails->handle($organization, $this->changedContactDetails());
 
                 $fields = [
                     ...array_values(array_diff(array_keys($organization->getChanges()), ['updated_at'])),
@@ -160,6 +223,16 @@ class General extends Component
             throw $exception;
         }
 
+        $this->rememberContactDetails();
+        $this->originalAddress = $this->addressPayload();
+
+        $organization->refresh();
+
+        $this->originalName = $organization->name;
+        $this->originalSummary = (string) $organization->summary;
+        $this->name = $this->originalName;
+        $this->summary = $this->originalSummary;
+
         if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
             $restored = Organization::query()
                 ->whereKey($organization->getKey())
@@ -169,6 +242,7 @@ class General extends Component
             if ($restored === 0) {
                 $organization->refresh();
                 $this->logo_url = $organization->getRawOriginal('logo_url');
+                $this->originalLogoUrl = $this->logo_url;
 
                 Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
@@ -185,11 +259,14 @@ class General extends Component
             ]));
 
             $this->logo_url = $previousLogo;
+            $this->originalLogoUrl = $this->logo_url;
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
             return;
         }
+
+        $this->originalLogoUrl = $this->logo_url;
 
         unset($this->pendingApproval);
 

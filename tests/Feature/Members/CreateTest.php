@@ -8,12 +8,14 @@ use App\Livewire\Members\Form;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Notifications\VerifyEmailForNewUser;
+use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
+use Tests\Support\ContactDetailWriteFailed;
 
 uses(RefreshDatabase::class);
 
@@ -112,6 +114,70 @@ test('an admin can add a member with a photo', function () {
 
     expect($person->getRawOriginal('photo_url'))->toContain('photos/');
     expect(Storage::disk()->allFiles('photos'))->not->toBeEmpty();
+});
+
+test('a failed invitation keeps the created member photo', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $this->mock(Dispatcher::class, function ($mock): void {
+        $mock->shouldReceive('send')->andThrow(new RuntimeException('mail failed'));
+    });
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Form::class)->call('openCreate')
+            ->set('name', 'Invited Member')
+            ->set('role', Role::Member->value)
+            ->set('createCredential', true)
+            ->set('email', 'invite@example.test')
+            ->set('photo', UploadedFile::fake()->image('member.jpg'))
+            ->call('create');
+    } catch (RuntimeException) {
+        $thrown = true;
+    }
+
+    $person = Person::query()->where('name', 'Invited Member')->first();
+    $photo = $person?->getRawOriginal('photo_url');
+
+    expect($thrown)->toBeTrue()
+        ->and($photo)->not->toBeNull()
+        ->and(Storage::disk()->exists((string) $photo))->toBeTrue();
+});
+
+test('a failed member create removes the uploaded photo', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    failContactDetailWrites();
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Form::class)->call('openCreate')
+            ->set('name', 'Failed Member')
+            ->set('role', Role::Member->value)
+            ->set('contact_email', 'fail@example.test')
+            ->set('photo', UploadedFile::fake()->image('member.jpg'))
+            ->call('create');
+    } catch (ContactDetailWriteFailed) {
+        $thrown = true;
+    } finally {
+        restoreContactDetailWrites();
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and(Storage::disk()->allFiles('photos'))->toBe([])
+        ->and(Person::query()->where('name', 'Failed Member')->exists())->toBeFalse();
 });
 
 test('an admin can add a member with contact details', function () {

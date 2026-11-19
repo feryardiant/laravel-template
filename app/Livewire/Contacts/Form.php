@@ -96,6 +96,41 @@ class Form extends Component
 
     public string $contact_person_phone = '';
 
+    /**
+     * The detail values loaded when the form opened; only changes are submitted.
+     *
+     * @var array<string, string>
+     */
+    #[Locked]
+    public array $originalDetails = [];
+
+    /**
+     * The profile values loaded when the form opened.
+     *
+     * @var array<string, string|null>
+     */
+    #[Locked]
+    public array $originalProfile = [];
+
+    /**
+     * The relationship values loaded when the form opened.
+     *
+     * @var array<string, string|null>
+     */
+    #[Locked]
+    public array $originalRelationship = [];
+
+    #[Locked]
+    public ?string $originalPhotoUrl = null;
+
+    /**
+     * The address payload loaded when the form opened.
+     *
+     * @var array<string, string|null>|null
+     */
+    #[Locked]
+    public ?array $originalAddress = null;
+
     #[Locked]
     public bool $genderEnabled = false;
 
@@ -130,6 +165,11 @@ class Form extends Component
             'contact_phone',
             'contact_person_email',
             'contact_person_phone',
+            'originalDetails',
+            'originalProfile',
+            'originalRelationship',
+            'originalPhotoUrl',
+            'originalAddress',
         );
 
         $this->type = 'individual';
@@ -256,25 +296,22 @@ class Form extends Component
 
         $this->validate($this->rules($organization, $sharedFieldsLocked));
 
+        $profile = $this->changedProfile();
+
+        if (! $this->genderEnabled) {
+            unset($profile['gender'], $profile['contact_gender']);
+        }
+
         $data = [
-            'name' => $this->name,
-            'summary' => $this->summary !== '' ? $this->summary : null,
-            'code' => $this->code !== '' ? $this->code : null,
-            'role' => OrganizationRelationshipType::from($this->role),
-            'start_date' => $this->start_date,
-            'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
-            'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
-            'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
-            'contact_email' => $this->contact_email,
-            'contact_phone' => $this->contact_phone,
-            'contact_person_email' => $this->contact_person_email,
-            'contact_person_phone' => $this->contact_person_phone,
-            'address' => $this->addressPayload(),
+            ...$profile,
+            ...$this->changedRelationship(),
+            ...$this->changedContactDetails(),
         ];
 
-        if ($this->genderEnabled) {
-            $data['gender'] = $this->gender;
-            $data['contact_gender'] = $this->contact_gender;
+        $address = $this->addressPayload();
+
+        if ($address !== $this->originalAddress) {
+            $data['address'] = $address;
         }
 
         if ($this->contactId === null) {
@@ -292,7 +329,7 @@ class Form extends Component
                     $this->contactId,
                     $data,
                     $this->photo instanceof UploadedFile ? $this->photo : null,
-                    $this->photo_url === null,
+                    $this->photo_url === null && $this->originalPhotoUrl !== null,
                     $sharedFieldsLocked,
                     $actor,
                 );
@@ -319,6 +356,8 @@ class Form extends Component
         }
 
         $this->showModal = false;
+        $this->rememberContactDetails();
+        $this->rememberBaselines();
         $this->dispatch('contact-updated', contactId: $entity?->getKey());
 
         Flux::toast(variant: 'success', text: $message);
@@ -481,7 +520,99 @@ class Form extends Component
             $this->contact_person_phone = (string) $contactPerson?->contactDetailValue(ContactDetailType::Phone);
         }
 
+        $this->originalDetails = $this->contactDetailValues();
+        $this->rememberBaselines();
         $this->resetValidation();
+    }
+
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
+    {
+        return [
+            'contact_email' => $this->contact_email,
+            'contact_phone' => $this->contact_phone,
+            'contact_person_email' => $this->contact_person_email,
+            'contact_person_phone' => $this->contact_person_phone,
+        ];
+    }
+
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
+    {
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
+
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
+    }
+
+    /**
+     * The profile values currently held by the form.
+     *
+     * @return array<string, string|null>
+     */
+    private function profileValues(): array
+    {
+        return [
+            'name' => $this->name,
+            'summary' => $this->summary !== '' ? $this->summary : null,
+            'gender' => $this->gender,
+            'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
+            'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
+            'contact_gender' => $this->contact_gender,
+        ];
+    }
+
+    /**
+     * The profile values the editor changed.
+     *
+     * @return array<string, string|null>
+     */
+    private function changedProfile(): array
+    {
+        return array_diff_assoc($this->profileValues(), $this->originalProfile);
+    }
+
+    /**
+     * The relationship values currently held by the form.
+     *
+     * @return array<string, string|null>
+     */
+    private function relationshipValues(): array
+    {
+        return [
+            'code' => $this->code !== '' ? $this->code : null,
+            'role' => $this->role,
+            'start_date' => $this->start_date,
+            'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
+        ];
+    }
+
+    /**
+     * The relationship values the editor changed.
+     *
+     * @return array<string, string|null>
+     */
+    private function changedRelationship(): array
+    {
+        return array_diff_assoc($this->relationshipValues(), $this->originalRelationship);
+    }
+
+    private function rememberBaselines(): void
+    {
+        $this->originalProfile = $this->profileValues();
+        $this->originalRelationship = $this->relationshipValues();
+        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalAddress = $this->addressPayload();
     }
 
     private function resetReuse(bool $resetName = false): void
@@ -501,6 +632,11 @@ class Form extends Component
         $this->contact_phone = '';
         $this->contact_person_email = '';
         $this->contact_person_phone = '';
+        $this->originalDetails = [];
+        $this->originalProfile = [];
+        $this->originalRelationship = [];
+        $this->originalPhotoUrl = null;
+        $this->originalAddress = null;
         $this->type = 'individual';
         $this->resetAddress();
 

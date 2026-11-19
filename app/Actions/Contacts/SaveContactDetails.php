@@ -11,16 +11,31 @@ use Illuminate\Support\Str;
 final class SaveContactDetails
 {
     /**
-     * Store the entity's email and phone records.
+     * Store the changed detail records, leaving omitted types untouched.
      *
+     * @param  array<string, ?string>  $details  Detail type => value; null or blank deletes.
      * @return list<string> The detail types that changed.
      */
-    public function handle(Entity $entity, ?string $email, ?string $phone): array
+    public function handle(Entity $entity, array $details): array
     {
-        return array_values(array_filter([
-            $this->save($entity, ContactDetailType::Email, $email),
-            $this->save($entity, ContactDetailType::Phone, $phone),
-        ]));
+        if ($details === []) {
+            return [];
+        }
+
+        // Serialize with a concurrent save so a first insert cannot race the unique index.
+        $entity->newQuery()->withTrashed()->whereKey($entity->getKey())->lockForUpdate()->firstOrFail();
+
+        $changed = [];
+
+        foreach ($details as $type => $value) {
+            $field = $this->save($entity, ContactDetailType::from($type), $value);
+
+            if ($field !== null) {
+                $changed[] = $field;
+            }
+        }
+
+        return $changed;
     }
 
     /**
