@@ -3,10 +3,6 @@ name: Prune Images
 on:
   workflow_call:
     inputs:
-      branch-base:
-        description: Base branch to keep
-        default: main
-        type: string
       dry-run:
         description: Whether to dry run
         default: false
@@ -19,6 +15,17 @@ on:
       PAT_PRUNE:
         description: Token with packages delete permission; pruning is skipped when unset
         required: false
+  workflow_dispatch:
+    inputs:
+      # A manual run is usually an inspection; flip this to actually delete.
+      dry-run:
+        description: Whether to dry run
+        default: true
+        type: boolean
+      keep-branch-base:
+        description: Number of image to keep on base branch
+        default: 10
+        type: number
 
 jobs:
   prune-images:
@@ -42,7 +49,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GH_TOKEN: ${{ github.token }}
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref || inputs.branch-base }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           DRY_RUN: ${{ inputs.dry-run && 1 }}
           KEEP_BASE_BRANCH: ${{ inputs.keep-branch-base }}
         with:
