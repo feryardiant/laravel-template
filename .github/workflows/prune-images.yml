@@ -93,14 +93,18 @@ jobs:
 
             const tags_of = (version) => version.metadata?.container?.tags ?? [];
 
-            // Only versions `dist` built carry a `<branch>.<sha8>` tag. Release
-            // builds take their tag from the git tag or the `chore(release):`
-            // commit title, and the platform/attestation manifests of a
-            // multi-arch image carry no tag at all.
+            // `dist` tags a main build as `<branch>.<sha8>` and a PR build as
+            // `pr-<n>`. Release builds take their tag from the git tag or the
+            // `chore(release):` commit title, and the platform/attestation
+            // manifests of a multi-arch image carry no tag at all.
+            const pr_tag = (tag) => /^pr-\d+$/.test(tag);
+
             const build_tag = (version) =>
+              tags_of(version).find(pr_tag) ??
               tags_of(version).find((tag) => /^(pr\d+-)?(\d+\.\d+\.\d+-)?[\w-]+\.[a-f0-9]{8}$/.test(tag));
 
-            const branch_of = (tag) => tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{8}$/, '$3').trim();
+            const branch_of = (tag) =>
+              pr_tag(tag) ? tag : tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{8}$/, '$3').trim();
 
             const branches = new Map([[base_branch, []]]);
             for (const version of versions) {

@@ -1,31 +1,26 @@
 name: Distribute
-run-name: 'dist(${{ github.event.workflow_run.head_branch || github.head_ref }}): docker build for `${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}`'
+run-name: 'dist(${{ github.event.workflow_run.head_branch }}): docker build for `${{ github.event.workflow_run.head_sha }}`'
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - .github/workflows/dist.yml
-      - scripts/docker/**
   workflow_run:
-    branches: [main]
     types: [completed]
     workflows: [Tests]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:
   prepare:
     name: Prepare
+    # A failed Tests run must not publish an image, and fork PRs must not publish
+    # at all — `workflow_run` hands this workflow a write token regardless.
     if: >-
-      github.event_name != 'pull_request'
-        && github.event.workflow_run.conclusion == 'success'
-        || github.event.pull_request.head.repo.full_name == github.repository
+      github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.head_repository.full_name == github.repository
     uses: projek-xyz/actions/.github/workflows/prepare.yml@b8889b2415c01ca846b5865dcbacbed0439cff06 # main @ 2026-11-13
     with:
-      project-ref: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+      project-ref: ${{ github.event.workflow_run.head_sha }}
       php-version: ${{ vars.PHP_VERSION || '8.4' }}
     permissions:
       contents: read
@@ -34,8 +29,6 @@ jobs:
   docker:
     name: Build and Push
     runs-on: ubuntu-latest
-    # A failed Tests run must not publish an image.
-    if: github.event_name == 'pull_request' || github.event.workflow_run.conclusion == 'success'
     needs: [prepare]
 
     permissions:
@@ -48,7 +41,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
       - name: Setup PHP
@@ -98,16 +91,14 @@ jobs:
             org.opencontainers.image.author=${{ github.repository_owner }}
             org.opencontainers.image.licenses=MIT
           tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=ref,event=pr
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ needs.prepare.outputs.project-version }}
-            type=raw,value=${{ needs.prepare.outputs.branch-slug }}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix=,format=long
+            # `workflow_run` runs on the default branch ref, so every tag is keyed
+            # off the upstream event instead of `github.ref`/`GITHUB_SHA`.
+            type=raw,value=latest,enable=${{ github.event.workflow_run.event == 'push' }}
+            type=raw,value=${{ github.event.workflow_run.head_branch }},enable=${{ github.event.workflow_run.event == 'push' }}
+            type=raw,value=${{ needs.prepare.outputs.project-version }},enable=${{ github.event.workflow_run.event == 'push' }}
+            type=sha,prefix=,format=long,enable=${{ github.event.workflow_run.event == 'push' }}
+            type=raw,value=pr-${{ github.event.workflow_run.pull_requests[0].number }},enable=${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].number != null }}
+            type=raw,value=${{ github.event.workflow_run.head_sha }},enable=${{ github.event.workflow_run.event == 'pull_request' }}
 
       - name: Build and push Docker image
         id: push
@@ -127,7 +118,7 @@ jobs:
           push: true
 
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        if: github.event_name == 'workflow_run'
+        if: github.event.workflow_run.event == 'push'
         with:
           subject-name: ghcr.io/${{ needs.prepare.outputs.project-repo-name }}
           subject-digest: ${{ steps.push.outputs.digest }}
