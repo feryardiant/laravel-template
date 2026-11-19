@@ -59,6 +59,7 @@ jobs:
       - name: Build Frontend
         env:
           APP_URL: ${{ vars.APP_URL || 'http://localhost' }}
+          LARAVEL_BYPASS_ENV_CHECK: 1
         run: vp build
 
       - name: Set up Docker Buildx
