@@ -17,6 +17,7 @@ use Database\Factories\OrganizationFactory;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 use Pest\Browser\ServerManager;
+use Tests\Support\ContactDetailWriteFailed;
 use Tests\TestCase;
 
 /*
@@ -76,7 +77,7 @@ function assertNoBackendErrors(): void
 function failContactDetailWrites(): void
 {
     ContactDetail::saving(function (): void {
-        throw new RuntimeException('contact detail write failed');
+        throw new ContactDetailWriteFailed;
     });
 }
 

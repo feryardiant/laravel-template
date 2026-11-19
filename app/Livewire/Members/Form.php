@@ -381,15 +381,22 @@ class Form extends Component
                         $user->save();
                     }
                 } elseif ($canEditProfile && $this->createCredential) {
-                    $user = app(CreateUser::class)->handle(
-                        name: $this->person->name,
-                        email: $this->email,
-                        password: Str::random(16),
-                    );
+                    $hasUser = Person::query()
+                        ->whereKey($this->person->getKey())
+                        ->lockForUpdate()
+                        ->value('user_id') !== null;
 
-                    $this->person->update(['user_id' => $user->getKey()]);
+                    if (! $hasUser) {
+                        $user = app(CreateUser::class)->handle(
+                            name: $this->person->name,
+                            email: $this->email,
+                            password: Str::random(16),
+                        );
 
-                    $credentialCreated = true;
+                        $this->person->update(['user_id' => $user->getKey()]);
+
+                        $credentialCreated = true;
+                    }
                 }
 
                 if ($role !== $currentRole) {
@@ -397,7 +404,11 @@ class Form extends Component
                 }
             });
         } catch (Throwable $exception) {
-            $fileStorage->delete($stagedPhoto);
+            // A failure after the commit (an after-commit audit push) must not
+            // delete a photo the committed member references.
+            if ($stagedPhoto !== null && ! Person::query()->where('photo_url', $stagedPhoto)->exists()) {
+                $fileStorage->delete($stagedPhoto);
+            }
 
             throw $exception;
         }
@@ -411,11 +422,6 @@ class Form extends Component
         $this->person = $this->person->fresh(['user']) ?? $this->person;
         $this->photo = null;
         $this->photo_url = $photoUrl;
-
-        if ($credentialCreated) {
-            $this->hasCredential = true;
-            $this->createCredential = false;
-        }
 
         $this->rememberContactDetails();
         $this->rememberBaselines($organization);
@@ -443,6 +449,9 @@ class Form extends Component
 
         if ($photoRemovalFailed) {
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
+
+            // The rest of the edit committed; let the list reload.
+            $this->dispatch('member-updated');
 
             return;
         }
@@ -552,6 +561,7 @@ class Form extends Component
         $role = ($this->person?->roleIn($organization) ?? Role::Member)->value;
         $email = Str::lower((string) $this->person?->user?->email);
         $name = (string) $this->person?->name;
+        $hasCredential = $this->person?->user_id !== null;
 
         $this->originalPhotoUrl = $this->photo_url;
         $this->originalAddress = $this->addressPayload();
@@ -564,6 +574,11 @@ class Form extends Component
         $this->role = $role;
         $this->email = $email;
         $this->name = $name;
+        $this->hasCredential = $hasCredential;
+
+        if ($hasCredential) {
+            $this->createCredential = false;
+        }
     }
 
     /**

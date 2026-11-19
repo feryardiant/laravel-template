@@ -14,14 +14,17 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use App\Support\Feature\ContactGender;
+use Closure;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use Tests\Support\ContactDetailWriteFailed;
 
 uses(RefreshDatabase::class);
 
@@ -325,7 +328,7 @@ test('a failed member update keeps the previous photo', function () {
             ->set('contact_phone', '0899 111')
             ->set('photo', UploadedFile::fake()->image('new.jpg'))
             ->call('update');
-    } catch (RuntimeException) {
+    } catch (ContactDetailWriteFailed) {
         $thrown = true;
     } finally {
         restoreContactDetailWrites();
@@ -356,7 +359,7 @@ test('a failed member update keeps a photo being removed', function () {
             ->set('contact_phone', '0899 111')
             ->call('clearPhoto')
             ->call('update');
-    } catch (RuntimeException) {
+    } catch (ContactDetailWriteFailed) {
         $thrown = true;
     } finally {
         restoreContactDetailWrites();
@@ -509,6 +512,123 @@ test('a stale member save still succeeds when the opening email is taken', funct
     $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
 
     expect($member->fresh()->email)->toBe('newer@example.test');
+});
+
+test('an after-transaction failure keeps the referenced staged photo', function () {
+    Storage::fake(FileUploadConfiguration::disk());
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/old.jpg']);
+    Storage::disk()->put('photos/old.jpg', 'photo');
+
+    DB::shouldReceive('transaction')->once()->andReturnUsing(function (Closure $callback): void {
+        $callback();
+
+        throw new RuntimeException('after commit');
+    });
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Form::class, ['person' => $member->person])
+            ->set('name', 'Renamed Member')
+            ->set('photo', UploadedFile::fake()->image('new.jpg'))
+            ->call('update');
+    } catch (RuntimeException) {
+        $thrown = true;
+    }
+
+    $stored = $member->person->fresh()->getRawOriginal('photo_url');
+
+    expect($thrown)->toBeTrue()
+        ->and($stored)->not->toBe('photos/old.jpg')
+        ->and(Storage::disk()->exists((string) $stored))->toBeTrue();
+});
+
+test('a stale create-credential form does not replace a credential added elsewhere', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $person = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $person, startDate: now());
+
+    $form = Livewire::test(Form::class, ['person' => $person]);
+
+    $other = User::factory()->create(['email' => 'other@example.test']);
+    $person->update(['user_id' => $other->getKey()]);
+
+    $form->set('createCredential', true)
+        ->set('email', 'entered@example.test')
+        ->call('update')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()->user_id)->toBe($other->getKey())
+        ->and($form->get('hasCredential'))->toBeTrue()
+        ->and($form->get('createCredential'))->toBeFalse()
+        ->and(User::query()->where('email', 'entered@example.test')->exists())->toBeFalse();
+});
+
+test('a credential attached during the save is preserved', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $person = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $person, startDate: now());
+
+    $form = Livewire::test(Form::class, ['person' => $person]);
+
+    $other = User::factory()->create();
+
+    Person::updating(function (Person $updated) use ($other): void {
+        $updated->user_id = $other->getKey();
+    });
+
+    try {
+        $form->set('name', 'Renamed Member')
+            ->set('createCredential', true)
+            ->set('email', 'entered@example.test')
+            ->call('update')
+            ->assertHasNoErrors();
+    } finally {
+        Person::getEventDispatcher()->forget('eloquent.updating: '.Person::class);
+    }
+
+    expect($person->fresh()->user_id)->toBe($other->getKey())
+        ->and(User::query()->where('email', 'entered@example.test')->exists())->toBeFalse();
+});
+
+test('a committed rename dispatches the list refresh when photo removal fails', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create(['name' => 'Old Name']);
+    $member->person->update(['photo_url' => 'photos/blocked']);
+
+    Storage::disk()->makeDirectory('photos/blocked');
+
+    Livewire::test(Form::class, ['person' => $member->person])
+        ->set('name', 'New Name')
+        ->call('clearPhoto')
+        ->call('update')
+        ->assertDispatched('member-updated')
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
+
+    expect($member->person->fresh()->name)->toBe('New Name')
+        ->and($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/blocked');
 });
 
 test('the member photo path cannot be changed from the client', function () {

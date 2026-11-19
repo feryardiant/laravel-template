@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
+use Tests\Support\ContactDetailWriteFailed;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -357,6 +358,22 @@ test('a stale profile save still succeeds when the opening email is taken', func
     expect($user->fresh()->email)->toBe('newer@example.test');
 });
 
+test('a stale profile save still succeeds when the opening handle is taken', function () {
+    $user = User::factory()->withProfile()->create(['handle' => 'oldhandle']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['handle' => 'newerhandle']);
+    User::factory()->create(['handle' => 'oldhandle']);
+
+    $component->set('contact_phone', '0899 777')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->handle)->toBe('newerhandle')
+        ->and($user->fresh()->person?->contactDetailValue(ContactDetailType::Phone))->toBe('0899 777');
+});
+
 test('a failed profile save removes the staged avatar', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();
@@ -372,7 +389,7 @@ test('a failed profile save removes the staged avatar', function () {
             ->set('contact_phone', '0899 000')
             ->set('avatar', UploadedFile::fake()->image('avatar.jpg'))
             ->call('updateProfileInformation');
-    } catch (RuntimeException) {
+    } catch (ContactDetailWriteFailed) {
         $thrown = true;
     } finally {
         restoreContactDetailWrites();
@@ -402,7 +419,7 @@ test('a failed profile update keeps the previous avatar', function () {
             ->set('contact_phone', '0899 000')
             ->set('avatar', UploadedFile::fake()->image('new.jpg'))
             ->call('updateProfileInformation');
-    } catch (RuntimeException) {
+    } catch (ContactDetailWriteFailed) {
         $thrown = true;
     } finally {
         restoreContactDetailWrites();
@@ -431,7 +448,7 @@ test('a failed profile update keeps an avatar being removed', function () {
             ->set('contact_phone', '0899 000')
             ->call('clearAvatar')
             ->call('updateProfileInformation');
-    } catch (RuntimeException) {
+    } catch (ContactDetailWriteFailed) {
         $thrown = true;
     } finally {
         restoreContactDetailWrites();

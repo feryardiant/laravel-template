@@ -166,7 +166,7 @@ class Profile extends Component
         $this->email = Str::lower($this->email);
 
         $rules = [
-            'handle' => $this->handleRules($user->id),
+            'handle' => $this->handleRules($user->id, unique: $this->handle !== $this->originalHandle),
             'summary' => ['nullable', 'string', 'max:255'],
             ...$this->contactDetailRules(),
         ];

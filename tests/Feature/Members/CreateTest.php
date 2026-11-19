@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
+use Tests\Support\ContactDetailWriteFailed;
 
 uses(RefreshDatabase::class);
 
@@ -168,7 +169,7 @@ test('a failed member create removes the uploaded photo', function () {
             ->set('contact_email', 'fail@example.test')
             ->set('photo', UploadedFile::fake()->image('member.jpg'))
             ->call('create');
-    } catch (RuntimeException) {
+    } catch (ContactDetailWriteFailed) {
         $thrown = true;
     } finally {
         restoreContactDetailWrites();
