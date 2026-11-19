@@ -1,0 +1,19 @@
+name: PR Merged
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  prune-images:
+    name: Prune old images
+    # Fork PRs get no secrets, and only same-repo PRs can push images.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/prune-images.yml
+    secrets:
+      PAT_PRUNE: ${{ secrets.PAT_PRUNE }}
+
+    permissions:
+      packages: read
