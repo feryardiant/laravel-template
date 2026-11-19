@@ -1,0 +1,16 @@
+name: Prune Images Dry Run
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/**
+
+jobs:
+  prune:
+    uses: ./.github/workflows/prune-images.yml
+    with:
+      dry-run: true
+    secrets:
+      PAT_PRUNE: ${{ secrets.PAT_PRUNE }}
+    permissions:
+      packages: read
