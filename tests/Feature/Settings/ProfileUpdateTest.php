@@ -296,6 +296,20 @@ test('a stale profile save keeps an avatar saved by another session', function (
         ->and(Storage::disk()->exists('avatars/new.jpg'))->toBeTrue();
 });
 
+test('a stale profile save does not revert a login email change', function () {
+    $user = User::factory()->withProfile()->create(['email' => 'old@example.test']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['email' => 'newer@example.test']);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->email)->toBe('newer@example.test');
+});
+
 test('a failed profile save removes the staged avatar', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();

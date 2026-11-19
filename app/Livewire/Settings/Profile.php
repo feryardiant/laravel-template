@@ -61,6 +61,9 @@ class Profile extends Component
     #[Locked]
     public ?string $originalAvatarUrl = null;
 
+    #[Locked]
+    public string $originalEmail = '';
+
     public ?string $gender = null;
 
     /**
@@ -87,6 +90,7 @@ class Profile extends Component
         $this->avatar_url = $person?->getRawOriginal('photo_url');
         $this->originalDetails = $this->contactDetailValues();
         $this->originalAvatarUrl = $this->avatar_url;
+        $this->originalEmail = Str::lower($this->email);
     }
 
     /**
@@ -198,7 +202,7 @@ class Profile extends Component
 
                 $user->handle = $validated['handle'];
 
-                if ($canEdit) {
+                if ($canEdit && $validated['email'] !== $this->originalEmail) {
                     $user->email = $validated['email'];
                 }
 
@@ -220,10 +224,14 @@ class Profile extends Component
             $fileStorage->delete($previousAvatar);
         }
 
+        $fresh = $user->fresh();
+
         $this->avatar = null;
         $this->avatar_url = $photoPath;
         $this->rememberContactDetails();
-        $this->gender = $user->fresh()?->person?->gender?->value;
+        $this->originalEmail = Str::lower((string) $fresh?->email);
+        $this->email = $this->originalEmail;
+        $this->gender = $fresh?->person?->gender?->value;
 
         if ($removeAvatar && ! $fileStorage->delete($previousAvatar)) {
             $restored = Person::query()

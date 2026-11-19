@@ -19,6 +19,7 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -103,6 +104,24 @@ final class UpdateContact
                 }
 
                 $linkBefore = $contact->getRawOriginal();
+
+                $startDate = \array_key_exists('start_date', $data)
+                    ? $data['start_date']
+                    : $contact->start_date?->toDateString();
+
+                $finishDate = \array_key_exists('finish_date', $data)
+                    ? $data['finish_date']
+                    : $contact->finish_date?->toDateString();
+
+                if ($finishDate !== null) {
+                    Validator::make(
+                        ['start_date' => $startDate, 'finish_date' => $finishDate],
+                        [
+                            'start_date' => ['required', 'date'],
+                            'finish_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+                        ],
+                    )->validate();
+                }
 
                 $attributes = [];
 

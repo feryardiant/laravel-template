@@ -398,12 +398,16 @@ class Form extends Component
         $this->person = $this->person->fresh(['user']) ?? $this->person;
         $this->photo = null;
         $this->photo_url = $photoUrl;
+
+        if ($credentialCreated) {
+            $this->hasCredential = true;
+            $this->createCredential = false;
+        }
+
         $this->rememberContactDetails();
         $this->rememberBaselines($organization);
 
-        if (($this->hasCredential && $emailChanged) || $credentialCreated) {
-            $this->person->user?->notify(new VerifyEmailForNewUser);
-        }
+        $photoRemovalFailed = false;
 
         if ($removePhoto && ! $fileStorage->delete($previousPhoto)) {
             $restored = Person::query()
@@ -417,6 +421,14 @@ class Form extends Component
 
             $this->rememberBaselines($organization);
 
+            $photoRemovalFailed = true;
+        }
+
+        if (($this->hasCredential && $emailChanged) || $credentialCreated) {
+            $this->person->user?->notify(new VerifyEmailForNewUser);
+        }
+
+        if ($photoRemovalFailed) {
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
 
             return;
@@ -523,10 +535,18 @@ class Form extends Component
 
     private function rememberBaselines(Organization $organization): void
     {
+        $role = ($this->person?->roleIn($organization) ?? Role::Member)->value;
+        $email = Str::lower((string) $this->person?->user?->email);
+
         $this->originalPhotoUrl = $this->photo_url;
         $this->originalAddress = $this->addressPayload();
-        $this->originalRole = ($this->person?->roleIn($organization) ?? Role::Member)->value;
-        $this->originalEmail = Str::lower((string) $this->person?->user?->email);
+        $this->originalRole = $role;
+        $this->originalEmail = $email;
+
+        // Keep what the form displays in step with the new baselines, so a retry
+        // after a failed cleanup cannot resubmit a newer value as an edit.
+        $this->role = $role;
+        $this->email = $email;
     }
 
     /**

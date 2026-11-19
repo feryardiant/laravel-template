@@ -14,6 +14,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use App\Support\Feature\ContactGender;
+use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -346,6 +347,116 @@ test('a failed member update keeps a photo being removed', function () {
     expect($thrown)->toBeTrue()
         ->and($member->person->fresh()->getRawOriginal('photo_url'))->toBe('photos/old.jpg')
         ->and(Storage::disk()->exists('photos/old.jpg'))->toBeTrue();
+});
+
+test('a failed invitation still removes a photo the member no longer uses', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/old.jpg']);
+    Storage::disk()->put('photos/old.jpg', 'photo');
+
+    $this->mock(Dispatcher::class, function ($mock): void {
+        $mock->shouldReceive('send')->andThrow(new RuntimeException('mail failed'));
+    });
+
+    $thrown = false;
+
+    try {
+        Livewire::test(Form::class, ['person' => $member->person])
+            ->set('email', 'newer@example.test')
+            ->call('clearPhoto')
+            ->call('update');
+    } catch (RuntimeException) {
+        $thrown = true;
+    }
+
+    expect($thrown)->toBeTrue()
+        ->and($member->person->fresh()->getRawOriginal('photo_url'))->toBeNull()
+        ->and(Storage::disk()->exists('photos/old.jpg'))->toBeFalse();
+});
+
+test('a failed photo removal still sends the verification email', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Notification::fake();
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $member->person->update(['photo_url' => 'photos/blocked']);
+
+    Storage::disk()->makeDirectory('photos/blocked');
+
+    Livewire::test(Form::class, ['person' => $member->person])
+        ->set('email', 'newer@example.test')
+        ->call('clearPhoto')
+        ->call('update')
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
+
+    Notification::assertSentTo($member, VerifyEmailForNewUser::class);
+});
+
+test('creating a credential leaves the form ready for a photo retry', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    Notification::fake();
+
+    $person = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $person, startDate: now());
+    $person->update(['photo_url' => 'photos/blocked']);
+
+    Storage::disk()->makeDirectory('photos/blocked');
+
+    Livewire::test(Form::class, ['person' => $person])
+        ->set('createCredential', true)
+        ->set('email', 'credential@example.test')
+        ->call('clearPhoto')
+        ->call('update')
+        ->assertSet('hasCredential', true)
+        ->assertSet('createCredential', false);
+});
+
+test('retrying after a failed photo removal does not revert the role or email', function () {
+    Storage::fake();
+
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization, Role::Member)->create();
+    $member->person->update(['photo_url' => 'photos/blocked']);
+
+    Storage::disk()->makeDirectory('photos/blocked');
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->whereStakeholder($member->person)
+        ->update(['role' => Role::Admin->value]);
+
+    $member->update(['email' => 'newer@example.test']);
+
+    $form->set('name', 'First Save')
+        ->call('clearPhoto')
+        ->call('update')
+        ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
+
+    $form->set('name', 'Second Save')->call('update')->assertHasNoErrors();
+
+    expect($member->person->fresh()?->roleIn($organization))->toBe(Role::Admin)
+        ->and($member->fresh()->email)->toBe('newer@example.test');
 });
 
 test('the member photo path cannot be changed from the client', function () {

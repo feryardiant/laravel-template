@@ -23,7 +23,7 @@ final class SaveContactDetails
         }
 
         // Serialize with a concurrent save so a first insert cannot race the unique index.
-        $entity->newQuery()->whereKey($entity->getKey())->lockForUpdate()->firstOrFail();
+        $entity->newQuery()->withTrashed()->whereKey($entity->getKey())->lockForUpdate()->firstOrFail();
 
         $changed = [];
 

@@ -637,6 +637,42 @@ test('a stale contact save keeps the code and role saved by another session', fu
         ->and($relationship->type)->toBe(OrganizationRelationshipType::Supplier);
 });
 
+test('editing an organization contact works when the contact person is deleted', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Deleted Person Org']);
+    $contact->primaryContact?->delete();
+
+    Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact))
+        ->set('contact_person_email', 'kept@acme.test')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($contact->primaryContact?->contactDetailValue(ContactDetailType::Email))->toBe('kept@acme.test');
+});
+
+test('a stale finish date cannot invert the relationship dates', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Date Guard']);
+    $relationshipId = contactRelationshipId($organization, $contact);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update(['start_date' => '2026-01-01']);
+
+    $form = Livewire::test(Form::class)->call('openEdit', $relationshipId);
+
+    OrganizationRelationship::query()->whereKey($relationshipId)->update(['start_date' => '2026-06-01']);
+
+    $form->set('finish_date', '2026-03-01')->call('save')->assertHasErrors('finish_date');
+
+    expect(OrganizationRelationship::query()->whereKey($relationshipId)->value('finish_date'))->toBeNull();
+});
+
 test('an organization contact person email and phone are editable and clearable', function () {
     $organization = Organization::factory()->create();
 
