@@ -105,6 +105,14 @@ class Form extends Component
     public array $originalDetails = [];
 
     /**
+     * The profile values loaded when the form opened.
+     *
+     * @var array<string, string|null>
+     */
+    #[Locked]
+    public array $originalProfile = [];
+
+    /**
      * The relationship values loaded when the form opened.
      *
      * @var array<string, string|null>
@@ -158,6 +166,7 @@ class Form extends Component
             'contact_person_email',
             'contact_person_phone',
             'originalDetails',
+            'originalProfile',
             'originalRelationship',
             'originalPhotoUrl',
             'originalAddress',
@@ -287,11 +296,14 @@ class Form extends Component
 
         $this->validate($this->rules($organization, $sharedFieldsLocked));
 
+        $profile = $this->changedProfile();
+
+        if (! $this->genderEnabled) {
+            unset($profile['gender'], $profile['contact_gender']);
+        }
+
         $data = [
-            'name' => $this->name,
-            'summary' => $this->summary !== '' ? $this->summary : null,
-            'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
-            'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
+            ...$profile,
             ...$this->changedRelationship(),
             ...$this->changedContactDetails(),
         ];
@@ -300,11 +312,6 @@ class Form extends Component
 
         if ($address !== $this->originalAddress) {
             $data['address'] = $address;
-        }
-
-        if ($this->genderEnabled) {
-            $data['gender'] = $this->gender;
-            $data['contact_gender'] = $this->contact_gender;
         }
 
         if ($this->contactId === null) {
@@ -549,6 +556,33 @@ class Form extends Component
     }
 
     /**
+     * The profile values currently held by the form.
+     *
+     * @return array<string, string|null>
+     */
+    private function profileValues(): array
+    {
+        return [
+            'name' => $this->name,
+            'summary' => $this->summary !== '' ? $this->summary : null,
+            'gender' => $this->gender,
+            'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
+            'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
+            'contact_gender' => $this->contact_gender,
+        ];
+    }
+
+    /**
+     * The profile values the editor changed.
+     *
+     * @return array<string, string|null>
+     */
+    private function changedProfile(): array
+    {
+        return array_diff_assoc($this->profileValues(), $this->originalProfile);
+    }
+
+    /**
      * The relationship values currently held by the form.
      *
      * @return array<string, string|null>
@@ -575,6 +609,7 @@ class Form extends Component
 
     private function rememberBaselines(): void
     {
+        $this->originalProfile = $this->profileValues();
         $this->originalRelationship = $this->relationshipValues();
         $this->originalPhotoUrl = $this->photo_url;
         $this->originalAddress = $this->addressPayload();
@@ -598,6 +633,7 @@ class Form extends Component
         $this->contact_person_email = '';
         $this->contact_person_phone = '';
         $this->originalDetails = [];
+        $this->originalProfile = [];
         $this->originalRelationship = [];
         $this->originalPhotoUrl = null;
         $this->originalAddress = null;

@@ -310,6 +310,53 @@ test('a stale profile save does not revert a login email change', function () {
     expect($user->fresh()->email)->toBe('newer@example.test');
 });
 
+test('a stale profile save keeps a name and summary saved by another session', function () {
+    $user = User::factory()->withProfile()->create();
+    $user->person->update(['name' => 'Old Name', 'summary' => 'Old summary']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->person->update(['name' => 'Newer Name', 'summary' => 'Newer summary']);
+
+    $component->set('contact_phone', '0899 555')->call('updateProfileInformation')->assertHasNoErrors();
+
+    $person = $user->person->fresh();
+
+    expect($person?->name)->toBe('Newer Name')
+        ->and($person?->summary)->toBe('Newer summary');
+});
+
+test('a stale profile save keeps a handle saved by another session', function () {
+    $user = User::factory()->withProfile()->create();
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['handle' => 'newerhandle']);
+
+    $component->set('contact_phone', '0899 666')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->handle)->toBe('newerhandle');
+});
+
+test('a stale profile save still succeeds when the opening email is taken', function () {
+    $user = User::factory()->withProfile()->create(['email' => 'own@example.test']);
+
+    actingAs($user);
+
+    $component = Livewire::test(Profile::class);
+
+    $user->update(['email' => 'newer@example.test']);
+    User::factory()->create(['email' => 'own@example.test']);
+
+    $component->set('handle', 'newhandle')->call('updateProfileInformation')->assertHasNoErrors();
+
+    expect($user->fresh()->email)->toBe('newer@example.test');
+});
+
 test('a failed profile save removes the staged avatar', function () {
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();

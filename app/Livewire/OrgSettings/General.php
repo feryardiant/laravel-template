@@ -48,6 +48,12 @@ class General extends Component
     #[Locked]
     public ?string $originalLogoUrl = null;
 
+    #[Locked]
+    public string $originalName = '';
+
+    #[Locked]
+    public string $originalSummary = '';
+
     /**
      * The address payload loaded when the form opened.
      *
@@ -84,6 +90,8 @@ class General extends Component
         $this->originalDetails = $this->contactDetailValues();
         $this->originalLogoUrl = $this->logo_url;
         $this->originalAddress = $this->addressPayload();
+        $this->originalName = $this->name;
+        $this->originalSummary = $this->summary;
     }
 
     /**
@@ -156,8 +164,13 @@ class General extends Component
 
         try {
             DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $saveAddress, $saveContactDetails): void {
-                $organization->name = $validated['name'];
-                $organization->summary = $validated['summary'] ?? null;
+                if ($this->name !== $this->originalName) {
+                    $organization->name = $validated['name'];
+                }
+
+                if ($this->summary !== $this->originalSummary) {
+                    $organization->summary = $validated['summary'] ?? null;
+                }
 
                 if ($newLogoPath !== null) {
                     $organization->logo_url = $newLogoPath;
@@ -212,6 +225,13 @@ class General extends Component
 
         $this->rememberContactDetails();
         $this->originalAddress = $this->addressPayload();
+
+        $organization->refresh();
+
+        $this->originalName = $organization->name;
+        $this->originalSummary = (string) $organization->summary;
+        $this->name = $this->originalName;
+        $this->summary = $this->originalSummary;
 
         if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
             $restored = Organization::query()

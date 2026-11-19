@@ -459,6 +459,40 @@ test('retrying after a failed photo removal does not revert the role or email', 
         ->and($member->fresh()->email)->toBe('newer@example.test');
 });
 
+test('a stale member save keeps a name saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create(['name' => 'Old Name']);
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    $member->person->update(['name' => 'Newer Name']);
+
+    $form->set('contact_phone', '0899 333')->call('update')->assertHasNoErrors();
+
+    expect($member->person->fresh()->name)->toBe('Newer Name');
+});
+
+test('a stale member save still succeeds when the opening email is taken', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+    $oldEmail = $member->email;
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    $member->update(['email' => 'newer@example.test']);
+    User::factory()->create(['email' => $oldEmail]);
+
+    $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
+
+    expect($member->fresh()->email)->toBe('newer@example.test');
+});
+
 test('the member photo path cannot be changed from the client', function () {
     $organization = Organization::factory()->create();
 

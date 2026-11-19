@@ -673,6 +673,62 @@ test('a stale finish date cannot invert the relationship dates', function () {
     expect(OrganizationRelationship::query()->whereKey($relationshipId)->value('finish_date'))->toBeNull();
 });
 
+test('a stale contact save keeps the name and summary saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactIndividual($organization, ['name' => 'Profile Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->update(['name' => 'Newer Name', 'summary' => 'Newer summary']);
+
+    $form->set('code', 'PROFILE-1')->call('save')->assertHasNoErrors();
+
+    $contact->refresh();
+
+    expect($contact->name)->toBe('Newer Name')
+        ->and($contact->summary)->toBe('Newer summary');
+});
+
+test('a stale contact save keeps the contact person name saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $contact = contactOrganization($organization, ['name' => 'Person Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->primaryContact?->update(['name' => 'Newer Person Name']);
+
+    $form->set('code', 'PERSON-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->primaryContact?->fresh()->name)->toBe('Newer Person Name');
+});
+
+test('a stale contact save keeps a gender saved by another session', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    ContactGender::activate($organization);
+
+    $contact = contactIndividual($organization, ['name' => 'Gender Guard']);
+
+    $form = Livewire::test(Form::class)
+        ->call('openEdit', contactRelationshipId($organization, $contact));
+
+    $contact->update(['gender' => Gender::Female]);
+
+    $form->set('code', 'GENDER-1')->call('save')->assertHasNoErrors();
+
+    expect($contact->fresh()?->gender)->toBe(Gender::Female);
+});
+
 test('an organization contact person email and phone are editable and clearable', function () {
     $organization = Organization::factory()->create();
 

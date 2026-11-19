@@ -163,10 +163,15 @@ final class UpdateContact
                     return;
                 }
 
-                $attributes = [
-                    'name' => $data['name'],
-                    'summary' => $data['summary'] ?? null,
-                ];
+                $attributes = [];
+
+                if (\array_key_exists('name', $data)) {
+                    $attributes['name'] = $data['name'];
+                }
+
+                if (\array_key_exists('summary', $data)) {
+                    $attributes['summary'] = $data['summary'];
+                }
 
                 if ($stakeholder instanceof Person && \array_key_exists('gender', $data)) {
                     $attributes['gender'] = $data['gender'];
@@ -178,7 +183,9 @@ final class UpdateContact
                     $attributes[$column] = null;
                 }
 
-                $stakeholder->update($attributes);
+                if ($attributes !== []) {
+                    $stakeholder->update($attributes);
+                }
 
                 if (\array_key_exists('address', $data)) {
                     $this->saveAddress->handle($stakeholder, $data['address']);
@@ -193,17 +200,19 @@ final class UpdateContact
                 ];
 
                 if ($stakeholder instanceof Organization) {
-                    $contactAttributes = [
-                        'name' => $data['contact_name'],
-                        'summary' => $data['contact_summary'] ?? null,
-                    ];
+                    $contactAttributes = [];
 
-                    if (\array_key_exists('contact_gender', $data)) {
-                        $contactAttributes['gender'] = $data['contact_gender'];
+                    foreach (['contact_name' => 'name', 'contact_summary' => 'summary', 'contact_gender' => 'gender'] as $key => $attribute) {
+                        if (\array_key_exists($key, $data)) {
+                            $contactAttributes[$attribute] = $data[$key];
+                        }
                     }
 
                     $contactPerson = $stakeholder->primaryContact;
-                    $contactPerson?->update($contactAttributes);
+
+                    if ($contactAttributes !== []) {
+                        $contactPerson?->update($contactAttributes);
+                    }
 
                     foreach (array_keys($contactPerson?->getChanges() ?? []) as $field) {
                         if (\in_array($field, ['name', 'summary', 'gender'], true)) {

@@ -64,6 +64,15 @@ class Profile extends Component
     #[Locked]
     public string $originalEmail = '';
 
+    #[Locked]
+    public string $originalName = '';
+
+    #[Locked]
+    public string $originalSummary = '';
+
+    #[Locked]
+    public string $originalHandle = '';
+
     public ?string $gender = null;
 
     /**
@@ -91,6 +100,9 @@ class Profile extends Component
         $this->originalDetails = $this->contactDetailValues();
         $this->originalAvatarUrl = $this->avatar_url;
         $this->originalEmail = Str::lower($this->email);
+        $this->originalName = $this->name;
+        $this->originalSummary = $this->summary;
+        $this->originalHandle = $this->handle;
     }
 
     /**
@@ -121,6 +133,20 @@ class Profile extends Component
         $this->originalDetails = $this->contactDetailValues();
     }
 
+    private function rememberBaselines(?User $fresh): void
+    {
+        $person = $fresh?->person;
+
+        $this->originalName = (string) $person?->name;
+        $this->name = $this->originalName;
+        $this->originalSummary = (string) $person?->summary;
+        $this->summary = $this->originalSummary;
+        $this->originalHandle = (string) $fresh?->handle;
+        $this->handle = $this->originalHandle;
+        $this->originalEmail = Str::lower((string) $fresh?->email);
+        $this->email = $this->originalEmail;
+    }
+
     public function render(): View
     {
         /** @disregard P1013 */
@@ -147,7 +173,9 @@ class Profile extends Component
 
         if ($canEdit) {
             $rules['name'] = $this->nameRules();
-            $rules['email'] = $this->emailRules($user->id);
+            $rules['email'] = $this->email !== $this->originalEmail
+                ? $this->emailRules($user->id)
+                : ['required', 'string', 'email', 'max:255'];
             $rules['avatar'] = ['nullable', 'image', 'max:2048'];
         }
 
@@ -173,7 +201,7 @@ class Profile extends Component
         }
 
         try {
-            DB::transaction(function () use ($user, $person, $canEdit, $validated, $photoPath, $saveContactDetails): void {
+            DB::transaction(function () use ($user, $person, $canEdit, $validated, $photoPath, $stagedAvatar, $removeAvatar, $saveContactDetails): void {
                 if ($person === null) {
                     $person = $user->person()->create([
                         'name' => $canEdit ? $validated['name'] : $user->name,
@@ -185,12 +213,17 @@ class Profile extends Component
 
                 $saveContactDetails->handle($person, $this->changedContactDetails());
 
-                $attributes = [
-                    'summary' => $validated['summary'] ?? null,
-                ];
+                $attributes = [];
 
-                if ($canEdit) {
+                if ($this->summary !== $this->originalSummary) {
+                    $attributes['summary'] = $validated['summary'] ?? null;
+                }
+
+                if ($canEdit && $this->name !== $this->originalName) {
                     $attributes['name'] = $validated['name'];
+                }
+
+                if ($stagedAvatar !== null || $removeAvatar) {
                     $attributes['photo_url'] = $photoPath;
                 }
 
@@ -198,9 +231,13 @@ class Profile extends Component
                     $attributes['gender'] = $validated['gender'];
                 }
 
-                $person->update($attributes);
+                if ($attributes !== []) {
+                    $person->update($attributes);
+                }
 
-                $user->handle = $validated['handle'];
+                if ($validated['handle'] !== $this->originalHandle) {
+                    $user->handle = $validated['handle'];
+                }
 
                 if ($canEdit && $validated['email'] !== $this->originalEmail) {
                     $user->email = $validated['email'];
@@ -229,8 +266,7 @@ class Profile extends Component
         $this->avatar = null;
         $this->avatar_url = $photoPath;
         $this->rememberContactDetails();
-        $this->originalEmail = Str::lower((string) $fresh?->email);
-        $this->email = $this->originalEmail;
+        $this->rememberBaselines($fresh);
         $this->gender = $fresh?->person?->gender?->value;
 
         if ($removeAvatar && ! $fileStorage->delete($previousAvatar)) {

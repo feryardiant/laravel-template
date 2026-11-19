@@ -81,6 +81,9 @@ class Form extends Component
     public string $originalEmail = '';
 
     #[Locked]
+    public string $originalName = '';
+
+    #[Locked]
     public bool $hasCredential = false;
 
     public bool $createCredential = false;
@@ -135,7 +138,7 @@ class Form extends Component
     {
         $this->authorizeManager();
 
-        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
+        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'originalName', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
 
         $this->role = Role::Member->value;
         $this->genderEnabled = false;
@@ -268,7 +271,9 @@ class Form extends Component
         if ($canEditProfile) {
             $rules['name'] = $this->nameRules();
             $rules['email'] = $this->hasCredential
-                ? $this->emailRules($this->person->user_id)
+                ? ($this->email !== $this->originalEmail
+                    ? $this->emailRules($this->person->user_id)
+                    : ['required', 'string', 'email', 'max:255'])
                 : ($this->createCredential ? $this->emailRules() : ['nullable', 'string', 'email', 'max:255']);
 
             if ($this->genderEnabled && $this->genderEditable) {
@@ -328,18 +333,25 @@ class Form extends Component
             : null;
 
         try {
-            DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $role, $currentRole, $canEditProfile, $gender, $saveAddress, $saveContactDetails, &$emailChanged, &$credentialCreated): void {
+            DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $stagedPhoto, $removePhoto, $role, $currentRole, $canEditProfile, $gender, $saveAddress, $saveContactDetails, &$emailChanged, &$credentialCreated): void {
                 if ($canEditProfile) {
-                    $attributes = [
-                        'name' => $validated['name'],
-                        'photo_url' => $photoUrl,
-                    ];
+                    $attributes = [];
+
+                    if ($this->name !== $this->originalName) {
+                        $attributes['name'] = $validated['name'];
+                    }
+
+                    if ($stagedPhoto !== null || $removePhoto) {
+                        $attributes['photo_url'] = $photoUrl;
+                    }
 
                     if ($gender !== null) {
                         $attributes['gender'] = $gender;
                     }
 
-                    $this->person->update($attributes);
+                    if ($attributes !== []) {
+                        $this->person->update($attributes);
+                    }
 
                     $address = $this->addressPayload();
 
@@ -503,6 +515,7 @@ class Form extends Component
         $this->originalAddress = $this->addressPayload();
         $this->originalRole = (int) $this->role;
         $this->originalEmail = Str::lower($this->email);
+        $this->originalName = $this->name;
     }
 
     /**
@@ -537,16 +550,19 @@ class Form extends Component
     {
         $role = ($this->person?->roleIn($organization) ?? Role::Member)->value;
         $email = Str::lower((string) $this->person?->user?->email);
+        $name = (string) $this->person?->name;
 
         $this->originalPhotoUrl = $this->photo_url;
         $this->originalAddress = $this->addressPayload();
         $this->originalRole = $role;
         $this->originalEmail = $email;
+        $this->originalName = $name;
 
         // Keep what the form displays in step with the new baselines, so a retry
         // after a failed cleanup cannot resubmit a newer value as an edit.
         $this->role = $role;
         $this->email = $email;
+        $this->name = $name;
     }
 
     /**
