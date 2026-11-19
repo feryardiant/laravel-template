@@ -92,6 +92,24 @@ test('a self-owned member profile is read-only for managers', function () {
     expect($member->person->roleIn($organization))->toBe(Role::Admin);
 });
 
+test('a read-only manager can save a role change while the member renames themselves', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->withProfile()->create(['name' => 'Old Name']);
+    app(CreateMember::class)->attach($organization, $member->person, startDate: now(), role: Role::Member);
+
+    $form = Livewire::test(Form::class, ['person' => $member->person]);
+
+    $member->person->update(['name' => 'Newer Name']);
+
+    $form->set('role', Role::Admin->value)->call('update')->assertHasNoErrors();
+
+    expect($member->person->fresh()->name)->toBe('Newer Name')
+        ->and($member->person->roleIn($organization))->toBe(Role::Admin);
+});
+
 test('gender can only be set once for an org-owned member', function () {
     $organization = Organization::factory()->create();
 

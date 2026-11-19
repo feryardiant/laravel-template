@@ -248,7 +248,8 @@ class Form extends Component
         $canEditProfile = $this->canEditProfile;
 
         if (! $canEditProfile) {
-            abort_if($this->name !== $this->person->name, 403);
+            // Compare with what the form loaded: the member may have renamed themselves.
+            abort_if($this->name !== $this->originalName, 403);
             abort_if($this->createCredential, 403);
             abort_if($this->photo instanceof UploadedFile, 403);
 
