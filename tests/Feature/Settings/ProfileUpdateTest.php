@@ -369,7 +369,7 @@ test('a stale profile save still succeeds when the opening handle is taken', fun
     $user->update(['handle' => 'newerhandle']);
     User::factory()->create(['handle' => 'oldhandle']);
 
-    $component->set('contact_phone', '0899 777')->call('updateProfileInformation')->assertHasNoErrors();
+    $component->set('contactPhone', '0899 777')->call('updateProfileInformation')->assertHasNoErrors();
 
     expect($user->fresh()->handle)->toBe('newerhandle')
         ->and($user->fresh()->person?->contactDetailValue(ContactDetailType::Phone))->toBe('0899 777');
