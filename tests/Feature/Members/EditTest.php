@@ -14,7 +14,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use App\Support\Feature\ContactGender;
-use Closure;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -24,8 +23,8 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
-use Mockery;
 use Tests\Support\ContactDetailWriteFailed;
+use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -230,6 +229,7 @@ test('a member photo replacement keeps the new path when the old file cannot be 
 
     $stored = $member->person->fresh()->getRawOriginal('photo_url');
 
+    /** @disregard P1013 */
     expect($stored)->toContain('photos/')
         ->and($stored)->not->toBe('photos/blocked')
         ->and(Storage::disk()->exists((string) $stored))->toBeTrue()
@@ -326,7 +326,7 @@ test('a failed member update keeps the previous photo', function () {
     try {
         Livewire::test(Form::class, ['person' => $member->person])
             ->set('name', 'Renamed Member')
-            ->set('contact_phone', '0899 111')
+            ->set('contactPhone', '0899 111')
             ->set('photo', UploadedFile::fake()->image('new.jpg'))
             ->call('update');
     } catch (ContactDetailWriteFailed) {
@@ -357,7 +357,7 @@ test('a failed member update keeps a photo being removed', function () {
 
     try {
         Livewire::test(Form::class, ['person' => $member->person])
-            ->set('contact_phone', '0899 111')
+            ->set('contactPhone', '0899 111')
             ->call('clearPhoto')
             ->call('update');
     } catch (ContactDetailWriteFailed) {
@@ -372,6 +372,7 @@ test('a failed member update keeps a photo being removed', function () {
 });
 
 test('a failed invitation still removes a photo the member no longer uses', function () {
+    /** @var TestCase $this */
     Storage::fake();
 
     $organization = Organization::factory()->create();
@@ -492,7 +493,7 @@ test('a stale member save keeps a name saved by another session', function () {
 
     $member->person->update(['name' => 'Newer Name']);
 
-    $form->set('contact_phone', '0899 333')->call('update')->assertHasNoErrors();
+    $form->set('contactPhone', '0899 333')->call('update')->assertHasNoErrors();
 
     expect($member->person->fresh()->name)->toBe('Newer Name');
 });
@@ -534,6 +535,7 @@ test('an after-transaction failure keeps the referenced staged photo', function 
         throw new RuntimeException('after commit');
     });
 
+    /** @var TestCase $this */
     $this->app->instance('db', $database);
     Facade::clearResolvedInstance('db');
 
@@ -644,7 +646,7 @@ test('the member photo path cannot be changed from the client', function () {
     $member = User::factory()->asMemberOf($organization)->create();
 
     expect(fn () => Livewire::test(Form::class, ['person' => $member->person])
-        ->set('photo_url', 'photos/other.jpg'))
+        ->set('photoUrl', 'photos/other.jpg'))
         ->toThrow(CannotUpdateLockedPropertyException::class);
 });
 
@@ -684,7 +686,7 @@ test('the member photo path is kept when removal fails', function () {
     Livewire::test(Form::class, ['person' => $member->person])
         ->call('clearPhoto')
         ->call('update')
-        ->assertSet('photo_url', 'photos/blocked')
+        ->assertSet('photoUrl', 'photos/blocked')
         ->assertNotDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success')
         ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
 
@@ -776,7 +778,7 @@ test('clearing a member contact detail deletes it', function () {
     ]);
 
     Livewire::test(Form::class, ['person' => $member->person])
-        ->set('contact_email', '')
+        ->set('contactEmail', '')
         ->call('update')
         ->assertHasNoErrors();
 
@@ -792,8 +794,8 @@ test('contact details stay editable when the profile is managed elsewhere', func
     app(CreateMember::class)->attach($organization, $member->person, startDate: now(), role: Role::Member);
 
     Livewire::test(Form::class, ['person' => $member->person])
-        ->set('contact_email', 'Reach@Example.Test')
-        ->set('contact_phone', '0812 3456')
+        ->set('contactEmail', 'Reach@Example.Test')
+        ->set('contactPhone', '0812 3456')
         ->call('update')
         ->assertHasNoErrors();
 

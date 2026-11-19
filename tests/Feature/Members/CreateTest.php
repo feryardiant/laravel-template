@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 use Tests\Support\ContactDetailWriteFailed;
+use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -117,6 +118,7 @@ test('an admin can add a member with a photo', function () {
 });
 
 test('a failed invitation keeps the created member photo', function () {
+    /** @var TestCase $this */
     Storage::fake(FileUploadConfiguration::disk());
     Storage::fake();
 
@@ -166,7 +168,7 @@ test('a failed member create removes the uploaded photo', function () {
         Livewire::test(Form::class)->call('openCreate')
             ->set('name', 'Failed Member')
             ->set('role', Role::Member->value)
-            ->set('contact_email', 'fail@example.test')
+            ->set('contactEmail', 'fail@example.test')
             ->set('photo', UploadedFile::fake()->image('member.jpg'))
             ->call('create');
     } catch (ContactDetailWriteFailed) {
@@ -188,8 +190,8 @@ test('an admin can add a member with contact details', function () {
     Livewire::test(Form::class)->call('openCreate')
         ->set('name', 'Contactable Member')
         ->set('role', Role::Member->value)
-        ->set('contact_email', 'Reach@Example.Test')
-        ->set('contact_phone', '0812 3456')
+        ->set('contactEmail', 'Reach@Example.Test')
+        ->set('contactPhone', '0812 3456')
         ->call('create')
         ->assertHasNoErrors();
 

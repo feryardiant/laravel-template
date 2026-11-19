@@ -146,7 +146,7 @@ test('an owner creates a nested subsidiary under an existing subsidiary', functi
 
     Livewire::test(Create::class, ['internal' => true])
         ->set('name', 'Beta')
-        ->set('parent_id', (string) $alpha->getKey())
+        ->set('parentId', (string) $alpha->getKey())
         ->call('create')
         ->assertHasNoErrors();
 

@@ -32,7 +32,7 @@ class Create extends Component
 
     public string $name = '';
 
-    public ?string $parent_id = null;
+    public ?string $parentId = null;
 
     public ?string $kind = null;
 
@@ -65,7 +65,7 @@ class Create extends Component
             );
         }
 
-        $this->reset('name', 'parent_id', 'logo', 'kind');
+        $this->reset('name', 'parentId', 'logo', 'kind');
         $this->kind = SubsidiaryKind::Subsidiary->value;
         $this->resetValidation();
         $this->showModal = true;
@@ -85,14 +85,14 @@ class Create extends Component
 
         $validated = $this->validate([
             'name' => $this->nameRules(),
-            'parent_id' => ['nullable', 'integer', Rule::in($parents->pluck('id')->all())],
+            'parentId' => ['nullable', 'integer', Rule::in($parents->pluck('id')->all())],
             'kind' => ['nullable', Rule::enum(SubsidiaryKind::class)],
             'logo' => ['nullable', 'image', 'max:2048'],
         ]);
 
-        $parent = $validated['parent_id'] === null
+        $parent = $validated['parentId'] === null
             ? null
-            : $parents->firstWhere('id', (int) $validated['parent_id']);
+            : $parents->firstWhere('id', (int) $validated['parentId']);
 
         if ($this->internal) {
             $root = Organization::query()->rootTenant()->first();
@@ -119,7 +119,7 @@ class Create extends Component
             app(CurrentOrganization::class)->switch($user, $organization);
         }
 
-        $this->reset('showModal', 'name', 'parent_id', 'logo', 'kind');
+        $this->reset('showModal', 'name', 'parentId', 'logo', 'kind');
 
         $this->dispatch('organization-created');
 

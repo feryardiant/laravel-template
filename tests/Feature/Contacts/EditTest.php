@@ -46,11 +46,11 @@ test('editing a contact updates its per-tenant and shared fields', function () {
         ->set('summary', 'Updated summary')
         ->set('code', 'UPDATED-1')
         ->set('role', OrganizationRelationshipType::Supplier->value)
-        ->set('start_date', '2026-01-01')
-        ->set('finish_date', '2026-12-31')
-        ->set('contact_name', 'Nara Updated')
-        ->set('contact_gender', Gender::Male->value)
-        ->set('contact_summary', 'Updated contact person')
+        ->set('startDate', '2026-01-01')
+        ->set('finishDate', '2026-12-31')
+        ->set('contactName', 'Nara Updated')
+        ->set('contactGender', Gender::Male->value)
+        ->set('contactSummary', 'Updated contact person')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -128,7 +128,7 @@ test('a shared contact keeps its shared fields and still updates per-tenant fiel
         ->call('openEdit', $relationshipId)
         ->set('name', 'Tampered Name')
         ->set('summary', 'Tampered summary')
-        ->set('contact_name', 'Tampered Person')
+        ->set('contactName', 'Tampered Person')
         ->set('code', 'SHARED-1')
         ->set('role', OrganizationRelationshipType::Vendor->value)
         ->call('save')
@@ -372,7 +372,7 @@ test('a shared contact ignores empty shared fields on save', function () {
         ->call('openEdit', $relationshipId)
         ->set('name', '')
         ->set('summary', '')
-        ->set('contact_name', '')
+        ->set('contactName', '')
         ->set('code', 'EMPTY-1')
         ->call('save')
         ->assertHasNoErrors();
@@ -422,7 +422,7 @@ test('an individual edit ignores the contact person summary', function () {
 
     Livewire::test(Form::class)
         ->call('openEdit', $relationshipId)
-        ->set('contact_summary', str_repeat('x', 300))
+        ->set('contactSummary', str_repeat('x', 300))
         ->call('save')
         ->assertHasNoErrors();
 });
@@ -523,9 +523,9 @@ test('a shared contact still lets another tenant change its email and phone', fu
 
     Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($other, $contact))
-        ->assertSet('contact_email', 'old@acme.test')
-        ->set('contact_email', 'new@acme.test')
-        ->set('contact_phone', '0812')
+        ->assertSet('contactEmail', 'old@acme.test')
+        ->set('contactEmail', 'new@acme.test')
+        ->set('contactPhone', '0812')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -551,9 +551,9 @@ test('a stale reuse reference cannot skip contact detail validation on edit', fu
     Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($other, $contact))
         ->set('selectedEntity', 'organization:'.$contact->uuid)
-        ->set('contact_email', 'not-an-email')
+        ->set('contactEmail', 'not-an-email')
         ->call('save')
-        ->assertHasErrors('contact_email');
+        ->assertHasErrors('contactEmail');
 });
 
 test('saving an unrelated field keeps a contact detail saved by another session', function () {
@@ -647,7 +647,7 @@ test('editing an organization contact works when the contact person is deleted',
 
     Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($organization, $contact))
-        ->set('contact_person_email', 'kept@acme.test')
+        ->set('contactPersonEmail', 'kept@acme.test')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -668,7 +668,7 @@ test('a stale finish date cannot invert the relationship dates', function () {
 
     OrganizationRelationship::query()->whereKey($relationshipId)->update(['start_date' => '2026-06-01']);
 
-    $form->set('finish_date', '2026-03-01')->call('save')->assertHasErrors('finish_date');
+    $form->set('finishDate', '2026-03-01')->call('save')->assertHasErrors('finishDate');
 
     expect(OrganizationRelationship::query()->whereKey($relationshipId)->value('finish_date'))->toBeNull();
 });
@@ -739,8 +739,8 @@ test('an organization contact person email and phone are editable and clearable'
 
     $form = Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($organization, $contact))
-        ->set('contact_person_email', 'Person@Acme.Test')
-        ->set('contact_person_phone', '0812 444')
+        ->set('contactPersonEmail', 'Person@Acme.Test')
+        ->set('contactPersonPhone', '0812 444')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -749,8 +749,8 @@ test('an organization contact person email and phone are editable and clearable'
         ->and(AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole()->changes)
         ->toBe(['fields' => ['contact_email', 'contact_phone']]);
 
-    $form->set('contact_person_email', '')
-        ->set('contact_person_phone', '')
+    $form->set('contactPersonEmail', '')
+        ->set('contactPersonPhone', '')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -768,7 +768,7 @@ test('clearing a contact record deletes it', function () {
 
     Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($organization, $contact))
-        ->set('contact_email', '')
+        ->set('contactEmail', '')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -786,8 +786,8 @@ test('contact detail audit records field names without values', function () {
 
     Livewire::test(Form::class)
         ->call('openEdit', contactRelationshipId($organization, $contact))
-        ->set('contact_email', 'new@acme.test')
-        ->set('contact_phone', '0812 777')
+        ->set('contactEmail', 'new@acme.test')
+        ->set('contactPhone', '0812 777')
         ->call('save')
         ->assertHasNoErrors();
 

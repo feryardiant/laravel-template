@@ -80,7 +80,7 @@ test('setup provisions the root tenant and owner', function () {
         ->set('name', 'Root Owner')
         ->set('email', 'root@example.com')
         ->set('password', 'Str0ng!Password#2026')
-        ->set('password_confirmation', 'Str0ng!Password#2026')
+        ->set('passwordConfirmation', 'Str0ng!Password#2026')
         ->call('setup')
         ->assertHasNoErrors();
 
@@ -123,7 +123,7 @@ test('setup rejects the seeded email address', function () {
         ->set('name', 'Root Owner')
         ->set('email', config('setup.initial_email'))
         ->set('password', 'Str0ng!Password#2026')
-        ->set('password_confirmation', 'Str0ng!Password#2026')
+        ->set('passwordConfirmation', 'Str0ng!Password#2026')
         ->call('setup')
         ->assertHasErrors('email');
 });

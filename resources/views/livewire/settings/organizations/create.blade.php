@@ -25,7 +25,7 @@
 
                 @if ($this->parentOrganizations->isNotEmpty())
                     <x-ui.select
-                        wire:model.live="parent_id"
+                        wire:model.live="parentId"
                         :label="__('Parent organization')"
                         :description="$internal ? __('Leave empty to add it directly under the root.') : __('Selecting a parent makes this organization a subsidiary.')"
                         :placeholder="$internal ? __('Root tenant') : __('No parent')"
@@ -39,7 +39,7 @@
                     </x-ui.select>
                 @endif
 
-                @if ($parent_id !== null || $internal)
+                @if ($parentId !== null || $internal)
                     <x-ui.select
                         wire:model="kind"
                         :label="__('Organization type')"

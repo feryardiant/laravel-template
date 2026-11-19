@@ -273,6 +273,7 @@ test('an avatar replacement keeps the new path when the old file cannot be delet
 
     $stored = $user->person->fresh()?->getRawOriginal('photo_url');
 
+    /** @disregard P1013 */
     expect($stored)->toContain('avatars/')
         ->and($stored)->not->toBe('avatars/blocked')
         ->and(Storage::disk()->exists((string) $stored))->toBeTrue()
@@ -321,7 +322,7 @@ test('a stale profile save keeps a name and summary saved by another session', f
 
     $user->person->update(['name' => 'Newer Name', 'summary' => 'Newer summary']);
 
-    $component->set('contact_phone', '0899 555')->call('updateProfileInformation')->assertHasNoErrors();
+    $component->set('contactPhone', '0899 555')->call('updateProfileInformation')->assertHasNoErrors();
 
     $person = $user->person->fresh();
 
@@ -338,7 +339,7 @@ test('a stale profile save keeps a handle saved by another session', function ()
 
     $user->update(['handle' => 'newerhandle']);
 
-    $component->set('contact_phone', '0899 666')->call('updateProfileInformation')->assertHasNoErrors();
+    $component->set('contactPhone', '0899 666')->call('updateProfileInformation')->assertHasNoErrors();
 
     expect($user->fresh()->handle)->toBe('newerhandle');
 });
@@ -368,7 +369,7 @@ test('a stale profile save still succeeds when the opening handle is taken', fun
     $user->update(['handle' => 'newerhandle']);
     User::factory()->create(['handle' => 'oldhandle']);
 
-    $component->set('contact_phone', '0899 777')->call('updateProfileInformation')->assertHasNoErrors();
+    $component->set('contactPhone', '0899 777')->call('updateProfileInformation')->assertHasNoErrors();
 
     expect($user->fresh()->handle)->toBe('newerhandle')
         ->and($user->fresh()->person?->contactDetailValue(ContactDetailType::Phone))->toBe('0899 777');
@@ -386,7 +387,7 @@ test('a failed profile save removes the staged avatar', function () {
 
     try {
         Livewire::test(Profile::class)
-            ->set('contact_phone', '0899 000')
+            ->set('contactPhone', '0899 000')
             ->set('avatar', UploadedFile::fake()->image('avatar.jpg'))
             ->call('updateProfileInformation');
     } catch (ContactDetailWriteFailed) {
@@ -416,7 +417,7 @@ test('a failed profile update keeps the previous avatar', function () {
 
     try {
         Livewire::test(Profile::class)
-            ->set('contact_phone', '0899 000')
+            ->set('contactPhone', '0899 000')
             ->set('avatar', UploadedFile::fake()->image('new.jpg'))
             ->call('updateProfileInformation');
     } catch (ContactDetailWriteFailed) {
@@ -445,7 +446,7 @@ test('a failed profile update keeps an avatar being removed', function () {
 
     try {
         Livewire::test(Profile::class)
-            ->set('contact_phone', '0899 000')
+            ->set('contactPhone', '0899 000')
             ->call('clearAvatar')
             ->call('updateProfileInformation');
     } catch (ContactDetailWriteFailed) {
@@ -473,7 +474,7 @@ test('the user avatar path is kept when removal fails', function () {
     Livewire::test(Profile::class)
         ->call('clearAvatar')
         ->call('updateProfileInformation')
-        ->assertSet('avatar_url', 'avatars/blocked')
+        ->assertSet('avatarUrl', 'avatars/blocked')
         ->assertNotDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success')
         ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
 
@@ -523,8 +524,8 @@ test('contact details are stored without changing the login email', function () 
     actingAs($user = User::factory()->create(['email' => 'login@example.test']));
 
     Livewire::test(Profile::class)
-        ->set('contact_email', 'Reach@Example.Test')
-        ->set('contact_phone', '0812 3456')
+        ->set('contactEmail', 'Reach@Example.Test')
+        ->set('contactPhone', '0812 3456')
         ->call('updateProfileInformation')
         ->assertHasNoErrors();
 

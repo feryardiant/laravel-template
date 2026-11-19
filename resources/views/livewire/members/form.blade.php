@@ -120,7 +120,7 @@
             @endif
 
             <flux:input
-                wire:model="contact_email"
+                wire:model="contactEmail"
                 type="email"
                 :label="__('Contact email')"
                 :description="__('Used for communication, not for signing in.')"
@@ -128,7 +128,7 @@
             />
 
             <flux:input
-                wire:model="contact_phone"
+                wire:model="contactPhone"
                 type="tel"
                 :label="__('Contact phone')"
                 autocomplete="off"

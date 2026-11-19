@@ -144,7 +144,7 @@ it('removes the organization logo', function () {
         ->call('clearLogo')
         ->call('update')
         ->assertHasNoErrors()
-        ->assertSet('logo_url', null);
+        ->assertSet('logoUrl', null);
 
     expect($organization->fresh()->getRawOriginal('logo_url'))->toBeNull();
     expect(Storage::disk()->exists('logos/old.png'))->toBeFalse();
@@ -163,7 +163,7 @@ it('keeps the organization logo when removal fails', function () {
     Livewire::test(General::class)
         ->call('clearLogo')
         ->call('update')
-        ->assertSet('logo_url', 'logos/blocked')
+        ->assertSet('logoUrl', 'logos/blocked')
         ->assertNotDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'success')
         ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
 
@@ -219,7 +219,7 @@ it('saving the organization profile keeps its name and summary saved by another 
 
     $organization->update(['name' => 'Newer Org', 'summary' => 'Newer summary']);
 
-    $component->set('contact_phone', '0899 444')->call('update')->assertHasNoErrors();
+    $component->set('contactPhone', '0899 444')->call('update')->assertHasNoErrors();
 
     $organization->refresh();
 
@@ -294,8 +294,8 @@ it('updates the organization contact details', function () {
     actingAsMember($organization, Role::Owner);
 
     Livewire::test(General::class)
-        ->set('contact_email', 'Hello@Acme.Test')
-        ->set('contact_phone', '0812 3456')
+        ->set('contactEmail', 'Hello@Acme.Test')
+        ->set('contactPhone', '0812 3456')
         ->call('update')
         ->assertHasNoErrors();
 

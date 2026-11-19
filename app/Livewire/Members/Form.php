@@ -51,9 +51,9 @@ class Form extends Component
 
     public string $email = '';
 
-    public string $contact_email = '';
+    public string $contactEmail = '';
 
-    public string $contact_phone = '';
+    public string $contactPhone = '';
 
     /**
      * The detail values loaded when the form opened; only changes are submitted.
@@ -101,7 +101,7 @@ class Form extends Component
     public $photo = null;
 
     #[Locked]
-    public ?string $photo_url = null;
+    public ?string $photoUrl = null;
 
     /**
      * Mount the component.
@@ -138,7 +138,7 @@ class Form extends Component
     {
         $this->authorizeManager();
 
-        $this->reset('person', 'name', 'email', 'contact_email', 'contact_phone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'originalName', 'hasCredential', 'createCredential', 'gender', 'photo', 'photo_url');
+        $this->reset('person', 'name', 'email', 'contactEmail', 'contactPhone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'originalName', 'hasCredential', 'createCredential', 'gender', 'photo', 'photoUrl');
 
         $this->role = Role::Member->value;
         $this->genderEnabled = false;
@@ -190,8 +190,8 @@ class Form extends Component
                 $photoUrl,
                 Auth::user(),
                 $this->addressPayload(),
-                $validated['contact_email'] ?? null,
-                $validated['contact_phone'] ?? null,
+                $validated['contactEmail'] ?? null,
+                $validated['contactPhone'] ?? null,
             );
         } catch (Throwable $exception) {
             // A failure after the commit (such as the invite email) must not
@@ -321,7 +321,7 @@ class Form extends Component
             if ($this->photo instanceof UploadedFile) {
                 $stagedPhoto = $fileStorage->handle($this->photo, 'photos');
                 $photoUrl = $stagedPhoto;
-            } elseif ($this->photo_url === null && $this->originalPhotoUrl !== null) {
+            } elseif ($this->photoUrl === null && $this->originalPhotoUrl !== null) {
                 $photoUrl = null;
                 $removePhoto = true;
             }
@@ -421,7 +421,7 @@ class Form extends Component
 
         $this->person = $this->person->fresh(['user']) ?? $this->person;
         $this->photo = null;
-        $this->photo_url = $photoUrl;
+        $this->photoUrl = $photoUrl;
 
         $this->rememberContactDetails();
         $this->rememberBaselines($organization);
@@ -434,7 +434,7 @@ class Form extends Component
                 ->whereNull('photo_url')
                 ->update(['photo_url' => $previousPhoto]);
 
-            $this->photo_url = $restored === 0
+            $this->photoUrl = $restored === 0
                 ? ($this->person->refresh())->getRawOriginal('photo_url')
                 : $previousPhoto;
 
@@ -511,17 +511,17 @@ class Form extends Component
         $this->person = $person->loadMissing('user');
         $this->name = $person->name;
         $this->photo = null;
-        $this->photo_url = $person->getRawOriginal('photo_url');
+        $this->photoUrl = $person->getRawOriginal('photo_url');
         $this->hasCredential = $person->user_id !== null;
         $this->createCredential = false;
         $this->email = $person->user_id === null ? '' : $person->user->email;
-        $this->contact_email = (string) $person->contactDetailValue(ContactDetailType::Email);
-        $this->contact_phone = (string) $person->contactDetailValue(ContactDetailType::Phone);
+        $this->contactEmail = (string) $person->contactDetailValue(ContactDetailType::Email);
+        $this->contactPhone = (string) $person->contactDetailValue(ContactDetailType::Phone);
         $this->gender = $person->gender?->value;
         $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
         $this->fillAddress($person->addresses()->first());
         $this->originalDetails = $this->contactDetailValues();
-        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalPhotoUrl = $this->photoUrl;
         $this->originalAddress = $this->addressPayload();
         $this->originalRole = (int) $this->role;
         $this->originalEmail = Str::lower($this->email);
@@ -536,8 +536,8 @@ class Form extends Component
     private function contactDetailValues(): array
     {
         return [
-            ContactDetailType::Email->value => $this->contact_email,
-            ContactDetailType::Phone->value => $this->contact_phone,
+            ContactDetailType::Email->value => $this->contactEmail,
+            ContactDetailType::Phone->value => $this->contactPhone,
         ];
     }
 
@@ -563,7 +563,7 @@ class Form extends Component
         $name = (string) $this->person?->name;
         $hasCredential = $this->person?->user_id !== null;
 
-        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalPhotoUrl = $this->photoUrl;
         $this->originalAddress = $this->addressPayload();
         $this->originalRole = $role;
         $this->originalEmail = $email;
@@ -587,13 +587,13 @@ class Form extends Component
     public function clearPhoto(): void
     {
         $this->photo = null;
-        $this->photo_url = null;
+        $this->photoUrl = null;
     }
 
     #[Computed]
     public function photoPreviewUrl(): ?string
     {
-        return $this->photo_url ? route('uploads', ['path' => $this->photo_url]) : null;
+        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
     }
 
     private function member(int $personId): Person

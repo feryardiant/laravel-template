@@ -37,6 +37,7 @@ test('reset password link can be requested', function () {
 });
 
 test('reset password screen can be rendered', function () {
+    /** @var TestCase $this */
     Notification::fake();
 
     $user = User::factory()->create();

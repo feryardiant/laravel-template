@@ -61,9 +61,9 @@ class Form extends Component
 
     public string $role = 'customer';
 
-    public ?string $start_date = null;
+    public ?string $startDate = null;
 
-    public ?string $finish_date = null;
+    public ?string $finishDate = null;
 
     /**
      * @var mixed
@@ -71,7 +71,7 @@ class Form extends Component
     public $photo = null;
 
     #[Locked]
-    public ?string $photo_url = null;
+    public ?string $photoUrl = null;
 
     public ?string $selectedEntity = null;
 
@@ -82,19 +82,19 @@ class Form extends Component
     #[Locked]
     public ?int $reusedContactId = null;
 
-    public string $contact_name = '';
+    public string $contactName = '';
 
-    public ?string $contact_gender = null;
+    public ?string $contactGender = null;
 
-    public string $contact_summary = '';
+    public string $contactSummary = '';
 
-    public string $contact_email = '';
+    public string $contactEmail = '';
 
-    public string $contact_phone = '';
+    public string $contactPhone = '';
 
-    public string $contact_person_email = '';
+    public string $contactPersonEmail = '';
 
-    public string $contact_person_phone = '';
+    public string $contactPersonPhone = '';
 
     /**
      * The detail values loaded when the form opened; only changes are submitted.
@@ -150,21 +150,21 @@ class Form extends Component
             'gender',
             'code',
             'role',
-            'start_date',
-            'finish_date',
+            'startDate',
+            'finishDate',
             'photo',
-            'photo_url',
+            'photoUrl',
             'selectedEntity',
             'reusedType',
             'reusedName',
             'reusedContactId',
-            'contact_name',
-            'contact_gender',
-            'contact_summary',
-            'contact_email',
-            'contact_phone',
-            'contact_person_email',
-            'contact_person_phone',
+            'contactName',
+            'contactGender',
+            'contactSummary',
+            'contactEmail',
+            'contactPhone',
+            'contactPersonEmail',
+            'contactPersonPhone',
             'originalDetails',
             'originalProfile',
             'originalRelationship',
@@ -176,7 +176,7 @@ class Form extends Component
         $this->role = $role !== null && OrganizationRelationshipType::tryFrom($role)?->isExternal()
             ? $role
             : OrganizationRelationshipType::Customer->value;
-        $this->start_date = now()->format('Y-m-d');
+        $this->startDate = now()->format('Y-m-d');
         $this->resetAddress();
 
         $this->resetValidation();
@@ -242,13 +242,13 @@ class Form extends Component
         $this->summary = (string) $entity->summary;
         $this->gender = $entity instanceof Person ? $entity->gender?->value : null;
         $this->photo = null;
-        $this->photo_url = $entity->getRawOriginal($entity instanceof Organization ? 'logo_url' : 'photo_url');
+        $this->photoUrl = $entity->getRawOriginal($entity instanceof Organization ? 'logo_url' : 'photo_url');
 
         if ($entity instanceof Organization) {
             $contactPerson = $entity->primaryContact;
-            $this->contact_name = (string) $contactPerson?->name;
-            $this->contact_gender = $contactPerson?->gender?->value;
-            $this->contact_summary = (string) $contactPerson?->summary;
+            $this->contactName = (string) $contactPerson?->name;
+            $this->contactGender = $contactPerson?->gender?->value;
+            $this->contactSummary = (string) $contactPerson?->summary;
         }
 
         $this->resetValidation();
@@ -270,7 +270,7 @@ class Form extends Component
     public function clearPhoto(): void
     {
         $this->photo = null;
-        $this->photo_url = null;
+        $this->photoUrl = null;
     }
 
     public function save(CreateContact $createContact, UpdateContact $updateContact): void
@@ -329,7 +329,7 @@ class Form extends Component
                     $this->contactId,
                     $data,
                     $this->photo instanceof UploadedFile ? $this->photo : null,
-                    $this->photo_url === null && $this->originalPhotoUrl !== null,
+                    $this->photoUrl === null && $this->originalPhotoUrl !== null,
                     $sharedFieldsLocked,
                     $actor,
                 );
@@ -403,7 +403,7 @@ class Form extends Component
     #[Computed]
     public function photoPreviewUrl(): ?string
     {
-        return $this->photo_url ? route('uploads', ['path' => $this->photo_url]) : null;
+        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
     }
 
     public function render(): View
@@ -432,8 +432,8 @@ class Form extends Component
                 Rule::enum(OrganizationRelationshipType::class),
                 Rule::in(array_map(fn (OrganizationRelationshipType $type): string => $type->value, OrganizationRelationshipType::externals())),
             ],
-            'start_date' => ['required', 'date'],
-            'finish_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'startDate' => ['required', 'date'],
+            'finishDate' => ['nullable', 'date', 'after_or_equal:startDate'],
         ];
 
         if (! $sharedFieldsLocked) {
@@ -452,11 +452,11 @@ class Form extends Component
         }
 
         if ($this->isOrganizationType && ! $sharedFieldsLocked) {
-            $rules['contact_name'] = ['required', 'string', 'max:255'];
-            $rules['contact_summary'] = ['nullable', 'string', 'max:255'];
+            $rules['contactName'] = ['required', 'string', 'max:255'];
+            $rules['contactSummary'] = ['nullable', 'string', 'max:255'];
 
             if ($this->genderEnabled) {
-                $rules['contact_gender'] = ['required', Rule::enum(Gender::class)];
+                $rules['contactGender'] = ['required', Rule::enum(Gender::class)];
             }
         }
 
@@ -470,8 +470,8 @@ class Form extends Component
         }
 
         if ($this->isOrganizationType && ! $this->reusing) {
-            $rules['contact_person_email'] = ['nullable', 'string', 'email', 'max:255'];
-            $rules['contact_person_phone'] = ['nullable', 'string', 'max:32'];
+            $rules['contactPersonEmail'] = ['nullable', 'string', 'email', 'max:255'];
+            $rules['contactPersonPhone'] = ['nullable', 'string', 'max:32'];
         }
 
         return $rules;
@@ -492,20 +492,20 @@ class Form extends Component
         $this->code = (string) $contact->code;
         $role = $contact->type;
         $this->role = ($role instanceof OrganizationRelationshipType ? $role : OrganizationRelationshipType::Customer)->value;
-        $this->start_date = $contact->start_date?->format('Y-m-d');
-        $this->finish_date = $contact->finish_date?->format('Y-m-d');
+        $this->startDate = $contact->start_date?->format('Y-m-d');
+        $this->finishDate = $contact->finish_date?->format('Y-m-d');
         $this->photo = null;
-        $this->photo_url = $stakeholder->getRawOriginal($stakeholder instanceof Organization ? 'logo_url' : 'photo_url');
-        $this->contact_email = (string) $stakeholder->contactDetailValue(ContactDetailType::Email);
-        $this->contact_phone = (string) $stakeholder->contactDetailValue(ContactDetailType::Phone);
+        $this->photoUrl = $stakeholder->getRawOriginal($stakeholder instanceof Organization ? 'logo_url' : 'photo_url');
+        $this->contactEmail = (string) $stakeholder->contactDetailValue(ContactDetailType::Email);
+        $this->contactPhone = (string) $stakeholder->contactDetailValue(ContactDetailType::Phone);
         $this->selectedEntity = null;
         $this->reusedType = null;
         $this->reusedName = null;
-        $this->contact_gender = null;
-        $this->contact_name = '';
-        $this->contact_summary = '';
-        $this->contact_person_email = '';
-        $this->contact_person_phone = '';
+        $this->contactGender = null;
+        $this->contactName = '';
+        $this->contactSummary = '';
+        $this->contactPersonEmail = '';
+        $this->contactPersonPhone = '';
 
         $this->fillAddress($stakeholder instanceof Organization
             ? $stakeholder->address()->first()
@@ -513,11 +513,11 @@ class Form extends Component
 
         if ($stakeholder instanceof Organization) {
             $contactPerson = $stakeholder->primaryContact;
-            $this->contact_name = (string) $contactPerson?->name;
-            $this->contact_gender = $contactPerson?->gender?->value;
-            $this->contact_summary = (string) $contactPerson?->summary;
-            $this->contact_person_email = (string) $contactPerson?->contactDetailValue(ContactDetailType::Email);
-            $this->contact_person_phone = (string) $contactPerson?->contactDetailValue(ContactDetailType::Phone);
+            $this->contactName = (string) $contactPerson?->name;
+            $this->contactGender = $contactPerson?->gender?->value;
+            $this->contactSummary = (string) $contactPerson?->summary;
+            $this->contactPersonEmail = (string) $contactPerson?->contactDetailValue(ContactDetailType::Email);
+            $this->contactPersonPhone = (string) $contactPerson?->contactDetailValue(ContactDetailType::Phone);
         }
 
         $this->originalDetails = $this->contactDetailValues();
@@ -533,10 +533,10 @@ class Form extends Component
     private function contactDetailValues(): array
     {
         return [
-            'contact_email' => $this->contact_email,
-            'contact_phone' => $this->contact_phone,
-            'contact_person_email' => $this->contact_person_email,
-            'contact_person_phone' => $this->contact_person_phone,
+            'contact_email' => $this->contactEmail,
+            'contact_phone' => $this->contactPhone,
+            'contact_person_email' => $this->contactPersonEmail,
+            'contact_person_phone' => $this->contactPersonPhone,
         ];
     }
 
@@ -566,9 +566,9 @@ class Form extends Component
             'name' => $this->name,
             'summary' => $this->summary !== '' ? $this->summary : null,
             'gender' => $this->gender,
-            'contact_name' => $this->contact_name !== '' ? $this->contact_name : null,
-            'contact_summary' => $this->contact_summary !== '' ? $this->contact_summary : null,
-            'contact_gender' => $this->contact_gender,
+            'contact_name' => $this->contactName !== '' ? $this->contactName : null,
+            'contact_summary' => $this->contactSummary !== '' ? $this->contactSummary : null,
+            'contact_gender' => $this->contactGender,
         ];
     }
 
@@ -592,8 +592,8 @@ class Form extends Component
         return [
             'code' => $this->code !== '' ? $this->code : null,
             'role' => $this->role,
-            'start_date' => $this->start_date,
-            'finish_date' => $this->finish_date !== '' ? $this->finish_date : null,
+            'start_date' => $this->startDate,
+            'finish_date' => $this->finishDate !== '' ? $this->finishDate : null,
         ];
     }
 
@@ -611,7 +611,7 @@ class Form extends Component
     {
         $this->originalProfile = $this->profileValues();
         $this->originalRelationship = $this->relationshipValues();
-        $this->originalPhotoUrl = $this->photo_url;
+        $this->originalPhotoUrl = $this->photoUrl;
         $this->originalAddress = $this->addressPayload();
     }
 
@@ -624,14 +624,14 @@ class Form extends Component
         $this->summary = '';
         $this->gender = null;
         $this->photo = null;
-        $this->photo_url = null;
-        $this->contact_name = '';
-        $this->contact_gender = null;
-        $this->contact_summary = '';
-        $this->contact_email = '';
-        $this->contact_phone = '';
-        $this->contact_person_email = '';
-        $this->contact_person_phone = '';
+        $this->photoUrl = null;
+        $this->contactName = '';
+        $this->contactGender = null;
+        $this->contactSummary = '';
+        $this->contactEmail = '';
+        $this->contactPhone = '';
+        $this->contactPersonEmail = '';
+        $this->contactPersonPhone = '';
         $this->originalDetails = [];
         $this->originalProfile = [];
         $this->originalRelationship = [];

@@ -115,10 +115,10 @@ final class UpdateContact
 
                 if ($finishDate !== null) {
                     Validator::make(
-                        ['start_date' => $startDate, 'finish_date' => $finishDate],
+                        ['startDate' => $startDate, 'finishDate' => $finishDate],
                         [
-                            'start_date' => ['required', 'date'],
-                            'finish_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+                            'startDate' => ['required', 'date'],
+                            'finishDate' => ['nullable', 'date', 'after_or_equal:startDate'],
                         ],
                     )->validate();
                 }

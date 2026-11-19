@@ -62,13 +62,13 @@
 
             @unless ($this->reusing)
                 <flux:input
-                    wire:model="contact_email"
+                    wire:model="contactEmail"
                     type="email"
                     :label="$this->isOrganizationType ? __('Organization email') : __('Email')"
                     autocomplete="off"
                 />
                 <flux:input
-                    wire:model="contact_phone"
+                    wire:model="contactPhone"
                     type="tel"
                     :label="$this->isOrganizationType ? __('Organization phone') : __('Phone')"
                     autocomplete="off"
@@ -128,17 +128,17 @@
             @endif
 
             <x-ui.date-picker
-                wire:model.live="start_date"
+                wire:model.live="startDate"
                 :label="__('Start date')"
                 with-today
                 clearable
             />
 
             <x-ui.date-picker
-                wire:model="finish_date"
+                wire:model="finishDate"
                 :label="__('Finish date')"
-                :min="$start_date"
-                wire:key="finish-date-{{ $start_date }}"
+                :min="$startDate"
+                wire:key="finish-date-{{ $startDate }}"
                 clearable
             />
 
@@ -150,7 +150,7 @@
 
                     <flux:card.body class="flex flex-col gap-4">
                         <flux:input
-                            wire:model="contact_name"
+                            wire:model="contactName"
                             type="text"
                             :label="__('Name')"
                             :disabled="$this->sharedFieldsLocked"
@@ -158,7 +158,7 @@
 
                         @if ($genderEnabled)
                             <flux:radio.group
-                                wire:model="contact_gender"
+                                wire:model="contactGender"
                                 :label="__('Gender')"
                                 class="flex flex-wrap gap-x-6"
                                 :disabled="$this->sharedFieldsLocked"
@@ -167,19 +167,19 @@
                                     <flux:radio :value="$gender->value" :label="$gender->label()" />
                                 @endforeach
 
-                                <flux:error name="contact_gender" />
+                                <flux:error name="contactGender" />
                             </flux:radio.group>
                         @endif
 
                         <flux:textarea
-                            wire:model="contact_summary"
+                            wire:model="contactSummary"
                             :label="__('Summary')"
                             :disabled="$this->sharedFieldsLocked"
                         />
 
                         @unless ($this->reusing)
-                            <flux:input wire:model="contact_person_email" type="email" :label="__('Email')" autocomplete="off" />
-                            <flux:input wire:model="contact_person_phone" type="tel" :label="__('Phone')" autocomplete="off" />
+                            <flux:input wire:model="contactPersonEmail" type="email" :label="__('Email')" autocomplete="off" />
+                            <flux:input wire:model="contactPersonPhone" type="tel" :label="__('Phone')" autocomplete="off" />
                         @endunless
                     </flux:card.body>
                 </flux:card>

@@ -23,7 +23,7 @@ class Setup extends Component
 
     public string $password = '';
 
-    public string $password_confirmation = '';
+    public string $passwordConfirmation = '';
 
     /**
      * Redirect away once setup has already been completed.
@@ -50,7 +50,7 @@ class Setup extends Component
                 ...$this->emailRules(),
                 Rule::notIn([config('setup.initial_email')]),
             ],
-            'password' => $this->passwordRules(),
+            'password' => $this->passwordRulesFor('passwordConfirmation'),
         ]);
 
         $user = $provisioning->handle(
