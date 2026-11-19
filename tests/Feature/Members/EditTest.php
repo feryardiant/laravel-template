@@ -18,12 +18,13 @@ use Closure;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use Mockery;
 use Tests\Support\ContactDetailWriteFailed;
 
 uses(RefreshDatabase::class);
@@ -526,11 +527,15 @@ test('an after-transaction failure keeps the referenced staged photo', function 
     $member->person->update(['photo_url' => 'photos/old.jpg']);
     Storage::disk()->put('photos/old.jpg', 'photo');
 
-    DB::shouldReceive('transaction')->once()->andReturnUsing(function (Closure $callback): void {
+    $database = Mockery::mock(app('db'))->makePartial();
+    $database->shouldReceive('transaction')->once()->andReturnUsing(function (Closure $callback): void {
         $callback();
 
         throw new RuntimeException('after commit');
     });
+
+    $this->app->instance('db', $database);
+    Facade::clearResolvedInstance('db');
 
     $thrown = false;
 
