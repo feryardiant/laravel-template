@@ -135,7 +135,8 @@ jobs:
              * drop the ones no surviving version references.
              */
             const resolve_orphans = async () => {
-              const basic = Buffer.from(`${context.actor}:${process.env.GH_TOKEN}`).toString('base64');
+              // Same credentials `docker/login-action` uses to push in `dist.yml`
+              const basic = Buffer.from(`${owner}:${process.env.GH_TOKEN}`).toString('base64');
               const { token } = await fetch(
                 `https://${registry}/token?scope=repository:${owner}/${repo}:pull&service=${registry}`,
                 { headers: { authorization: `Basic ${basic}` } },
