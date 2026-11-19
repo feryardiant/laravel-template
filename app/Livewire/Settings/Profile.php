@@ -46,9 +46,9 @@ class Profile extends Component
 
     public string $summary = '';
 
-    public string $contact_email = '';
+    public string $contactEmail = '';
 
-    public string $contact_phone = '';
+    public string $contactPhone = '';
 
     /**
      * The detail values loaded when the form opened; only changes are submitted.
@@ -81,7 +81,7 @@ class Profile extends Component
     public $avatar = null;
 
     #[Locked]
-    public ?string $avatar_url = null;
+    public ?string $avatarUrl = null;
 
     public function mount(): void
     {
@@ -93,12 +93,12 @@ class Profile extends Component
         $this->handle = $user->handle;
         $this->email = $user->email;
         $this->summary = (string) $person?->summary;
-        $this->contact_email = (string) $person?->contactDetailValue(ContactDetailType::Email);
-        $this->contact_phone = (string) $person?->contactDetailValue(ContactDetailType::Phone);
+        $this->contactEmail = (string) $person?->contactDetailValue(ContactDetailType::Email);
+        $this->contactPhone = (string) $person?->contactDetailValue(ContactDetailType::Phone);
         $this->gender = $person?->gender?->value;
-        $this->avatar_url = $person?->getRawOriginal('photo_url');
+        $this->avatarUrl = $person?->getRawOriginal('photo_url');
         $this->originalDetails = $this->contactDetailValues();
-        $this->originalAvatarUrl = $this->avatar_url;
+        $this->originalAvatarUrl = $this->avatarUrl;
         $this->originalEmail = Str::lower($this->email);
         $this->originalName = $this->name;
         $this->originalSummary = $this->summary;
@@ -113,8 +113,8 @@ class Profile extends Component
     private function contactDetailValues(): array
     {
         return [
-            ContactDetailType::Email->value => $this->contact_email,
-            ContactDetailType::Phone->value => $this->contact_phone,
+            ContactDetailType::Email->value => $this->contactEmail,
+            ContactDetailType::Phone->value => $this->contactPhone,
         ];
     }
 
@@ -194,7 +194,7 @@ class Profile extends Component
             if ($this->avatar instanceof UploadedFile) {
                 $stagedAvatar = $fileStorage->handle($this->avatar, 'avatars');
                 $photoPath = $stagedAvatar;
-            } elseif ($this->avatar_url === null && $this->originalAvatarUrl !== null) {
+            } elseif ($this->avatarUrl === null && $this->originalAvatarUrl !== null) {
                 $photoPath = null;
                 $removeAvatar = true;
             }
@@ -264,7 +264,7 @@ class Profile extends Component
         $fresh = $user->fresh();
 
         $this->avatar = null;
-        $this->avatar_url = $photoPath;
+        $this->avatarUrl = $photoPath;
         $this->rememberContactDetails();
         $this->rememberBaselines($fresh);
         $this->gender = $fresh?->person?->gender?->value;
@@ -275,18 +275,18 @@ class Profile extends Component
                 ->whereNull('photo_url')
                 ->update(['photo_url' => $previousAvatar]);
 
-            $this->avatar_url = $restored === 0
+            $this->avatarUrl = $restored === 0
                 ? $user->fresh()?->person?->getRawOriginal('photo_url')
                 : $previousAvatar;
 
-            $this->originalAvatarUrl = $this->avatar_url;
+            $this->originalAvatarUrl = $this->avatarUrl;
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('User avatar')]));
 
             return;
         }
 
-        $this->originalAvatarUrl = $this->avatar_url;
+        $this->originalAvatarUrl = $this->avatarUrl;
 
         Flux::toast(variant: 'success', text: __('Profile updated.'));
     }
@@ -297,13 +297,13 @@ class Profile extends Component
     public function clearAvatar(): void
     {
         $this->avatar = null;
-        $this->avatar_url = null;
+        $this->avatarUrl = null;
     }
 
     #[Computed]
     public function avatarPreviewUrl(): ?string
     {
-        return $this->avatar_url ? route('uploads', ['path' => $this->avatar_url]) : null;
+        return $this->avatarUrl ? route('uploads', ['path' => $this->avatarUrl]) : null;
     }
 
     /**

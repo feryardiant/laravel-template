@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -59,6 +60,7 @@ test('audit rows drop an actor that was deleted before the listener runs', funct
 });
 
 test('audit rows keep the event occurrence time instead of the queue time', function () {
+    /** @var TestCase $this */
     $organization = Organization::factory()->create();
 
     $this->travelTo('2026-11-15 23:59:00');

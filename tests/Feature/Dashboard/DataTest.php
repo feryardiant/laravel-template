@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -40,6 +41,7 @@ function dashboardContact(
 }
 
 beforeEach(function () {
+    /** @var TestCase $this */
     // Monday; the default range is Sunday 15th to Saturday 21st.
     $this->travelTo(CarbonImmutable::parse('2026-11-16 10:00:00'));
 });

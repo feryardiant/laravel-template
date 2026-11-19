@@ -85,7 +85,7 @@ test('an admin can create an individual contact', function () {
         ->call('openCreate')
         ->assertSet('type', 'individual')
         ->assertSet('role', OrganizationRelationshipType::Customer->value)
-        ->assertSet('start_date', now()->format('Y-m-d'))
+        ->assertSet('startDate', now()->format('Y-m-d'))
         ->set('name', 'Jane Doe')
         ->set('summary', 'An individual counterparty')
         ->set('gender', Gender::Male->value)
@@ -118,9 +118,9 @@ test('an admin can create an organization contact with a contact person', functi
         ->set('type', 'organization')
         ->set('name', 'Acme Corp')
         ->set('summary', 'A company')
-        ->set('contact_name', 'Nara Hubung')
-        ->set('contact_gender', Gender::Female->value)
-        ->set('contact_summary', 'Primary contact')
+        ->set('contactName', 'Nara Hubung')
+        ->set('contactGender', Gender::Female->value)
+        ->set('contactSummary', 'Primary contact')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -142,9 +142,9 @@ test('contact creation validates its required fields', function () {
         ->call('openCreate')
         ->set('name', '')
         ->set('type', '')
-        ->set('start_date', '')
+        ->set('startDate', '')
         ->call('save')
-        ->assertHasErrors(['name', 'type', 'start_date']);
+        ->assertHasErrors(['name', 'type', 'startDate']);
 });
 
 test('a finish date before the start date is rejected', function () {
@@ -156,10 +156,10 @@ test('a finish date before the start date is rejected', function () {
         ->call('openCreate')
         ->set('name', 'Invalid Date')
         ->set('gender', Gender::Male->value)
-        ->set('start_date', '2026-05-10')
-        ->set('finish_date', '2026-05-01')
+        ->set('startDate', '2026-05-10')
+        ->set('finishDate', '2026-05-01')
         ->call('save')
-        ->assertHasErrors('finish_date');
+        ->assertHasErrors('finishDate');
 });
 
 test('an individual contact requires a gender on create', function () {
@@ -188,7 +188,7 @@ test('an organization contact requires contact person details', function () {
         ->set('type', 'organization')
         ->set('name', 'No Contact Person')
         ->call('save')
-        ->assertHasErrors(['contact_name', 'contact_gender']);
+        ->assertHasErrors(['contactName', 'contactGender']);
 });
 
 test('an invalid role is rejected', function () {
@@ -333,8 +333,8 @@ test('an expired contact is renewed in place', function () {
         ->set('selectedEntity', 'individual:'.$person->uuid)
         ->set('role', OrganizationRelationshipType::Supplier->value)
         ->set('code', 'OLD-CODE')
-        ->set('start_date', now()->toDateString())
-        ->set('finish_date', now()->addMonth()->toDateString())
+        ->set('startDate', now()->toDateString())
+        ->set('finishDate', now()->addMonth()->toDateString())
         ->call('save')
         ->assertHasNoErrors();
 
@@ -393,11 +393,11 @@ test('creating a contact stores the entity and contact person records', function
         ->call('openCreate')
         ->set('type', 'organization')
         ->set('name', 'Acme Contact')
-        ->set('contact_name', 'Nara')
-        ->set('contact_email', 'Sales@Acme.Test')
-        ->set('contact_phone', '+62 812 3456')
-        ->set('contact_person_email', 'nara@acme.test')
-        ->set('contact_person_phone', '0812 000')
+        ->set('contactName', 'Nara')
+        ->set('contactEmail', 'Sales@Acme.Test')
+        ->set('contactPhone', '+62 812 3456')
+        ->set('contactPersonEmail', 'nara@acme.test')
+        ->set('contactPersonPhone', '0812 000')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -419,9 +419,9 @@ test('an invalid contact email is rejected', function () {
     Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Invalid Email')
-        ->set('contact_email', 'not-an-email')
+        ->set('contactEmail', 'not-an-email')
         ->call('save')
-        ->assertHasErrors('contact_email');
+        ->assertHasErrors('contactEmail');
 });
 
 test('blank contact values are not stored', function () {
@@ -447,16 +447,16 @@ test('the contact phone accepts 32 characters and rejects 33', function () {
     Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Long Phone')
-        ->set('contact_phone', str_repeat('1', 32))
+        ->set('contactPhone', str_repeat('1', 32))
         ->call('save')
         ->assertHasNoErrors();
 
     Livewire::test(Form::class)
         ->call('openCreate')
         ->set('name', 'Too Long Phone')
-        ->set('contact_phone', str_repeat('1', 33))
+        ->set('contactPhone', str_repeat('1', 33))
         ->call('save')
-        ->assertHasErrors('contact_phone');
+        ->assertHasErrors('contactPhone');
 
     $person = Person::query()->where('name', 'Long Phone')->firstOrFail();
 

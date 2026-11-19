@@ -17,16 +17,19 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
+use Tests\TestCase;
 
 use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    /** @var TestCase $this */
     $this->root = Organization::factory()->asRootTenant()->create(['name' => 'Root']);
 });
 
 test('a verified user creates a tenant they own', function () {
+    /** @var TestCase $this */
     $user = User::factory()->withProfile()->create();
 
     test()->actingAs($user);
@@ -55,13 +58,14 @@ test('a verified user creates a tenant they own', function () {
 });
 
 test('selecting an owned parent links the new organization as a subsidiary', function () {
+    /** @var TestCase $this */
     $parent = Organization::factory()->create();
 
     $user = actingAsMember($parent, Role::Owner);
 
     Livewire::test(Create::class)
         ->set('name', 'Child Org')
-        ->set('parent_id', (string) $parent->getKey())
+        ->set('parentId', (string) $parent->getKey())
         ->call('create')
         ->assertHasNoErrors();
 
@@ -86,7 +90,7 @@ test('a branch kind is stored and shown on the organization list', function () {
 
     Livewire::test(Create::class)
         ->set('name', 'Branch Org')
-        ->set('parent_id', (string) $parent->getKey())
+        ->set('parentId', (string) $parent->getKey())
         ->set('kind', SubsidiaryKind::Branch->value)
         ->call('create')
         ->assertHasNoErrors();
@@ -111,7 +115,7 @@ test('an unknown subsidiary kind is rejected', function () {
 
     Livewire::test(Create::class)
         ->set('name', 'Not Created')
-        ->set('parent_id', (string) $parent->getKey())
+        ->set('parentId', (string) $parent->getKey())
         ->set('kind', 'franchise')
         ->call('create')
         ->assertHasErrors('kind');
@@ -129,9 +133,9 @@ test('a parent the user does not own cannot be selected', function () {
 
     Livewire::test(Create::class)
         ->set('name', 'Not Created')
-        ->set('parent_id', (string) $foreign->getKey())
+        ->set('parentId', (string) $foreign->getKey())
         ->call('create')
-        ->assertHasErrors('parent_id');
+        ->assertHasErrors('parentId');
 
     expect(Organization::query()->where('name', 'Not Created')->exists())->toBeFalse();
 });

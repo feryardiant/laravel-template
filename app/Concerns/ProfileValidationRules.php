@@ -33,8 +33,8 @@ trait ProfileValidationRules
     protected function contactDetailRules(): array
     {
         return [
-            'contact_email' => ['nullable', 'string', 'email', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:32'],
+            'contactEmail' => ['nullable', 'string', 'email', 'max:255'],
+            'contactPhone' => ['nullable', 'string', 'max:32'],
         ];
     }
 

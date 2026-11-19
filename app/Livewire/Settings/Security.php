@@ -25,11 +25,11 @@ class Security extends Component
 {
     use PasswordValidationRules;
 
-    public string $current_password = '';
+    public string $currentPassword = '';
 
     public string $password = '';
 
-    public string $password_confirmation = '';
+    public string $passwordConfirmation = '';
 
     #[Locked]
     public bool $canManageTwoFactor;
@@ -81,11 +81,11 @@ class Security extends Component
     {
         try {
             $validated = $this->validate([
-                'current_password' => $this->currentPasswordRules(),
-                'password' => $this->passwordRules(),
+                'currentPassword' => $this->currentPasswordRules(),
+                'password' => $this->passwordRulesFor('passwordConfirmation'),
             ]);
         } catch (ValidationException $e) {
-            $this->reset('current_password', 'password', 'password_confirmation');
+            $this->reset('currentPassword', 'password', 'passwordConfirmation');
 
             throw $e;
         }
@@ -97,7 +97,7 @@ class Security extends Component
             'password' => $validated['password'],
         ]);
 
-        $this->reset('current_password', 'password', 'password_confirmation');
+        $this->reset('currentPassword', 'password', 'passwordConfirmation');
 
         Flux::toast(variant: 'success', text: __('Password updated.'));
     }

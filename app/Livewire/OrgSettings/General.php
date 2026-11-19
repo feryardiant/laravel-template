@@ -33,9 +33,9 @@ class General extends Component
 
     public string $summary = '';
 
-    public string $contact_email = '';
+    public string $contactEmail = '';
 
-    public string $contact_phone = '';
+    public string $contactPhone = '';
 
     /**
      * The detail values loaded when the form opened; only changes are submitted.
@@ -68,7 +68,7 @@ class General extends Component
     public $logo = null;
 
     #[Locked]
-    public ?string $logo_url = null;
+    public ?string $logoUrl = null;
 
     /**
      * Mount the component.
@@ -83,12 +83,12 @@ class General extends Component
 
         $this->name = $organization->name;
         $this->summary = (string) $organization->summary;
-        $this->contact_email = (string) $organization->contactDetailValue(ContactDetailType::Email);
-        $this->contact_phone = (string) $organization->contactDetailValue(ContactDetailType::Phone);
-        $this->logo_url = $organization->getRawOriginal('logo_url');
+        $this->contactEmail = (string) $organization->contactDetailValue(ContactDetailType::Email);
+        $this->contactPhone = (string) $organization->contactDetailValue(ContactDetailType::Phone);
+        $this->logoUrl = $organization->getRawOriginal('logo_url');
         $this->fillAddress($organization->address()->first());
         $this->originalDetails = $this->contactDetailValues();
-        $this->originalLogoUrl = $this->logo_url;
+        $this->originalLogoUrl = $this->logoUrl;
         $this->originalAddress = $this->addressPayload();
         $this->originalName = $this->name;
         $this->originalSummary = $this->summary;
@@ -102,8 +102,8 @@ class General extends Component
     private function contactDetailValues(): array
     {
         return [
-            ContactDetailType::Email->value => $this->contact_email,
-            ContactDetailType::Phone->value => $this->contact_phone,
+            ContactDetailType::Email->value => $this->contactEmail,
+            ContactDetailType::Phone->value => $this->contactPhone,
         ];
     }
 
@@ -125,7 +125,7 @@ class General extends Component
     #[Computed]
     public function logoPreviewUrl(): ?string
     {
-        return $this->logo_url ? route('uploads', ['path' => $this->logo_url]) : null;
+        return $this->logoUrl ? route('uploads', ['path' => $this->logoUrl]) : null;
     }
 
     /**
@@ -157,8 +157,8 @@ class General extends Component
         if ($this->logo instanceof UploadedFile) {
             $newLogoPath = $fileStorage->handle($this->logo, 'logos');
             $this->logo = null;
-            $this->logo_url = $newLogoPath;
-        } elseif ($this->logo_url === null && $this->originalLogoUrl !== null) {
+            $this->logoUrl = $newLogoPath;
+        } elseif ($this->logoUrl === null && $this->originalLogoUrl !== null) {
             $removeLogo = true;
         }
 
@@ -218,7 +218,7 @@ class General extends Component
             }
 
             $organization->refresh();
-            $this->logo_url = $organization->getRawOriginal('logo_url');
+            $this->logoUrl = $organization->getRawOriginal('logo_url');
 
             throw $exception;
         }
@@ -241,8 +241,8 @@ class General extends Component
 
             if ($restored === 0) {
                 $organization->refresh();
-                $this->logo_url = $organization->getRawOriginal('logo_url');
-                $this->originalLogoUrl = $this->logo_url;
+                $this->logoUrl = $organization->getRawOriginal('logo_url');
+                $this->originalLogoUrl = $this->logoUrl;
 
                 Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
@@ -258,15 +258,15 @@ class General extends Component
                 'restored' => true,
             ]));
 
-            $this->logo_url = $previousLogo;
-            $this->originalLogoUrl = $this->logo_url;
+            $this->logoUrl = $previousLogo;
+            $this->originalLogoUrl = $this->logoUrl;
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
             return;
         }
 
-        $this->originalLogoUrl = $this->logo_url;
+        $this->originalLogoUrl = $this->logoUrl;
 
         unset($this->pendingApproval);
 
@@ -279,7 +279,7 @@ class General extends Component
     public function clearLogo(): void
     {
         $this->logo = null;
-        $this->logo_url = null;
+        $this->logoUrl = null;
     }
 
     public function render(): View
