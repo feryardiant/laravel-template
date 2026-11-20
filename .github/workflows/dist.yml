@@ -93,9 +93,14 @@ jobs:
         with:
           images: ghcr.io/${{ needs.prepare.outputs.project-repo-name }}
           labels: |
-            org.opencontainers.image.author=${{ github.repository_owner }}
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.title=${{ needs.prepare.outputs.project-repo-name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}
+            org.opencontainers.image.authors=${{ github.repository_owner }}
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id || 'MIT' }}
             org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.project-version }}
           tags: |
             # `workflow_run` runs on the default branch ref, so every tag is keyed
             # off the upstream event instead of `github.ref`/`GITHUB_SHA`.
@@ -118,9 +123,7 @@ jobs:
             PHP_VERSION=${{ env.PHP_VERSION }}
           context: .
           cache-from: type=gha
-          # A `workflow_run` of a pull request gets a read-only cache token, and a
-          # failed export fails the build before the index is pushed.
-          cache-to: ${{ github.event.workflow_run.event == 'push' && 'type=gha,mode=max' || '' }}
+          cache-to: type=gha,mode=max
           file: scripts/docker/staging/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
