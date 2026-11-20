@@ -1,5 +1,5 @@
 name: PR Merged
-run-name: 'merge(#${{ github.event.pull_request.number }}): prune images from `${{ github.ref_name }}`'
+run-name: 'merge(${{ github.event.pull_request.head.ref }}): prune images from `${{ github.event.pull_request.number }}`'
 
 on:
   pull_request:
