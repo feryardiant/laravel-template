@@ -121,17 +121,18 @@ jobs:
             const tags_of = (version) => version.metadata?.container?.tags ?? [];
 
             // `dist` tags a main build as `<branch>.<sha8>` and a PR build as
-            // `pr-<n>`. Release builds take their tag from the git tag or the
-            // `chore(release):` commit title, and the platform/attestation
-            // manifests of a multi-arch image carry no tag at all.
+            // `pr-<n>` (moving) plus `pr-<n>.<sha40>` (per build). Release builds
+            // take their tag from the git tag or the `chore(release):` commit
+            // title, and the platform/attestation manifests of a multi-arch image
+            // carry no tag at all.
             const pr_tag = (tag) => /^pr-\d+$/.test(tag);
 
             const build_tag = (version) =>
               tags_of(version).find(pr_tag) ??
-              tags_of(version).find((tag) => /^(pr\d+-)?(\d+\.\d+\.\d+-)?[\w-]+\.[a-f0-9]{8}$/.test(tag));
+              tags_of(version).find((tag) => /^(pr\d+-)?(\d+\.\d+\.\d+-)?[\w-]+\.[a-f0-9]{7,40}$/.test(tag));
 
             const branch_of = (tag) =>
-              pr_tag(tag) ? tag : tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{8}$/, '$3').trim();
+              pr_tag(tag) ? tag : tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{7,40}$/, '$3').trim();
 
             const branches = new Map([[base_branch, []]]);
             for (const version of versions) {
@@ -194,7 +195,18 @@ jobs:
                 for (const manifest of manifests) referenced.add(manifest.digest);
               }
 
-              return versions.filter((v) => tags_of(v).length === 0 && !referenced.has(v.name));
+              const now = Date.now();
+              // A push publishes its platform manifests before the index that lists
+              // them, so a version this young may be referenced by an index that
+              // does not exist in this snapshot yet.
+              const grace_ms = 30 * 60 * 1000;
+
+              return versions.filter(
+                (v) =>
+                  tags_of(v).length === 0 &&
+                  !referenced.has(v.name) &&
+                  now - new Date(v.created_at).getTime() > grace_ms,
+              );
             };
 
             let orphans = [];
