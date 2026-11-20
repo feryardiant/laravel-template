@@ -135,12 +135,15 @@ jobs:
               return match ? `pr-${match[1]}` : null;
             };
 
+            // The branch pattern keeps its eight-character suffix: widening it would
+            // also match a release version such as `1.2.3-rc.abcdef1`.
             const build_tag = (version) =>
               tags_of(version).find(pr_tag) ??
-              tags_of(version).find((tag) => /^(pr\d+-)?(\d+\.\d+\.\d+-)?[\w-]+\.[a-f0-9]{7,40}$/.test(tag));
+              tags_of(version).find(pr_of) ??
+              tags_of(version).find((tag) => /^(pr\d+-)?(\d+\.\d+\.\d+-)?[\w-]+\.[a-f0-9]{8}$/.test(tag));
 
             const branch_of = (tag) =>
-              pr_of(tag) ?? tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{7,40}$/, '$3').trim();
+              pr_of(tag) ?? tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{8}$/, '$3').trim();
 
             const branches = new Map([[base_branch, []]]);
             for (const version of versions) {
