@@ -127,12 +127,20 @@ jobs:
             // carry no tag at all.
             const pr_tag = (tag) => /^pr-\d+$/.test(tag);
 
+            // `pr-<n>` and `pr-<n>.<sha>` carry the PR; builds published before that
+            // scheme carry it as `pr<n>-<pkg>-<branch>.<sha>`.
+            const pr_of = (tag) => {
+              const match = tag.match(/^pr-(\d+)(?:\.|$)/) ?? tag.match(/^pr(\d+)-/);
+
+              return match ? `pr-${match[1]}` : null;
+            };
+
             const build_tag = (version) =>
               tags_of(version).find(pr_tag) ??
               tags_of(version).find((tag) => /^(pr\d+-)?(\d+\.\d+\.\d+-)?[\w-]+\.[a-f0-9]{7,40}$/.test(tag));
 
             const branch_of = (tag) =>
-              pr_tag(tag) ? tag : tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{7,40}$/, '$3').trim();
+              pr_of(tag) ?? tag.replace(/^(pr\d+-)?(\d+\.\d+\.\d+-)?(.*)\.[a-f0-9]{7,40}$/, '$3').trim();
 
             const branches = new Map([[base_branch, []]]);
             for (const version of versions) {
@@ -157,10 +165,11 @@ jobs:
 
             /**
              * Untagged versions are the amd64/arm64 and attestation manifests of a
-             * multi-arch push. Deleting one breaks the index that lists it, so only
-             * drop the ones no surviving version references.
+             * multi-arch push. They are deleted only as children of a build this run
+             * removes: a manifest published by a build in flight belongs to no
+             * version this run deletes, so it can never be a candidate.
              */
-            const resolve_orphans = async () => {
+            const children_of = async (parents) => {
               // Same credentials `docker/login-action` uses to push in `dist.yml`
               const basic = Buffer.from(`${owner}:${process.env.GH_TOKEN}`).toString('base64');
               const { token } = await fetch(
@@ -185,41 +194,35 @@ jobs:
                 return response.json();
               };
 
-              const deleted = new Set(to_delete.map((version) => version.id));
-              const referenced = new Set();
+              const by_digest = new Map(versions.map((version) => [version.name, version]));
+              const removed = new Set(parents.map((version) => version.id));
+              const children = new Map();
 
-              for (const version of versions) {
-                if (deleted.has(version.id) || tags_of(version).length === 0) continue;
+              for (const parent of parents) {
+                const { manifests = [] } = await get_manifest(parent.name);
 
-                const { manifests = [] } = await get_manifest(version.name);
-                for (const manifest of manifests) referenced.add(manifest.digest);
+                for (const { digest } of manifests) {
+                  const child = by_digest.get(digest);
+                  if (!child || removed.has(child.id) || tags_of(child).length > 0) continue;
+
+                  children.set(child.id, child);
+                }
               }
 
-              const now = Date.now();
-              // A push publishes its platform manifests before the index that lists
-              // them, so a version this young may be referenced by an index that
-              // does not exist in this snapshot yet.
-              const grace_ms = 30 * 60 * 1000;
-
-              return versions.filter(
-                (v) =>
-                  tags_of(v).length === 0 &&
-                  !referenced.has(v.name) &&
-                  now - new Date(v.created_at).getTime() > grace_ms,
-              );
+              return [...children.values()];
             };
 
-            let orphans = [];
+            let children = [];
 
             try {
-              orphans = await resolve_orphans();
+              children = await children_of(to_delete);
             } catch (error) {
-              // Keeping orphans costs storage; deleting a referenced manifest breaks
-              // the image, so leave untagged versions alone when resolution fails.
-              core.warning(`Unable to resolve untagged manifests, skipping them: ${error.message}`);
+              // Losing the children costs storage; deleting a referenced manifest
+              // breaks the image, so leave them when the registry lookup fails.
+              core.warning(`Unable to resolve the manifests of the images being deleted: ${error.message}`);
             }
 
-            if (to_delete.length === 0 && orphans.length === 0) {
+            if (to_delete.length === 0) {
               core.notice('No images to delete');
               return;
             }
@@ -255,25 +258,25 @@ jobs:
             core.info(`\u001b[1mDelete images:\u001b[0m${dry_run ? ' [dry run]' : ''}`);
             await Promise.all(to_delete.map(delete_pkg));
 
-            // The manifests only become orphans once their index is gone; when a
-            // delete fails the index may still list them, so keep them for a rerun.
-            let orphans_attempted = false;
+            // The children are only unreferenced once their index is gone; when a
+            // delete fails the index still lists them, so keep them for a rerun.
+            let children_attempted = false;
 
-            if (orphans.length > 0) {
+            if (children.length > 0) {
               if (deletion.error > 0) {
                 core.warning(
-                  `Skipping \u001b[33m${orphans.length}\u001b[0m untagged manifest(s): ` +
+                  `Skipping \u001b[33m${children.length}\u001b[0m manifest(s): ` +
                     'a tagged delete failed, so their index may still list them',
                 );
               } else {
-                orphans_attempted = true;
-                await Promise.all(orphans.map(delete_pkg));
+                children_attempted = true;
+                await Promise.all(children.map(delete_pkg));
               }
             }
 
             core.notice(
               [
-                `From \u001b[1m${to_delete.length + (orphans_attempted ? orphans.length : 0)}\u001b[0m images:`,
+                `From \u001b[1m${to_delete.length + (children_attempted ? children.length : 0)}\u001b[0m images:`,
                 `\u001b[32m${deletion.success}\u001b[0m deleted and`,
                 `\u001b[31m${deletion.error}\u001b[0m error`,
               ].join(' '),
