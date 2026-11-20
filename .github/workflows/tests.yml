@@ -21,7 +21,7 @@ concurrency:
 jobs:
   prepare:
     name: Prepare
-    uses: projek-xyz/actions/.github/workflows/prepare.yml@a84ced1eab6fac0576ed5cdd43f6ee0dfa5044a3 # main @ 2026-11-02
+    uses: projek-xyz/actions/.github/workflows/prepare.yml@8bd9a16148098eae66a52c863b90b9cb0dcdc34d # main @ 2026-11-20
     with:
       php-version: ${{ vars.PHP_VERSION || '8.4' }}
     permissions:
@@ -33,7 +33,7 @@ jobs:
   quality:
     name: Quality Gate
     runs-on: ubuntu-latest
-    if: ${{ needs.prepare.outputs.should-release != '1' }}
+    if: needs.prepare.outputs.should-release != '1'
     needs: [prepare]
     permissions:
       contents: read
