@@ -12,6 +12,8 @@ jobs:
       github.event.pull_request.merged == true &&
       github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/prune-images.yml
+    with:
+      pr-number: ${{ github.event.pull_request.number }}
     secrets:
       PAT_PRUNE: ${{ secrets.PAT_PRUNE }}
 

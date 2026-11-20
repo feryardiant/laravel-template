@@ -11,6 +11,10 @@ on:
         description: Number of image to keep on base branch
         default: 10
         type: number
+      pr-number:
+        description: PR whose images may be deleted; every branch is pruned when empty
+        default: ''
+        type: string
     secrets:
       PAT_PRUNE:
         description: Token with packages delete permission; pruning is skipped when unset
@@ -26,6 +30,10 @@ on:
         description: Number of image to keep on base branch
         default: 10
         type: number
+      pr-number:
+        description: PR whose images may be deleted; every branch is pruned when empty
+        default: ''
+        type: string
 
 jobs:
   prune-images:
@@ -52,6 +60,7 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           DRY_RUN: ${{ inputs.dry-run && 1 }}
           KEEP_BASE_BRANCH: ${{ inputs.keep-branch-base }}
+          PR_NUMBER: ${{ inputs.pr-number }}
         with:
           github-token: ${{ secrets.PAT_PRUNE }}
           script: |
@@ -59,8 +68,14 @@ jobs:
             const registry = 'ghcr.io';
             const base_branch = process.env.BASE_BRANCH;
             const keep_branch_base = Number(process.env.KEEP_BASE_BRANCH);
+            const pr_number = process.env.PR_NUMBER ?? '';
             const dry_run = process.env.DRY_RUN === '1';
             const deletion = { success: 0, error: 0 };
+
+            // The package APIs are owner-scoped: with a token from another account
+            // the authenticated-user endpoints resolve that account's namespace.
+            const is_org = context.payload.repository?.owner?.type === 'Organization';
+            const owner_param = is_org ? 'org' : 'username';
 
             /**
              * @link https://octokit.github.io/rest.js/v22/#packages-get-all-package-versions-for-a-package-owned-by-the-authenticated-user
@@ -69,7 +84,12 @@ jobs:
               const all = [];
 
               for (let page = 1; ; page++) {
-                const { data } = await github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser({
+                const list = is_org
+                  ? github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg
+                  : github.rest.packages.getAllPackageVersionsForPackageOwnedByUser;
+
+                const { data } = await list({
+                  [owner_param]: owner,
                   package_type: 'container',
                   package_name: repo,
                   per_page: 100,
@@ -123,10 +143,15 @@ jobs:
             }
 
             // Delete every branch but the base one, and all but the newest
-            // `keep_branch_base` base builds
+            // `keep_branch_base` base builds. When the caller names a PR, only that
+            // PR's images go: a merge must not remove another open PR's preview.
             const to_delete = [];
             for (const [branch, list] of branches) {
-              to_delete.push(...(branch === base_branch ? list.slice(keep_branch_base) : list));
+              if (branch === base_branch) {
+                to_delete.push(...list.slice(keep_branch_base));
+              } else if (!pr_number || branch === `pr-${pr_number}`) {
+                to_delete.push(...list);
+              }
             }
 
             /**
@@ -172,15 +197,17 @@ jobs:
               return versions.filter((v) => tags_of(v).length === 0 && !referenced.has(v.name));
             };
 
+            let orphans = [];
+
             try {
-              to_delete.push(...(await resolve_orphans()));
+              orphans = await resolve_orphans();
             } catch (error) {
               // Keeping orphans costs storage; deleting a referenced manifest breaks
               // the image, so leave untagged versions alone when resolution fails.
               core.warning(`Unable to resolve untagged manifests, skipping them: ${error.message}`);
             }
 
-            if (to_delete.length === 0) {
+            if (to_delete.length === 0 && orphans.length === 0) {
               core.notice('No images to delete');
               return;
             }
@@ -190,10 +217,15 @@ jobs:
 
               try {
                 if (!dry_run) {
+                  const remove = is_org
+                    ? github.rest.packages.deletePackageVersionForOrg
+                    : github.rest.packages.deletePackageVersionForUser;
+
                   /**
-                   * @link https://octokit.github.io/rest.js/v22/#packages-delete-package-version-for-authenticated-user
+                   * @link https://octokit.github.io/rest.js/v22/#packages-delete-package-version-for-a-package-owned-by-the-authenticated-user
                    */
-                  await github.rest.packages.deletePackageVersionForAuthenticatedUser({
+                  await remove({
+                    [owner_param]: owner,
                     package_type: 'container',
                     package_name: repo,
                     package_version_id: pkg.id,
@@ -211,9 +243,25 @@ jobs:
             core.info(`\u001b[1mDelete images:\u001b[0m${dry_run ? ' [dry run]' : ''}`);
             await Promise.all(to_delete.map(delete_pkg));
 
+            // The manifests only become orphans once their index is gone; when a
+            // delete fails the index may still list them, so keep them for a rerun.
+            let orphans_attempted = false;
+
+            if (orphans.length > 0) {
+              if (deletion.error > 0) {
+                core.warning(
+                  `Skipping \u001b[33m${orphans.length}\u001b[0m untagged manifest(s): ` +
+                    'a tagged delete failed, so their index may still list them',
+                );
+              } else {
+                orphans_attempted = true;
+                await Promise.all(orphans.map(delete_pkg));
+              }
+            }
+
             core.notice(
               [
-                `From \u001b[1m${to_delete.length}\u001b[0m images:`,
+                `From \u001b[1m${to_delete.length + (orphans_attempted ? orphans.length : 0)}\u001b[0m images:`,
                 `\u001b[32m${deletion.success}\u001b[0m deleted and`,
                 `\u001b[31m${deletion.error}\u001b[0m error`,
               ].join(' '),

@@ -21,6 +21,7 @@ jobs:
     uses: projek-xyz/actions/.github/workflows/prepare.yml@b8889b2415c01ca846b5865dcbacbed0439cff06 # main @ 2026-11-13
     with:
       project-ref: ${{ github.event.workflow_run.head_sha }}
+      commit-message: ${{ github.event.workflow_run.head_commit.message }}
       php-version: ${{ vars.PHP_VERSION || '8.4' }}
     permissions:
       contents: read
@@ -93,15 +94,15 @@ jobs:
           labels: |
             org.opencontainers.image.author=${{ github.repository_owner }}
             org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
           tags: |
             # `workflow_run` runs on the default branch ref, so every tag is keyed
             # off the upstream event instead of `github.ref`/`GITHUB_SHA`.
+            type=raw,value=${{ github.event.workflow_run.head_sha }}
             type=raw,value=latest,enable=${{ github.event.workflow_run.event == 'push' }}
             type=raw,value=${{ github.event.workflow_run.head_branch }},enable=${{ github.event.workflow_run.event == 'push' }}
             type=raw,value=${{ needs.prepare.outputs.project-version }},enable=${{ github.event.workflow_run.event == 'push' }}
-            type=sha,prefix=,format=long,enable=${{ github.event.workflow_run.event == 'push' }}
             type=raw,value=pr-${{ github.event.workflow_run.pull_requests[0].number }},enable=${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0].number != null }}
-            type=raw,value=${{ github.event.workflow_run.head_sha }},enable=${{ github.event.workflow_run.event == 'pull_request' }}
 
       - name: Build and push Docker image
         id: push
