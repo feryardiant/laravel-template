@@ -1,4 +1,5 @@
 name: Release
+run-name: 'release(${{ github.ref_name }}): publishing `${{ github.sha }}`'
 
 on:
   push:
