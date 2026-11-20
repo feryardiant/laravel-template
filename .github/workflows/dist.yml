@@ -20,10 +20,9 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success'
         && github.event.workflow_run.head_repository.full_name == github.repository
-    uses: projek-xyz/actions/.github/workflows/prepare.yml@b8889b2415c01ca846b5865dcbacbed0439cff06 # main @ 2026-11-13
+    uses: projek-xyz/actions/.github/workflows/prepare.yml@8bd9a16148098eae66a52c863b90b9cb0dcdc34d # main @ 2026-11-20
     with:
       project-ref: ${{ github.event.workflow_run.head_sha }}
-      commit-message: ${{ github.event.workflow_run.head_commit.message }}
       php-version: ${{ vars.PHP_VERSION || '8.4' }}
     permissions:
       contents: read
