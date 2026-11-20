@@ -169,10 +169,11 @@ jobs:
             /**
              * Untagged versions are the amd64/arm64 and attestation manifests of a
              * multi-arch push. They are deleted only as children of a build this run
-             * removes: a manifest published by a build in flight belongs to no
-             * version this run deletes, so it can never be a candidate.
+             * removes, and only when no surviving index lists the same digest: a
+             * rebuild of the same commit can produce byte-identical manifests, so a
+             * child is not necessarily exclusive to one parent.
              */
-            const children_of = async (parents) => {
+            const children_of = async (parents, kept) => {
               // Same credentials `docker/login-action` uses to push in `dist.yml`
               const basic = Buffer.from(`${owner}:${process.env.GH_TOKEN}`).toString('base64');
               const { token } = await fetch(
@@ -199,14 +200,21 @@ jobs:
 
               const by_digest = new Map(versions.map((version) => [version.name, version]));
               const removed = new Set(parents.map((version) => version.id));
+              const retained = new Set();
               const children = new Map();
+
+              for (const version of kept) {
+                const { manifests = [] } = await get_manifest(version.name);
+                for (const { digest } of manifests) retained.add(digest);
+              }
 
               for (const parent of parents) {
                 const { manifests = [] } = await get_manifest(parent.name);
 
                 for (const { digest } of manifests) {
                   const child = by_digest.get(digest);
-                  if (!child || removed.has(child.id) || tags_of(child).length > 0) continue;
+                  if (!child || removed.has(child.id) || retained.has(digest)) continue;
+                  if (tags_of(child).length > 0) continue;
 
                   children.set(child.id, child);
                 }
@@ -218,7 +226,12 @@ jobs:
             let children = [];
 
             try {
-              children = await children_of(to_delete);
+              const removed = new Set(to_delete.map((version) => version.id));
+              const kept = versions.filter(
+                (version) => !removed.has(version.id) && tags_of(version).length > 0,
+              );
+
+              children = await children_of(to_delete, kept);
             } catch (error) {
               // Losing the children costs storage; deleting a referenced manifest
               // breaks the image, so leave them when the registry lookup fails.
