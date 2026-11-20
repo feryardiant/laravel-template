@@ -123,7 +123,9 @@ jobs:
             PHP_VERSION=${{ env.PHP_VERSION }}
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # A `workflow_run` of a pull request gets a read-only cache token, and a
+          # failed export fails the build before the index is pushed.
+          cache-to: ${{ github.event.workflow_run.event == 'push' && 'type=gha,mode=max' || '' }}
           file: scripts/docker/staging/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
