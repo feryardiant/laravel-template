@@ -54,8 +54,10 @@
         'formInputId' => $formInputId,
     ];
 
+    $class = $attributes->get('class');
     $rootAttributes = $attributes->filter(
-        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'options:class',
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model')
+            && ! in_array($key, ['class', 'options:class'], true),
     );
 @endphp
 
@@ -75,7 +77,7 @@
         data-variant="{{ $variant }}"
         @if ($disabled) data-disabled @endif
         @if ($invalid) data-invalid @endif
-        class="relative"
+        @class(['relative', $class])
     >
         @if ($formInputId !== null)
             <input

@@ -93,8 +93,9 @@
         'labels' => $labels,
     ];
 
+    $class = $attributes->get('class');
     $rootAttributes = $attributes->filter(
-        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'name',
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && ! in_array($key, ['class', 'name'], true),
     );
 @endphp
 
@@ -115,7 +116,7 @@
         @if ($isRange) data-range @endif
         @if ($disabled) data-disabled @endif
         @if ($invalid) data-invalid @endif
-        class="relative"
+        @class(['relative', $class])
     >
         @if ($formInputId !== null)
             <input

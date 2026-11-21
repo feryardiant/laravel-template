@@ -63,7 +63,10 @@
         'formInputId' => $formInputId,
     ];
 
-    $rootAttributes = $attributes->filter(fn ($value, $key) => ! str_starts_with($key, 'wire:model'));
+    $class = $attributes->get('class');
+    $rootAttributes = $attributes->filter(
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'class',
+    );
     $inputClasses = trim(($inputClass ?? '').' '.($clearable ? 'pe-10' : ''));
 @endphp
 
@@ -82,7 +85,7 @@
         data-ui-autocomplete
         @if ($disabled) data-disabled @endif
         @if ($invalid) data-invalid @endif
-        class="relative"
+        @class(['relative', $class])
     >
         @if ($formInputId !== null)
             <input type="hidden" id="{{ $formInputId }}" name="{{ $name }}" value="{{ $value }}" @disabled($disabled) />

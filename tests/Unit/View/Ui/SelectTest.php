@@ -120,3 +120,10 @@ it('sits bare inside a Flux field', function () {
     expect(substr_count($html, 'Nested field'))->toBe(1);
     expect(substr_count($html, 'Outer field description'))->toBe(1);
 });
+
+it('applies the class attribute to the control root', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.select label="Industry" class="w-full sm:w-48" />');
+
+    $view->assertSee('relative w-full sm:w-48', false);
+});

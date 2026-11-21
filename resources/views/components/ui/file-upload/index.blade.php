@@ -27,8 +27,9 @@
         ],
     ];
 
+    $class = $attributes->get('class');
     $rootAttributes = $attributes->filter(
-        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'name',
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && ! in_array($key, ['class', 'name'], true),
     );
 @endphp
 
@@ -55,7 +56,7 @@
         x-on:livewire-upload-finish="onUploadFinish()"
         x-on:livewire-upload-error="onUploadFinish()"
         x-on:livewire-upload-cancel="onUploadCancel()"
-        class="relative"
+        @class(['relative', $class])
     >
         <input
             type="file"

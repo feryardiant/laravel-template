@@ -75,3 +75,10 @@ it('renders the invalid state', function () {
     $view->assertSee('data-invalid', false)
         ->assertSee('aria-invalid="true"', false);
 });
+
+it('applies the class attribute to the control root', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.datetime-picker label="Starts at" class="w-full sm:w-48" />');
+
+    $view->assertSee('relative w-full sm:w-48', false);
+});

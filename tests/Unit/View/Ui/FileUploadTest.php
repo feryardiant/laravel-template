@@ -20,3 +20,10 @@ it('formats item sizes and marks invalid items', function () {
         ->toContain('2.0 MB');
     expect(substr_count($html, 'data-invalid'))->toBe(1);
 });
+
+it('applies the class attribute to the control root', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.file-upload label="Attachments" class="w-full sm:w-48" />');
+
+    $view->assertSee('relative w-full sm:w-48', false);
+});
