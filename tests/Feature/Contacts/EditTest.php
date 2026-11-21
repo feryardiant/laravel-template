@@ -793,7 +793,7 @@ test('contact detail audit records field names without values', function () {
         ->assertHasNoErrors();
 
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
-    $encoded = json_encode($log->changes?->toArray());
+    $encoded = $log->getRawOriginal('changes');
 
     expect($log->changes?->toArray())->toBe((new ContactUpdatedPayload(['email', 'phone']))->toArray())
         ->and($encoded)->not->toContain('new@acme.test')

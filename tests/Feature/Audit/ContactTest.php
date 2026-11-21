@@ -114,7 +114,7 @@ test('a contact code is recorded as a field name, not a value', function () {
     $log = AuditLog::query()->where('event', AuditEvent::ContactCreated)->sole();
 
     expect($log->changes?->toArray()['fields'] ?? [])->toBe(['code'])
-        ->and(json_encode($log->changes?->toArray()))->not->toContain('person@example.com');
+        ->and($log->getRawOriginal('changes'))->not->toContain('person@example.com');
 });
 
 test('renewing an expired contact records a renewal instead of a duplicate creation', function () {
@@ -165,12 +165,13 @@ test('updating a contact records field names but no personal values', function (
 
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
     $changes = $log->changes?->toArray() ?? [];
+    $encoded = $log->getRawOriginal('changes');
 
     expect($changes['fields'] ?? [])->toContain('name', 'summary', 'code', 'type', 'start_date')
         ->and($log->organization_relationship_period_id)->not->toBeNull()
-        ->and(json_encode($changes))->not->toContain('Updated Name')
-        ->and(json_encode($changes))->not->toContain('Updated summary')
-        ->and(json_encode($changes))->not->toContain('Original Name');
+        ->and($encoded)->not->toContain('Updated Name')
+        ->and($encoded)->not->toContain('Updated summary')
+        ->and($encoded)->not->toContain('Original Name');
 });
 
 test('deleting a contact keeps the subject readable after the soft delete', function () {
