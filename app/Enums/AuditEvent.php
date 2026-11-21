@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
- * A recorded change in an organization's audit trail.
+ * Intentional provider map for recorded changes: event key, label, and badge
+ * color. Payloads own the domain-specific serialization and detail rendering.
  */
 enum AuditEvent: string
 {
