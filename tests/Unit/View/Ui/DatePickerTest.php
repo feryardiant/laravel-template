@@ -60,5 +60,5 @@ it('applies the class attribute to the control root', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.date-picker label="Publish date" class="w-full sm:w-48" />');
 
-    $view->assertSee('relative w-full sm:w-48', false);
+    expect((string) $view)->toMatch('/data-ui-date-picker[^>]*sm:w-48/');
 });

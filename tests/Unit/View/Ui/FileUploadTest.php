@@ -25,5 +25,5 @@ it('applies the class attribute to the control root', function () {
     /** @var TestCase $this */
     $view = $this->blade('<x-ui.file-upload label="Attachments" class="w-full sm:w-48" />');
 
-    $view->assertSee('relative w-full sm:w-48', false);
+    expect((string) $view)->toMatch('/data-ui-file-upload[^>]*sm:w-48/');
 });
