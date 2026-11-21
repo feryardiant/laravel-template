@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events\Memberships;
 
+use App\Actions\Memberships\Audit\MemberRoleChangedPayload;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Events\AuditableEvent;
@@ -25,10 +26,13 @@ final class MemberRoleChanged extends AuditableEvent
         public ?User $actor,
         ?OrganizationRelationshipPeriod $period = null,
     ) {
-        parent::__construct($organization, $actor, $person, [
-            'from' => $fromRole->value,
-            'to' => $toRole->value,
-        ], $period);
+        parent::__construct(
+            $organization,
+            $actor,
+            $person,
+            new MemberRoleChangedPayload($fromRole, $toRole),
+            $period,
+        );
     }
 
     public function auditEvent(): AuditEvent

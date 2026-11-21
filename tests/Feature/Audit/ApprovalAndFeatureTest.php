@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\Approvals\Audit\ApprovalPayload;
 use App\Actions\Approvals\CancelApprovalRequest;
 use App\Actions\Approvals\MembershipLeave;
 use App\Actions\Approvals\OwnershipTransfer;
 use App\Actions\FileStorage;
+use App\Actions\Memberships\Audit\MemberRoleChangedPayload;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
+use App\Actions\Organizations\Audit\FeatureToggledPayload;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\AuditEvent;
@@ -42,14 +45,15 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
     $accepted = AuditLog::query()->where('event', AuditEvent::ApprovalAccepted)->sole();
 
     expect($requested->actor_id)->toBe($owner->getKey())
-        ->and($requested->changes)->toMatchArray(['type' => ApprovalRequestType::OwnershipTransfer->value])
+        ->and($requested->changes?->toArray())->toBe((new ApprovalPayload(ApprovalRequestType::OwnershipTransfer))->toArray())
         ->and($accepted->actor_id)->toBe($recipient->getKey())
         ->and($accepted->subject_id)->toBe($request->getKey());
 
     $roleLogs = AuditLog::query()->where('event', AuditEvent::MemberRoleChanged)->get();
 
     expect($roleLogs)->toHaveCount(2)
-        ->and($roleLogs->pluck('changes.to')->all())->toContain(Role::Admin->value, Role::Owner->value);
+        ->and($roleLogs->map(fn (AuditLog $log): ?array => $log->changes?->toArray())->pluck('to')->all())
+        ->toContain(Role::Admin->value, Role::Owner->value);
 
     $previousOwnerPeriod = OrganizationRelationshipPeriod::query()
         ->where('organization_id', $organization->getKey())
@@ -71,10 +75,10 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
     $requesterLog = $roleLogs->first(fn (AuditLog $log): bool => $log->subject_id === $owner->person->getKey());
     $approverLog = $roleLogs->first(fn (AuditLog $log): bool => $log->subject_id === $recipient->person->getKey());
 
-    expect($requesterLog->changes['from'])->toBe(Role::Owner->value)
-        ->and($requesterLog->organization_relationship_period_id)->toBe($previousOwnerPeriod->getKey())
-        ->and($approverLog->changes['from'])->toBe(Role::Member->value)
-        ->and($approverLog->organization_relationship_period_id)->toBe($newOwnerPeriod->getKey());
+    expect($requesterLog?->changes?->toArray())->toBe((new MemberRoleChangedPayload(Role::Owner, Role::Admin))->toArray())
+        ->and($requesterLog?->organization_relationship_period_id)->toBe($previousOwnerPeriod->getKey())
+        ->and($approverLog?->changes?->toArray())->toBe((new MemberRoleChangedPayload(Role::Member, Role::Owner))->toArray())
+        ->and($approverLog?->organization_relationship_period_id)->toBe($newOwnerPeriod->getKey());
 
     $secondOwner = $accepted->subject->approver->user;
     \assert($secondOwner instanceof User);
@@ -176,7 +180,7 @@ test('a membership leave decline and cancellation are recorded', function () {
     $declined = AuditLog::query()->where('event', AuditEvent::ApprovalDeclined)->sole();
 
     expect($declined->actor_id)->toBe($owner->getKey())
-        ->and($declined->changes)->toMatchArray(['type' => ApprovalRequestType::MembershipLeave->value]);
+        ->and($declined->changes?->toArray())->toBe((new ApprovalPayload(ApprovalRequestType::MembershipLeave))->toArray());
 
     $cancelRequest = app(MembershipLeave::class)->request($organization, $admin);
 
@@ -202,10 +206,7 @@ test('demoting an admin audits the canceled leave request', function () {
     $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
     expect($canceled->actor_id)->toBe($owner->getKey())
-        ->and($canceled->changes)->toMatchArray([
-            'type' => ApprovalRequestType::MembershipLeave->value,
-            'reason' => 'role_changed',
-        ])
+        ->and($canceled->changes?->toArray())->toBe((new ApprovalPayload(ApprovalRequestType::MembershipLeave, 'role_changed'))->toArray())
         ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
@@ -223,10 +224,7 @@ test('removing an admin audits the canceled leave request', function () {
     $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
     expect($canceled->actor_id)->toBe($owner->getKey())
-        ->and($canceled->changes)->toMatchArray([
-            'type' => ApprovalRequestType::MembershipLeave->value,
-            'reason' => 'member_removed',
-        ])
+        ->and($canceled->changes?->toArray())->toBe((new ApprovalPayload(ApprovalRequestType::MembershipLeave, 'member_removed'))->toArray())
         ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Canceled);
 });
 
@@ -278,10 +276,7 @@ test('each feature toggle records the feature and its state', function (string $
     expect($log->organization_id)->toBe($root->getKey())
         ->and($log->actor_id)->toBe($owner->getKey())
         ->and($log->subject_id)->toBe($root->getKey())
-        ->and($log->changes)->toMatchArray([
-            'feature' => $feature,
-            'enabled' => $enabled,
-        ]);
+        ->and($log->changes?->toArray())->toBe((new FeatureToggledPayload($feature, $enabled))->toArray());
 })->with([
     ['contactGender', 'contact-gender', true],
     ['memberDeletion', 'member-deletion', false],

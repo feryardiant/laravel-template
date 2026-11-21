@@ -224,10 +224,7 @@ class Features extends Component
     {
         $actor = Auth::user();
 
-        event(new FeatureToggled($organization, $actor instanceof User ? $actor : null, $organization, [
-            'feature' => $feature,
-            'enabled' => $enabled,
-        ]));
+        event(new FeatureToggled($organization, $actor instanceof User ? $actor : null, $feature, $enabled));
     }
 
     private function featureEnabled(Organization $organization, string $feature): bool

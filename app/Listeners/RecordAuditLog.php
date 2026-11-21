@@ -35,7 +35,7 @@ final class RecordAuditLog implements ShouldQueueAfterCommit
             'subject_type' => $event->subjectType,
             'subject_id' => $event->subjectId,
             'organization_relationship_period_id' => $event->relationshipPeriodId,
-            'changes' => $event->changes === [] ? null : $event->changes,
+            'changes' => $event->payload,
             'created_at' => $event->occurredAt,
         ]);
     }

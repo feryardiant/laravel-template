@@ -79,10 +79,12 @@ final class CreateOrganization
                     ]);
                 }
 
-                event(new OrganizationCreated($organization, $actor, $organization, [
-                    'parent_id' => $parent?->getKey(),
-                    'kind' => $parent !== null ? ($kind ?? SubsidiaryKind::Subsidiary)->value : null,
-                ]));
+                event(new OrganizationCreated(
+                    $organization,
+                    $actor,
+                    $parent?->getKey(),
+                    $parent !== null ? ($kind ?? SubsidiaryKind::Subsidiary) : null,
+                ));
 
                 return $organization;
             });

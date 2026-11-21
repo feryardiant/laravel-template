@@ -37,77 +37,7 @@
 
             <flux:table.rows>
                 @forelse ($this->logs as $log)
-                    @php
-                        $changes = $log->changes ?? [];
-                        $details = [];
-
-                        if (isset($changes['from'], $changes['to'])) {
-                            $details[] = \App\Enums\Role::from($changes['from'])->label()
-                                .' → '
-                                .\App\Enums\Role::from($changes['to'])->label();
-                        }
-
-                        if (isset($changes['fields'])) {
-                            $fields = is_array($changes['fields']) ? $changes['fields'] : [];
-
-                            $details[] = __('Fields').': '.implode(', ', array_map(
-                                fn (string $field): string => \App\Models\AuditLog::fieldLabel($field),
-                                $fields,
-                            ));
-                        }
-
-                        if (isset($changes['feature'])) {
-                            $details[] = __(':feature: :state', [
-                                'feature' => \App\Models\AuditLog::featureLabel((string) $changes['feature']),
-                                'state' => $changes['enabled'] ? __('On') : __('Off'),
-                            ]);
-                        }
-
-                        if (isset($changes['type'])) {
-                            $details[] = str_starts_with($log->event->value, 'approval.')
-                                ? \App\Enums\ApprovalRequestType::from($changes['type'])->label()
-                                : \App\Enums\OrganizationRelationshipType::from($changes['type'])->label();
-                        }
-
-                        if (isset($changes['role']) && ! isset($changes['type'])) {
-                            $details[] = \App\Enums\Role::from($changes['role'])->label();
-                        }
-
-                        if (isset($changes['via'])) {
-                            $via = match ($changes['via']) {
-                                'manager' => __('Manager'),
-                                'self' => __('Self'),
-                                'approval' => __('Approval'),
-                                default => $changes['via'],
-                            };
-
-                            $details[] = __('Via :via', ['via' => $via]);
-                        }
-
-                        if (isset($changes['last_membership']) && $changes['last_membership']) {
-                            $details[] = __('Last membership');
-                        }
-
-                        if (isset($changes['restored']) && $changes['restored']) {
-                            $details[] = __('Restored');
-                        }
-
-                        if (isset($changes['reason'])) {
-                            $reason = match ($changes['reason']) {
-                                'role_changed' => __('Role changed'),
-                                'member_removed' => __('Member removed'),
-                                'member_left' => __('Member left'),
-                                'organization_deleted' => __('Organization deleted'),
-                                default => $changes['reason'],
-                            };
-
-                            $details[] = __('Reason').': '.$reason;
-                        }
-
-                        if (isset($changes['detached_only']) && $changes['detached_only']) {
-                            $details[] = __('Entity kept');
-                        }
-                    @endphp
+                    @php($details = $log->changes?->details() ?? [])
 
                     <flux:table.row :key="$log->id">
                         <flux:table.cell class="whitespace-nowrap">

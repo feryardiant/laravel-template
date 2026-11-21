@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\Audit\ContactUpdatedPayload;
 use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Contacts\UpdateContact;
 use App\Enums\AuditEvent;
@@ -746,8 +747,8 @@ test('an organization contact person email and phone are editable and clearable'
 
     expect($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('person@acme.test')
         ->and($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 444')
-        ->and(AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole()->changes)
-        ->toBe(['fields' => ['contact_email', 'contact_phone']]);
+        ->and(AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole()->changes?->toArray())
+        ->toBe((new ContactUpdatedPayload(['contact_email', 'contact_phone']))->toArray());
 
     $form->set('contactPersonEmail', '')
         ->set('contactPersonPhone', '')
@@ -792,9 +793,9 @@ test('contact detail audit records field names without values', function () {
         ->assertHasNoErrors();
 
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
-    $encoded = json_encode($log->changes);
+    $encoded = json_encode($log->changes?->toArray());
 
-    expect($log->changes)->toBe(['fields' => ['email', 'phone']])
+    expect($log->changes?->toArray())->toBe((new ContactUpdatedPayload(['email', 'phone']))->toArray())
         ->and($encoded)->not->toContain('new@acme.test')
         ->and($encoded)->not->toContain('0812 777');
 });
