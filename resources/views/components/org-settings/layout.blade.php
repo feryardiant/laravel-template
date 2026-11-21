@@ -24,7 +24,11 @@
     </x-slot:nav>
 
     @isset($actions)
-        <x-slot:actions>{{ $actions }}</x-slot:actions>
+        @php($actionsAttributes = $actions instanceof \Illuminate\View\ComponentSlot ? $actions->attributes : new \Illuminate\View\ComponentAttributeBag)
+
+        <x-slot:actions :attributes="$actionsAttributes">
+            {{ $actions }}
+        </x-slot:actions>
     @endisset
 
     {{ $slot }}

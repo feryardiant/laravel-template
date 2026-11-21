@@ -99,7 +99,8 @@ test('owners and admins can open the audit log', function (Role $role) {
         ->assertOk()
         ->assertSee(__('No audit entries yet.'))
         ->assertSee(__('Date range'))
-        ->assertSee('aria-label="'.__('Date range').'"', false);
+        ->assertSee('aria-label="'.__('Date range').'"', false)
+        ->assertSee('sm:w-auto sm:flex-row sm:items-end', false);
 })->with([Role::Owner, Role::Admin]);
 
 test('the log only lists the current organization entries', function () {

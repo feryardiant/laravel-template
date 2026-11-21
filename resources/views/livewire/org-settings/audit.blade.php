@@ -4,57 +4,55 @@
         :subheading="__('Every recorded change in this organization')"
         width="max-w-none"
     >
-        <x-slot:actions>
-            <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
-                <x-ui.select
-                    wire:model.live="actor"
-                    :label="__('Actor')"
-                    :placeholder="__('All actors')"
-                    clearable
-                    class="w-full sm:w-32"
-                >
-                    @foreach ($this->actors as $member)
-                        @php($isCurrent = $member->user_id === auth()->id())
+        <x-slot:actions class="w-full flex-col sm:w-auto sm:flex-row sm:items-end">
+            <x-ui.select
+                wire:model.live="actor"
+                :label="__('Actor')"
+                :placeholder="__('All actors')"
+                clearable
+                class="w-full sm:w-46"
+            >
+                @foreach ($this->actors as $member)
+                    @php($isCurrent = $member->user_id === auth()->id())
 
-                        <x-ui.select.option
-                            :value="$member->user_id"
-                            :label="$isCurrent ? $member->name.' ('.__('You').')' : $member->name"
-                            :keywords="$member->user?->email"
-                        >
-                            <span class="inline-flex items-center gap-2">
-                                {{ $member->name }}
+                    <x-ui.select.option
+                        :value="$member->user_id"
+                        :label="$isCurrent ? $member->name.' ('.__('You').')' : $member->name"
+                        :keywords="$member->user?->email"
+                    >
+                        <span class="inline-flex items-center gap-2">
+                            {{ $member->name }}
 
-                                @if ($isCurrent)
-                                    <flux:badge size="sm" color="zinc">{{ __('You') }}</flux:badge>
-                                @endif
-                            </span>
-                        </x-ui.select.option>
-                    @endforeach
-                </x-ui.select>
+                            @if ($isCurrent)
+                                <flux:badge size="sm" color="zinc">{{ __('You') }}</flux:badge>
+                            @endif
+                        </span>
+                    </x-ui.select.option>
+                @endforeach
+            </x-ui.select>
 
-                <x-ui.select
-                    wire:model.live="event"
-                    :label="__('Event')"
-                    :placeholder="__('All events')"
-                    clearable
-                    class="w-full sm:w-32"
-                >
-                    @foreach ($events as $case)
-                        <x-ui.select.option :value="$case->value">{{ $case->label() }}</x-ui.select.option>
-                    @endforeach
-                </x-ui.select>
+            <x-ui.select
+                wire:model.live="event"
+                :label="__('Event')"
+                :placeholder="__('All events')"
+                clearable
+                class="w-full sm:w-46"
+            >
+                @foreach ($events as $case)
+                    <x-ui.select.option :value="$case->value">{{ $case->label() }}</x-ui.select.option>
+                @endforeach
+            </x-ui.select>
 
-                <x-ui.date-picker
-                    wire:model.live="range"
-                    mode="range"
-                    :label="__('Date range')"
-                    with-presets
-                    start-day="0"
-                    :today="$today"
-                    :timezone="$timezone"
-                    class="w-full sm:w-60"
-                />
-            </div>
+            <x-ui.date-picker
+                wire:model.live="range"
+                mode="range"
+                :label="__('Date range')"
+                with-presets
+                start-day="0"
+                :today="$today"
+                :timezone="$timezone"
+                class="w-full sm:w-60"
+            />
         </x-slot:actions>
 
         <flux:table :paginate="$this->logs">
