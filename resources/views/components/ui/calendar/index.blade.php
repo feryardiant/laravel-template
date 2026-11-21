@@ -87,7 +87,10 @@
         'labels' => $labels,
     ];
 
-    $rootAttributes = $attributes->filter(fn ($value, $key) => ! str_starts_with($key, 'wire:model'));
+    $class = $attributes->get('class');
+    $rootAttributes = $attributes->filter(
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'class',
+    );
 @endphp
 
 <flux:with-field
@@ -107,7 +110,7 @@
         @if ($draft) data-draft @endif
         :data-start-day="startDay"
         @if ($invalid) data-invalid @endif
-        class="w-full flex flex-col gap-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500"
+        @class(['w-full flex flex-col gap-2 data-invalid:rounded-lg data-invalid:p-2 data-invalid:ring-2 data-invalid:ring-red-500', $class])
     >
         @if ($isPlain && $mode === 'single')
             <input

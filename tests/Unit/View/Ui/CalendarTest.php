@@ -52,3 +52,10 @@ it('does not render the invalid state by default', function () {
 
     $view->assertDontSee('aria-invalid', false);
 });
+
+it('applies the class attribute to the control root', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.calendar name="date" class="w-full sm:w-48" />');
+
+    expect((string) $view)->toMatch('/data-ui-calendar[^>]*sm:w-48/');
+});

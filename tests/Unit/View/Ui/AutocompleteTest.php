@@ -78,3 +78,10 @@ it('renders disabled and invalid states', function () {
         ->assertSee('aria-invalid="true"', false)
         ->assertSee('disabled', false);
 });
+
+it('applies the class attribute to the control root', function () {
+    /** @var TestCase $this */
+    $view = $this->blade('<x-ui.autocomplete label="State" class="w-full sm:w-48" />');
+
+    expect((string) $view)->toMatch('/data-ui-autocomplete[^>]*sm:w-48/');
+});
