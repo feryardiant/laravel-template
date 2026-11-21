@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace App\Actions\Contacts\Audit;
 
 use App\Actions\Audit\AuditPayload;
+use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
+use App\Models\Entity;
 use App\Support\FieldLabel;
 use UnexpectedValueException;
 
+/**
+ * @property Entity $subject
+ */
 final class ContactRelationPayload extends AuditPayload
 {
     /**
@@ -20,6 +25,15 @@ final class ContactRelationPayload extends AuditPayload
         public OrganizationRelationshipType $type,
         public array $fields = [],
     ) {}
+
+    public function __toString(): string
+    {
+        return match ($this->event) {
+            AuditEvent::ContactCreated => __(':type added', ['type' => $this->type->label()]),
+            AuditEvent::ContactRenewed => __(':type renewed', ['type' => $this->type->label()]),
+            default => parent::__toString(),
+        };
+    }
 
     public function toArray(): array
     {
@@ -52,7 +66,7 @@ final class ContactRelationPayload extends AuditPayload
 
     public function details(): array
     {
-        $details = [];
+        $details = [$this->type->label()];
 
         if ($this->fields !== []) {
             $details[] = __('Fields').': '.implode(', ', array_map(
@@ -60,8 +74,6 @@ final class ContactRelationPayload extends AuditPayload
                 $this->fields,
             ));
         }
-
-        $details[] = $this->type->label();
 
         return $details;
     }

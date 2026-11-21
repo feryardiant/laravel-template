@@ -74,7 +74,7 @@
                         <flux:table.cell>
                             <flux:badge size="sm" :color="$log->event->badgeColor()">{{ $log->event->label() }}</flux:badge>
                         </flux:table.cell>
-                        <flux:table.cell class="whitespace-normal">{{ $log->changes }}</flux:table.cell>
+                        <flux:table.cell class="whitespace-normal">{{ $log->changes?->subjectLabel() ?? $log->event->label() }}</flux:table.cell>
                         <flux:table.cell class="whitespace-normal">
                             {{ $details === [] ? '—' : implode(', ', $details) }}
                         </flux:table.cell>

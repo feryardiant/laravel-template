@@ -11,6 +11,11 @@ final class MemberAddedPayload extends AuditPayload
 {
     public function __construct(public Role $role) {}
 
+    public function __toString(): string
+    {
+        return __(':role added', ['role' => $this->role->label()]);
+    }
+
     public function toArray(): array
     {
         return ['role' => $this->role->value];

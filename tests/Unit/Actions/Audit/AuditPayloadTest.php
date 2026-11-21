@@ -49,6 +49,37 @@ test('an audit payload summarizes itself from its subject', function () {
         ->and($payload->details())->toBe([Role::Member->label().' → '.Role::Admin->label()]);
 });
 
+test('contact and member payloads expose subject labels and context details', function () {
+    $person = (new Person)->forceFill(['name' => 'Ada']);
+
+    $contact = ContactRelationPayload::fromEvent(AuditEvent::ContactCreated, $person, [
+        'kind' => 'individual',
+        'type' => OrganizationRelationshipType::Customer->value,
+        'fields' => ['code'],
+    ]);
+
+    $member = MemberAddedPayload::fromEvent(AuditEvent::MemberAdded, $person, [
+        'role' => Role::Owner->value,
+    ]);
+
+    $orphan = ContactRelationPayload::fromEvent(AuditEvent::ContactCreated, null, [
+        'kind' => 'individual',
+        'type' => OrganizationRelationshipType::Customer->value,
+    ]);
+
+    expect((string) $contact)->toBe(__(':type added', ['type' => OrganizationRelationshipType::Customer->label()]))
+        ->and($contact->subjectLabel())->toBe('Ada')
+        ->and($contact->details())->toBe([
+            OrganizationRelationshipType::Customer->label(),
+            __('Fields').': '.__('Code'),
+        ])
+        ->and((string) $member)->toBe(__(':role added', ['role' => Role::Owner->label()]))
+        ->and($member->subjectLabel())->toBe('Ada')
+        ->and($member->details())->toBe([Role::Owner->label()])
+        ->and($orphan->subjectLabel())->toBe(__(':type added', ['type' => OrganizationRelationshipType::Customer->label()]))
+        ->and($orphan->details())->toBe([OrganizationRelationshipType::Customer->label()]);
+});
+
 test('an audit payload renders its own details', function () {
     $contact = new ContactUpdatedPayload(['start_date', 'logo_url']);
     $feature = new FeatureToggledPayload('contact-gender', true);
