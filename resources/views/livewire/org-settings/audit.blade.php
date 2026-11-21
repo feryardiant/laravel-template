@@ -6,12 +6,43 @@
     >
         <x-slot:actions>
             <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
-                <flux:select wire:model.live="event" :label="__('Event')" class="w-full sm:w-40">
-                    <flux:select.option value="">{{ __('All events') }}</flux:select.option>
-                    @foreach ($events as $case)
-                        <flux:select.option :value="$case->value">{{ $case->label() }}</flux:select.option>
+                <x-ui.select
+                    wire:model.live="actor"
+                    :label="__('Actor')"
+                    :placeholder="__('All actors')"
+                    clearable
+                    class="w-full sm:w-32"
+                >
+                    @foreach ($this->actors as $member)
+                        @php($isCurrent = $member->user_id === auth()->id())
+
+                        <x-ui.select.option
+                            :value="$member->user_id"
+                            :label="$isCurrent ? $member->name.' ('.__('You').')' : $member->name"
+                            :keywords="$member->user?->email"
+                        >
+                            <span class="inline-flex items-center gap-2">
+                                {{ $member->name }}
+
+                                @if ($isCurrent)
+                                    <flux:badge size="sm" color="zinc">{{ __('You') }}</flux:badge>
+                                @endif
+                            </span>
+                        </x-ui.select.option>
                     @endforeach
-                </flux:select>
+                </x-ui.select>
+
+                <x-ui.select
+                    wire:model.live="event"
+                    :label="__('Event')"
+                    :placeholder="__('All events')"
+                    clearable
+                    class="w-full sm:w-32"
+                >
+                    @foreach ($events as $case)
+                        <x-ui.select.option :value="$case->value">{{ $case->label() }}</x-ui.select.option>
+                    @endforeach
+                </x-ui.select>
 
                 <x-ui.date-picker
                     wire:model.live="range"
