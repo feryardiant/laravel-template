@@ -87,31 +87,4 @@ class AuditLog extends Model
     {
         return $this->belongsTo(OrganizationRelationshipPeriod::class, 'organization_relationship_period_id');
     }
-
-    /**
-     * Get a human-readable label for the changed subject.
-     */
-    public function subjectLabel(): string
-    {
-        $subject = $this->subject;
-
-        if ($subject instanceof ApprovalRequest) {
-            return $subject->type->label();
-        }
-
-        if ($subject instanceof Person || $subject instanceof Organization) {
-            return $subject->name;
-        }
-
-        $type = match ($this->subject_type) {
-            Person::class => __('Person'),
-            Organization::class => __('Organization'),
-            ApprovalRequest::class => __('Approval request'),
-            default => class_basename((string) $this->subject_type),
-        };
-
-        return $subject === null
-            ? __('Deleted :type', ['type' => $type])
-            : __(':type #:id', ['type' => $type, 'id' => $subject->getKey()]);
-    }
 }

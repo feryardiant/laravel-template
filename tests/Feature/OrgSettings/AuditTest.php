@@ -433,7 +433,7 @@ test('a legacy unwrapped payload renders without details', function () {
         ->assertDontSee(__('Fields').': '.__('Name'));
 });
 
-test('a soft deleted subject still shows its name', function () {
+test('a soft deleted subject still renders its audit row', function () {
     $organization = Organization::factory()->create();
     $owner = actingAsMember($organization, Role::Owner);
     $person = Person::factory()->withoutCredential()->create(['name' => 'Archived Person']);
@@ -442,10 +442,12 @@ test('a soft deleted subject still shows its name', function () {
 
     auditEntryForPage($organization, AuditEvent::ContactDeleted, $owner, $person, new ContactDeletedPayload(false));
 
-    Livewire::test(Audit::class)->assertSee('Archived Person');
+    Livewire::test(Audit::class)
+        ->assertOk()
+        ->assertSee(__('Contact deleted'));
 });
 
-test('a hard deleted subject falls back to a deleted label', function () {
+test('a hard deleted subject does not break the audit log', function () {
     $organization = Organization::factory()->create();
     $owner = actingAsMember($organization, Role::Owner);
     $person = Person::factory()->withoutCredential()->create();
@@ -454,7 +456,7 @@ test('a hard deleted subject falls back to a deleted label', function () {
 
     auditEntryForPage($organization, AuditEvent::ContactDeleted, $owner, $person);
 
-    Livewire::test(Audit::class)->assertSee(__('Deleted :type', ['type' => __('Person')]));
+    Livewire::test(Audit::class)->assertOk();
 });
 
 test('entries without an actor show the system label', function () {

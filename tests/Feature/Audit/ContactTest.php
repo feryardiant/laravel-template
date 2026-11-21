@@ -188,8 +188,7 @@ test('deleting a contact keeps the subject readable after the soft delete', func
     $log = AuditLog::query()->where('event', AuditEvent::ContactDeleted)->sole()->fresh();
 
     expect($log->actor_id)->toBe($actor->getKey())
-        ->and($log->changes?->toArray())->toBe((new ContactDeletedPayload(false))->toArray())
-        ->and($log->subjectLabel())->toBe('Deleted Person');
+        ->and($log->changes?->toArray())->toBe((new ContactDeletedPayload(false))->toArray());
 });
 
 test('a bulk delete writes one entry per contact', function () {

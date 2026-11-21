@@ -28,11 +28,11 @@
 
         <flux:table :paginate="$this->logs">
             <flux:table.columns>
-                <flux:table.column>{{ __('When') }}</flux:table.column>
-                <flux:table.column>{{ __('Event') }}</flux:table.column>
-                <flux:table.column>{{ __('Actor') }}</flux:table.column>
-                <flux:table.column>{{ __('Subject') }}</flux:table.column>
-                <flux:table.column>{{ __('Details') }}</flux:table.column>
+                <flux:table.column class="w-1/12">{{ __('Event') }}</flux:table.column>
+                <flux:table.column class="w-4/12">{{ __('Subject') }}</flux:table.column>
+                <flux:table.column class="w-5/12">{{ __('Details') }}</flux:table.column>
+                <flux:table.column class="w-1/12">{{ __('Actor') }}</flux:table.column>
+                <flux:table.column class="w-1/12">{{ __('When') }}</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -40,16 +40,23 @@
                     @php($details = $log->changes?->details() ?? [])
 
                     <flux:table.row :key="$log->id">
-                        <flux:table.cell class="whitespace-nowrap">
-                            <x-local-time :date="$log->created_at" format="d M Y H:i" />
-                        </flux:table.cell>
                         <flux:table.cell>
                             <flux:badge size="sm" :color="$log->event->badgeColor()">{{ $log->event->label() }}</flux:badge>
                         </flux:table.cell>
-                        <flux:table.cell>{{ $log->actor?->name ?? __('System') }}</flux:table.cell>
-                        <flux:table.cell>{{ $log->subjectLabel() }}</flux:table.cell>
+                        <flux:table.cell class="whitespace-normal">{{ $log->changes }}</flux:table.cell>
                         <flux:table.cell class="whitespace-normal">
                             {{ $details === [] ? '—' : implode(', ', $details) }}
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            <span class="relative inline-flex items-center gap-2">
+                                @if ($log->actor)
+                                    <flux:avatar size="xs" :name="$log->actor->name" :src="$log->actor->photo_url" />
+                                @endif
+                                <span class="truncate">{{ $log->actor?->name ?? __('System') }}</span>
+                            </span>
+                        </flux:table.cell>
+                        <flux:table.cell class="whitespace-nowrap">
+                            <x-local-time :date="$log->created_at" format="d M Y H:i" />
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
