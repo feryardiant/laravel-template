@@ -56,10 +56,7 @@ final class ProvisionPublicTenant
 
         $organization->primaryContact?->update(['owner_organization_id' => null]);
 
-        event(new OrganizationCreated($organization, $user, $organization, [
-            'parent_id' => $root->getKey(),
-            'kind' => null,
-        ]));
+        event(new OrganizationCreated($organization, $user, $root->getKey(), null));
 
         $organization->members()->attach($organization->contact_id, [
             'type' => OrganizationRelationshipType::Member,
@@ -80,9 +77,7 @@ final class ProvisionPublicTenant
             $owner = $organization->primaryContact;
 
             if ($owner instanceof Person) {
-                event(new MemberAdded($organization, $user, $owner, [
-                    'role' => Role::Owner->value,
-                ], $period));
+                event(new MemberAdded($organization, $user, $owner, Role::Owner, $period));
             }
         }
 

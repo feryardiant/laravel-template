@@ -196,9 +196,7 @@ class General extends Component
                 if ($fields !== []) {
                     $actor = Auth::user();
 
-                    event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, $organization, [
-                        'fields' => $fields,
-                    ]));
+                    event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, $fields));
                 }
 
                 if ($newLogoPath !== null) {
@@ -253,10 +251,7 @@ class General extends Component
 
             $actor = Auth::user();
 
-            event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, $organization, [
-                'fields' => ['logo_url'],
-                'restored' => true,
-            ]));
+            event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, ['logo_url'], true));
 
             $this->logoUrl = $previousLogo;
             $this->originalLogoUrl = $this->logoUrl;

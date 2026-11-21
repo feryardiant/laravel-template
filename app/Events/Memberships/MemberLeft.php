@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events\Memberships;
 
+use App\Actions\Memberships\Audit\MemberLeftPayload;
 use App\Enums\AuditEvent;
 use App\Events\AuditableEvent;
 use App\Models\ApprovalRequest;
@@ -28,10 +29,13 @@ final class MemberLeft extends AuditableEvent
         public ?ApprovalRequest $approval = null,
         ?OrganizationRelationshipPeriod $period = null,
     ) {
-        parent::__construct($organization, $actor, $person, array_filter([
-            'via' => $via,
-            'approval_id' => $approval?->getKey(),
-        ]), $period);
+        parent::__construct(
+            $organization,
+            $actor,
+            $person,
+            new MemberLeftPayload($via, $approval?->getKey()),
+            $period,
+        );
     }
 
     public function auditEvent(): AuditEvent

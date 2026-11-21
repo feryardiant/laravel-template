@@ -4,21 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Events\Approvals\ApprovalAccepted;
-use App\Events\Approvals\ApprovalCanceled;
-use App\Events\Approvals\ApprovalDeclined;
-use App\Events\Approvals\ApprovalRequested;
-use App\Events\Contacts\ContactCreated;
-use App\Events\Contacts\ContactDeleted;
-use App\Events\Contacts\ContactRenewed;
-use App\Events\Contacts\ContactUpdated;
-use App\Events\FeatureToggled;
-use App\Events\Memberships\MemberAdded;
-use App\Events\Memberships\MemberLeft;
-use App\Events\Memberships\MemberRemoved;
-use App\Events\Memberships\MemberRoleChanged;
-use App\Events\Organizations\OrganizationCreated;
-use App\Events\Organizations\OrganizationUpdated;
+use App\Events\Auditable;
 use App\Listeners\RecordAuditLog;
 use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\MemberDeletion;
@@ -55,23 +41,7 @@ class AppServiceProvider extends ServiceProvider
         Feature::define(MemberDeletion::FEATURE, fn (): bool => true);
         Feature::define(ContactDeletion::FEATURE, fn (): bool => true);
 
-        Event::listen([
-            ApprovalAccepted::class,
-            ApprovalCanceled::class,
-            ApprovalDeclined::class,
-            ApprovalRequested::class,
-            ContactCreated::class,
-            ContactDeleted::class,
-            ContactRenewed::class,
-            ContactUpdated::class,
-            FeatureToggled::class,
-            MemberAdded::class,
-            MemberLeft::class,
-            MemberRemoved::class,
-            MemberRoleChanged::class,
-            OrganizationCreated::class,
-            OrganizationUpdated::class,
-        ], RecordAuditLog::class);
+        Event::listen(Auditable::class, RecordAuditLog::class);
 
         $this->configureDefaults();
     }

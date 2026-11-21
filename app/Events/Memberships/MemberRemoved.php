@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events\Memberships;
 
+use App\Actions\Memberships\Audit\MemberRemovedPayload;
 use App\Enums\AuditEvent;
 use App\Events\AuditableEvent;
 use App\Models\Organization;
@@ -27,10 +28,13 @@ final class MemberRemoved extends AuditableEvent
         public bool $lastMembership,
         ?OrganizationRelationshipPeriod $period = null,
     ) {
-        parent::__construct($organization, $actor, $person, [
-            'via' => $via,
-            'last_membership' => $lastMembership,
-        ], $period);
+        parent::__construct(
+            $organization,
+            $actor,
+            $person,
+            new MemberRemovedPayload($via, $lastMembership),
+            $period,
+        );
     }
 
     public function auditEvent(): AuditEvent

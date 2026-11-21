@@ -54,10 +54,7 @@ final class ProvisionTenant
 
             $organization->update(['owner_organization_id' => $organization->getKey()]);
 
-            event(new OrganizationCreated($organization, $user, $organization, [
-                'parent_id' => null,
-                'kind' => null,
-            ]));
+            event(new OrganizationCreated($organization, $user, null, null));
 
             $this->membership->attach(
                 $organization,

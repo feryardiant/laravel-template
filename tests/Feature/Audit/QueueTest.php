@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Events\Contacts\ContactCreated;
 use App\Listeners\RecordAuditLog;
@@ -21,9 +22,7 @@ test('audit events are queued for the audit listener', function () {
     $organization = Organization::factory()->create();
     $actor = actingAsMember($organization, Role::Owner);
 
-    event(new ContactCreated($organization, $actor, $organization, [
-        'type' => 'customer',
-    ]));
+    event(new ContactCreated($organization, $actor, $organization, OrganizationRelationshipType::Customer));
 
     Queue::assertPushed(CallQueuedListener::class, fn (CallQueuedListener $job): bool => $job->class === RecordAuditLog::class);
 });
@@ -31,9 +30,7 @@ test('audit events are queued for the audit listener', function () {
 test('late audit events are skipped after the organization is deleted', function () {
     $organization = Organization::factory()->create();
 
-    $event = new ContactCreated($organization, null, $organization, [
-        'type' => 'customer',
-    ]);
+    $event = new ContactCreated($organization, null, $organization, OrganizationRelationshipType::Customer);
 
     $organization->forceDelete();
 
@@ -46,9 +43,7 @@ test('audit rows drop an actor that was deleted before the listener runs', funct
     $organization = Organization::factory()->create();
     $actor = User::factory()->withProfile()->create();
 
-    $event = new ContactCreated($organization, $actor, $organization, [
-        'type' => 'customer',
-    ]);
+    $event = new ContactCreated($organization, $actor, $organization, OrganizationRelationshipType::Customer);
 
     $actor->delete();
 
@@ -65,9 +60,7 @@ test('audit rows keep the event occurrence time instead of the queue time', func
 
     $this->travelTo('2026-11-15 23:59:00');
 
-    $event = new ContactCreated($organization, null, $organization, [
-        'type' => 'customer',
-    ]);
+    $event = new ContactCreated($organization, null, $organization, OrganizationRelationshipType::Customer);
 
     $this->travelTo('2026-11-16 00:05:00');
 

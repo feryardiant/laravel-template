@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\Audit\MemberRoleChangedPayload;
 use App\Actions\Memberships\CreateMember;
 use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
@@ -69,10 +70,7 @@ it('updates the membership role when an existing member is added again', functio
 
     $log = AuditLog::query()->where('event', AuditEvent::MemberRoleChanged)->sole();
 
-    expect($log->changes)->toMatchArray([
-        'from' => Role::Member->value,
-        'to' => Role::Owner->value,
-    ]);
+    expect($log->changes?->toArray())->toBe((new MemberRoleChangedPayload(Role::Member, Role::Owner))->toArray());
 });
 
 it('does not assign a role to non-member relationships', function () {

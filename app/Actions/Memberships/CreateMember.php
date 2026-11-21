@@ -178,9 +178,7 @@ final class CreateMember
             );
 
             if ($existing === null) {
-                event(new MemberAdded($organization, $actor, $member, [
-                    'role' => $role->value,
-                ], $period));
+                event(new MemberAdded($organization, $actor, $member, $role, $period));
             } elseif ($roleChanged) {
                 event(new MemberRoleChanged($organization, $previousRole, $role, $member, $actor, $period));
             }
