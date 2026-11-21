@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\Audit\ContactRelationPayload;
 use App\Actions\FileStorage;
+use App\Actions\Organizations\Audit\OrganizationCreatedPayload;
+use App\Actions\Organizations\Audit\OrganizationUpdatedPayload;
 use App\Actions\Organizations\CreateOrganization;
 use App\Enums\AuditEvent;
 use App\Enums\OrganizationRelationshipType;
@@ -35,10 +38,10 @@ test('creating an organization records the parent and kind', function () {
     expect($log->organization_id)->toBe($organization->getKey())
         ->and($log->actor_id)->toBe($user->getKey())
         ->and($log->subject_id)->toBe($organization->getKey())
-        ->and($log->changes)->toMatchArray([
-            'parent_id' => $root->getKey(),
-            'kind' => SubsidiaryKind::Branch->value,
-        ]);
+        ->and($log->changes?->toArray())->toBe((new OrganizationCreatedPayload(
+            $root->getKey(),
+            SubsidiaryKind::Branch,
+        ))->toArray());
 
     $memberLog = AuditLog::query()->where('event', AuditEvent::MemberAdded)->sole();
 
@@ -60,7 +63,7 @@ test('updating an organization records the changed field names', function () {
 
     expect($log->actor_id)->toBe($owner->getKey())
         ->and($log->subject_id)->toBe($organization->getKey())
-        ->and($log->changes['fields'] ?? [])->toContain('name');
+        ->and($log->changes?->toArray())->toBe((new OrganizationUpdatedPayload(['name']))->toArray());
 });
 
 test('an update with no changes writes no entry', function () {
@@ -90,7 +93,7 @@ test('deleting an organization prunes its audit log', function () {
         'event' => AuditEvent::ContactCreated,
         'subject_type' => Organization::class,
         'subject_id' => $organization->getKey(),
-        'changes' => ['type' => 'customer'],
+        'changes' => new ContactRelationPayload('individual', OrganizationRelationshipType::Customer),
     ]);
 
     (new DeleteOrganization($organization, $owner->getKey()))

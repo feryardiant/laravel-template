@@ -74,9 +74,7 @@ final class DeleteContact
                 ->whereKey($contact->getKey())
                 ->delete();
 
-            event(new ContactDeleted($tenant, $actor, $stakeholder, [
-                'detached_only' => ! $removeOwned,
-            ], $period));
+            event(new ContactDeleted($tenant, $actor, $stakeholder, ! $removeOwned, $period));
 
             if (! $removeOwned) {
                 return;

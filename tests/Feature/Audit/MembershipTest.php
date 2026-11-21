@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Approvals\MembershipLeave;
+use App\Actions\Memberships\Audit\MemberAddedPayload;
+use App\Actions\Memberships\Audit\MemberLeftPayload;
+use App\Actions\Memberships\Audit\MemberRemovedPayload;
+use App\Actions\Memberships\Audit\MemberRoleChangedPayload;
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\LeaveOrganization;
@@ -30,7 +34,7 @@ test('adding a member records the opened period', function () {
     $log = AuditLog::query()->where('event', AuditEvent::MemberAdded)->sole();
 
     expect($log->actor_id)->toBe($owner->getKey())
-        ->and($log->changes)->toMatchArray(['role' => Role::Member->value])
+        ->and($log->changes?->toArray())->toBe((new MemberAddedPayload(Role::Member))->toArray())
         ->and($log->organization_relationship_period_id)->not->toBeNull();
 });
 
@@ -48,10 +52,7 @@ test('a role change records the actor and both roles', function () {
     expect($log->organization_id)->toBe($organization->getKey())
         ->and($log->actor_id)->toBe($owner->getKey())
         ->and($log->subject_id)->toBe($member->person->getKey())
-        ->and($log->changes)->toMatchArray([
-            'from' => Role::Member->value,
-            'to' => Role::Admin->value,
-        ])
+        ->and($log->changes?->toArray())->toBe((new MemberRoleChangedPayload(Role::Member, Role::Admin))->toArray())
         ->and($log->organization_relationship_period_id)->not->toBeNull();
 });
 
@@ -81,10 +82,7 @@ test('a manager removal records the acting manager', function () {
 
     expect($log->actor_id)->toBe($owner->getKey())
         ->and($log->subject_id)->toBe($member->person->getKey())
-        ->and($log->changes)->toMatchArray([
-            'via' => 'manager',
-            'last_membership' => true,
-        ])
+        ->and($log->changes?->toArray())->toBe((new MemberRemovedPayload('manager', true))->toArray())
         ->and($log->organization_relationship_period_id)->not->toBeNull();
 });
 
@@ -131,7 +129,7 @@ test('a self leave records the user as the actor', function () {
 
     expect($log->actor_id)->toBe($member->getKey())
         ->and($log->subject_id)->toBe($member->person->getKey())
-        ->and($log->changes)->toMatchArray(['via' => 'self'])
+        ->and($log->changes?->toArray())->toBe((new MemberLeftPayload('self'))->toArray())
         ->and($period->actor_id)->toBe($member->getKey());
 });
 
@@ -156,10 +154,7 @@ test('an accepted admin leave records the approval and the leave', function () {
         ->and($accepted->subject_id)->toBe($request->getKey())
         ->and($left->actor_id)->toBe($owner->getKey())
         ->and($left->subject_id)->toBe($admin->person->getKey())
-        ->and($left->changes)->toMatchArray([
-            'via' => 'approval',
-            'approval_id' => $request->getKey(),
-        ])
+        ->and($left->changes?->toArray())->toBe((new MemberLeftPayload('approval', $request->getKey()))->toArray())
         ->and($period->actor_id)->toBe($owner->getKey());
 });
 

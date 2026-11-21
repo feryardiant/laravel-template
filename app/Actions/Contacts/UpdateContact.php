@@ -311,8 +311,6 @@ final class UpdateContact
             return;
         }
 
-        event(new ContactUpdated($tenant, $actor, $stakeholder, [
-            'fields' => $fields,
-        ], $period));
+        event(new ContactUpdated($tenant, $actor, $stakeholder, $fields, $period));
     }
 }

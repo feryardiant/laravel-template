@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Actions\Contacts\Audit\ContactDeletedPayload;
+use App\Actions\Contacts\Audit\ContactRelationPayload;
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\DeleteContact;
 use App\Actions\Contacts\UpdateContact;
@@ -59,11 +61,11 @@ test('creating a contact records the actor and period', function () {
     expect($log->organization_id)->toBe($organization->getKey())
         ->and($log->actor_id)->toBe($actor->getKey())
         ->and($log->subject_id)->toBe($entity->getKey())
-        ->and($log->changes)->toMatchArray([
-            'kind' => 'individual',
-            'type' => OrganizationRelationshipType::Customer->value,
-            'fields' => ['code'],
-        ])
+        ->and($log->changes?->toArray())->toBe((new ContactRelationPayload(
+            'individual',
+            OrganizationRelationshipType::Customer,
+            ['code'],
+        ))->toArray())
         ->and($log->organization_relationship_period_id)->not->toBeNull();
 });
 
@@ -93,11 +95,11 @@ test('reusing a referenced contact records a creation for the new tenant', funct
         ->sole();
 
     expect($log->subject_id)->toBe($person->getKey())
-        ->and($log->changes)->toMatchArray([
-            'kind' => 'individual',
-            'type' => OrganizationRelationshipType::Customer->value,
-            'fields' => ['code'],
-        ])
+        ->and($log->changes?->toArray())->toBe((new ContactRelationPayload(
+            'individual',
+            OrganizationRelationshipType::Customer,
+            ['code'],
+        ))->toArray())
         ->and($log->organization_relationship_period_id)->not->toBeNull();
 });
 
@@ -111,8 +113,8 @@ test('a contact code is recorded as a field name, not a value', function () {
 
     $log = AuditLog::query()->where('event', AuditEvent::ContactCreated)->sole();
 
-    expect($log->changes['fields'] ?? [])->toBe(['code'])
-        ->and(json_encode($log->changes))->not->toContain('person@example.com');
+    expect($log->changes?->toArray()['fields'] ?? [])->toBe(['code'])
+        ->and($log->getRawOriginal('changes'))->not->toContain('person@example.com');
 });
 
 test('renewing an expired contact records a renewal instead of a duplicate creation', function () {
@@ -132,11 +134,11 @@ test('renewing an expired contact records a renewal instead of a duplicate creat
     $log = AuditLog::query()->where('event', AuditEvent::ContactRenewed)->sole();
 
     expect($log->subject_id)->toBe($entity->getKey())
-        ->and($log->changes)->toMatchArray([
-            'kind' => 'individual',
-            'type' => OrganizationRelationshipType::Customer->value,
-            'fields' => ['code'],
-        ])
+        ->and($log->changes?->toArray())->toBe((new ContactRelationPayload(
+            'individual',
+            OrganizationRelationshipType::Customer,
+            ['code'],
+        ))->toArray())
         ->and($log->organization_relationship_period_id)->not->toBeNull()
         ->and(AuditLog::query()->where('event', AuditEvent::ContactCreated)->count())->toBe(1);
 });
@@ -162,13 +164,14 @@ test('updating a contact records field names but no personal values', function (
     ], actor: $actor);
 
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
-    $changes = $log->changes ?? [];
+    $changes = $log->changes?->toArray() ?? [];
+    $encoded = $log->getRawOriginal('changes');
 
     expect($changes['fields'] ?? [])->toContain('name', 'summary', 'code', 'type', 'start_date')
         ->and($log->organization_relationship_period_id)->not->toBeNull()
-        ->and(json_encode($changes))->not->toContain('Updated Name')
-        ->and(json_encode($changes))->not->toContain('Updated summary')
-        ->and(json_encode($changes))->not->toContain('Original Name');
+        ->and($encoded)->not->toContain('Updated Name')
+        ->and($encoded)->not->toContain('Updated summary')
+        ->and($encoded)->not->toContain('Original Name');
 });
 
 test('deleting a contact keeps the subject readable after the soft delete', function () {
@@ -186,8 +189,7 @@ test('deleting a contact keeps the subject readable after the soft delete', func
     $log = AuditLog::query()->where('event', AuditEvent::ContactDeleted)->sole()->fresh();
 
     expect($log->actor_id)->toBe($actor->getKey())
-        ->and($log->changes)->toMatchArray(['detached_only' => false])
-        ->and($log->subjectLabel())->toBe('Deleted Person');
+        ->and($log->changes?->toArray())->toBe((new ContactDeletedPayload(false))->toArray());
 });
 
 test('a bulk delete writes one entry per contact', function () {

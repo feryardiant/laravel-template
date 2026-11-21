@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\SaveContactDetails;
+use App\Actions\Organizations\Audit\OrganizationUpdatedPayload;
 use App\Enums\AuditEvent;
 use App\Enums\ContactDetailType;
 use App\Enums\Role;
@@ -175,11 +176,8 @@ it('keeps the organization logo when removal fails', function () {
         ->get();
 
     expect($logs)->toHaveCount(2)
-        ->and($logs[0]->changes['fields'] ?? [])->toContain('logo_url')
-        ->and($logs[1]->changes)->toMatchArray([
-            'fields' => ['logo_url'],
-            'restored' => true,
-        ]);
+        ->and($logs[0]->changes?->toArray())->toBe((new OrganizationUpdatedPayload(['logo_url']))->toArray())
+        ->and($logs[1]->changes?->toArray())->toBe((new OrganizationUpdatedPayload(['logo_url'], true))->toArray());
 });
 
 it('renders the organization logo in the switcher', function () {
