@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
-use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesContacts;
@@ -31,12 +29,9 @@ class PersonPolicy
             return false;
         }
 
-        $membership = OrganizationRelationship::query()
-            ->forOrganization($organization)
-            ->whereStakeholder($person, OrganizationRelationshipType::Member)
-            ->first();
+        $membership = $person->membershipIn($organization);
 
-        if (! $membership instanceof OrganizationRelationship) {
+        if ($membership === null) {
             return false;
         }
 
@@ -49,7 +44,8 @@ class PersonPolicy
      */
     public function changeRole(User $user, Person $person, Organization $organization, Role $role): bool
     {
-        return ! $role->isOwner()
+        return $person->roleIn($organization) !== null
+            && ! $role->isOwner()
             && ! $person->is($user->person)
             && $this->manageMember($user, $person, $organization);
     }

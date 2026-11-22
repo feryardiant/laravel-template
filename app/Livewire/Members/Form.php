@@ -13,6 +13,7 @@ use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
+use App\Enums\RelationshipStatus;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
@@ -288,7 +289,8 @@ class Form extends Component
         abort_unless($actor instanceof User, 403);
 
         $role = Role::from((int) $validated['role']);
-        $currentRole = $this->person->roleIn($organization);
+        $membership = $this->person->membershipIn($organization);
+        $currentRole = $membership?->role;
 
         if ($role->value === $this->originalRole && $role !== $currentRole) {
             // The editor did not change the role; keep the value saved elsewhere.
@@ -296,6 +298,12 @@ class Form extends Component
         }
 
         if ($role !== $currentRole) {
+            if ($membership?->status !== RelationshipStatus::Active) {
+                $this->addError('role', __('The role of an inactive membership cannot be changed.'));
+
+                return;
+            }
+
             $this->authorize('changeRole', [$this->person, $organization, $role]);
         }
 
@@ -510,7 +518,9 @@ class Form extends Component
         $this->contactEmail = (string) $person->contactDetailValue(ContactDetailType::Email);
         $this->contactPhone = (string) $person->contactDetailValue(ContactDetailType::Phone);
         $this->gender = $person->gender?->value;
-        $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
+        $membership = $person->membershipIn($this->requireOrganization());
+        $storedRole = $membership?->role;
+        $this->role = ($storedRole ?? Role::Member)->value;
         $this->fillAddress($person->addresses()->first());
         $this->originalDetails = $this->contactDetailValues();
         $this->originalPhotoUrl = $this->photoUrl;
@@ -550,7 +560,9 @@ class Form extends Component
 
     private function rememberBaselines(Organization $organization): void
     {
-        $role = ($this->person?->roleIn($organization) ?? Role::Member)->value;
+        $membership = $this->person?->membershipIn($organization);
+        $storedRole = $membership?->role;
+        $role = ($storedRole ?? Role::Member)->value;
         $email = Str::lower((string) $this->person?->user?->email);
         $name = (string) $this->person?->name;
         $hasCredential = $this->person?->user_id !== null;

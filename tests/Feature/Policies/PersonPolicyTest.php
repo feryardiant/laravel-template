@@ -92,6 +92,8 @@ test('scheduled and expired memberships remain manageable', function () {
 
     expect(Gate::forUser($owner)->allows('manageMember', [$scheduled, $organization]))->toBeTrue()
         ->and(Gate::forUser($owner)->allows('removeMember', [$scheduled, $organization]))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('changeRole', [$scheduled, $organization, Role::Admin]))->toBeFalse()
         ->and(Gate::forUser($owner)->allows('manageMember', [$expired, $organization]))->toBeTrue()
-        ->and(Gate::forUser($owner)->allows('removeMember', [$expired, $organization]))->toBeTrue();
+        ->and(Gate::forUser($owner)->allows('removeMember', [$expired, $organization]))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('changeRole', [$expired, $organization, Role::Admin]))->toBeFalse();
 });

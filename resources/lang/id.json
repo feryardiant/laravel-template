@@ -408,6 +408,7 @@
     "All data owned by :name will be permanently deleted, including its members, contacts, addresses, and logo. All members will lose access.": "Semua data milik :name akan dihapus secara permanen, termasuk anggota, kontak, alamat, dan logonya. Semua anggota akan kehilangan akses.",
     "Type :name to confirm": "Ketik :name untuk mengonfirmasi",
     "The name does not match.": "Nama tidak cocok.",
+    "The role of an inactive membership cannot be changed.": "Peran keanggotaan yang tidak aktif tidak dapat diubah.",
     "Deleted": "Dihapus",
     "This organization has been deleted.": "Organisasi ini telah dihapus.",
     "You can still see your relationship history, but the organization no longer exists.": "Anda masih dapat melihat riwayat hubungan Anda, tetapi organisasi tersebut sudah tidak ada.",
