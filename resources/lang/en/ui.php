@@ -9,6 +9,7 @@ return [
     ],
 
     'select' => [
+        'loading' => 'Loading...',
         'no-results' => 'No results found',
         'selected' => ':count selected',
         'remove' => 'Remove selection :label',

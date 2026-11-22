@@ -65,6 +65,83 @@
         </p>
     </section>
 
+    <section data-ui-demo="select-create" class="flex flex-col gap-2">
+        <div wire:key="select-create-{{ count($projects) }}">
+            <x-ui.select
+                wire:model.live="projectId"
+                search-method="searchProjects"
+                label="Project"
+                placeholder="Choose project..."
+            >
+                @include('ui.partials.select-projects', ['projects' => $projects])
+
+                <x-ui.select.option.create min-length="2" wire:click="createProject">
+                    Create "<span x-text="query.trim()"></span>"
+                </x-ui.select.option.create>
+            </x-ui.select>
+        </div>
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Selected: <span data-ui-bound="project">{{ $projectId }}</span>
+            · Search: <span data-ui-bound="project-search">{{ $projectSearch }}</span>
+        </p>
+    </section>
+
+    <section data-ui-demo="select-create-pillbox" class="flex flex-col gap-2">
+        <div wire:key="select-create-pillbox-{{ count($tagOptions) }}">
+            <x-ui.select
+                wire:model.live="tags"
+                search-method="searchTags"
+                variant="pillbox"
+                label="Tags"
+                placeholder="Choose or create tags..."
+            >
+                @include('ui.partials.select-tags', ['tags' => $tagOptions])
+
+                <x-ui.select.option.create min-length="2" wire:click="createTag">
+                    Create "<span x-text="query.trim()"></span>"
+                </x-ui.select.option.create>
+            </x-ui.select>
+        </div>
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Bound value: <span data-ui-bound="tags">{{ implode(', ', $tags) }}</span>
+        </p>
+    </section>
+
+    <section data-ui-demo="select-create-modal" class="flex flex-col gap-2">
+        <div wire:key="select-create-modal-{{ count($projects) }}">
+            <x-ui.select
+                wire:model.live="modalProjectId"
+                search-method="searchProjects"
+                label="Project (modal create)"
+                placeholder="Choose project..."
+            >
+                @include('ui.partials.select-projects', ['projects' => $projects])
+
+                <x-ui.select.option.create min-length="2" wire:click="openCreateProject">Create new</x-ui.select.option.create>
+            </x-ui.select>
+        </div>
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Selected: <span data-ui-bound="modal-project">{{ $modalProjectId }}</span>
+        </p>
+
+        <x-modal wire:model.self="showCreateModal" title="Create new project">
+            <form wire:submit="createProjectFromModal" class="flex flex-col gap-6">
+                <flux:input wire:model="newProjectName" label="Name" placeholder="e.g. 'UX Research'" autofocus />
+
+                <div class="flex items-center justify-between">
+                    <flux:modal.close>
+                        <flux:button variant="subtle">Cancel</flux:button>
+                    </flux:modal.close>
+
+                    <flux:button type="submit" variant="primary">Create</flux:button>
+                </div>
+            </form>
+        </x-modal>
+    </section>
+
     <section data-ui-demo="select-disabled" class="flex flex-col gap-2">
         <x-ui.select label="Disabled" label:style="opacity: 1" placeholder="Unavailable" value="web" clearable disabled>
             <x-ui.select.option value="web">Web development</x-ui.select.option>

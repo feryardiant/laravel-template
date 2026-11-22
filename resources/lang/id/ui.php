@@ -9,6 +9,7 @@ return [
     ],
 
     'select' => [
+        'loading' => 'Memuat...',
         'no-results' => 'Tidak ada hasil',
         'selected' => ':count dipilih',
         'remove' => 'Hapus pilihan :label',

@@ -127,3 +127,19 @@ it('applies the class attribute to the control root', function () {
 
     expect((string) $view)->toMatch('/data-ui-select[^>]*sm:w-48/');
 });
+
+it('renders a create option with its minimum length', function () {
+    /** @var TestCase $this */
+    $view = $this->blade(<<<'BLADE'
+        <x-ui.select label="Projects">
+            <x-ui.select.option value="branding">Branding</x-ui.select.option>
+            <x-ui.select.option.create min-length="2">Create "<span x-text="query"></span>"</x-ui.select.option.create>
+        </x-ui.select>
+    BLADE);
+
+    preg_match('/<div[^>]*data-ui-create[^>]*>/', (string) $view, $row);
+
+    expect($row[0])->toContain('role="option"')
+        ->toContain('data-min-length="2"')
+        ->toContain('x-show="createVisible"');
+});

@@ -1,6 +1,4 @@
-@props([
-    'whenLoading' => null,
-])
+@props([])
 
 <div
     x-show="emptyVisible"

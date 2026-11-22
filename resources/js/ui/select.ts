@@ -10,9 +10,12 @@ export interface SelectConfig {
     multiple: boolean
     value: unknown
     model: string | null
+    searchModel: string | null
+    searchMethod: string | null
     live: boolean
     disabled: boolean
     empty: string
+    loading: string
     selectedSuffix: string
     triggerId: string
     anchorId: string
@@ -46,7 +49,11 @@ export interface Select {
     display: string
     disabled: boolean
     emptyText: string
+    loadingText: string
     emptyVisible: boolean
+    searchLoading: boolean
+    createVisible: boolean
+    createActive: boolean
     selectedSuffix: string
     typeahead: string
     init: () => void
@@ -57,7 +64,12 @@ export interface Select {
     syncSelection: () => void
     renderTrigger: () => void
     setActive: (index: number) => void
+    setCreateActive: (active: boolean) => void
     move: (delta: number) => void
+    create: () => void
+    syncSearch: () => void
+    scheduleSearch: () => void
+    applyOptionsHtml: (html: string) => void
     isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
@@ -90,6 +102,11 @@ export interface Select {
 export function selectData(config: SelectConfig, wire: WireLike | null): Select {
     let options: ListboxOption[] = []
     let visible: ListboxOption[] = []
+    const selectedMeta = new Map<string, { label: string; selectedLabel: string }>()
+    let createElement: HTMLElement | null = null
+    let createMinLength = 1
+    let searchTimer: ReturnType<typeof setTimeout> | null = null
+    let searchRequestId = 0
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
     let ready = false
@@ -116,7 +133,11 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         display: '',
         disabled: config.disabled,
         emptyText: config.empty,
+        loadingText: config.loading,
         emptyVisible: false,
+        createVisible: false,
+        createActive: false,
+        searchLoading: false,
         selectedSuffix: config.selectedSuffix,
         typeahead: '',
 
@@ -149,7 +170,16 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                     this.typeahead = ''
                     this.activeIndex = -1
                     this.activeId = ''
+                    searchRequestId++
+                    this.searchLoading = false
+
+                    if (searchTimer !== null) {
+                        clearTimeout(searchTimer)
+                        searchTimer = null
+                    }
+
                     this.renderTrigger()
+                    this.syncSearch()
                     this.dispatch('close')
                 },
             })
@@ -185,6 +215,11 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
 
         destroy() {
             unwatch?.()
+
+            if (searchTimer !== null) {
+                clearTimeout(searchTimer)
+            }
+
             popover?.destroy()
 
             if (form !== null && onReset !== null) {
@@ -218,13 +253,23 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         },
 
         scan() {
-            options = scanOptions(listbox())
+            const root = listbox()
+
+            options = scanOptions(root)
+            createElement = root?.querySelector<HTMLElement>('[data-ui-create]') ?? null
+            createMinLength = Math.max(1, Number.parseInt(createElement?.dataset.minLength ?? '1', 10) || 1)
+
             assignOptionIds(options, config.listboxId)
         },
 
         applyQuery() {
             visible = applyFilter(listbox(), options, this.query)
-            this.emptyVisible = visible.length === 0
+
+            const search = this.query.trim()
+
+            this.createVisible =
+                !this.disabled && createElement !== null && search.length >= createMinLength && visible.length === 0
+            this.emptyVisible = visible.length === 0 && !this.createVisible
 
             const index = visible.length === 0 ? -1 : Math.max(0, Math.min(this.activeIndex, visible.length - 1))
 
@@ -240,13 +285,22 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                 option.el.querySelector('[data-selected-indicator]')?.toggleAttribute('hidden', !selected)
             }
 
-            this.selectedOptions = options
-                .filter((option) => this.selectedValues.includes(option.value))
-                .map((option) => ({
-                    value: option.value,
-                    label: option.label,
-                    selectedLabel: option.selectedLabel,
-                }))
+            // Keep labels for selected values that a backend search filtered out.
+            this.selectedOptions = this.selectedValues.map((value) => {
+                const option = options.find((candidate) => candidate.value === value)
+
+                if (option !== undefined) {
+                    selectedMeta.set(value, { label: option.label, selectedLabel: option.selectedLabel })
+
+                    return { value, label: option.label, selectedLabel: option.selectedLabel }
+                }
+
+                return {
+                    value,
+                    label: selectedMeta.get(value)?.label ?? value,
+                    selectedLabel: selectedMeta.get(value)?.selectedLabel ?? value,
+                }
+            })
         },
 
         renderTrigger() {
@@ -272,12 +326,18 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         },
 
         setActive(index) {
+            this.createActive = false
+
             if (visible.length === 0) {
                 this.activeIndex = -1
                 this.activeId = ''
 
                 for (const option of options) {
                     option.el.removeAttribute('data-active')
+                }
+
+                if (this.createVisible) {
+                    this.setCreateActive(true)
                 }
 
                 return
@@ -319,7 +379,28 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             }
         },
 
+        setCreateActive(active) {
+            this.createActive = active && this.createVisible
+
+            if (this.createActive) {
+                this.activeIndex = -1
+                this.activeId = this.isPopoverOpen() ? (createElement?.id ?? '') : ''
+
+                return
+            }
+
+            if (visible.length === 0) {
+                this.activeId = ''
+            }
+        },
+
         move(delta) {
+            if (this.createVisible) {
+                this.setCreateActive(true)
+
+                return
+            }
+
             const enabled = visible.filter((option) => !option.disabled)
 
             if (enabled.length === 0) {
@@ -360,13 +441,25 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             const selectedIndex = visible.findIndex((option) => this.selectedValues.includes(option.value))
 
             this.setActive(selectedIndex >= 0 ? selectedIndex : 0)
+            this.scheduleSearch()
         },
 
         closePopover() {
             popover?.close()
             this.query = ''
             this.typeahead = ''
+            this.createVisible = false
+            this.createActive = false
+            searchRequestId++
+            this.searchLoading = false
+
+            if (searchTimer !== null) {
+                clearTimeout(searchTimer)
+                searchTimer = null
+            }
+
             this.renderTrigger()
+            this.syncSearch()
         },
 
         togglePopover() {
@@ -408,6 +501,8 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
 
             this.applyQuery()
             this.setActive(0)
+            this.syncSearch()
+            this.scheduleSearch()
         },
 
         onListboxKeydown(event) {
@@ -452,6 +547,13 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             }
 
             if (event.key === 'Home' || event.key === 'End') {
+                if (this.isPopoverOpen() && this.createVisible) {
+                    event.preventDefault()
+                    this.setCreateActive(true)
+
+                    return
+                }
+
                 const enabled = visible.filter((option) => !option.disabled)
 
                 if (this.isPopoverOpen() && enabled.length > 0) {
@@ -467,6 +569,8 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
 
                 if (!this.isPopoverOpen()) {
                     this.openPopover()
+                } else if (this.createActive && this.createVisible) {
+                    createElement?.click()
                 } else {
                     const active = visible[this.activeIndex]
 
@@ -515,6 +619,8 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             this.query = typeahead
             this.applyQuery()
             this.setActive(0)
+            this.syncSearch()
+            this.scheduleSearch()
         },
 
         selectFromEvent(event) {
@@ -611,6 +717,92 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             this.applyQuery()
         },
 
+        create() {
+            if (this.disabled || !this.createVisible) {
+                return
+            }
+
+            const value = this.query.trim()
+
+            if (value === '' || value.length < createMinLength) {
+                return
+            }
+
+            this.dispatch('create')
+        },
+
+        syncSearch() {
+            if (config.searchModel === null) {
+                return
+            }
+
+            writeModel(wire, config.searchModel, true, this.query.trim(), null)
+        },
+
+        scheduleSearch() {
+            if (config.searchMethod === null || this.disabled) {
+                return
+            }
+
+            if (searchTimer !== null) {
+                clearTimeout(searchTimer)
+            }
+
+            const request = ++searchRequestId
+            const method = config.searchMethod
+            const query = this.query.trim()
+
+            this.searchLoading = true
+            this.applyQuery()
+
+            searchTimer = setTimeout(() => {
+                searchTimer = null
+
+                if (wire?.call === undefined) {
+                    this.searchLoading = false
+                    this.applyQuery()
+
+                    return
+                }
+
+                wire.call(method, query)
+                    .then((response) => {
+                        if (request !== searchRequestId) {
+                            return
+                        }
+
+                        this.searchLoading = false
+                        this.applyOptionsHtml(typeof response === 'string' ? response : '')
+                    })
+                    .catch(() => {
+                        if (request !== searchRequestId) {
+                            return
+                        }
+
+                        this.searchLoading = false
+                        this.applyQuery()
+                    })
+            }, 200)
+        },
+
+        applyOptionsHtml(html) {
+            const root = listbox()
+
+            if (root === null) {
+                return
+            }
+
+            const createRow = root.querySelector('[data-ui-create]')
+
+            root.innerHTML = html
+
+            if (createRow !== null) {
+                root.append(createRow)
+            }
+
+            this.refresh()
+        },
+
         clear() {
             if (this.disabled) {
                 return
@@ -648,7 +840,9 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             const detail =
                 name === 'change'
                     ? { value: this.multiple ? [...this.selectedValues] : (this.selectedValues[0] ?? null) }
-                    : {}
+                    : name === 'create'
+                      ? { value: this.query.trim() }
+                      : {}
 
             element?.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }))
         },

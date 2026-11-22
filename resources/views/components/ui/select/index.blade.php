@@ -11,9 +11,12 @@
     'icon' => null,
     'clearable' => false,
     'empty' => null,
+    'loading' => null,
     'selectedSuffix' => null,
     'disabled' => false,
     'invalid' => null,
+    'searchModel' => null,
+    'searchMethod' => null,
 ])
 
 @php
@@ -31,6 +34,7 @@
     $anchorId = $variant === 'pillbox' ? 'ui-select-'.$key.'-anchor' : $triggerId;
 
     $empty ??= __('ui.select.no-results');
+    $loading ??= __('ui.select.loading');
     $selectedSuffix ??= __('ui.select.selected');
     $optionsClass = $attributes->get('options:class');
     $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder ?? __('ui.common.select');
@@ -43,9 +47,12 @@
         'multiple' => (bool) $multiple,
         'value' => $value,
         'model' => $model,
+        'searchModel' => $searchModel,
+        'searchMethod' => $searchMethod,
         'live' => $live,
         'disabled' => (bool) $disabled,
         'empty' => $empty,
+        'loading' => $loading,
         'selectedSuffix' => $selectedSuffix,
         'triggerId' => $triggerId,
         'anchorId' => $anchorId,
@@ -229,6 +236,14 @@
             </div>
 
             <x-ui.select.option.empty />
+
+            <div
+                x-show="searchLoading"
+                x-cloak
+                role="status"
+                class="px-3 py-2 text-sm text-zinc-500 select-text dark:text-zinc-400"
+                x-text="loadingText"
+            ></div>
         </x-ui.popover>
     </div>
 </flux:with-field>

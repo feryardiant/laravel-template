@@ -371,3 +371,104 @@ it('keeps pills compact and removes them from a pill click', function () {
             })()
             JS);
 });
+
+it('only offers creation when the query matches no options', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+    $empty = '[data-ui-demo=select-create] [role=status]';
+
+    $page->click($trigger)
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->keys($trigger, ['b', 'r', 'a', 'n', 'd'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 1")
+        ->assertScript("document.querySelector('[data-ui-bound=project-search]').textContent.trim() === 'brand'")
+        ->keys($trigger, ['Escape'])
+        ->click($trigger)
+        ->wait(0.8)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 3")
+        ->keys($trigger, ['z'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertScript("getComputedStyle(document.querySelector('{$empty}')).display !== 'none'")
+        ->keys($trigger, ['z'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->assertScript("getComputedStyle(document.querySelector('{$empty}')).display === 'none'")
+        ->assertScript("document.querySelector('[data-ui-bound=project-search]').textContent.trim() === 'zz'")
+        ->keys($trigger, ['Enter'])
+        ->wait(1)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create] [data-ui-option][data-value=zz]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=project]').textContent.trim() === 'zz'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('creates from the pillbox with the same event', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create-pillbox] [role=combobox]';
+    $create = '[data-ui-demo=select-create-pillbox] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['o', 'p', 's'])
+        ->wait(0.3)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->click($create)
+        ->wait(1)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=ops]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=tags]').textContent.includes('ops')")
+        ->assertNoJavaScriptErrors();
+});
+
+it('trims the displayed create label', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, [' ', ' ', 'z', 'z', ' ', ' '])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'flex'")
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).columnGap === 'normal'")
+        ->assertScript("document.querySelector('{$create}').textContent.trim() === 'Create \"zz\"'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('filters pillbox options on the server without dropping pills', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create-pillbox] [role=combobox]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['d', 'e', 'v'])
+        ->wait(0.8)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create-pillbox] [data-ui-option]').length === 1")
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=design]') !== null")
+        ->keys($trigger, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=development]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=tags]').textContent.includes('development')")
+        ->assertNoJavaScriptErrors();
+});
+
+it('creates a project from the modal flow', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create-modal] [role=combobox]';
+    $create = '[data-ui-demo=select-create-modal] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['o', 'p', 's'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->click($create)
+        ->wait(0.5)
+        ->assertScript("document.querySelector('dialog[open]') !== null")
+        ->assertScript("document.querySelector('dialog[open] input').value === 'ops'")
+        ->click('dialog[open] button[type=submit]')
+        ->wait(1)
+        ->assertScript("document.querySelector('dialog[open]') === null")
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-modal] [data-ui-option][data-value=ops]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=modal-project]').textContent.trim() === 'ops'")
+        ->assertNoJavaScriptErrors();
+});
