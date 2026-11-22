@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
+use App\Enums\RelationshipStatus;
 use App\Enums\Role;
 use Creasi\Nusa\Contracts\HasAddresses;
 use Creasi\Nusa\Models\Concerns\WithAddresses;
@@ -164,19 +165,26 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
-     * Get the person's role in the given organization.
+     * Get the person's membership row in the organization, active or not.
      */
-    public function roleIn(Organization $organization): ?Role
+    public function membershipIn(Organization $organization): ?OrganizationRelationship
     {
-        $today = now()->toDateString();
-
         return OrganizationRelationship::query()
             ->forOrganization($organization)
             ->whereStakeholder($this, OrganizationRelationshipType::Member)
-            ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
-            ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
-            ->first()
-            ?->role;
+            ->first();
+    }
+
+    /**
+     * Get the person's active role in the given organization.
+     */
+    public function roleIn(Organization $organization): ?Role
+    {
+        $membership = $this->membershipIn($organization);
+
+        return $membership?->status === RelationshipStatus::Active
+            ? $membership->role
+            : null;
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -27,9 +28,7 @@ class Subsidiaries extends Component
 
         abort_if($organization === null || ! $organization->isRootTenant(), 404);
 
-        $role = $this->currentRole();
-
-        abort_unless($role?->isOwner() || $role?->isAdmin(), 403);
+        $this->authorize('viewSubsidiaries', $organization);
     }
 
     /**
@@ -52,9 +51,12 @@ class Subsidiaries extends Component
     public function subsidiaries(): Collection
     {
         $organization = $this->currentOrganization();
-        $root = $organization?->isRootTenant() === true ? $organization : null;
 
-        return $root === null ? collect() : app(ListSubsidiaries::class)->handle($root);
+        abort_if($organization === null || ! $organization->isRootTenant(), 404);
+
+        $this->authorize('viewSubsidiaries', $organization);
+
+        return app(ListSubsidiaries::class)->handle($organization);
     }
 
     /**
@@ -63,7 +65,9 @@ class Subsidiaries extends Component
     #[Computed]
     public function canManage(): bool
     {
-        return $this->currentRole()?->isOwner() === true;
+        $organization = $this->currentOrganization();
+
+        return $organization !== null && Gate::allows('createSubsidiary', $organization);
     }
 
     #[On('organization-created')]

@@ -87,9 +87,8 @@ class Remove extends Component
         $organization = $user->organizations()->firstWhere('id', $organizationId);
 
         abort_if($organization === null, 404);
-        abort_if($organization->isRootTenant(), 403);
-        abort_unless($user->roleIn($organization)?->isOwner(), 403);
-        abort_unless($organization->activeOwnerCount() === 1, 403);
+
+        $this->authorize('deleteOwn', $organization);
 
         return $organization;
     }

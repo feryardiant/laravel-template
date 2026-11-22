@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Policies\Concerns;
 
-use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\CurrentOrganization;
 use App\Support\Feature\ContactDeletion;
 
 /**
@@ -20,68 +18,35 @@ use App\Support\Feature\ContactDeletion;
  */
 trait AuthorizesContacts
 {
-    public function viewAnyContact(User $user): bool
+    public function viewContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
-        return true;
+        return $this->isCounterparty($user, $entity, $organization);
     }
 
-    public function createContact(User $user): bool
-    {
-        return $this->managesContacts($user);
-    }
-
-    public function viewContact(User $user, Organization|Person $entity): bool
-    {
-        return $this->isCounterpartyOfCurrentOrganization($user, $entity);
-    }
-
-    public function updateContact(User $user, Organization|Person $entity): bool
+    public function updateContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
         return ! $entity->trashed()
-            && $this->managesContacts($user)
-            && $this->isCounterpartyOfCurrentOrganization($user, $entity);
+            && $this->isManager($user, $organization)
+            && $this->isCounterparty($user, $entity, $organization);
     }
 
-    public function deleteContact(User $user, Organization|Person $entity): bool
+    public function deleteContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
-        return ContactDeletion::enabled(app(CurrentOrganization::class)->get($user))
-            && $this->managesContacts($user)
-            && $this->isCounterpartyOfCurrentOrganization($user, $entity);
+        return ContactDeletion::enabled($organization)
+            && $this->isManager($user, $organization)
+            && $this->isCounterparty($user, $entity, $organization);
     }
 
-    public function deleteAnyContact(User $user): bool
+    protected function isCounterparty(User $user, Organization|Person $entity, Organization $organization): bool
     {
-        return ContactDeletion::enabled(app(CurrentOrganization::class)->get($user))
-            && $this->managesContacts($user);
-    }
-
-    protected function managesContacts(User $user): bool
-    {
-        $role = $this->currentRole($user);
-
-        return $role === Role::Owner || $role === Role::Admin;
-    }
-
-    protected function isCounterpartyOfCurrentOrganization(User $user, Organization|Person $entity): bool
-    {
-        $organization = app(CurrentOrganization::class)->get($user);
-
-        if ($organization === null || $user->roleIn($organization) === null) {
+        if ($this->memberRole($user, $organization) === null) {
             return false;
         }
 
         return OrganizationRelationship::query()
             ->forOrganization($organization)
             ->external()
-            ->where('stakeholder_type', $entity->getMorphClass())
-            ->where('stakeholder_id', $entity->getKey())
+            ->whereStakeholder($entity)
             ->exists();
-    }
-
-    protected function currentRole(User $user): ?Role
-    {
-        $organization = app(CurrentOrganization::class)->get($user);
-
-        return $organization === null ? null : $user->roleIn($organization);
     }
 }

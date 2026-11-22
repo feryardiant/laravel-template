@@ -267,3 +267,19 @@ test('a handled transfer cannot be accepted, declined, or canceled again', funct
 
     Notification::assertSentToTimes($owner, OwnershipTransferredNotification::class, 1);
 });
+
+test('a demoted owner cannot refresh pending approval details', function () {
+    Notification::fake();
+
+    $organization = Organization::factory()->create(['name' => 'Acme']);
+    $owner = actingAsMember($organization, Role::Owner);
+    $recipient = User::factory()->asMemberOf($organization, Role::Member)->create();
+
+    requestOwnershipTransferForTest($organization, 'Acme', $recipient->person);
+
+    $component = Livewire::test(TransferOwnership::class);
+
+    $organization->members()->updateExistingPivot($owner->person->getKey(), ['role' => Role::Admin]);
+
+    $component->call('$refresh')->assertForbidden();
+});

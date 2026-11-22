@@ -22,6 +22,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Pennant\FeatureManager;
 
@@ -48,15 +49,9 @@ final class DeleteOrganization implements ShouldQueue
             return;
         }
 
-        $root = Organization::query()->rootTenant()->first();
-
-        if ($root === null) {
-            return;
-        }
-
         $actor = $this->actorId === null ? null : User::query()->find($this->actorId);
 
-        if (! $this->authorize($actor, $organization, $root)) {
+        if (! $actor instanceof User || ! Gate::forUser($actor)->allows('delete', $organization)) {
             return;
         }
 
@@ -88,30 +83,8 @@ final class DeleteOrganization implements ShouldQueue
         }
 
         foreach ($notifications as [$name, $members]) {
-            Notification::send($members, new OrganizationDeletedNotification($name, $actor?->name));
+            Notification::send($members, new OrganizationDeletedNotification($name, $actor->name));
         }
-    }
-
-    /**
-     * Determine whether the actor may delete the organization.
-     */
-    private function authorize(?User $actor, Organization $organization, Organization $root): bool
-    {
-        if (! $actor instanceof User) {
-            return false;
-        }
-
-        if ($actor->roleIn($organization)?->isOwner() === true && $organization->activeOwnerCount() === 1) {
-            return true;
-        }
-
-        if ($actor->roleIn($root)?->isOwner() !== true) {
-            return false;
-        }
-
-        return app(ListSubsidiaries::class)
-            ->handle($root)
-            ->contains(fn (array $row): bool => $row['organization']->is($organization));
     }
 
     /**

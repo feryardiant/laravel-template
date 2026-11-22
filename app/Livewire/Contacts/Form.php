@@ -137,7 +137,7 @@ class Form extends Component
     #[On('create-contact')]
     public function openCreate(?string $role = null): void
     {
-        Gate::authorize('createContact', Organization::class);
+        Gate::authorize('createContact', $this->requireOrganization());
 
         $this->genderEnabled = ContactGender::enabled($this->currentOrganization());
 
@@ -190,7 +190,7 @@ class Form extends Component
 
         $contact = app(FindContact::class)->byId($organization, $contactId);
 
-        Gate::authorize('updateContact', $contact->stakeholder);
+        Gate::authorize('updateContact', [$contact->stakeholder, $organization]);
 
         $this->genderEnabled = ContactGender::enabled($organization);
 
@@ -281,9 +281,9 @@ class Form extends Component
 
         if ($this->contactId !== null) {
             abort_if($this->contact === null, 404);
-            Gate::authorize('updateContact', $this->contact->stakeholder);
+            Gate::authorize('updateContact', [$this->contact->stakeholder, $organization]);
         } else {
-            Gate::authorize('createContact', Organization::class);
+            Gate::authorize('createContact', $organization);
         }
 
         $sharedFieldsLocked = $this->sharedFieldsLocked;

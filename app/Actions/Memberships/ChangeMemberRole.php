@@ -19,6 +19,7 @@ use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 final class ChangeMemberRole
 {
@@ -64,7 +65,7 @@ final class ChangeMemberRole
 
             if ($currentRole === null
                 || $currentRole === $newRole
-                || ! $this->canAct($organization, $person, $actor, $newRole, $currentRole)) {
+                || ! $this->canAct($organization, $person, $actor, $newRole)) {
                 return false;
             }
 
@@ -96,23 +97,9 @@ final class ChangeMemberRole
         return $this->setRole($organization, $person, $newRole, $actor);
     }
 
-    private function canAct(Organization $organization, Person $person, User $actor, Role $newRole, Role $currentRole): bool
+    private function canAct(Organization $organization, Person $person, User $actor, Role $newRole): bool
     {
-        $actorRole = $actor->roleIn($organization);
-
-        if ($actorRole === null || (! $actorRole->isOwner() && ! $actorRole->isAdmin())) {
-            return false;
-        }
-
-        if ($person->user_id === $actor->getKey()) {
-            return false;
-        }
-
-        if ($currentRole->isOwner() && ! $actorRole->isOwner()) {
-            return false;
-        }
-
-        return ! $newRole->isOwner();
+        return Gate::forUser($actor)->allows('changeRole', [$person, $organization, $newRole]);
     }
 
     private function updateRole(

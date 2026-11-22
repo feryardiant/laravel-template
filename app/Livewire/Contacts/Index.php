@@ -8,7 +8,6 @@ use App\Actions\Contacts\DeleteContact;
 use App\Actions\Contacts\FindContact;
 use App\Actions\Contacts\ListContacts;
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -53,16 +52,18 @@ class Index extends Component
 
     public function createContact(): void
     {
-        Gate::authorize('createContact', Organization::class);
+        Gate::authorize('createContact', $this->requireOrganization());
 
         $this->dispatch('create-contact');
     }
 
     public function editContact(int $contactId): void
     {
-        $contact = app(FindContact::class)->byId($this->requireOrganization(), $contactId);
+        $organization = $this->requireOrganization();
 
-        Gate::authorize('updateContact', $contact->stakeholder);
+        $contact = app(FindContact::class)->byId($organization, $contactId);
+
+        Gate::authorize('updateContact', [$contact->stakeholder, $organization]);
 
         $this->dispatch('edit-contact', contactId: $contactId);
     }
@@ -76,7 +77,7 @@ class Index extends Component
 
     public function confirmDeleteSelected(): void
     {
-        Gate::authorize('deleteAnyContact', Organization::class);
+        Gate::authorize('deleteAnyContact', $this->requireOrganization());
 
         $this->showBatchDeleteModal = true;
     }
@@ -89,7 +90,7 @@ class Index extends Component
 
         $contact = app(FindContact::class)->byId($organization, $this->deletingContactId);
 
-        Gate::authorize('deleteContact', $contact->stakeholder);
+        Gate::authorize('deleteContact', [$contact->stakeholder, $organization]);
 
         try {
             $deleteContact->handle($organization, $contact->getKey(), actor: Auth::user());
@@ -116,7 +117,7 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        Gate::authorize('deleteAnyContact', Organization::class);
+        Gate::authorize('deleteAnyContact', $organization);
 
         $pageIds = $this->contacts->pluck('id')->all();
         $ids = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
@@ -193,13 +194,17 @@ class Index extends Component
     #[Computed]
     public function canManage(): bool
     {
-        return Gate::allows('createContact', Organization::class);
+        $organization = $this->currentOrganization();
+
+        return $organization !== null && Gate::allows('createContact', $organization);
     }
 
     #[Computed]
     public function canDeleteAny(): bool
     {
-        return Gate::allows('deleteAnyContact', Organization::class);
+        $organization = $this->currentOrganization();
+
+        return $organization !== null && Gate::allows('deleteAnyContact', $organization);
     }
 
     /**
@@ -219,8 +224,6 @@ class Index extends Component
 
     public function render(): View
     {
-        Gate::authorize('viewAnyContact', Organization::class);
-
         /** @disregard P1013 */
         return view('livewire.contacts.index', [
             'contacts' => $this->contacts,

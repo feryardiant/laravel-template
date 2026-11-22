@@ -6,7 +6,6 @@ namespace App\Livewire\Concerns;
 
 use App\Enums\Role;
 use App\Models\Organization;
-use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Auth;
@@ -14,26 +13,6 @@ use Livewire\Attributes\Computed;
 
 trait HasCurrentOrganization
 {
-    /**
-     * Whether the current user owns the organization.
-     */
-    #[Computed()]
-    public function isOwner(): bool
-    {
-        return $this->currentRole()?->isOwner() === true;
-    }
-
-    /**
-     * Whether the current user can manage the organization.
-     */
-    #[Computed()]
-    public function isManager(): bool
-    {
-        $role = $this->currentRole();
-
-        return $role?->isOwner() || $role?->isAdmin();
-    }
-
     #[Computed()]
     public function currentOrganization(): ?Organization
     {
@@ -81,27 +60,5 @@ trait HasCurrentOrganization
             : route('dashboard');
 
         $this->redirect($target, navigate: true);
-    }
-
-    private function authorizeOwner(): void
-    {
-        abort_unless($this->isOwner(), 403);
-    }
-
-    protected function authorizeManager(): void
-    {
-        abort_unless($this->isManager(), 403);
-    }
-
-    protected function authorizeRole(Role $role): void
-    {
-        abort_if($role->isOwner() && ! $this->currentRole()?->isOwner(), 403);
-    }
-
-    protected function authorizeTarget(Person $person): void
-    {
-        $targetRole = $person->roleIn($this->requireOrganization());
-
-        abort_if($targetRole?->isOwner() && ! $this->currentRole()?->isOwner(), 403);
     }
 }

@@ -75,6 +75,8 @@ class TransferOwnership extends Component
             return null;
         }
 
+        $this->authorize('transferOwnership', $organization);
+
         return ApprovalRequest::query()
             ->pending()
             ->where('organization_id', $organization->getKey())
@@ -92,7 +94,7 @@ class TransferOwnership extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeOwner();
+        $this->authorize('transferOwnership', $organization);
 
         $approval = $this->pendingApproval;
 
@@ -114,7 +116,11 @@ class TransferOwnership extends Component
      */
     public function confirmTransfer(): void
     {
-        $this->authorizeOwner();
+        $organization = $this->currentOrganization();
+
+        abort_if($organization === null, 404);
+
+        $this->authorize('transferOwnership', $organization);
 
         abort_if($this->pendingApproval !== null, 409);
 
@@ -132,7 +138,7 @@ class TransferOwnership extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeOwner();
+        $this->authorize('transferOwnership', $organization);
 
         $members = $this->members();
 

@@ -113,6 +113,23 @@ test('a read-only manager can save a role change while the member renames themse
         ->and($member->person->roleIn($organization))->toBe(Role::Admin);
 });
 
+test('an inactive member role cannot be changed', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $person = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $person, startDate: now()->addDay(), role: Role::Admin);
+
+    Livewire::test(Form::class, ['person' => $person])
+        ->assertSet('role', Role::Admin->value)
+        ->set('role', Role::Member->value)
+        ->call('update')
+        ->assertHasErrors('role');
+
+    expect($person->membershipIn($organization)?->role)->toBe(Role::Admin);
+});
+
 test('gender can only be set once for an org-owned member', function () {
     $organization = Organization::factory()->create();
 

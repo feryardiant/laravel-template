@@ -30,9 +30,7 @@ class RemoveOrganization extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeOwner();
-
-        abort_if($organization->isRootTenant(), 403);
+        $this->authorize('deleteOwn', $organization);
 
         $this->confirmation = '';
         $this->resetValidation();
@@ -48,9 +46,7 @@ class RemoveOrganization extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeOwner();
-
-        abort_if($organization->isRootTenant(), 403);
+        $this->authorize('deleteOwn', $organization);
 
         if ($this->confirmation !== $organization->name) {
             $this->addError('confirmation', __('The name does not match.'));

@@ -13,6 +13,7 @@ use App\Actions\Users\CreateUser;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
+use App\Enums\RelationshipStatus;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
@@ -122,8 +123,7 @@ class Form extends Component
     {
         $person = $this->member($personId);
 
-        $this->authorizeManager();
-        $this->authorizeTarget($person);
+        $this->authorize('manageMember', [$person, $this->requireOrganization()]);
         $this->genderEnabled = ContactGender::enabled($this->requireOrganization());
         $this->fillFrom($person);
 
@@ -136,7 +136,7 @@ class Form extends Component
     #[On('create-member')]
     public function openCreate(): void
     {
-        $this->authorizeManager();
+        $this->authorize('manageMembers', $this->requireOrganization());
 
         $this->reset('person', 'name', 'email', 'contactEmail', 'contactPhone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'originalName', 'hasCredential', 'createCredential', 'gender', 'photo', 'photoUrl');
 
@@ -155,7 +155,7 @@ class Form extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->authorizeManager();
+        $this->authorize('manageMembers', $organization);
 
         $this->email = Str::lower($this->email);
 
@@ -174,7 +174,6 @@ class Form extends Component
         ]);
 
         $role = Role::from((int) $validated['role']);
-        $this->authorizeRole($role);
 
         $hasCredential = $this->createCredential;
         $photoUrl = $this->photo instanceof UploadedFile
@@ -237,12 +236,10 @@ class Form extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->authorizeManager();
-
         abort_if($this->person === null, 404);
 
         $this->person = $this->member($this->person->getKey());
-        $this->authorizeTarget($this->person);
+        $this->authorize('manageMember', [$this->person, $organization]);
         $this->email = Str::lower($this->email);
 
         $canEditProfile = $this->canEditProfile;
@@ -292,19 +289,22 @@ class Form extends Component
         abort_unless($actor instanceof User, 403);
 
         $role = Role::from((int) $validated['role']);
-        $currentRole = $this->person->roleIn($organization);
+        $membership = $this->person->membershipIn($organization);
+        $currentRole = $membership?->role;
 
         if ($role->value === $this->originalRole && $role !== $currentRole) {
             // The editor did not change the role; keep the value saved elsewhere.
             $role = $currentRole ?? $role;
         }
 
-        $this->authorizeTarget($this->person);
-
         if ($role !== $currentRole) {
-            abort_if($this->person->user_id === $actor->getKey(), 403);
+            if ($membership?->status !== RelationshipStatus::Active) {
+                $this->addError('role', __('The role of an inactive membership cannot be changed.'));
 
-            $this->authorizeRole($role);
+                return;
+            }
+
+            $this->authorize('changeRole', [$this->person, $organization, $role]);
         }
 
         // Credentials are global: editing an email shared with other organizations would hand them the account.
@@ -518,7 +518,9 @@ class Form extends Component
         $this->contactEmail = (string) $person->contactDetailValue(ContactDetailType::Email);
         $this->contactPhone = (string) $person->contactDetailValue(ContactDetailType::Phone);
         $this->gender = $person->gender?->value;
-        $this->role = ($person->roleIn($this->requireOrganization()) ?? Role::Member)->value;
+        $membership = $person->membershipIn($this->requireOrganization());
+        $storedRole = $membership?->role;
+        $this->role = ($storedRole ?? Role::Member)->value;
         $this->fillAddress($person->addresses()->first());
         $this->originalDetails = $this->contactDetailValues();
         $this->originalPhotoUrl = $this->photoUrl;
@@ -558,7 +560,9 @@ class Form extends Component
 
     private function rememberBaselines(Organization $organization): void
     {
-        $role = ($this->person?->roleIn($organization) ?? Role::Member)->value;
+        $membership = $this->person?->membershipIn($organization);
+        $storedRole = $membership?->role;
+        $role = ($storedRole ?? Role::Member)->value;
         $email = Str::lower((string) $this->person?->user?->email);
         $name = (string) $this->person?->name;
         $hasCredential = $this->person?->user_id !== null;

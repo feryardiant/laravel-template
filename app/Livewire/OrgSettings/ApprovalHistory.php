@@ -22,7 +22,7 @@ class ApprovalHistory extends Component
     {
         abort_if($this->currentOrganization() === null, 404);
 
-        abort_unless($this->currentRole()?->isOwner(), 403);
+        $this->authorize('viewApprovals', $this->requireOrganization());
     }
 
     /**
@@ -33,6 +33,8 @@ class ApprovalHistory extends Component
     #[Computed]
     public function approvals(): Collection
     {
+        $this->authorize('viewApprovals', $this->requireOrganization());
+
         return ApprovalRequest::query()
             ->where('organization_id', $this->requireOrganization()->getKey())
             ->with(['requester', 'approver'])

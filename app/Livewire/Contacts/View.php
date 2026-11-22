@@ -27,9 +27,11 @@ class View extends Component
 
     public function mount(string $stakeholder): void
     {
-        $this->contact = app(FindContact::class)->byUuid($this->requireOrganization(), $stakeholder);
+        $organization = $this->requireOrganization();
 
-        Gate::authorize('viewContact', $this->contact->stakeholder);
+        $this->contact = app(FindContact::class)->byUuid($organization, $stakeholder);
+
+        Gate::authorize('viewContact', [$this->contact->stakeholder, $organization]);
     }
 
     /**
@@ -55,6 +57,12 @@ class View extends Component
         $stakeholder = $this->contact->stakeholder;
 
         abort_if($stakeholder === null, 404);
+
+        $organization = $this->requireOrganization();
+
+        abort_unless((int) $this->contact->organization_id === (int) $organization->getKey(), 404);
+
+        Gate::authorize('viewContact', [$stakeholder, $organization]);
 
         $contactPerson = $stakeholder instanceof Organization && ! $stakeholder->trashed()
             ? $stakeholder->primaryContact

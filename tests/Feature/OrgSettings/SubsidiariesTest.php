@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\CreateMember;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
@@ -238,4 +239,29 @@ test('a root admin cannot queue a removal', function () {
         ->assertForbidden();
 
     Queue::assertNothingPushed();
+});
+
+test('a demoted root owner cannot refresh the subsidiary list', function () {
+    /** @var TestCase $this */
+    $owner = actingAsMember($this->root, Role::Owner);
+
+    $component = Livewire::test(Subsidiaries::class);
+
+    $this->root->members()->updateExistingPivot($owner->person->getKey(), ['role' => Role::Member]);
+
+    $component->call('$refresh')->assertForbidden();
+});
+
+test('a switched non-root workspace cannot refresh the subsidiary list', function () {
+    /** @var TestCase $this */
+    $owner = actingAsMember($this->root, Role::Owner);
+
+    $tenant = Organization::factory()->create();
+    app(CreateMember::class)->attach($tenant, $owner->person, startDate: now(), role: Role::Admin);
+
+    $component = Livewire::test(Subsidiaries::class);
+
+    session([CurrentOrganization::SESSION_KEY => $tenant->getKey()]);
+
+    $component->call('$refresh')->assertNotFound();
 });

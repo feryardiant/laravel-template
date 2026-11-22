@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 use App\Enums\Role;
 use App\Models\Organization;
-use App\Models\User;
+use App\Models\Person;
+use App\Support\Feature\ContactDeletion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
@@ -15,8 +16,8 @@ test('owners and admins can manage contacts', function (Role $role) {
 
     actingAsMember($organization, $role);
 
-    expect(Gate::allows('createContact', Organization::class))->toBeTrue();
-    expect(Gate::allows('deleteAnyContact', Organization::class))->toBeTrue();
+    expect(Gate::allows('createContact', $organization))->toBeTrue()
+        ->and(Gate::allows('deleteAnyContact', $organization))->toBeTrue();
 })->with([Role::Owner, Role::Admin]);
 
 test('plain members cannot manage contacts', function () {
@@ -24,9 +25,23 @@ test('plain members cannot manage contacts', function () {
 
     actingAsMember($organization, Role::Member);
 
-    expect(Gate::allows('createContact', Organization::class))->toBeFalse();
-    expect(Gate::allows('deleteAnyContact', Organization::class))->toBeFalse();
+    expect(Gate::allows('createContact', $organization))->toBeFalse()
+        ->and(Gate::allows('deleteAnyContact', $organization))->toBeFalse();
 });
+
+test('contact entity abilities are identical for both stakeholder models', function (string $kind) {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $entity = $kind === 'organization'
+        ? contactOrganization($organization, ['name' => 'Managed'])
+        : contactIndividual($organization, ['name' => 'Managed']);
+
+    expect(Gate::allows('viewContact', [$entity, $organization]))->toBeTrue()
+        ->and(Gate::allows('updateContact', [$entity, $organization]))->toBeTrue()
+        ->and(Gate::allows('deleteContact', [$entity, $organization]))->toBeTrue();
+})->with(['organization', 'individual']);
 
 test('members can view their organization contacts', function () {
     $organization = Organization::factory()->create();
@@ -35,10 +50,9 @@ test('members can view their organization contacts', function () {
 
     $contact = contactIndividual($organization, ['name' => 'Viewable']);
 
-    expect(Gate::allows('viewAnyContact', Organization::class))->toBeTrue();
-    expect(Gate::allows('viewContact', $contact))->toBeTrue();
-    expect(Gate::allows('updateContact', $contact))->toBeFalse();
-    expect(Gate::allows('deleteContact', $contact))->toBeFalse();
+    expect(Gate::allows('viewContact', [$contact, $organization]))->toBeTrue()
+        ->and(Gate::allows('updateContact', [$contact, $organization]))->toBeFalse()
+        ->and(Gate::allows('deleteContact', [$contact, $organization]))->toBeFalse();
 });
 
 test('owners cannot manage contacts of another organization', function () {
@@ -48,17 +62,43 @@ test('owners cannot manage contacts of another organization', function () {
 
     $foreign = contactIndividual(Organization::factory()->create(), ['name' => 'Foreign']);
 
-    expect(Gate::allows('viewContact', $foreign))->toBeFalse();
-    expect(Gate::allows('updateContact', $foreign))->toBeFalse();
-    expect(Gate::allows('deleteContact', $foreign))->toBeFalse();
+    expect(Gate::allows('viewContact', [$foreign, $organization]))->toBeFalse()
+        ->and(Gate::allows('updateContact', [$foreign, $organization]))->toBeFalse()
+        ->and(Gate::allows('deleteContact', [$foreign, $organization]))->toBeFalse();
 });
 
-test('a user without an organization cannot manage contacts', function () {
-    $user = User::factory()->create();
+test('a non-counterparty is not a viewable contact', function () {
+    $organization = Organization::factory()->create();
 
-    test()->actingAs($user);
+    actingAsMember($organization, Role::Member);
 
-    expect(Gate::allows('viewAnyContact', Organization::class))->toBeTrue();
-    expect(Gate::allows('createContact', Organization::class))->toBeFalse();
-    expect(Gate::allows('deleteAnyContact', Organization::class))->toBeFalse();
+    $stranger = Person::factory()->create();
+
+    expect(Gate::allows('viewContact', [$stranger, $organization]))->toBeFalse();
+});
+
+test('a deleted organization contact stays viewable but not editable', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $contact = contactOrganization($organization);
+
+    $contact->delete();
+
+    expect(Gate::allows('viewContact', [$contact, $organization]))->toBeTrue()
+        ->and(Gate::allows('updateContact', [$contact, $organization]))->toBeFalse();
+});
+
+test('contact deletion follows the tenant feature flag', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $contact = contactIndividual($organization);
+
+    ContactDeletion::deactivate($organization);
+
+    expect(Gate::allows('deleteContact', [$contact, $organization]))->toBeFalse()
+        ->and(Gate::allows('deleteAnyContact', $organization))->toBeFalse();
 });

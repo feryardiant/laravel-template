@@ -18,6 +18,7 @@ use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -38,9 +39,8 @@ class Organizations extends Component
 
         $organization = Organization::query()->findOrFail($organizationId);
 
-        $role = $user->roleIn($organization);
+        $this->authorize('update', $organization);
 
-        abort_unless($role?->isOwner() || $role?->isAdmin(), 403);
         abort_unless(app(CurrentOrganization::class)->switch($user, $organization), 403);
 
         $this->redirect(route('org-settings.general'), navigate: true);
@@ -117,7 +117,7 @@ class Organizations extends Component
                 'organization' => $organization,
                 'role' => $role,
                 'isCurrent' => $current?->is($organization) === true,
-                'canManage' => $role?->isOwner() === true || $role?->isAdmin() === true,
+                'canManage' => Gate::allows('update', $organization),
                 'isLastOwner' => $role?->isOwner() === true && $organization->activeOwnerCount() === 1,
                 'isDefault' => $defaultId !== null && $defaultId === $organization->getKey(),
                 'parent' => $parent instanceof OrganizationRelationship ? $parent->organization : null,

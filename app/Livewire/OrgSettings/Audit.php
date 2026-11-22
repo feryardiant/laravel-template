@@ -41,7 +41,7 @@ class Audit extends Component
     {
         abort_if($this->currentOrganization() === null, 404);
 
-        $this->authorizeManager();
+        $this->authorize('viewAudit', $this->requireOrganization());
 
         $this->range = $this->defaultRange();
     }
@@ -96,7 +96,7 @@ class Audit extends Component
     #[Computed]
     public function logs(): LengthAwarePaginator
     {
-        $this->authorizeManager();
+        $this->authorize('viewAudit', $this->requireOrganization());
 
         $timezone = $this->userTimezone();
         $start = $this->range['start'] ?? null;

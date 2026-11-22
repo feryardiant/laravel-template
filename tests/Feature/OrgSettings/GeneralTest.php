@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\Contacts\SaveContactDetails;
+use App\Actions\Memberships\CreateMember;
 use App\Actions\Organizations\Audit\OrganizationUpdatedPayload;
+use App\Actions\Organizations\CreateOrganization;
 use App\Enums\AuditEvent;
 use App\Enums\ContactDetailType;
 use App\Enums\Role;
@@ -11,6 +13,7 @@ use App\Livewire\OrgSettings\General;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -299,4 +302,86 @@ it('updates the organization contact details', function () {
 
     expect($organization->fresh()->contactDetailValue(ContactDetailType::Email))->toBe('hello@acme.test')
         ->and($organization->fresh()->contactDetailValue(ContactDetailType::Phone))->toBe('0812 3456');
+});
+
+it('a demoted manager cannot refresh the organization settings form', function () {
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(General::class);
+
+    $organization->members()->updateExistingPivot($owner->person->getKey(), ['role' => Role::Member]);
+
+    $component->call('$refresh')->assertForbidden();
+});
+
+it('shows owner navigation entries in organization settings', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $response = get(route('org-settings.features'))->assertOk();
+
+    // The sidebar switcher and the nav item both link to General.
+    expect(substr_count($response->getContent(), route('org-settings.general')))->toBe(2);
+
+    $response
+        ->assertSeeHtml(route('org-settings.features'))
+        ->assertSeeHtml(route('org-settings.audit'))
+        ->assertSeeHtml(route('org-settings.approval-history'))
+        ->assertDontSeeHtml(route('org-settings.subsidiaries'));
+});
+
+it('hides owner-only navigation entries from admins', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $response = get(route('org-settings.features'))->assertOk();
+
+    // The sidebar switcher and the nav item both link to General.
+    expect(substr_count($response->getContent(), route('org-settings.general')))->toBe(2);
+
+    $response
+        ->assertSeeHtml(route('org-settings.features'))
+        ->assertSeeHtml(route('org-settings.audit'))
+        ->assertDontSeeHtml(route('org-settings.approval-history'))
+        ->assertDontSeeHtml(route('org-settings.subsidiaries'));
+});
+
+it('shows the subsidiaries navigation on the root tenant only', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+
+    actingAsMember($root, Role::Admin);
+
+    get(route('org-settings.features'))
+        ->assertOk()
+        ->assertSeeHtml(route('org-settings.subsidiaries'))
+        ->assertDontSeeHtml(route('org-settings.approval-history'));
+
+    $tenant = Organization::factory()->create();
+
+    actingAsMember($tenant, Role::Admin);
+
+    get(route('org-settings.features'))
+        ->assertOk()
+        ->assertDontSeeHtml(route('org-settings.subsidiaries'));
+});
+
+it('hides the danger zone from a root owner who only administers the organization', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $rootOwner = actingAsMember($root, Role::Owner);
+
+    $childOwner = User::factory()->asMemberOf($root, Role::Member)->create();
+    $child = app(CreateOrganization::class)->handle($childOwner, 'Child', $root);
+
+    app(CreateMember::class)->attach($child, $rootOwner->person, startDate: now(), role: Role::Admin);
+
+    test()->actingAs($rootOwner);
+    session([CurrentOrganization::SESSION_KEY => $child->getKey()]);
+
+    get(route('org-settings.general'))
+        ->assertOk()
+        ->assertDontSee(__('Danger Zone'))
+        ->assertDontSeeHtml('confirmRemove');
 });

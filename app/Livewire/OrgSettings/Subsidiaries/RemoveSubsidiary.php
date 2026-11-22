@@ -35,7 +35,7 @@ class RemoveSubsidiary extends Component
     #[On('remove-subsidiary')]
     public function confirmRemove(int $organizationId): void
     {
-        abort_unless($this->currentRole()?->isOwner(), 403);
+        $this->authorize('createSubsidiary', $this->requireOrganization());
 
         $rows = $this->subsidiaries();
         $index = $rows->search(
@@ -43,6 +43,8 @@ class RemoveSubsidiary extends Component
         );
 
         abort_if($index === false, 404);
+
+        $this->authorize('delete', $rows[$index]['organization']);
 
         $depth = $rows[$index]['depth'];
         $count = 1;
@@ -69,7 +71,9 @@ class RemoveSubsidiary extends Component
         /** @var User|null $user */
         $user = Auth::user();
 
-        abort_unless($user instanceof User && $this->currentRole()?->isOwner(), 403);
+        abort_unless($user instanceof User, 403);
+
+        $this->authorize('createSubsidiary', $this->requireOrganization());
 
         $rows = $this->subsidiaries();
         $organization = $rows->first(
@@ -77,6 +81,8 @@ class RemoveSubsidiary extends Component
         );
 
         abort_if($organization === null, 404);
+
+        $this->authorize('delete', $organization['organization']);
 
         dispatch(new DeleteOrganization($organization['organization'], $user->getKey()));
 

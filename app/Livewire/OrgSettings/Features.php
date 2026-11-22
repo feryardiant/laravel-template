@@ -49,7 +49,7 @@ class Features extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeManager();
+        $this->authorize('manageFeatures', $organization);
 
         $this->organizationId = $organization->getKey();
         $this->isRootTenant = $organization->isRootTenant();
@@ -70,7 +70,7 @@ class Features extends Component
         abort_if($organization === null || ! $organization->isRootTenant(), 404);
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
-        $this->authorizeManager();
+        $this->authorize('manageFeatures', $organization);
 
         if ($this->featureEnabled($organization, Registration::FEATURE) === $enabled) {
             return;
@@ -102,7 +102,7 @@ class Features extends Component
         abort_if($organization === null, 404);
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
-        $this->authorizeManager();
+        $this->authorize('manageFeatures', $organization);
 
         if ($this->featureEnabled($organization, ProfileSelfEdit::FEATURE) === $enabled) {
             return;
@@ -134,7 +134,7 @@ class Features extends Component
         abort_if($organization === null, 404);
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
-        $this->authorizeManager();
+        $this->authorize('manageFeatures', $organization);
 
         if ($this->featureEnabled($organization, ContactGender::FEATURE) === $enabled) {
             return;
@@ -166,7 +166,7 @@ class Features extends Component
         abort_if($organization === null, 404);
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
-        $this->authorizeManager();
+        $this->authorize('manageFeatures', $organization);
 
         if ($this->featureEnabled($organization, MemberDeletion::FEATURE) === $enabled) {
             return;
@@ -198,7 +198,7 @@ class Features extends Component
         abort_if($organization === null, 404);
         abort_if($organization->getKey() !== $this->organizationId, 409);
 
-        $this->authorizeManager();
+        $this->authorize('manageFeatures', $organization);
 
         if ($this->featureEnabled($organization, ContactDeletion::FEATURE) === $enabled) {
             return;
