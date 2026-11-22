@@ -134,25 +134,9 @@ for db in "$db_name" "$db_test"; do
     fi
 done
 
-# Dependencies: APFS clonefile is ~4s for vendor + node_modules, so clone when
-# the lockfiles match and only install when they do not.
-if [ ! -d vendor ]; then
-    if cmp -s "$main/composer.lock" composer.lock && cp -cR "$main/vendor" vendor 2>/dev/null; then
-        composer dump-autoload --no-scripts --no-interaction
-    else
-        rm -rf vendor
-        composer install --no-interaction
-    fi
-fi
-
-if [ ! -d node_modules ]; then
-    if cmp -s "$main/package-lock.json" package-lock.json && cp -cR "$main/node_modules" node_modules 2>/dev/null; then
-        :
-    else
-        rm -rf node_modules
-        npm install
-    fi
-fi
+# Both installs are idempotent and repair a previous run that was interrupted.
+composer install --no-interaction --no-progress
+npm install --no-audit --no-fund
 
 if ! grep -qE '^APP_KEY=base64:' .env; then
     php artisan key:generate --force
