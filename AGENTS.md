@@ -24,7 +24,8 @@ Laravel 13 / PHP 8.4: Blade + Livewire 4 + Flux UI 2 + Tailwind 4, Fortify auth,
 - Use npm: `package-lock.json` is committed (pnpm/yarn lockfiles are ignored). Versions come from `mise.toml` (PHP 8.4, Node 24).
 - Lint, format, and staged-file settings live in `vite.config.ts`; `npm run *` delegates to Vite+ (`vp`). Commitlint is configured in `package.json`; there are no ESLint/Prettier config files.
 - Pint enforces `declare(strict_types=1)`, `native_function_invocation`, and FQCN imports. Add strict types to new PHP files and let Pint fix the rest.
-- `php artisan db:seed` only seeds when `users` is empty. Locally/testing it creates `owner@example.com`, `admin@example.com`, `member1..3@example.com` (password `password`); `DemoSeeder` adds demo tenants only in `local`. Non-local seeding creates the `setup.initial_email` placeholder used by `/setup`.
+- `php artisan db:seed` only seeds when `users` is empty. Locally/testing it creates `owner`, `admin`, and `member1..3` (password `password`); `DemoSeeder` adds demo tenants only in `local`. Non-local seeding creates the `setup.initial_email` placeholder used by `/setup`.
+- Log in with the username (`handle`) `owner`, `admin`, or `member1..3`, never the email; `owner@example.com` and the rest are mail addresses only. Fortify's username field is `handle` (`config/fortify.php`), and browser sign-in fills that field (`tests/Browser/AuthTest.php`).
 
 ## Architecture
 
