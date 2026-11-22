@@ -12,8 +12,6 @@ return [
         'loading' => 'Loading...',
         'no-results' => 'No results found',
         'selected' => ':count selected',
-        'preview' => 'Preview file',
-        'preview-named' => 'Preview file: :name',
         'remove' => 'Remove selection :label',
         'clear' => 'Clear selection',
     ],
@@ -58,6 +56,8 @@ return [
     ],
 
     'file-upload' => [
+        'preview' => 'Preview file',
+        'preview-named' => 'Preview file: :name',
         'drop' => 'Drop files here or click to browse',
         'drop-inline' => 'Drop files or click to browse',
         'remove' => 'Remove file',

@@ -184,6 +184,12 @@ it('renders default-slot actions and marks clickable items', function () {
         ->not->toContain('cursor-pointer');
 });
 
+it('translates the named preview label', function () {
+    expect(__('ui.file-upload.preview-named', ['name' => 'photo.png']))
+        ->toContain('photo.png')
+        ->not->toBe('ui.file-upload.preview-named');
+});
+
 it('renders a keyboard accessible preview action in the default slot', function () {
     /** @var TestCase $this */
     $view = (string) $this->blade(<<<'BLADE'

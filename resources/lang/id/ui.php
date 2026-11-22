@@ -12,8 +12,6 @@ return [
         'loading' => 'Memuat...',
         'no-results' => 'Tidak ada hasil',
         'selected' => ':count dipilih',
-        'preview' => 'Pratinjau file',
-        'preview-named' => 'Pratinjau file: :name',
         'remove' => 'Hapus pilihan :label',
         'clear' => 'Kosongkan pilihan',
     ],
@@ -58,6 +56,8 @@ return [
     ],
 
     'file-upload' => [
+        'preview' => 'Pratinjau file',
+        'preview-named' => 'Pratinjau file: :name',
         'drop' => 'Seret file ke sini atau klik untuk memilih',
         'drop-inline' => 'Seret file atau klik untuk memilih',
         'remove' => 'Hapus file',

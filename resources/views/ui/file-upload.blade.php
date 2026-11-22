@@ -43,6 +43,7 @@
                         icon="x-mark"
                         size="xs"
                         variant="ghost"
+                        class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                         wire:click.stop="removePhoto({{ $index }})"
                         :aria-label="__('ui.file-upload.remove-named', ['name' => $photo->getClientOriginalName()])"
                     />
@@ -161,6 +162,7 @@
                         icon="x-mark"
                         size="xs"
                         variant="ghost"
+                        class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                         wire:click.stop="removeDocument({{ $index }})"
                         :aria-label="__('ui.file-upload.remove-named', ['name' => $document->getClientOriginalName()])"
                     />
