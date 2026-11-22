@@ -38,6 +38,25 @@ class FileUpload extends Component
      */
     public $customAvatar = null;
 
+    public bool $showPreview = false;
+
+    public ?string $previewUrl = null;
+
+    /**
+     * Open the preview modal for a temporary photo upload.
+     */
+    public function previewPhoto(int $index): void
+    {
+        $photo = $this->photos[$index] ?? null;
+
+        if ($photo === null || ! $photo->isPreviewable()) {
+            return;
+        }
+
+        $this->previewUrl = $photo->temporaryUrl();
+        $this->showPreview = true;
+    }
+
     /**
      * Remove a photo and reindex the remaining list.
      */

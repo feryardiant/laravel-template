@@ -371,7 +371,7 @@ it('keeps the dropzone and remove targets touch-friendly on mobile', function ()
         ->assertScript("document.querySelector('[data-ui-demo=file-upload-custom] [data-ui-dropzone]').getBoundingClientRect().height >= 44")
         ->assertScript(<<<'JS'
             (() => {
-                const remove = document.querySelector('[data-ui-demo=file-upload-remove] [data-ui-remove]');
+                const remove = document.querySelector('[data-ui-demo=file-upload-remove] [data-ui-test=remove]');
 
                 return remove !== null && remove.getBoundingClientRect().height >= 44;
             })()

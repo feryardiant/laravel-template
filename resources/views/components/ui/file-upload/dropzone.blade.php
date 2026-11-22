@@ -11,9 +11,12 @@
     $heading ??= $inline ? __('ui.file-upload.drop-inline') : __('ui.file-upload.drop');
     $textId = 'ui-file-upload-hint-'.Str::random(10);
     $accessibleLabel = $attributes->get('aria-label') ?? $heading;
+    $class = $attributes->get('class');
+    $rootAttributes = $attributes->except(['aria-label', 'class']);
 @endphp
 
 <div
+    {{ $rootAttributes }}
     data-ui-dropzone
     role="button"
     x-bind:tabindex="disabled ? '-1' : '0'"
@@ -35,6 +38,7 @@
         'rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50/50 data-dragging:border-accent data-dragging:bg-accent/5 dark:border-white/15 dark:bg-white/5 dark:data-dragging:border-accent' => ! $bare,
         'px-3 py-2' => ! $bare && $inline,
         'px-6 py-8' => ! $bare && ! $inline,
+        $class,
     ])
 >
     @if ($slot->isNotEmpty())

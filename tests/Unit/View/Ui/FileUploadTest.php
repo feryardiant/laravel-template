@@ -167,38 +167,31 @@ it('renders item metadata, images and the icon fallback', function () {
     expect(substr_count($html, 'data-flux-icon'))->toBe(1);
 });
 
-it('renders item actions only when the slot is provided', function () {
+it('renders default-slot actions and marks clickable items', function () {
     /** @var TestCase $this */
     $withActions = (string) $this->blade(<<<'BLADE'
-        <x-ui.file-upload.item heading="Report.pdf">
-            <x-slot:actions>
-                <button data-ui-custom-action>Remove</button>
-            </x-slot:actions>
+        <x-ui.file-upload.item heading="Report.pdf" wire:click="preview(0)">
+            <button data-ui-custom-action>Remove</button>
         </x-ui.file-upload.item>
     BLADE);
     $withoutActions = (string) $this->blade('<x-ui.file-upload.item heading="Report.pdf" />');
 
     expect($withActions)->toContain('data-ui-custom-action')
+        ->toContain('wire:click="preview(0)"')
+        ->toContain('cursor-pointer')
         ->toContain('shrink-0 items-center gap-1')
-        ->and($withoutActions)->not->toContain('shrink-0 items-center gap-1');
+        ->and($withoutActions)->not->toContain('shrink-0 items-center gap-1')
+        ->not->toContain('cursor-pointer');
 });
 
-it('renders a default remove button and merges its overrides', function () {
+it('forwards dropzone attributes without duplicating the label', function () {
     /** @var TestCase $this */
-    $default = (string) $this->blade('<x-ui.file-upload.item.remove />');
+    $view = (string) $this->blade('<x-ui.file-upload.dropzone class="max-w-sm" data-test="drop" aria-label="Attach" />');
 
-    expect($default)->toContain('data-ui-remove')
-        ->toContain('type="button"')
-        ->toContain('aria-label="'.__('ui.file-upload.remove').'"')
-        ->toContain('rounded-md')
-        ->not->toContain('rounded-full');
-
-    $custom = (string) $this->blade('<x-ui.file-upload.item.remove circle aria-label="Remove report.pdf" class="mt-2" wire:click="remove(0)" />');
-
-    expect($custom)->toContain('rounded-full')
-        ->toContain('aria-label="Remove report.pdf"')
-        ->toContain('wire:click="remove(0)"')
-        ->toContain('mt-2');
+    expect($view)->toContain('class="')
+        ->toContain('max-w-sm')
+        ->toContain('data-test="drop"')
+        ->and(substr_count($view, 'aria-label='))->toBe(1);
 });
 
 it('renders a placeholder or preview avatar with the matching remove action', function () {
@@ -208,14 +201,14 @@ it('renders a placeholder or preview avatar with the matching remove action', fu
     expect($placeholder)->toContain('data-ui-dropzone')
         ->toContain('rounded-full')
         ->not->toContain('<img')
-        ->not->toContain('data-ui-remove');
+        ->not->toContain('wire:click="clearAvatar"');
 
     $preview = (string) $this->blade('<x-ui.file-upload.avatar url="/storage/avatar.png" alt="Jane Doe" shape="rounded" remove="clearAvatar" aria-label="Change avatar" />');
 
     expect($preview)->toContain('src="/storage/avatar.png"')
         ->toContain('alt="Jane Doe"')
         ->toContain('rounded-xl')
-        ->toContain('data-ui-remove')
         ->toContain('wire:click="clearAvatar"')
+        ->toContain('aria-label="'.__('ui.file-upload.remove').'"')
         ->toContain('aria-label="Change avatar"');
 });
