@@ -65,3 +65,21 @@ it('refuses to remove when the tenant disables it', function () {
     expect(app(RemoveMember::class)->handle($organization, $member->person, $owner))->toBeFalse()
         ->and($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
 });
+
+it('keeps an owner membership outside its active window', function (array $dates) {
+    $organization = Organization::factory()->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+
+    $organization->members()->updateExistingPivot($owner->person->getKey(), $dates);
+
+    $removed = app(RemoveMember::class)->handleMany(
+        $organization,
+        new Collection([$owner->person]),
+    );
+
+    expect($removed)->toBeEmpty()
+        ->and($organization->members()->whereKey($owner->person->getKey())->exists())->toBeTrue();
+})->with([
+    'scheduled' => [['start_date' => now()->addDay()->toDateString(), 'finish_date' => null]],
+    'expired' => [['start_date' => now()->subDays(10)->toDateString(), 'finish_date' => now()->subDay()->toDateString()]],
+]);

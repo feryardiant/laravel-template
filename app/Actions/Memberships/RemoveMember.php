@@ -70,7 +70,7 @@ final class RemoveMember
                 ->whereKey($persons->modelKeys())
                 ->get()
                 ->reject(
-                    fn (Person $person): bool => $person->roleIn($organization)?->isOwner() === true,
+                    fn (Person $person): bool => $person->membershipIn($organization)?->role?->isOwner() === true,
                 );
 
             $periods = [];
