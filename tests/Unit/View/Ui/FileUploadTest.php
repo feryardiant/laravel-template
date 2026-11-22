@@ -184,6 +184,20 @@ it('renders default-slot actions and marks clickable items', function () {
         ->not->toContain('cursor-pointer');
 });
 
+it('renders a keyboard accessible preview action in the default slot', function () {
+    /** @var TestCase $this */
+    $view = (string) $this->blade(<<<'BLADE'
+        <x-ui.file-upload.item heading="photo.png" wire:click="preview(0)">
+            <flux:button data-ui-test="preview" aria-label="Preview photo.png">Preview</flux:button>
+        </x-ui.file-upload.item>
+    BLADE);
+
+    expect($view)->toContain('data-ui-test="preview"')
+        ->toContain('aria-label="Preview photo.png"')
+        ->toContain('<button')
+        ->toContain('wire:click="preview(0)"');
+});
+
 it('forwards dropzone attributes without duplicating the label', function () {
     /** @var TestCase $this */
     $view = (string) $this->blade('<x-ui.file-upload.dropzone class="max-w-sm" data-test="drop" aria-label="Attach" />');

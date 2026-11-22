@@ -389,18 +389,21 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
                 return
             }
 
-            void navigator.clipboard.writeText(this.query).catch(() => {})
+            navigator.clipboard
+                .writeText(this.query)
+                .then(() => {
+                    this.copied = true
 
-            this.copied = true
+                    if (copyResetTimer !== null) {
+                        clearTimeout(copyResetTimer)
+                    }
 
-            if (copyResetTimer !== null) {
-                clearTimeout(copyResetTimer)
-            }
-
-            copyResetTimer = setTimeout(() => {
-                this.copied = false
-                copyResetTimer = null
-            }, 2000)
+                    copyResetTimer = setTimeout(() => {
+                        this.copied = false
+                        copyResetTimer = null
+                    }, 2000)
+                })
+                .catch(() => {})
         },
 
         toggleReveal() {

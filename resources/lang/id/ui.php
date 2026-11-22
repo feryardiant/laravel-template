@@ -12,6 +12,8 @@ return [
         'loading' => 'Memuat...',
         'no-results' => 'Tidak ada hasil',
         'selected' => ':count dipilih',
+        'preview' => 'Pratinjau file',
+        'preview-named' => 'Pratinjau file: :name',
         'remove' => 'Hapus pilihan :label',
         'clear' => 'Kosongkan pilihan',
     ],

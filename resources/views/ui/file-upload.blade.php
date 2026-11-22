@@ -30,6 +30,16 @@
                     wire:click="previewPhoto({{ $index }})"
                 >
                     <flux:button
+                        icon="eye"
+                        size="xs"
+                        variant="ghost"
+                        data-ui-test="preview"
+                        class="[@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
+                        wire:click.stop="previewPhoto({{ $index }})"
+                        :aria-label="__('ui.file-upload.preview-named', ['name' => $photo->getClientOriginalName()])"
+                    />
+
+                    <flux:button
                         icon="x-mark"
                         size="xs"
                         variant="ghost"

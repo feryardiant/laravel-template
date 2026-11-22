@@ -89,7 +89,15 @@
         5 => 'pe-37',
         default => 'pe-44',
     };
-    $inputClasses = trim(($inputClass ?? '').' '.$trailingPadding);
+    $touchPadding = match ($trailingCount) {
+        0 => '',
+        1 => '[@media(hover:none)]:pe-12',
+        2 => '[@media(hover:none)]:pe-23',
+        3 => '[@media(hover:none)]:pe-37',
+        4 => '[@media(hover:none)]:pe-44',
+        default => '[@media(hover:none)]:pe-51',
+    };
+    $inputClasses = trim(($inputClass ?? '').' '.$trailingPadding.' '.$touchPadding);
 @endphp
 
 <flux:with-field
@@ -167,7 +175,7 @@
                             x-bind:aria-label="copied ? '{{ __('ui.autocomplete.copied') }}' : '{{ __('ui.autocomplete.copy') }}'"
                             x-bind:data-copied="copied ? 'true' : null"
                             aria-label="{{ __('ui.autocomplete.copy') }}"
-                            class="pointer-events-auto"
+                            class="pointer-events-auto [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                         >
                             <flux:icon name="clipboard-document" variant="micro" class="size-4" x-show="! copied" />
                             <flux:icon name="clipboard-document-check" variant="micro" class="size-4" x-show="copied" x-cloak />
@@ -184,7 +192,7 @@
                             x-bind:aria-label="revealed ? '{{ __('ui.autocomplete.hide-password') }}' : '{{ __('ui.autocomplete.show-password') }}'"
                             x-bind:data-revealed="revealed ? 'true' : null"
                             aria-label="{{ __('ui.autocomplete.show-password') }}"
-                            class="pointer-events-auto"
+                            class="pointer-events-auto [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
                         >
                             <flux:icon name="eye" variant="micro" class="size-4" x-show="! revealed" />
                             <flux:icon name="eye-slash" variant="micro" class="size-4" x-show="revealed" x-cloak />

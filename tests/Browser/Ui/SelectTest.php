@@ -472,3 +472,23 @@ it('creates a project from the modal flow', function () {
         ->assertScript("document.querySelector('[data-ui-bound=modal-project]').textContent.trim() === 'ops'")
         ->assertNoJavaScriptErrors();
 });
+
+it('hides the create row while a backend search is pending', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['z', 'z', 'z', 'z'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->keys($trigger, ['Escape'])
+        ->click($trigger)
+        ->keys($trigger, ['a', 'n', 'a'])
+        ->wait(0.1)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->wait(1)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 1")
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+});

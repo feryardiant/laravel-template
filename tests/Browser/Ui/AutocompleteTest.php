@@ -393,7 +393,18 @@ it('copies the query and marks the control as copied', function () {
     $page = visit('/ui/autocomplete')->on()->desktop();
     $button = '[data-ui-demo="autocomplete-copyable"] [data-ui-copy]';
 
-    $page->click($button)
+    $page->assertScript(<<<'JS'
+        (() => {
+            Object.defineProperty(navigator, 'clipboard', {
+                configurable: true,
+                value: { writeText: () => Promise.resolve() },
+            });
+
+            return true;
+        })()
+        JS)
+        ->click($button)
+        ->wait(0.3)
         ->assertScript("document.querySelector('{$button}').getAttribute('data-copied') === 'true'")
         ->assertNoJavaScriptErrors();
 });
@@ -409,5 +420,43 @@ it('toggles password visibility', function () {
         ->assertScript("document.querySelector('{$button}').getAttribute('data-revealed') === 'true'")
         ->click($button)
         ->assertScript("document.querySelector('{$trigger}').type === 'password'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the copy and reveal controls touch friendly', function () {
+    visit('/ui/autocomplete')
+        ->on()
+        ->mobile()
+        ->assertScript(<<<'JS'
+            (() => {
+                const size = (selector) => {
+                    const rect = document.querySelector(selector).getBoundingClientRect();
+
+                    return Math.round(rect.width) >= 44 && Math.round(rect.height) >= 44;
+                };
+
+                return size('[data-ui-demo=autocomplete-copyable] [data-ui-copy]') &&
+                    size('[data-ui-demo=autocomplete-viewable] [data-ui-viewable]');
+            })()
+            JS);
+});
+
+it('does not report a copied state when the clipboard rejects', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $button = '[data-ui-demo=autocomplete-copyable] [data-ui-copy]';
+
+    $page->assertScript(<<<'JS'
+        (() => {
+            Object.defineProperty(navigator, 'clipboard', {
+                configurable: true,
+                value: { writeText: () => Promise.reject(new Error('denied')) },
+            });
+
+            return true;
+        })()
+        JS)
+        ->click($button)
+        ->wait(0.3)
+        ->assertScript("document.querySelector('{$button}').getAttribute('data-copied') === null")
         ->assertNoJavaScriptErrors();
 });

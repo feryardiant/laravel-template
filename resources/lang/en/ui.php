@@ -12,6 +12,8 @@ return [
         'loading' => 'Loading...',
         'no-results' => 'No results found',
         'selected' => ':count selected',
+        'preview' => 'Preview file',
+        'preview-named' => 'Preview file: :name',
         'remove' => 'Remove selection :label',
         'clear' => 'Clear selection',
     ],

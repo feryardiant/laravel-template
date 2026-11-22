@@ -268,8 +268,12 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             const search = this.query.trim()
 
             this.createVisible =
-                !this.disabled && createElement !== null && search.length >= createMinLength && visible.length === 0
-            this.emptyVisible = visible.length === 0 && !this.createVisible
+                !this.disabled &&
+                !this.searchLoading &&
+                createElement !== null &&
+                search.length >= createMinLength &&
+                visible.length === 0
+            this.emptyVisible = visible.length === 0 && !this.createVisible && !this.searchLoading
 
             const index = visible.length === 0 ? -1 : Math.max(0, Math.min(this.activeIndex, visible.length - 1))
 

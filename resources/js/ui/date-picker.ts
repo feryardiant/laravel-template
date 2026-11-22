@@ -660,12 +660,6 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         applyTypedInputs(close = false) {
-            ;(globalThis as unknown as { __syncLog?: unknown[] }).__syncLog ??= []
-            ;(globalThis as unknown as { __syncLog: unknown[] }).__syncLog.push([
-                'apply',
-                this.typedStart,
-                this.typedEnd,
-            ])
             const rawStart = this.typedStart.trim()
             const start = rawStart === '' ? null : toDateKey(rawStart)
 
