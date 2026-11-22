@@ -66,6 +66,29 @@
         </x-ui.autocomplete>
     </section>
 
+    <section data-ui-demo="autocomplete-kbd" class="flex flex-col gap-2">
+        <x-ui.autocomplete label="Search orders" placeholder="Search orders..." icon="magnifying-glass" kbd="⌘K" clearable>
+            <x-ui.autocomplete.item>Order #1001</x-ui.autocomplete.item>
+            <x-ui.autocomplete.item>Order #1002</x-ui.autocomplete.item>
+        </x-ui.autocomplete>
+    </section>
+
+    <section data-ui-demo="autocomplete-copyable" class="flex flex-col gap-2">
+        <x-ui.autocomplete label="API key" value="FLUX-1234-5678-ABCD-EFGH" readonly copyable />
+    </section>
+
+    <section data-ui-demo="autocomplete-viewable" class="flex flex-col gap-2">
+        <x-ui.autocomplete label="Password" type="password" value="secret-password" viewable />
+    </section>
+
+    <section data-ui-demo="autocomplete-mask" class="flex flex-col gap-2">
+        <x-ui.autocomplete wire:model.live="masked" label="Expiry date" placeholder="MM/DD/YYYY" mask="99/99/9999" />
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Bound value: <span data-ui-bound="masked">{{ $masked }}</span>
+        </p>
+    </section>
+
     <section data-ui-demo="autocomplete-unlabeled" class="flex flex-col gap-2">
         <x-ui.autocomplete placeholder="Choose a state" clearable>
             <x-ui.autocomplete.item>California</x-ui.autocomplete.item>

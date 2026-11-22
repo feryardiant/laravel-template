@@ -19,6 +19,10 @@ return [
         'no-results' => 'No results found',
         'loading' => 'Loading...',
         'clear' => 'Clear input',
+        'copy' => 'Copy to clipboard',
+        'copied' => 'Copied',
+        'show-password' => 'Show password',
+        'hide-password' => 'Hide password',
     ],
 
     'date-picker' => [

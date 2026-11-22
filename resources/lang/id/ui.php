@@ -19,6 +19,10 @@ return [
         'no-results' => 'Tidak ada hasil',
         'loading' => 'Memuat...',
         'clear' => 'Kosongkan isian',
+        'copy' => 'Salin ke papan klip',
+        'copied' => 'Tersalin',
+        'show-password' => 'Tampilkan kata sandi',
+        'hide-password' => 'Sembunyikan kata sandi',
     ],
 
     'date-picker' => [

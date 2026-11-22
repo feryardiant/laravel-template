@@ -375,3 +375,39 @@ it('waits for a remote query before opening', function () {
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=autocomplete-remote] [data-ui-popover]').matches(':popover-open')");
 });
+
+it('formats a masked query and syncs the bound value', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $trigger = '[data-ui-demo="autocomplete-mask"] [role="combobox"]';
+
+    $page->type($trigger, '12345678')
+        ->wait(0.6)
+        ->assertScript("document.querySelector('{$trigger}').value === '12/34/5678'")
+        ->assertScript("document.querySelector('[data-ui-bound=masked]').textContent.trim() === '12/34/5678'")
+        ->assertNoJavaScriptErrors();
+
+    assertNoBackendErrors();
+});
+
+it('copies the query and marks the control as copied', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $button = '[data-ui-demo="autocomplete-copyable"] [data-ui-copy]';
+
+    $page->click($button)
+        ->assertScript("document.querySelector('{$button}').getAttribute('data-copied') === 'true'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('toggles password visibility', function () {
+    $page = visit('/ui/autocomplete')->on()->desktop();
+    $button = '[data-ui-demo="autocomplete-viewable"] [data-ui-viewable]';
+    $trigger = '[data-ui-demo="autocomplete-viewable"] [role=combobox]';
+
+    $page->assertScript("document.querySelector('{$trigger}').type === 'password'")
+        ->click($button)
+        ->assertScript("document.querySelector('{$trigger}').type === 'text'")
+        ->assertScript("document.querySelector('{$button}').getAttribute('data-revealed') === 'true'")
+        ->click($button)
+        ->assertScript("document.querySelector('{$trigger}').type === 'password'")
+        ->assertNoJavaScriptErrors();
+});
