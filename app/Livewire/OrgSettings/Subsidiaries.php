@@ -51,7 +51,12 @@ class Subsidiaries extends Component
     public function subsidiaries(): Collection
     {
         $organization = $this->currentOrganization();
-        $root = $organization?->isRootTenant() === true ? $organization : null;
+
+        abort_if($organization === null, 404);
+
+        $this->authorize('viewSubsidiaries', $organization);
+
+        $root = $organization->isRootTenant() ? $organization : null;
 
         return $root === null ? collect() : app(ListSubsidiaries::class)->handle($root);
     }

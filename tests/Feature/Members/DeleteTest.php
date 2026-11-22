@@ -240,3 +240,39 @@ test('the member view hides removal controls when the workspace disables it', fu
         ->assertDontSeeHtml('confirmDeleteSelected')
         ->assertDontSee(__('Select all members'));
 });
+
+test('a plain member cannot bulk remove even with an empty selection', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Member);
+
+    Livewire::test(Index::class)
+        ->set('selected', [])
+        ->call('deleteSelected')
+        ->assertForbidden();
+});
+
+test('bulk removal is blocked when the workspace disables it even with an empty selection', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    MemberDeletion::deactivate($organization);
+
+    Livewire::test(Index::class)
+        ->set('selected', [])
+        ->call('deleteSelected')
+        ->assertForbidden();
+});
+
+test('the removal action refuses when the workspace disables it', function () {
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    MemberDeletion::deactivate($organization);
+
+    app(RemoveMember::class)->handle($organization, $member->person, $owner);
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+});

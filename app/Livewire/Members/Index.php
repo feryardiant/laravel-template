@@ -274,6 +274,10 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
+        $this->authorize('manageMembers', $organization);
+
+        abort_unless(MemberDeletion::enabled($organization), 403);
+
         $actor = Auth::user();
 
         abort_unless($actor instanceof User, 403);

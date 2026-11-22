@@ -6,11 +6,13 @@ use App\Enums\ContactDetailType;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Livewire\Contacts\View as ContactView;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Support\Feature\ContactGender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 
 use function Pest\Laravel\get;
 
@@ -129,4 +131,16 @@ test('the contact view displays the email and phone', function () {
         ->assertOk()
         ->assertSee('detail@acme.test')
         ->assertSee('0812 999');
+});
+
+test('a removed member cannot refresh the contact view', function () {
+    $organization = Organization::factory()->create();
+    $member = actingAsMember($organization, Role::Member);
+    $contact = contactIndividual($organization);
+
+    $component = Livewire::test(ContactView::class, ['stakeholder' => $contact->uuid]);
+
+    $organization->members()->detach($member->person->getKey());
+
+    $component->call('$refresh')->assertForbidden();
 });

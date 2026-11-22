@@ -88,7 +88,7 @@ class Remove extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorize('delete', $organization);
+        $this->authorize('deleteOwn', $organization);
 
         return $organization;
     }

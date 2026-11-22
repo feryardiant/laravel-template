@@ -75,6 +75,8 @@ class TransferOwnership extends Component
             return null;
         }
 
+        $this->authorize('transferOwnership', $organization);
+
         return ApprovalRequest::query()
             ->pending()
             ->where('organization_id', $organization->getKey())

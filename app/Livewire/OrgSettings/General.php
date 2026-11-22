@@ -279,9 +279,15 @@ class General extends Component
 
     public function render(): View
     {
+        $organization = $this->currentOrganization();
+
+        abort_if($organization === null, 404);
+
+        $this->authorize('update', $organization);
+
         /** @disregard P1013 */
         return view('livewire.org-settings.general', [
-            'organization' => $this->currentOrganization(),
+            'organization' => $organization,
         ])->title(__('Organization settings'));
     }
 }

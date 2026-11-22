@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\CreateMember;
+use App\Actions\Organizations\CreateOrganization;
 use App\Enums\Role;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\OrgSettings\General\RemoveOrganization;
 use App\Models\Organization;
+use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -90,4 +93,29 @@ it('forbids removing the root organization', function () {
         ->assertForbidden();
 
     Queue::assertNothingPushed();
+});
+
+it('forbids a root owner who only administers the organization', function () {
+    Queue::fake();
+
+    $root = Organization::factory()->asRootTenant()->create();
+    $rootOwner = actingAsMember($root, Role::Owner);
+
+    $childOwner = User::factory()->asMemberOf($root, Role::Member)->create();
+    $child = app(CreateOrganization::class)->handle($childOwner, 'Child', $root);
+
+    app(CreateMember::class)->attach($child, $rootOwner->person, startDate: now(), role: Role::Admin);
+
+    test()->actingAs($rootOwner);
+    session([CurrentOrganization::SESSION_KEY => $child->getKey()]);
+
+    Livewire::test(RemoveOrganization::class)
+        ->call('confirmRemove')
+        ->assertForbidden();
+
+    Livewire::test(RemoveOrganization::class)
+        ->call('remove')
+        ->assertForbidden();
+
+    Queue::assertNotPushed(DeleteOrganization::class);
 });

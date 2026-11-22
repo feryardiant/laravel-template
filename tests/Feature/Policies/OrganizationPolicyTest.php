@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\CreateMember;
 use App\Actions\Organizations\CreateOrganization;
 use App\Enums\Role;
 use App\Models\Organization;
@@ -75,14 +76,16 @@ test('a sole owner may delete their organization', function () {
     $organization = Organization::factory()->create();
     $owner = actingAsMember($organization, Role::Owner);
 
-    expect(Gate::forUser($owner)->allows('delete', $organization))->toBeTrue();
+    expect(Gate::forUser($owner)->allows('delete', $organization))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('deleteOwn', $organization))->toBeTrue();
 });
 
 test('the root tenant is never deletable', function () {
     $root = Organization::factory()->asRootTenant()->create();
     $owner = actingAsMember($root, Role::Owner);
 
-    expect(Gate::forUser($owner)->allows('delete', $root))->toBeFalse();
+    expect(Gate::forUser($owner)->allows('delete', $root))->toBeFalse()
+        ->and(Gate::forUser($owner)->allows('deleteOwn', $root))->toBeFalse();
 });
 
 test('a root owner may delete a subsidiary in the tree', function () {
@@ -91,7 +94,21 @@ test('a root owner may delete a subsidiary in the tree', function () {
 
     $subsidiary = app(CreateOrganization::class)->handle($owner, 'Subsidiary', $root);
 
-    expect(Gate::forUser($owner)->allows('delete', $subsidiary))->toBeTrue();
+    expect(Gate::forUser($owner)->allows('delete', $subsidiary))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('deleteOwn', $subsidiary))->toBeTrue();
+});
+
+test('a root owner who only administers the organization may not delete it from its danger zone', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $rootOwner = actingAsMember($root, Role::Owner);
+
+    $childOwner = User::factory()->asMemberOf($root, Role::Member)->create();
+    $child = app(CreateOrganization::class)->handle($childOwner, 'Child', $root);
+
+    app(CreateMember::class)->attach($child, $rootOwner->person, startDate: now(), role: Role::Admin);
+
+    expect(Gate::forUser($rootOwner)->allows('delete', $child))->toBeTrue()
+        ->and(Gate::forUser($rootOwner)->allows('deleteOwn', $child))->toBeFalse();
 });
 
 test('a user outside the organization may not read or manage it', function () {

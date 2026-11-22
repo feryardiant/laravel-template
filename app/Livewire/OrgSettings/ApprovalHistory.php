@@ -33,6 +33,8 @@ class ApprovalHistory extends Component
     #[Computed]
     public function approvals(): Collection
     {
+        $this->authorize('viewApprovals', $this->requireOrganization());
+
         return ApprovalRequest::query()
             ->where('organization_id', $this->requireOrganization()->getKey())
             ->with(['requester', 'approver'])

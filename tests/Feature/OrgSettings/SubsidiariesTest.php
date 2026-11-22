@@ -239,3 +239,14 @@ test('a root admin cannot queue a removal', function () {
 
     Queue::assertNothingPushed();
 });
+
+test('a demoted root owner cannot refresh the subsidiary list', function () {
+    /** @var TestCase $this */
+    $owner = actingAsMember($this->root, Role::Owner);
+
+    $component = Livewire::test(Subsidiaries::class);
+
+    $this->root->members()->updateExistingPivot($owner->person->getKey(), ['role' => Role::Member]);
+
+    $component->call('$refresh')->assertForbidden();
+});

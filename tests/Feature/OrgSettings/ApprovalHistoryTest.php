@@ -162,3 +162,14 @@ test('an organization without requests shows the empty state', function () {
         ->assertOk()
         ->assertSee(__('No approval requests yet.'));
 });
+
+test('a demoted owner cannot refresh the approval history', function () {
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    $component = Livewire::test(ApprovalHistory::class);
+
+    $organization->members()->updateExistingPivot($owner->person->getKey(), ['role' => Role::Admin]);
+
+    $component->call('$refresh')->assertForbidden();
+});

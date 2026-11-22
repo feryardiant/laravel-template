@@ -53,8 +53,12 @@ final class RemoveMember
                 return new Collection;
             }
 
-            if ($actor !== null && ! Gate::forUser($actor)->allows('manageMembers', $organization)) {
-                return new Collection;
+            if ($actor !== null) {
+                foreach ($persons as $person) {
+                    if (! Gate::forUser($actor)->allows('removeMember', [$person, $organization])) {
+                        return new Collection;
+                    }
+                }
             }
 
             // Owners only leave through `LeaveOrganization` or an ownership

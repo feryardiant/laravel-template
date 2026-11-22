@@ -80,6 +80,20 @@ class OrganizationPolicy
     }
 
     /**
+     * Determine whether the user may delete their own organization.
+     *
+     * The organization must not be the root tenant and the actor must be its
+     * last owner. The queued job and the subsidiary screen use `delete`, which
+     * also allows a root owner to remove a subsidiary from the tree.
+     */
+    public function deleteOwn(User $user, Organization $organization): bool
+    {
+        return ! $organization->isRootTenant()
+            && $this->isOwner($user, $organization)
+            && $organization->activeOwnerCount() === 1;
+    }
+
+    /**
      * Determine whether the user may delete the organization.
      *
      * A sole owner may delete their organization; a root owner may also delete
@@ -87,12 +101,12 @@ class OrganizationPolicy
      */
     public function delete(User $user, Organization $organization): bool
     {
-        if ($organization->isRootTenant()) {
-            return false;
+        if ($this->deleteOwn($user, $organization)) {
+            return true;
         }
 
-        if ($this->isOwner($user, $organization) && $organization->activeOwnerCount() === 1) {
-            return true;
+        if ($organization->isRootTenant()) {
+            return false;
         }
 
         $root = Organization::query()->rootTenant()->first();
