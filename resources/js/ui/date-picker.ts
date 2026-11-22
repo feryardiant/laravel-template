@@ -370,6 +370,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                     onClose: () => {
                         this.draftStart = this.start
                         this.draftEnd = this.end
+                        this.syncTyped()
                         dispatch(this, 'close')
                     },
                 })
@@ -476,7 +477,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         },
 
         onTriggerKeydown(event) {
-            if (this.disabled) {
+            if (this.disabled || event.isComposing) {
                 return
             }
 
@@ -682,6 +683,12 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 }
             }
 
+            if (rawStart === '' && this.mode === 'single' && !this.withConfirmation && config.clearable) {
+                this.clear()
+
+                return
+            }
+
             this.draftStart = start
             this.draftEnd = this.mode === 'range' ? end : null
             this.syncCalendar()
@@ -695,6 +702,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
             if (this.mode === 'single' && !this.withConfirmation && this.canConfirm()) {
                 this.commit()
+                this.syncTyped()
             }
         },
 

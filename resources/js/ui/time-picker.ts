@@ -258,7 +258,10 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                     matchTriggerWidth: false,
                     scrollLock: true,
                     onOpen: () => {
-                        this.focusFirst()
+                        if (!config.withInputs) {
+                            this.focusFirst()
+                        }
+
                         dispatch(this, 'open')
                     },
                     onClose: () => {
@@ -303,6 +306,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }
 
             this.renderDisplay()
+            this.syncTypedTime()
         },
 
         isPopoverOpen() {
@@ -639,6 +643,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                     event.preventDefault()
                     this.openPopover()
+                    this.focusFirst()
                 }
 
                 return
@@ -736,11 +741,16 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
-            this.hour = hour
-            this.minute = minute
+            this.setDraft(time, true)
             this.build()
 
             if (this.multiple || this.range) {
+                if (!this.canAdd()) {
+                    this.syncTypedTime()
+
+                    return
+                }
+
                 this.add()
                 this.typedTime = ''
 

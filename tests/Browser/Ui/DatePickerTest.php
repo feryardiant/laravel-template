@@ -997,3 +997,16 @@ it('applies a typed date range from the masked inputs', function () {
             JS)
         ->assertNoJavaScriptErrors();
 });
+
+it('clears the model when the typed date input is emptied', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $input = '[data-ui-demo=date-picker-inputs] [data-ui-trigger]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->keys($input, ['Backspace'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=input-date]').textContent.trim() === ''")
+        ->assertNoJavaScriptErrors();
+});

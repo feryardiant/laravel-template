@@ -17,7 +17,7 @@
     </section>
 
     <section data-ui-demo="date-picker-inputs" class="max-w-sm flex flex-col gap-3">
-        <x-ui.date-picker wire:model.live="inputDate" label="Date with input" with-inputs />
+        <x-ui.date-picker wire:model.live="inputDate" label="Date with input" with-inputs clearable />
 
         <p class="text-sm text-zinc-500 dark:text-zinc-400">
             Bound value: <span data-ui-bound="input-date">{{ $inputDate }}</span>

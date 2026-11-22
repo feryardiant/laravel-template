@@ -12,7 +12,9 @@
     if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
         $heading ??= $file->getClientOriginalName();
         $size ??= $file->getSize();
-        $image ??= $file->isPreviewable() ? $file->temporaryUrl() : null;
+        $image ??= $file->isPreviewable() && str_starts_with((string) $file->getMimeType(), 'image/')
+            ? $file->temporaryUrl()
+            : null;
     }
 
     $formattedSize = $size === null ? null : \Illuminate\Support\Number::fileSize((int) $size, precision: 1);

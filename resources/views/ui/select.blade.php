@@ -75,7 +75,7 @@
             >
                 @include('ui.partials.select-projects', ['projects' => $projects])
 
-                <x-ui.select.option.create min-length="2" wire:click="createProject">
+                <x-ui.select.option.create min-length="2" wire:click="createProject(query)">
                     Create "<span x-text="query.trim()"></span>"
                 </x-ui.select.option.create>
             </x-ui.select>
@@ -98,7 +98,7 @@
             >
                 @include('ui.partials.select-tags', ['tags' => $tagOptions])
 
-                <x-ui.select.option.create min-length="2" wire:click="createTag">
+                <x-ui.select.option.create min-length="2" wire:click="createTag(query)">
                     Create "<span x-text="query.trim()"></span>"
                 </x-ui.select.option.create>
             </x-ui.select>
@@ -119,7 +119,7 @@
             >
                 @include('ui.partials.select-projects', ['projects' => $projects])
 
-                <x-ui.select.option.create min-length="2" wire:click="openCreateProject">Create new</x-ui.select.option.create>
+                <x-ui.select.option.create min-length="2" wire:click="openCreateProject(query)">Create new</x-ui.select.option.create>
             </x-ui.select>
         </div>
 

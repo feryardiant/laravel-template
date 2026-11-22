@@ -52,6 +52,7 @@ export interface Select {
     loadingText: string
     emptyVisible: boolean
     searchLoading: boolean
+    lastSearchQuery: string | null
     createVisible: boolean
     createActive: boolean
     selectedSuffix: string
@@ -138,6 +139,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         createVisible: false,
         createActive: false,
         searchLoading: false,
+        lastSearchQuery: null,
         selectedSuffix: config.selectedSuffix,
         typeahead: '',
 
@@ -266,10 +268,12 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             visible = applyFilter(listbox(), options, this.query)
 
             const search = this.query.trim()
+            const authoritative = config.searchMethod === null || this.lastSearchQuery === search
 
             this.createVisible =
                 !this.disabled &&
                 !this.searchLoading &&
+                authoritative &&
                 createElement !== null &&
                 search.length >= createMinLength &&
                 visible.length === 0
@@ -675,6 +679,8 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                 this.query = ''
                 this.typeahead = ''
                 this.applyQuery()
+                this.syncSearch()
+                this.scheduleSearch()
 
                 const index = visible.indexOf(option)
 
@@ -776,6 +782,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                         }
 
                         this.searchLoading = false
+                        this.lastSearchQuery = query
                         this.applyOptionsHtml(typeof response === 'string' ? response : '')
                     })
                     .catch(() => {

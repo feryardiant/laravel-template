@@ -109,11 +109,24 @@ class Select extends Component
             return null;
         }
 
-        $id = Str::slug($name) ?: 'project-'.\count($this->projects);
+        $needle = mb_strtolower($name);
 
-        if (! \in_array($id, array_column($this->projects, 'id'), true)) {
-            $this->projects[] = ['id' => $id, 'name' => $name];
+        foreach ($this->projects as $project) {
+            if (mb_strtolower($project['name']) === $needle) {
+                return $project['id'];
+            }
         }
+
+        $base = Str::slug($name) ?: 'project-'.\count($this->projects);
+        $id = $base;
+        $suffix = 2;
+
+        while (\in_array($id, array_column($this->projects, 'id'), true)) {
+            $id = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        $this->projects[] = ['id' => $id, 'name' => $name];
 
         return $id;
     }
@@ -121,9 +134,9 @@ class Select extends Component
     /**
      * Append a project created from the bound search query.
      */
-    public function createProject(): void
+    public function createProject(?string $name = null): void
     {
-        $id = $this->appendProject($this->projectSearch);
+        $id = $this->appendProject($name ?? $this->projectSearch);
 
         if ($id === null) {
             return;
@@ -136,9 +149,9 @@ class Select extends Component
     /**
      * Open the modal creation flow with the current search pre-filled.
      */
-    public function openCreateProject(): void
+    public function openCreateProject(?string $query = null): void
     {
-        $this->newProjectName = trim($this->projectSearch);
+        $this->newProjectName = trim($query ?? $this->projectSearch);
         $this->showCreateModal = true;
     }
 
@@ -162,17 +175,34 @@ class Select extends Component
     /**
      * Append a tag created from the pillbox's search query.
      */
-    public function createTag(): void
+    public function createTag(?string $name = null): void
     {
-        $name = trim($this->tagSearch);
+        $name = trim($name ?? $this->tagSearch);
 
         if ($name === '') {
             return;
         }
 
-        $id = Str::slug($name) ?: 'tag-'.\count($this->tagOptions);
+        $needle = mb_strtolower($name);
+        $id = null;
 
-        if (! \in_array($id, array_column($this->tagOptions, 'id'), true)) {
+        foreach ($this->tagOptions as $tag) {
+            if (mb_strtolower($tag['name']) === $needle) {
+                $id = $tag['id'];
+                break;
+            }
+        }
+
+        if ($id === null) {
+            $base = Str::slug($name) ?: 'tag-'.\count($this->tagOptions);
+            $id = $base;
+            $suffix = 2;
+
+            while (\in_array($id, array_column($this->tagOptions, 'id'), true)) {
+                $id = $base.'-'.$suffix;
+                $suffix++;
+            }
+
             $this->tagOptions[] = ['id' => $id, 'name' => $name];
         }
 

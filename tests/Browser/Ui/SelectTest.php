@@ -449,6 +449,8 @@ it('filters pillbox options on the server without dropping pills', function () {
         ->wait(0.8)
         ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=development]') !== null")
         ->assertScript("document.querySelector('[data-ui-bound=tags]').textContent.includes('development')")
+        ->wait(0.8)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create-pillbox] [data-ui-option]').length === 2")
         ->assertNoJavaScriptErrors();
 });
 
@@ -490,5 +492,21 @@ it('hides the create row while a backend search is pending', function () {
         ->wait(1)
         ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 1")
         ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('creates a distinct option when the slug would collide', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['B', 'r', 'a', 'n', 'd', 'i', 'n', 'g', '!'])
+        ->wait(1)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->keys($trigger, ['Enter'])
+        ->wait(1)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create] [data-ui-option][data-value=branding-2]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=project]').textContent.trim() === 'branding-2'")
         ->assertNoJavaScriptErrors();
 });

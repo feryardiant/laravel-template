@@ -1027,7 +1027,8 @@ it('applies a typed time from the masked input', function () {
     $input = '[data-ui-demo=time-picker-inputs] [data-ui-trigger]';
 
     $page->click($input)
-        ->wait(0.3)
+        ->wait(0.4)
+        ->assertScript("document.activeElement === document.querySelector('{$input}')")
         ->keys($input, ['1', '0', '4', '5'])
         ->keys($input, 'Enter')
         ->wait(0.8)

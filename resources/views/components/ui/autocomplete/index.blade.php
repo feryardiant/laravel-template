@@ -91,11 +91,11 @@
     };
     $touchPadding = match ($trailingCount) {
         0 => '',
-        1 => '[@media(hover:none)]:pe-12',
-        2 => '[@media(hover:none)]:pe-23',
-        3 => '[@media(hover:none)]:pe-37',
-        4 => '[@media(hover:none)]:pe-44',
-        default => '[@media(hover:none)]:pe-51',
+        1 => '[@media(hover:none)]:pe-14',
+        2 => '[@media(hover:none)]:pe-26',
+        3 => '[@media(hover:none)]:pe-38',
+        4 => '[@media(hover:none)]:pe-50',
+        default => '[@media(hover:none)]:pe-62',
     };
     $inputClasses = trim(($inputClass ?? '').' '.$trailingPadding.' '.$touchPadding);
 @endphp
@@ -137,7 +137,7 @@
                 :required="$required ?: null"
                 :autofocus="$autofocus ?: null"
                 class:input="{{ $inputClasses }}"
-                x-bind:value="query"
+                x-model="query"
                 x-on:input="onInput($event)"
                 x-on:focus="onFocus()"
                 x-on:keydown="onKeydown($event)"
