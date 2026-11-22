@@ -32,7 +32,7 @@ Zed creates linked worktrees under `../_.Worktrees/{project}/{name}/{project}` a
 
 - `.env`, `.env.testing`, and `boost.json` are copied once; `.agents/{plans,specs,skills}` are symlinked to the main checkout.
 - `.env` gets `APP_PORT`/`SERVER_PORT` (81xx), `DEV_PORT` (52xx), `APP_URL`, `SESSION_COOKIE`, and `DB_DATABASE`; `.env.testing` gets its own `DB_DATABASE`. `php artisan dev` serves on `APP_URL`.
-- The dev database is `<main DB>_<worktree>-dev` and tests use `<main DB>_<worktree>-test`, both created in the main compose `pgsql` service. They are migrated on setup (dev is seeded), so migrations and tests never touch the main or `testing` database.
+- The dev database is `wt_<worktree>-dev` and tests use `wt_<worktree>-test`, both created in the main compose `pgsql` service. They are migrated on setup (dev is seeded), so migrations and tests never touch the main or `testing` database.
 - `composer install` and `npm install` run on every setup (idempotent, so a re-run repairs an interrupted one), and assets are built, so `composer test` runs immediately.
 - Re-running `bash scripts/create-worktree.sh` with the Zed variables repairs an interrupted setup and keeps the assigned ports.
 
