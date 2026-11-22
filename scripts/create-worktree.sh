@@ -64,11 +64,6 @@ if [ ! -f .env.testing ]; then
 fi
 
 # Shared agent material, written back to the main checkout.
-mkdir -p .agents
-if [ ! -f .agents/.gitignore ] && [ -f "$main/.agents/.gitignore" ]; then
-    cp "$main/.agents/.gitignore" .agents/.gitignore
-fi
-
 for dir in plans skills specs; do
     if [ -d "$main/.agents/$dir" ] && [ ! -e ".agents/$dir" ]; then
         ln -s "$main/.agents/$dir" ".agents/$dir"
