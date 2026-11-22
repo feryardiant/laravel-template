@@ -86,6 +86,7 @@ function configureServer(appUrl: URL, devPort: number): UserConfig['server'] {
 
     if (Number(devPort) === devPort) {
         server.port = devPort
+        server.strictPort = true
     }
 
     if (appUrl.hostname !== 'localhost') {
