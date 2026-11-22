@@ -52,13 +52,11 @@ class Subsidiaries extends Component
     {
         $organization = $this->currentOrganization();
 
-        abort_if($organization === null, 404);
+        abort_if($organization === null || ! $organization->isRootTenant(), 404);
 
         $this->authorize('viewSubsidiaries', $organization);
 
-        $root = $organization->isRootTenant() ? $organization : null;
-
-        return $root === null ? collect() : app(ListSubsidiaries::class)->handle($root);
+        return app(ListSubsidiaries::class)->handle($organization);
     }
 
     /**
