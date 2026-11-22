@@ -694,6 +694,16 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 return
             }
 
+            if (
+                this.mode === 'single' &&
+                start === this.start &&
+                !(start === null && config.clearable && this.start !== null)
+            ) {
+                this.syncTyped()
+
+                return
+            }
+
             this.draftStart = start
             this.draftEnd = this.mode === 'range' ? end : null
             this.syncCalendar()

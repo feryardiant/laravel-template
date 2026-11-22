@@ -70,6 +70,7 @@ class Select extends Component
     public function searchProjects(string $search): string
     {
         $this->projectSearch = trim($search);
+
         $needle = mb_strtolower($this->projectSearch);
 
         $projects = array_values(array_filter(

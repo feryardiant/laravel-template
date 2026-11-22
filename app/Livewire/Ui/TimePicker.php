@@ -31,6 +31,11 @@ class TimePicker extends Component
     public ?string $inputTime = '10:15';
 
     /**
+     * @var array{start: ?string, end: ?string}
+     */
+    public array $inputTimeRange = ['start' => null, 'end' => null];
+
+    /**
      * Move the single-time demo to 15:30.
      */
     public function moveTime(): void

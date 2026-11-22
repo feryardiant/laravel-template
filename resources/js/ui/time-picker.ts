@@ -857,9 +857,10 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         /** Whether any selectable time exists after a candidate start. */
         hasEndAfter(start: string): boolean {
             const startMinutes = minutesOfDay(start) ?? 0
+            const step = config.withInputs ? 1 : interval
 
             for (let hour = 0; hour < 24; hour++) {
-                for (let minute = 0; minute < 60; minute += interval) {
+                for (let minute = 0; minute < 60; minute += step) {
                     if (hour * 60 + minute > startMinutes && !this.isDisabled(hour, minute)) {
                         return true
                     }

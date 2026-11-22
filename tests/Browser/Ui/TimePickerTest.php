@@ -1051,3 +1051,21 @@ it('keeps focus when tabbing into the typed time input and opens the columns wit
         ->assertScript("document.querySelector('{$input}').getAttribute('aria-expanded') === 'true'")
         ->assertNoJavaScriptErrors();
 });
+
+it('accepts a typed off-step range start when a valid end exists', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+    $input = '[data-ui-demo=time-picker-range-inputs] [data-ui-trigger]';
+    $bound = '[data-ui-bound=input-time-range]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->keys($input, ['2', '3', '4', '5'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('{$bound}').textContent.trim().startsWith('23:45')")
+        ->keys($input, ['2', '3', '5', '0'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('{$bound}').textContent.trim() === '23:45 / 23:50'")
+        ->assertNoJavaScriptErrors();
+});

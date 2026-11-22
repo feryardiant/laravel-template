@@ -511,27 +511,31 @@ it('creates a distinct option when the slug would collide', function () {
         ->assertNoJavaScriptErrors();
 });
 
-it('shows a retry state when a backend search fails', function () {
+it('moves focus to the retry action on Tab after a search failure', function () {
     $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
     $root = '[data-ui-demo=select-create] [data-ui-select]';
     $error = '[data-ui-demo=select-create] [data-ui-search-error]';
-    $create = '[data-ui-demo=select-create] [data-ui-create]';
+    $retry = '[data-ui-demo=select-create] [data-ui-retry]';
 
-    $page->click('[data-ui-demo=select-create] [role=combobox]')
-        ->wait(0.6)
+    $page->click($trigger)
+        ->wait(1.2)
         ->assertScript(<<<JS
-        (() => {
-            const data = window.Alpine.\$data(document.querySelector('{$root}'));
-            data.searchError = true;
-            data.lastSearchQuery = null;
-            data.applyQuery();
+            (() => {
+                const data = window.Alpine.\$data(document.querySelector('{$root}'));
+                data.searchError = true;
+                data.lastSearchQuery = null;
+                data.applyQuery();
 
-            return true;
-        })()
-        JS)
-        ->assertScript("getComputedStyle(document.querySelector('{$error}')).display !== 'none'")
-        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
-        ->click('[data-ui-demo=select-create] [data-ui-retry]')
+                return true;
+            })()
+            JS)
+        ->keys($trigger, ['Tab'])
+        ->wait(0.2)
+        ->assertScript("document.activeElement.hasAttribute('data-ui-retry')")
+        ->keys($retry, 'Enter')
+        ->wait(0.1)
+        ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
         ->wait(1)
         ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
         ->assertNoJavaScriptErrors();

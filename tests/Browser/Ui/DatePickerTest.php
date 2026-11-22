@@ -1023,3 +1023,24 @@ it('commits a typed date when an outside click closes the picker', function () {
         ->assertScript("document.querySelector('[data-ui-bound=input-date]').textContent.trim() === '2030-05-06'")
         ->assertNoJavaScriptErrors();
 });
+
+it('does not emit change when an unchanged typed date closes', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $root = '[data-ui-demo=date-picker-inputs] [data-ui-date-picker]';
+    $input = '[data-ui-demo=date-picker-inputs] [data-ui-trigger]';
+
+    $page->assertScript(<<<JS
+        (() => {
+            window.__dateChanges = 0;
+            document.querySelector('{$root}').addEventListener('change', () => window.__dateChanges++);
+
+            return true;
+        })()
+        JS)
+        ->click($input)
+        ->wait(0.3)
+        ->click('[data-ui-test=move-date]')
+        ->wait(0.5)
+        ->assertScript('window.__dateChanges === 0')
+        ->assertNoJavaScriptErrors();
+});

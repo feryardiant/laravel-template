@@ -600,6 +600,13 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             }
 
             if (event.key === 'Tab') {
+                if (this.searchError) {
+                    event.preventDefault()
+                    listbox()?.closest('[data-ui-popover]')?.querySelector<HTMLElement>('[data-ui-retry]')?.focus()
+
+                    return
+                }
+
                 this.closePopover()
 
                 return
@@ -770,6 +777,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             const request = ++searchRequestId
             const method = config.searchMethod
             const query = this.query.trim()
+            const hadFocus = document.activeElement === trigger()
 
             this.searchLoading = true
             this.searchError = false
@@ -805,6 +813,10 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                         this.searchError = true
                         this.lastSearchQuery = null
                         this.applyQuery()
+
+                        if (hadFocus) {
+                            trigger()?.focus()
+                        }
                     })
             }, 200)
         },
