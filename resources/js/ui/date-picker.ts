@@ -367,6 +367,11 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                         }
                         dispatch(this, 'open')
                     },
+                    onBeforeOutsideClose: () => {
+                        if (config.withInputs) {
+                            this.applyTypedInputs()
+                        }
+                    },
                     onClose: () => {
                         this.draftStart = this.start
                         this.draftEnd = this.end

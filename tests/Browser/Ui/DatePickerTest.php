@@ -1010,3 +1010,16 @@ it('clears the model when the typed date input is emptied', function () {
         ->assertScript("document.querySelector('[data-ui-bound=input-date]').textContent.trim() === ''")
         ->assertNoJavaScriptErrors();
 });
+
+it('commits a typed date when an outside click closes the picker', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $input = '[data-ui-demo=date-picker-inputs] [data-ui-trigger]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->keys($input, ['2', '0', '3', '0', '0', '5', '0', '6'])
+        ->click('[data-ui-test=move-date]')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=input-date]').textContent.trim() === '2030-05-06'")
+        ->assertNoJavaScriptErrors();
+});
