@@ -47,8 +47,9 @@ set_env() { # file key value
 
 db_base=$(env_value "$main/.env" DB_DATABASE laravel)
 db_user=$(env_value "$main/.env" DB_USERNAME laravel)
-db_name="${db_base}_${slug//-/_}"
-db_test="${db_name}_test"
+db_slug=${slug//-/_}
+db_name="${db_base}_${db_slug}-dev"
+db_test="${db_base}_${db_slug}-test"
 marker="# worktree: ${slug}"
 
 # Untracked files the worktree cannot get from git.
