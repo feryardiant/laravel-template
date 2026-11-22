@@ -962,3 +962,38 @@ it('shows full preset labels in a grid on mobile', function () {
             })()
             JS);
 });
+
+it('applies a typed date from the masked input', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $input = '[data-ui-demo=date-picker-inputs] [data-ui-trigger]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->keys($input, ['2', '0', '3', '0', '0', '5', '0', '6'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=input-date]').textContent.trim() === '2030-05-06'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('applies a typed date range from the masked inputs', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $start = '[data-ui-demo=date-picker-range-inputs] [data-ui-trigger]';
+    $end = '[data-ui-demo=date-picker-range-inputs] [data-ui-end-trigger]';
+
+    $page->click($start)
+        ->wait(0.3)
+        ->keys($start, ['2', '0', '3', '0', '0', '5', '0', '6'])
+        ->click($end)
+        ->keys($end, ['2', '0', '3', '0', '0', '5', '1', '0'])
+        ->keys($end, 'Enter')
+        ->wait(0.8)
+        ->assertScript(<<<'JS'
+            (() => {
+                const text = document.querySelector('[data-ui-bound=input-range]').textContent.trim();
+
+                return text === '2030-05-06 / 2030-05-10';
+            })()
+            JS)
+        ->assertNoJavaScriptErrors();
+});

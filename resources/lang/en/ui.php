@@ -35,6 +35,9 @@ return [
         'select' => 'Select',
         'select-range' => 'Select range',
         'presets' => 'Presets',
+        'input' => 'Date',
+        'input-start' => 'Start date',
+        'input-end' => 'End date',
         'preset' => [
             'today' => 'Today',
             'yesterday' => 'Yesterday',
@@ -86,6 +89,7 @@ return [
         'placeholder' => 'Pick a time',
         'placeholder-multiple' => 'Pick times',
         'placeholder-range' => 'Pick a time range',
+        'input' => 'Time',
         'add-start' => 'Add start',
         'add-end' => 'Add end',
     ],

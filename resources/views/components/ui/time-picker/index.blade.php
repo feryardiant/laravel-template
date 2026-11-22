@@ -13,6 +13,7 @@
     'max' => null,
     'unavailable' => null,
     'openTo' => null,
+    'withInputs' => false,
     'clearable' => false,
     'disabled' => false,
     'invalid' => null,
@@ -65,6 +66,7 @@
         'placeholderRange' => __('ui.time-picker.placeholder-range'),
         'addStart' => __('ui.time-picker.add-start'),
         'addEnd' => __('ui.time-picker.add-end'),
+        'input' => __('ui.time-picker.input'),
     ];
 
     $config = [
@@ -79,6 +81,7 @@
         'max' => $resolvedMax,
         'unavailable' => $unavailableRanges,
         'openTo' => $resolvedOpenTo,
+        'withInputs' => (bool) $withInputs,
         'placeholder' => $placeholder,
         'clearable' => (bool) $clearable,
         'disabled' => (bool) $disabled,
@@ -136,6 +139,31 @@
         @endif
 
         <div class="relative">
+            @if ($withInputs)
+                <flux:input
+                    id="{{ $triggerId }}"
+                    mask="99:99"
+                    x-model="typedTime"
+                    x-on:focus="$el.select()"
+                    icon="clock"
+                    placeholder="HH:MM"
+                    :size="$size"
+                    :invalid="$invalid"
+                    :disabled="$disabled"
+                    class:input="{{ $clearable ? 'pe-16' : 'pe-10' }} [@media(hover:none)]:min-h-11"
+                    x-on:click="$el.select(); onTriggerClick()"
+                    x-on:focus="onTriggerFocus()"
+                    x-on:change="applyTypedTime()"
+                    x-on:keydown="onTriggerKeydown($event)"
+                    aria-controls="{{ $popoverId }}"
+                    aria-haspopup="dialog"
+                    aria-label="{{ $accessibleLabel }}"
+                    aria-autocomplete="none"
+                    autocomplete="off"
+                    role="combobox"
+                    data-ui-trigger
+                />
+            @else
             <flux:input
                 id="{{ $triggerId }}"
                 readonly
@@ -157,6 +185,8 @@
                 role="combobox"
                 data-ui-trigger
             />
+
+            @endif
 
             <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1 text-zinc-400">
                 @if ($clearable)

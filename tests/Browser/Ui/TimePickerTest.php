@@ -1021,3 +1021,16 @@ it('has no serious accessibility issues with an open range popover', function (s
         ->assertNoAccessibilityIssues()
         ->assertNoJavaScriptErrors();
 })->with(['desktop', 'mobile']);
+
+it('applies a typed time from the masked input', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+    $input = '[data-ui-demo=time-picker-inputs] [data-ui-trigger]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->keys($input, ['1', '0', '4', '5'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=input-time]').textContent.trim() === '10:45'")
+        ->assertNoJavaScriptErrors();
+});

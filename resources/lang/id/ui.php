@@ -35,6 +35,9 @@ return [
         'select' => 'Pilih',
         'select-range' => 'Pilih rentang',
         'presets' => 'Pilihan cepat',
+        'input' => 'Tanggal',
+        'input-start' => 'Tanggal mulai',
+        'input-end' => 'Tanggal selesai',
         'preset' => [
             'today' => 'Hari ini',
             'yesterday' => 'Kemarin',
@@ -86,6 +89,7 @@ return [
         'placeholder' => 'Pilih waktu',
         'placeholder-multiple' => 'Pilih beberapa waktu',
         'placeholder-range' => 'Pilih rentang waktu',
+        'input' => 'Waktu',
         'add-start' => 'Tambah awal',
         'add-end' => 'Tambah akhir',
     ],

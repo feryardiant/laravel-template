@@ -28,6 +28,8 @@ class TimePicker extends Component
      */
     public array $times = ['09:00', '11:30'];
 
+    public ?string $inputTime = '10:15';
+
     /**
      * Move the single-time demo to 15:30.
      */

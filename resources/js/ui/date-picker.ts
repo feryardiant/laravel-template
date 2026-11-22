@@ -48,6 +48,8 @@ export interface DatePickerConfig {
     maxRange: number | null
     /** Require the footer even in single mode. */
     withConfirmation: boolean
+    /** The trigger is an editable masked input instead of a readonly field. */
+    withInputs: boolean
     withPresets: boolean
     presetKeys: string[]
     /** Optional server-provided civil date for presets. */
@@ -82,6 +84,8 @@ export interface DatePicker {
     end: string | null
     draftStart: string | null
     draftEnd: string | null
+    typedStart: string
+    typedEnd: string
     presets: DatePreset[]
     withConfirmation: boolean
     init: (el?: HTMLElement) => void
@@ -104,6 +108,8 @@ export interface DatePicker {
     presetActive: (key: string) => boolean
     canConfirm: () => boolean
     syncCalendar: () => void
+    syncTyped: () => void
+    applyTypedInputs: (close?: boolean) => void
     renderDisplay: () => void
     placeholderText: () => string
     focusFirst: () => void
@@ -309,6 +315,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
     }
 
     const locale = resolveLocale(config.locale)
+    let syncingCalendar = false
 
     return {
         mode: config.mode,
@@ -319,6 +326,8 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
         end: null,
         draftStart: null,
         draftEnd: null,
+        typedStart: '',
+        typedEnd: '',
         presets: [],
         withConfirmation: config.withConfirmation,
 
@@ -333,12 +342,14 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
             this.buildPresets()
             this.renderDisplay()
+            this.syncTyped()
 
             const trigger = document.getElementById(config.triggerId)
             const popoverTarget = popoverElement()
 
             if (trigger !== null && popoverTarget !== null) {
                 popover = createPopover(trigger, popoverTarget, {
+                    anchor: config.withInputs ? (trigger.closest('[data-ui-date-picker]') ?? trigger) : trigger,
                     focusTarget: trigger,
                     fullWidthOnTouch: true,
                     scrollLock: true,
@@ -349,7 +360,11 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                         this.draftStart = this.start
                         this.draftEnd = this.end
                         this.syncCalendar()
-                        this.focusFirst()
+                        this.syncTyped()
+
+                        if (!config.withInputs) {
+                            this.focusFirst()
+                        }
                         dispatch(this, 'open')
                     },
                     onClose: () => {
@@ -363,11 +378,13 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             unwatch = watchModel(wire, config.model, (value) => {
                 this.applyValue(value)
                 this.renderDisplay()
+                this.syncTyped()
 
                 if (this.isPopoverOpen()) {
                     this.draftStart = this.start
                     this.draftEnd = this.end
                     this.syncCalendar()
+                    this.syncTyped()
                 }
             })
         },
@@ -425,6 +442,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             }
 
             this.commit()
+            this.syncTyped()
             this.dispatch('clear')
             this.closePopover()
         },
@@ -462,6 +480,29 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 return
             }
 
+            if (config.withInputs) {
+                if (event.key === 'Enter') {
+                    event.preventDefault()
+                    this.applyTypedInputs(true)
+
+                    return
+                }
+
+                if (event.key === 'Escape' && this.isPopoverOpen()) {
+                    event.preventDefault()
+                    this.closePopover()
+
+                    return
+                }
+
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    this.openPopover()
+                }
+
+                return
+            }
+
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
                 this.openPopover()
@@ -479,6 +520,10 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             // Only the picker's committed event may reach outer listeners.
             event.stopPropagation()
 
+            if (syncingCalendar) {
+                return
+            }
+
             const detail = (event as CustomEvent<{ value?: unknown }>).detail
 
             if (detail === undefined || !('value' in detail)) {
@@ -490,12 +535,14 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
                 this.draftStart = bounds.start
                 this.draftEnd = bounds.end
+                this.syncTyped()
 
                 return
             }
 
             this.draftStart = toDateKey(detail.value)
             this.draftEnd = null
+            this.syncTyped()
 
             if (!this.withConfirmation) {
                 this.commit()
@@ -552,6 +599,7 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             this.draftStart = preset.start
             this.draftEnd = this.mode === 'range' ? preset.end : null
             this.syncCalendar()
+            this.syncTyped()
 
             if (!this.withConfirmation) {
                 this.commit()
@@ -604,6 +652,58 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
             )
         },
 
+        syncTyped() {
+            const open = this.isPopoverOpen()
+
+            this.typedStart = (open ? this.draftStart : this.start) ?? ''
+            this.typedEnd = (open ? this.draftEnd : this.end) ?? ''
+        },
+
+        applyTypedInputs(close = false) {
+            ;(globalThis as unknown as { __syncLog?: unknown[] }).__syncLog ??= []
+            ;(globalThis as unknown as { __syncLog: unknown[] }).__syncLog.push([
+                'apply',
+                this.typedStart,
+                this.typedEnd,
+            ])
+            const rawStart = this.typedStart.trim()
+            const start = rawStart === '' ? null : toDateKey(rawStart)
+
+            if (rawStart !== '' && start === null) {
+                this.syncTyped()
+
+                return
+            }
+
+            let end: string | null = null
+
+            if (this.mode === 'range') {
+                const rawEnd = this.typedEnd.trim()
+                end = rawEnd === '' ? null : toDateKey(rawEnd)
+
+                if (rawEnd !== '' && end === null) {
+                    this.syncTyped()
+
+                    return
+                }
+            }
+
+            this.draftStart = start
+            this.draftEnd = this.mode === 'range' ? end : null
+            this.syncCalendar()
+            this.syncTyped()
+
+            if (close && this.canConfirm()) {
+                this.confirm()
+
+                return
+            }
+
+            if (this.mode === 'single' && !this.withConfirmation && this.canConfirm()) {
+                this.commit()
+            }
+        },
+
         syncCalendar() {
             const calendar = popoverElement()?.querySelector<HTMLElement>('[data-ui-calendar]')
 
@@ -613,8 +713,12 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
 
             const data = globalThis.Alpine.$data(calendar) as CalendarHandle | undefined
 
+            syncingCalendar = true
             data?.refreshToday()
             data?.setValue(this.mode === 'range' ? { start: this.draftStart, end: this.draftEnd } : this.draftStart)
+            queueMicrotask(() => {
+                syncingCalendar = false
+            })
         },
 
         renderDisplay() {

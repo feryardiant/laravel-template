@@ -59,6 +59,7 @@ export interface TimePickerConfig {
     max: string | null
     unavailable: string[]
     openTo: string | null
+    withInputs: boolean
     placeholder: string | null
     clearable: boolean
     disabled: boolean
@@ -90,6 +91,7 @@ export interface TimePicker {
     display: string
     selected: string | null
     selectedValues: string[]
+    typedTime: string
     rangeStart: string | null
     rangeEnd: string | null
     hour: number | null
@@ -126,6 +128,8 @@ export interface TimePicker {
     addLabel: () => string
     canAddMore: () => boolean
     hasValue: () => boolean
+    syncTypedTime: () => void
+    applyTypedTime: (close?: boolean) => void
     activeHourId: () => string | null
     activeMinuteId: () => string | null
     activeSelectedId: () => string | null
@@ -218,6 +222,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
         display: '',
         selected: null,
         selectedValues: [],
+        typedTime: '',
         rangeStart: null,
         rangeEnd: null,
         hour: null,
@@ -322,6 +327,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
             this.setDraft(this.initialDraft(), !this.multiple && this.selected !== null)
             this.build()
+            this.syncTypedTime()
             popover?.open()
         },
 
@@ -340,6 +346,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             this.rangeEnd = null
             this.activeSelected = null
             this.minute = null
+            this.typedTime = ''
             this.commit()
             dispatch(this, 'clear')
             this.closePopover()
@@ -411,6 +418,7 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
 
             this.selected = time
             this.commit()
+            this.syncTypedTime()
             this.closePopover()
         },
 
@@ -613,6 +621,29 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
                 return
             }
 
+            if (config.withInputs) {
+                if (event.key === 'Enter') {
+                    event.preventDefault()
+                    this.applyTypedTime(true)
+
+                    return
+                }
+
+                if (event.key === 'Escape' && this.isPopoverOpen()) {
+                    event.preventDefault()
+                    this.closePopover()
+
+                    return
+                }
+
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    this.openPopover()
+                }
+
+                return
+            }
+
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
                 this.openPopover()
@@ -682,6 +713,47 @@ export function timePickerData(config: TimePickerConfig, wire: WireLike | null):
             }
 
             return this.multiple ? this.selectedValues.length > 0 : this.selected !== null
+        },
+
+        syncTypedTime() {
+            this.typedTime = this.selected ?? ''
+        },
+
+        applyTypedTime(close = false) {
+            const time = toTime(this.typedTime.trim())
+
+            if (time === null) {
+                this.syncTypedTime()
+
+                return
+            }
+
+            const [hour, minute] = time.split(':').map(Number)
+
+            if (this.isDisabled(hour, minute)) {
+                this.syncTypedTime()
+
+                return
+            }
+
+            this.hour = hour
+            this.minute = minute
+            this.build()
+
+            if (this.multiple || this.range) {
+                this.add()
+                this.typedTime = ''
+
+                return
+            }
+
+            this.selected = time
+            this.commit()
+            this.syncTypedTime()
+
+            if (close) {
+                this.closePopover()
+            }
         },
 
         activeHourId() {
