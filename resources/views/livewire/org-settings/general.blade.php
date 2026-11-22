@@ -32,10 +32,14 @@
             </div>
         </form>
 
-        @if ($this->isOwner)
+        @if (Gate::allows('transferOwnership', $organization) || Gate::allows('delete', $organization))
             <x-ui.section variant="danger" :title="__('Danger Zone')">
-                <livewire:org-settings.general.transfer-ownership />
-                <livewire:org-settings.general.remove-organization />
+                @can('transferOwnership', $organization)
+                    <livewire:org-settings.general.transfer-ownership />
+                @endcan
+                @can('delete', $organization)
+                    <livewire:org-settings.general.remove-organization />
+                @endcan
             </x-ui.section>
         @endif
     </x-org-settings.layout>

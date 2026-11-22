@@ -22,14 +22,14 @@ class ContactLookupController extends Controller
      */
     public function __invoke(Request $request, SearchContact $search): JsonResponse
     {
-        Gate::authorize('createContact', Organization::class);
-
         $user = $request->user();
         $organization = $user instanceof User ? app(CurrentOrganization::class)->get($user) : null;
 
         if (! $organization instanceof Organization) {
             return response()->json([]);
         }
+
+        Gate::authorize('createContact', $organization);
 
         $results = $search->handle($organization, trim((string) $request->query('q', '')))
             ->map(fn (Organization|Person $entity): array => [

@@ -22,7 +22,7 @@ class ApprovalHistory extends Component
     {
         abort_if($this->currentOrganization() === null, 404);
 
-        abort_unless($this->currentRole()?->isOwner(), 403);
+        $this->authorize('viewApprovals', $this->requireOrganization());
     }
 
     /**

@@ -37,7 +37,7 @@
             @endforelse
         </flux:menu.group>
 
-        @if ($role?->isOwner() || $role?->isAdmin())
+        @if ($current !== null && Gate::allows('update', $current))
             <flux:menu.item :href="route('org-settings.general')" icon="cog" wire:navigate>
                 {{ __('Organization settings') }}
             </flux:menu.item>

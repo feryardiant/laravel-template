@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -67,7 +68,7 @@ class Index extends Component
      */
     public function createMember(): void
     {
-        $this->authorizeManager();
+        $this->authorize('manageMembers', $this->requireOrganization());
 
         $this->dispatch('create-member');
     }
@@ -102,11 +103,9 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->authorizeManager();
-
         $person = $organization->members()->whereKey($personId)->firstOrFail();
 
-        $this->authorizeTarget($person);
+        $this->authorize('manageMember', [$person, $organization]);
 
         abort_if($person->user === null || $person->user->hasVerifiedEmail(), 422);
 
@@ -187,15 +186,9 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        abort_unless(MemberDeletion::enabled($organization), 403);
-
-        $this->authorizeManager();
-
         $person = $organization->members()->whereKey($personId)->firstOrFail();
 
-        abort_if($person->user_id === Auth::id(), 403);
-
-        $this->authorizeTarget($person);
+        $this->authorize('removeMember', [$person, $organization]);
 
         $actor = Auth::user();
 
@@ -281,10 +274,6 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        abort_unless(MemberDeletion::enabled($organization), 403);
-
-        $this->authorizeManager();
-
         $actor = Auth::user();
 
         abort_unless($actor instanceof User, 403);
@@ -295,9 +284,7 @@ class Index extends Component
         $persons = $organization->members()->whereKey($selected)->get();
 
         foreach ($persons as $person) {
-            abort_if($person->user_id === Auth::id(), 403);
-
-            $this->authorizeTarget($person);
+            $this->authorize('removeMember', [$person, $organization]);
         }
 
         $removed = false;
@@ -331,15 +318,15 @@ class Index extends Component
 
     public function render(): View
     {
-        $currentRole = $this->currentRole();
+        $organization = $this->currentOrganization();
 
         /** @disregard P1013 */
         return view('livewire.members.index', [
             'members' => $this->members,
-            'organization' => $this->currentOrganization(),
-            'currentRole' => $currentRole,
-            'canManage' => $currentRole?->isOwner() || $currentRole?->isAdmin(),
-            'canDeleteMembers' => MemberDeletion::enabled($this->currentOrganization()),
+            'organization' => $organization,
+            'currentRole' => $this->currentRole(),
+            'canManage' => $organization !== null && Gate::allows('manageMembers', $organization),
+            'canDeleteMembers' => MemberDeletion::enabled($organization),
         ])->title(__('Members'));
     }
 
@@ -373,15 +360,14 @@ class Index extends Component
      */
     private function selectablePageIds(): array
     {
-        $role = $this->currentRole();
+        $organization = $this->currentOrganization();
 
-        if (! $role?->isOwner() && ! $role?->isAdmin()) {
+        if ($organization === null) {
             return [];
         }
 
         return $this->members
-            ->filter(fn (Person $person): bool => $person->user_id !== Auth::id()
-                && (! $person->pivot->role?->isOwner() || $role->isOwner()))
+            ->filter(fn (Person $person): bool => Gate::allows('removeMember', [$person, $organization]))
             ->pluck('id')
             ->all();
     }

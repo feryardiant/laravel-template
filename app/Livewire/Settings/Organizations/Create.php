@@ -16,6 +16,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -56,13 +57,11 @@ class Create extends Component
     public function open(): void
     {
         if ($this->internal) {
-            $user = Auth::user();
             $root = Organization::query()->rootTenant()->first();
 
-            abort_unless(
-                $user instanceof User && $root !== null && $user->roleIn($root)?->isOwner(),
-                403,
-            );
+            abort_if($root === null, 404);
+
+            $this->authorize('createSubsidiary', $root);
         }
 
         $this->reset('name', 'parentId', 'logo', 'kind');
@@ -98,7 +97,8 @@ class Create extends Component
             $root = Organization::query()->rootTenant()->first();
 
             abort_if($root === null, 404);
-            abort_unless($user->roleIn($root)?->isOwner(), 403);
+
+            $this->authorize('createSubsidiary', $root);
 
             $parent ??= $root;
         }
@@ -166,7 +166,7 @@ class Create extends Component
         }
 
         return $user->organizations()
-            ->filter(fn (Organization $organization): bool => $user->roleIn($organization)?->isOwner() === true)
+            ->filter(fn (Organization $organization): bool => Gate::forUser($user)->allows('createSubsidiary', $organization))
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values();
     }

@@ -27,9 +27,11 @@ class View extends Component
 
     public function mount(string $stakeholder): void
     {
-        $this->contact = app(FindContact::class)->byUuid($this->requireOrganization(), $stakeholder);
+        $organization = $this->requireOrganization();
 
-        Gate::authorize('viewContact', $this->contact->stakeholder);
+        $this->contact = app(FindContact::class)->byUuid($organization, $stakeholder);
+
+        Gate::authorize('viewContact', [$this->contact->stakeholder, $organization]);
     }
 
     /**

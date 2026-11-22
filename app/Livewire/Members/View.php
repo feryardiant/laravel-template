@@ -16,6 +16,7 @@ use Flux\Flux;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -132,10 +133,9 @@ class View extends Component
         // mount() only runs once; a later request must not render a removed member.
         abort_unless($organization->members()->whereKey($this->person->getKey())->exists(), 404);
 
-        $currentRole = $this->currentRole();
         $role = $this->person->roleIn($organization);
-        $isOwner = $currentRole?->isOwner() ?? false;
-        $canManage = $currentRole?->isOwner() || $currentRole?->isAdmin();
+        $canManage = Gate::allows('manageMember', [$this->person, $organization])
+            && $this->person->user_id !== Auth::id();
 
         $joinedAt = $this->currentOrganization()
             ?->members()
@@ -150,9 +150,7 @@ class View extends Component
             'joinedAt' => $joinedAt,
             'contactEmail' => $this->person->contactDetailValue(ContactDetailType::Email),
             'contactPhone' => $this->person->contactDetailValue(ContactDetailType::Phone),
-            'canManage' => $canManage && $this->person->user_id !== Auth::id()
-                && (! $role?->isOwner() || $isOwner),
-            'isOwner' => $isOwner,
+            'canManage' => $canManage,
         ])->title(__('Member profile'));
     }
 }

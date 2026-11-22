@@ -23,6 +23,7 @@ use App\Notifications\OwnershipTransferDeclinedNotification;
 use App\Notifications\OwnershipTransferredNotification;
 use App\Notifications\OwnershipTransferRequestedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
 final class OwnershipTransfer
@@ -40,7 +41,7 @@ final class OwnershipTransfer
     {
         $owner = $actor->person;
 
-        if ($owner === null || ! $owner->roleIn($organization)?->isOwner()) {
+        if ($owner === null || ! Gate::forUser($actor)->allows('transferOwnership', $organization)) {
             throw new InvalidArgumentException('Only the owner can transfer ownership.');
         }
 

@@ -122,8 +122,7 @@ class Form extends Component
     {
         $person = $this->member($personId);
 
-        $this->authorizeManager();
-        $this->authorizeTarget($person);
+        $this->authorize('manageMember', [$person, $this->requireOrganization()]);
         $this->genderEnabled = ContactGender::enabled($this->requireOrganization());
         $this->fillFrom($person);
 
@@ -136,7 +135,7 @@ class Form extends Component
     #[On('create-member')]
     public function openCreate(): void
     {
-        $this->authorizeManager();
+        $this->authorize('manageMembers', $this->requireOrganization());
 
         $this->reset('person', 'name', 'email', 'contactEmail', 'contactPhone', 'originalDetails', 'originalPhotoUrl', 'originalAddress', 'originalRole', 'originalEmail', 'originalName', 'hasCredential', 'createCredential', 'gender', 'photo', 'photoUrl');
 
@@ -155,7 +154,7 @@ class Form extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->authorizeManager();
+        $this->authorize('manageMembers', $organization);
 
         $this->email = Str::lower($this->email);
 
@@ -174,7 +173,6 @@ class Form extends Component
         ]);
 
         $role = Role::from((int) $validated['role']);
-        $this->authorizeRole($role);
 
         $hasCredential = $this->createCredential;
         $photoUrl = $this->photo instanceof UploadedFile
@@ -237,12 +235,10 @@ class Form extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->authorizeManager();
-
         abort_if($this->person === null, 404);
 
         $this->person = $this->member($this->person->getKey());
-        $this->authorizeTarget($this->person);
+        $this->authorize('manageMember', [$this->person, $organization]);
         $this->email = Str::lower($this->email);
 
         $canEditProfile = $this->canEditProfile;
@@ -299,12 +295,8 @@ class Form extends Component
             $role = $currentRole ?? $role;
         }
 
-        $this->authorizeTarget($this->person);
-
         if ($role !== $currentRole) {
-            abort_if($this->person->user_id === $actor->getKey(), 403);
-
-            $this->authorizeRole($role);
+            $this->authorize('changeRole', [$this->person, $organization, $role]);
         }
 
         // Credentials are global: editing an email shared with other organizations would hand them the account.

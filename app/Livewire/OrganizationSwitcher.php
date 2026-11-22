@@ -28,7 +28,6 @@ class OrganizationSwitcher extends Component
         return view('livewire.organization-switcher', [
             'current' => $this->currentOrganization(),
             'organizations' => $user instanceof User ? $user->organizations() : collect(),
-            'role' => $this->currentRole(),
         ]);
     }
 }

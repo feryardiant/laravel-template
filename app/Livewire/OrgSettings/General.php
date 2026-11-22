@@ -79,7 +79,7 @@ class General extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeManager();
+        $this->authorize('update', $organization);
 
         $this->name = $organization->name;
         $this->summary = (string) $organization->summary;
@@ -137,7 +137,7 @@ class General extends Component
 
         abort_if($organization === null, 404);
 
-        $this->authorizeManager();
+        $this->authorize('update', $organization);
 
         $this->validate([
             'logo' => ['nullable', 'image', 'max:2048'],

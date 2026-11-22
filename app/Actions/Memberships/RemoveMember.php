@@ -17,6 +17,7 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 final class RemoveMember
 {
@@ -52,9 +53,7 @@ final class RemoveMember
                 return new Collection;
             }
 
-            $actorRole = $actor?->person?->roleIn($organization);
-
-            if ($actor !== null && ($actorRole?->isOwner() !== true && $actorRole?->isAdmin() !== true)) {
+            if ($actor !== null && ! Gate::forUser($actor)->allows('manageMembers', $organization)) {
                 return new Collection;
             }
 
