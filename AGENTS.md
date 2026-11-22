@@ -27,6 +27,18 @@ Laravel 13 / PHP 8.4: Blade + Livewire 4 + Flux UI 2 + Tailwind 4, Fortify auth,
 - `php artisan db:seed` only seeds when `users` is empty. Locally/testing it creates `owner`, `admin`, and `member1..3` (password `password`); `DemoSeeder` adds demo tenants only in `local`. Non-local seeding creates the `setup.initial_email` placeholder used by `/setup`.
 - Log in with the username (`handle`) `owner`, `admin`, or `member1..3`, never the email; `owner@example.com` and the rest are mail addresses only. Fortify's username field is `handle` (`config/fortify.php`), and browser sign-in fills that field (`tests/Browser/AuthTest.php`).
 
+## Worktrees
+
+Zed creates linked worktrees under `../_.Worktrees/{project}/{name}/{project}` and runs `scripts/create-worktree.sh` through the `create_worktree` hook in `.zed/tasks.json`. The script gives each worktree its own runtime identity so an agent can preview and test without touching the main checkout:
+
+- `.env`, `.env.testing`, and `boost.json` are copied once; `.agents/{plans,specs,skills}` are symlinked to the main checkout.
+- `.env` gets `APP_PORT`/`SERVER_PORT` (81xx), `DEV_PORT` (52xx), `APP_URL`, `SESSION_COOKIE`, and `DB_DATABASE`; `.env.testing` gets its own `DB_DATABASE`. `php artisan dev` serves on `APP_URL`.
+- The dev database is `wt_<worktree>-dev` and tests use `wt_<worktree>-test`, both created in the main compose `pgsql` service. They are migrated on setup (dev is seeded), so migrations and tests never touch the main or `testing` database.
+- `composer install` and `npm install` run on every setup (idempotent, so a re-run repairs an interrupted one), and assets are built, so `composer test` runs immediately.
+- Re-running `bash scripts/create-worktree.sh` with the Zed variables repairs an interrupted setup and keeps the assigned ports.
+
+Never run `docker compose` from a worktree: the project name is pinned, so it would reconfigure the main stack. The main stack must be running (`docker compose up -d pgsql mailpit rustfs`) because worktrees share it through `127.0.0.1`.
+
 ## Architecture
 
 - `routes/web.php` is the whole surface: `/setup`; `/` → `/dashboard`; `auth` + `verified` for dashboard, members, contacts, `org-settings/*`, and notifications; `auth` only for profile and stored uploads; preferences plus settings organizations/security also require `verified`, and the last two require `password.confirm`. `routes/ui` registers the component gallery only in `local`/`testing`.
