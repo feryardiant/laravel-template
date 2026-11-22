@@ -35,6 +35,8 @@
 
     $empty ??= __('ui.select.no-results');
     $loading ??= __('ui.select.loading');
+    $searchFailed ??= __('ui.select.search-failed');
+    $retry ??= __('ui.select.retry');
     $selectedSuffix ??= __('ui.select.selected');
     $optionsClass = $attributes->get('options:class');
     $accessibleLabel = $label ?? $attributes->get('aria-label') ?? $placeholder ?? __('ui.common.select');
@@ -53,6 +55,8 @@
         'disabled' => (bool) $disabled,
         'empty' => $empty,
         'loading' => $loading,
+        'searchFailed' => $searchFailed,
+        'retry' => $retry,
         'selectedSuffix' => $selectedSuffix,
         'triggerId' => $triggerId,
         'anchorId' => $anchorId,
@@ -244,6 +248,24 @@
                 class="px-3 py-2 text-sm text-zinc-500 select-text dark:text-zinc-400"
                 x-text="loadingText"
             ></div>
+
+            <div
+                x-show="searchError"
+                x-cloak
+                data-ui-search-error
+                role="status"
+                class="flex items-center justify-between gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400"
+            >
+                <span x-text="failedText"></span>
+
+                <button
+                    type="button"
+                    data-ui-retry
+                    x-on:click="scheduleSearch()"
+                    class="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 [@media(hover:none)]:min-h-11"
+                    x-text="retryText"
+                ></button>
+            </div>
         </x-ui.popover>
     </div>
 </flux:with-field>

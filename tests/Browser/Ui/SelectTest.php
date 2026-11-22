@@ -510,3 +510,29 @@ it('creates a distinct option when the slug would collide', function () {
         ->assertScript("document.querySelector('[data-ui-bound=project]').textContent.trim() === 'branding-2'")
         ->assertNoJavaScriptErrors();
 });
+
+it('shows a retry state when a backend search fails', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $root = '[data-ui-demo=select-create] [data-ui-select]';
+    $error = '[data-ui-demo=select-create] [data-ui-search-error]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click('[data-ui-demo=select-create] [role=combobox]')
+        ->wait(0.6)
+        ->assertScript(<<<JS
+        (() => {
+            const data = window.Alpine.\$data(document.querySelector('{$root}'));
+            data.searchError = true;
+            data.lastSearchQuery = null;
+            data.applyQuery();
+
+            return true;
+        })()
+        JS)
+        ->assertScript("getComputedStyle(document.querySelector('{$error}')).display !== 'none'")
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->click('[data-ui-demo=select-create] [data-ui-retry]')
+        ->wait(1)
+        ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+});

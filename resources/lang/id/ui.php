@@ -12,6 +12,8 @@ return [
         'loading' => 'Memuat...',
         'no-results' => 'Tidak ada hasil',
         'selected' => ':count dipilih',
+        'search-failed' => 'Pencarian gagal',
+        'retry' => 'Coba lagi',
         'remove' => 'Hapus pilihan :label',
         'clear' => 'Kosongkan pilihan',
     ],

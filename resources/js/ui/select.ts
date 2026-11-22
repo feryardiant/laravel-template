@@ -16,6 +16,8 @@ export interface SelectConfig {
     disabled: boolean
     empty: string
     loading: string
+    searchFailed: string
+    retry: string
     selectedSuffix: string
     triggerId: string
     anchorId: string
@@ -52,6 +54,9 @@ export interface Select {
     loadingText: string
     emptyVisible: boolean
     searchLoading: boolean
+    searchError: boolean
+    failedText: string
+    retryText: string
     lastSearchQuery: string | null
     createVisible: boolean
     createActive: boolean
@@ -139,6 +144,9 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
         createVisible: false,
         createActive: false,
         searchLoading: false,
+        searchError: false,
+        failedText: config.searchFailed,
+        retryText: config.retry,
         lastSearchQuery: null,
         selectedSuffix: config.selectedSuffix,
         typeahead: '',
@@ -273,11 +281,12 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             this.createVisible =
                 !this.disabled &&
                 !this.searchLoading &&
+                !this.searchError &&
                 authoritative &&
                 createElement !== null &&
                 search.length >= createMinLength &&
                 visible.length === 0
-            this.emptyVisible = visible.length === 0 && !this.createVisible && !this.searchLoading
+            this.emptyVisible = visible.length === 0 && !this.createVisible && !this.searchLoading && !this.searchError
 
             const index = visible.length === 0 ? -1 : Math.max(0, Math.min(this.activeIndex, visible.length - 1))
 
@@ -763,6 +772,8 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             const query = this.query.trim()
 
             this.searchLoading = true
+            this.searchError = false
+            this.lastSearchQuery = null
             this.applyQuery()
 
             searchTimer = setTimeout(() => {
@@ -791,6 +802,8 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
                         }
 
                         this.searchLoading = false
+                        this.searchError = true
+                        this.lastSearchQuery = null
                         this.applyQuery()
                     })
             }, 200)

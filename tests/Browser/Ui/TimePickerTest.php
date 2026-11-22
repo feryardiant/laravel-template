@@ -1035,3 +1035,19 @@ it('applies a typed time from the masked input', function () {
         ->assertScript("document.querySelector('[data-ui-bound=input-time]').textContent.trim() === '10:45'")
         ->assertNoJavaScriptErrors();
 });
+
+it('keeps focus when tabbing into the typed time input and opens the columns with arrows', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+    $button = '[data-ui-demo=time-picker-single] [data-ui-test=move-time]';
+    $input = '[data-ui-demo=time-picker-inputs] [data-ui-trigger]';
+
+    $page->click($button)
+        ->keys($button, ['Tab'])
+        ->wait(0.4)
+        ->assertScript("document.activeElement === document.querySelector('{$input}')")
+        ->keys($input, ['ArrowDown'])
+        ->wait(0.4)
+        ->assertScript("document.activeElement.hasAttribute('data-ui-hours')")
+        ->assertScript("document.querySelector('{$input}').getAttribute('aria-expanded') === 'true'")
+        ->assertNoJavaScriptErrors();
+});

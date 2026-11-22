@@ -12,6 +12,8 @@ return [
         'loading' => 'Loading...',
         'no-results' => 'No results found',
         'selected' => ':count selected',
+        'search-failed' => 'Search failed',
+        'retry' => 'Retry',
         'remove' => 'Remove selection :label',
         'clear' => 'Clear selection',
     ],
