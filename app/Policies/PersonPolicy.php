@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesContacts;
@@ -19,6 +21,8 @@ class PersonPolicy
     /**
      * Determine whether the user may manage the member in the organization.
      *
+     * Any existing membership row is manageable, including a scheduled or
+     * expired one, so managers can clean up the rows the list already shows.
      * Managers may act on members, and only an owner may act on another owner.
      */
     public function manageMember(User $user, Person $person, Organization $organization): bool
@@ -27,13 +31,17 @@ class PersonPolicy
             return false;
         }
 
-        $targetRole = $person->roleIn($organization);
+        $membership = OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->whereStakeholder($person, OrganizationRelationshipType::Member)
+            ->first();
 
-        if ($targetRole === null) {
+        if (! $membership instanceof OrganizationRelationship) {
             return false;
         }
 
-        return ! $targetRole->isOwner() || $this->isOwner($user, $organization);
+        return $membership->role?->isOwner() !== true
+            || $this->isOwner($user, $organization);
     }
 
     /**

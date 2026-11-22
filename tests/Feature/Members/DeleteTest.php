@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
 use App\Enums\Role;
+use App\Events\Memberships\MemberRemoved;
 use App\Livewire\Members\Index;
 use App\Models\Organization;
 use App\Models\Person;
@@ -13,8 +14,11 @@ use App\Notifications\MemberLeftNotification;
 use App\Notifications\MembershipRemovedNotification;
 use App\Support\Feature\MemberDeletion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use RuntimeException;
 
 use function Pest\Laravel\get;
 
@@ -275,4 +279,84 @@ test('the removal action refuses when the workspace disables it', function () {
     app(RemoveMember::class)->handle($organization, $member->person, $owner);
 
     expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+});
+
+test('a scheduled member can be removed', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $person = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $person, startDate: now()->addDay());
+
+    Livewire::test(Index::class)
+        ->call('removeMember', $person->getKey())
+        ->assertHasNoErrors();
+
+    expect($organization->members()->whereKey($person->getKey())->exists())->toBeFalse();
+});
+
+test('a removal rejected after the precheck shows a danger toast', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    $calls = 0;
+
+    Gate::before(function (mixed $user, string $ability) use (&$calls): ?bool {
+        if ($ability !== 'removeMember') {
+            return null;
+        }
+
+        return ++$calls === 1;
+    });
+
+    Livewire::test(Index::class)
+        ->call('removeMember', $member->person->getKey())
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['dataset']['variant'] ?? null) === 'danger'
+                && ($params['slots']['text'] ?? null) === __('Failed to remove the member.'),
+        );
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+});
+
+test('a failed bulk removal keeps the members and shows a danger toast', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    Event::listen(MemberRemoved::class, fn (): never => throw new RuntimeException('Removal failed.'));
+
+    Livewire::test(Index::class)
+        ->set('selected', [$member->person->getKey()])
+        ->call('deleteSelected')
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['dataset']['variant'] ?? null) === 'danger'
+                && ($params['slots']['text'] ?? null) === __('Failed to remove the selected members.'),
+        );
+
+    expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
+});
+
+test('bulk removal reports the detached count', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Owner);
+
+    $members = User::factory()->count(2)->asMemberOf($organization)->create();
+
+    Livewire::test(Index::class)
+        ->set('selected', $members->map(fn (User $user): mixed => $user->person->getKey())->all())
+        ->call('deleteSelected')
+        ->assertDispatched(
+            'toast-show',
+            fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __(':count members removed successfully.', ['count' => 2]),
+        );
 });

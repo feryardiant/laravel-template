@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
@@ -77,4 +78,20 @@ test('member removal requires a manager, a target other than self, and the featu
     MemberDeletion::deactivate($organization);
 
     expect(Gate::forUser($owner)->allows('removeMember', [$target, $organization]))->toBeFalse();
+});
+
+test('scheduled and expired memberships remain manageable', function () {
+    $organization = Organization::factory()->create();
+    $owner = actingAsMember($organization, Role::Owner);
+
+    $scheduled = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $scheduled, startDate: now()->addDay(), role: Role::Member);
+
+    $expired = Person::factory()->withoutCredential()->create();
+    app(CreateMember::class)->attach($organization, $expired, startDate: now()->subDays(2), finishDate: now()->subDay(), role: Role::Member);
+
+    expect(Gate::forUser($owner)->allows('manageMember', [$scheduled, $organization]))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('removeMember', [$scheduled, $organization]))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('manageMember', [$expired, $organization]))->toBeTrue()
+        ->and(Gate::forUser($owner)->allows('removeMember', [$expired, $organization]))->toBeTrue();
 });
