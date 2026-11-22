@@ -194,7 +194,12 @@ class Index extends Component
 
         abort_unless($actor instanceof User, 403);
 
-        $removeMember->handle($organization, $person, $actor);
+        if (! $removeMember->handle($organization, $person, $actor)) {
+            Flux::toast(variant: 'danger', text: __('Failed to remove the member.'));
+
+            return;
+        }
+
         $this->resetPage();
 
         Flux::toast(variant: 'success', text: __('Member removed.'));
@@ -291,19 +296,15 @@ class Index extends Component
             $this->authorize('removeMember', [$person, $organization]);
         }
 
-        $removed = false;
+        $removed = null;
 
         try {
-            $removeMember->handleMany($organization, $persons, $actor);
-
-            $removed = true;
+            $removed = $removeMember->handleMany($organization, $persons, $actor);
         } catch (Throwable $exception) {
             report($exception);
-
-            $removed = false;
         }
 
-        if (! $removed) {
+        if ($removed === null || $removed->isEmpty()) {
             Flux::toast(variant: 'danger', text: __('Failed to remove the selected members.'));
 
             return;
@@ -316,7 +317,7 @@ class Index extends Component
 
         Flux::toast(
             variant: 'success',
-            text: __(':count members removed successfully.', ['count' => $persons->count()]),
+            text: __(':count members removed successfully.', ['count' => $removed->count()]),
         );
     }
 

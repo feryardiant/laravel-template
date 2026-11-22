@@ -30,23 +30,24 @@ final class RemoveMember
     /**
      * Remove a person from the organization.
      */
-    public function handle(Organization $organization, Person $person, ?User $actor = null): void
+    public function handle(Organization $organization, Person $person, ?User $actor = null): bool
     {
-        $this->handleMany($organization, new Collection([$person]), $actor);
+        return $this->handleMany($organization, new Collection([$person]), $actor)->isNotEmpty();
     }
 
     /**
      * Remove several people from the organization in one transaction.
      *
      * @param  Collection<int, Person>  $persons
+     * @return Collection<int, Person>
      */
-    public function handleMany(Organization $organization, Collection $persons, ?User $actor = null): void
+    public function handleMany(Organization $organization, Collection $persons, ?User $actor = null): Collection
     {
         if ($persons->isEmpty()) {
-            return;
+            return new Collection;
         }
 
-        DB::transaction(function () use ($organization, $persons, $actor): Collection {
+        return DB::transaction(function () use ($organization, $persons, $actor): Collection {
             $organization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
             if ($organization === null) {

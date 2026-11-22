@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
+use App\Enums\Role;
 use App\Events\Memberships\MemberRemoved;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\Feature\MemberDeletion;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -24,12 +26,13 @@ it('removes memberships and flags whether each was the last one', function () {
 
     app(CreateMember::class)->attach($otherOrganization, $sharedMember->person);
 
-    app(RemoveMember::class)->handleMany(
+    $removed = app(RemoveMember::class)->handleMany(
         $organization,
         new Collection([$lastMember->person, $sharedMember->person]),
     );
 
-    expect($organization->members()->count())->toBe(0);
+    expect($removed)->toHaveCount(2)
+        ->and($organization->members()->count())->toBe(0);
 
     Event::assertDispatched(
         MemberRemoved::class,
@@ -45,7 +48,20 @@ it('removes memberships and flags whether each was the last one', function () {
 it('does nothing when there is nobody to remove', function () {
     Event::fake([MemberRemoved::class]);
 
-    app(RemoveMember::class)->handleMany(Organization::factory()->create(), new Collection);
+    $removed = app(RemoveMember::class)->handleMany(Organization::factory()->create(), new Collection);
+
+    expect($removed)->toBeEmpty();
 
     Event::assertNotDispatched(MemberRemoved::class);
+});
+
+it('refuses to remove when the tenant disables it', function () {
+    $organization = Organization::factory()->create();
+    $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
+    $member = User::factory()->asMemberOf($organization)->create();
+
+    MemberDeletion::deactivate($organization);
+
+    expect(app(RemoveMember::class)->handle($organization, $member->person, $owner))->toBeFalse()
+        ->and($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
 });

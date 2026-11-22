@@ -224,6 +224,7 @@
     "Create the first credential and organization for this installation.": "Buat kredensial dan organisasi pertama untuk instalasi ini.",
     "Demote member": "Turunkan anggota",
     "Edit member": "Edit anggota",
+    "Failed to remove the member.": "Gagal menghapus anggota.",
     "Failed to remove the selected members.": "Gagal menghapus anggota terpilih.",
     "Joined at": "Bergabung pada",
     "Member added.": "Anggota ditambahkan.",

@@ -58,7 +58,11 @@ class View extends Component
 
         abort_if($stakeholder === null, 404);
 
-        Gate::authorize('viewContact', [$stakeholder, $this->requireOrganization()]);
+        $organization = $this->requireOrganization();
+
+        abort_unless((int) $this->contact->organization_id === (int) $organization->getKey(), 404);
+
+        Gate::authorize('viewContact', [$stakeholder, $organization]);
 
         $contactPerson = $stakeholder instanceof Organization && ! $stakeholder->trashed()
             ? $stakeholder->primaryContact

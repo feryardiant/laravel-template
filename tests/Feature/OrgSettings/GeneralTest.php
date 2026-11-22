@@ -320,9 +320,12 @@ it('shows owner navigation entries in organization settings', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    get(route('org-settings.features'))
-        ->assertOk()
-        ->assertSeeHtml(route('org-settings.general'))
+    $response = get(route('org-settings.features'))->assertOk();
+
+    // The sidebar switcher and the nav item both link to General.
+    expect(substr_count($response->getContent(), route('org-settings.general')))->toBe(2);
+
+    $response
         ->assertSeeHtml(route('org-settings.features'))
         ->assertSeeHtml(route('org-settings.audit'))
         ->assertSeeHtml(route('org-settings.approval-history'))
@@ -334,9 +337,12 @@ it('hides owner-only navigation entries from admins', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    get(route('org-settings.features'))
-        ->assertOk()
-        ->assertSeeHtml(route('org-settings.general'))
+    $response = get(route('org-settings.features'))->assertOk();
+
+    // The sidebar switcher and the nav item both link to General.
+    expect(substr_count($response->getContent(), route('org-settings.general')))->toBe(2);
+
+    $response
         ->assertSeeHtml(route('org-settings.features'))
         ->assertSeeHtml(route('org-settings.audit'))
         ->assertDontSeeHtml(route('org-settings.approval-history'))
