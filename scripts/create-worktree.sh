@@ -80,9 +80,9 @@ if grep -qF "$marker" .env; then
     app_port=$(env_value .env APP_PORT 8100)
     dev_port=$(env_value .env DEV_PORT 5200)
 else
-    # shortcut: hash + probe avoids collisions with running servers only; two
-    # idle worktrees can hash to the same pair (bump when that becomes real).
-    slot=$(( $(printf '%s' "$slug" | cksum | cut -d' ' -f1) % 100 ))
+    # shortcut: 100 slots covers the supported workflow (3 worktrees per
+    # project, 2 projects); the probe sees live servers, not idle reservations.
+    slot=$(( $(printf '%s' "$worktree" | cksum | cut -d' ' -f1) % 100 ))
     app_port=$((8100 + slot))
     dev_port=$((5200 + slot))
 
