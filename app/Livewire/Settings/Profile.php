@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings;
 
-use App\Actions\Contacts\SaveContactDetails;
-use App\Actions\FileStorage;
+use App\Actions\Users\ResendEmailVerification;
+use App\Actions\Users\UpdateUserProfile;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
@@ -19,14 +19,12 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Throwable;
 
 /**
  * @property-read ?Person $person
@@ -156,12 +154,11 @@ class Profile extends Component
     /**
      * Update the profile information for the currently authenticated user.
      */
-    public function updateProfileInformation(FileStorage $fileStorage, SaveContactDetails $saveContactDetails): void
+    public function updateProfileInformation(UpdateUserProfile $updateUserProfile): void
     {
         /** @var User */
         $user = Auth::user();
         $canEdit = $this->canEditOwnProfile;
-        $person = $user->person;
 
         $this->email = Str::lower($this->email);
 
@@ -185,100 +182,39 @@ class Profile extends Component
 
         $validated = $this->validate($rules);
 
-        $previousAvatar = $person?->getRawOriginal('photo_url');
-        $photoPath = $previousAvatar;
-        $stagedAvatar = null;
-        $removeAvatar = false;
+        $result = $updateUserProfile->handle(
+            user: $user,
+            data: [
+                'name' => $this->name,
+                'handle' => $validated['handle'],
+                'email' => $this->email,
+                'summary' => $this->summary,
+                'gender' => $validated['gender'] ?? null,
+                'gender_editable' => $this->genderEditable,
+                'details' => $this->changedContactDetails(),
+                'can_edit' => $canEdit,
+                'remove_avatar' => $this->avatarUrl === null && $this->originalAvatarUrl !== null,
+            ],
+            expected: [
+                'name' => $this->originalName,
+                'handle' => $this->originalHandle,
+                'email' => $this->originalEmail,
+                'summary' => $this->originalSummary,
+                'details' => $this->originalDetails,
+                'avatar_url' => $this->originalAvatarUrl,
+            ],
+            avatar: $this->avatar instanceof UploadedFile ? $this->avatar : null,
+        );
 
-        if ($canEdit) {
-            if ($this->avatar instanceof UploadedFile) {
-                $stagedAvatar = $fileStorage->handle($this->avatar, 'avatars');
-                $photoPath = $stagedAvatar;
-            } elseif ($this->avatarUrl === null && $this->originalAvatarUrl !== null) {
-                $photoPath = null;
-                $removeAvatar = true;
-            }
-        }
-
-        try {
-            DB::transaction(function () use ($user, $person, $canEdit, $validated, $photoPath, $stagedAvatar, $removeAvatar, $saveContactDetails): void {
-                if ($person === null) {
-                    $person = $user->person()->create([
-                        'name' => $canEdit ? $validated['name'] : $user->name,
-                        'owner_organization_id' => null,
-                    ]);
-
-                    $user->setRelation('person', $person);
-                }
-
-                $saveContactDetails->handle($person, $this->changedContactDetails());
-
-                $attributes = [];
-
-                if ($this->summary !== $this->originalSummary) {
-                    $attributes['summary'] = $validated['summary'] ?? null;
-                }
-
-                if ($canEdit && $this->name !== $this->originalName) {
-                    $attributes['name'] = $validated['name'];
-                }
-
-                if ($stagedAvatar !== null || $removeAvatar) {
-                    $attributes['photo_url'] = $photoPath;
-                }
-
-                if ($this->genderEditable && \array_key_exists('gender', $validated)) {
-                    $attributes['gender'] = $validated['gender'];
-                }
-
-                if ($attributes !== []) {
-                    $person->update($attributes);
-                }
-
-                if ($validated['handle'] !== $this->originalHandle) {
-                    $user->handle = $validated['handle'];
-                }
-
-                if ($canEdit && $validated['email'] !== $this->originalEmail) {
-                    $user->email = $validated['email'];
-                }
-
-                if ($user->isDirty('email')) {
-                    $user->email_verified_at = null;
-                }
-
-                $user->save();
-            });
-        } catch (Throwable $exception) {
-            $fileStorage->delete($stagedAvatar);
-
-            throw $exception;
-        }
-
-        if ($stagedAvatar !== null) {
-            // The replacement is committed; a failed cleanup only leaves an
-            // orphaned file, so it is logged rather than rolled back.
-            $fileStorage->delete($previousAvatar);
-        }
-
-        $fresh = $user->fresh();
+        $fresh = $result['user'];
 
         $this->avatar = null;
-        $this->avatarUrl = $photoPath;
+        $this->avatarUrl = $result['avatar_url'];
         $this->rememberContactDetails();
         $this->rememberBaselines($fresh);
-        $this->gender = $fresh?->person?->gender?->value;
+        $this->gender = $fresh->person?->gender?->value;
 
-        if ($removeAvatar && ! $fileStorage->delete($previousAvatar)) {
-            $restored = Person::query()
-                ->whereKey($person?->getKey())
-                ->whereNull('photo_url')
-                ->update(['photo_url' => $previousAvatar]);
-
-            $this->avatarUrl = $restored === 0
-                ? $user->fresh()?->person?->getRawOriginal('photo_url')
-                : $previousAvatar;
-
+        if ($result['avatar_removal_failed']) {
             $this->originalAvatarUrl = $this->avatarUrl;
 
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('User avatar')]));
@@ -352,18 +288,16 @@ class Profile extends Component
     /**
      * Send an email verification notification to the current user.
      */
-    public function resendVerificationNotification(): void
+    public function resendVerificationNotification(ResendEmailVerification $resendEmailVerification): void
     {
         /** @var User */
         $user = Auth::user();
 
-        if ($user->hasVerifiedEmail()) {
+        if (! $resendEmailVerification->handle($user)) {
             $this->redirectIntended(default: route('dashboard', absolute: false));
 
             return;
         }
-
-        $user->sendEmailVerificationNotification();
 
         Flux::toast(text: __('A new verification link has been sent to your email address.'));
     }
