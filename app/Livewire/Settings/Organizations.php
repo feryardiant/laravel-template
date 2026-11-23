@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Settings;
 
 use App\Actions\Memberships\SetDefaultOrganization;
+use App\Actions\Organizations\FindOrganization;
 use App\Actions\Organizations\FindUserOrganization;
 use App\Actions\Organizations\ListUserMemberships;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -32,7 +33,7 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $organization = app(FindUserOrganization::class)->handle($user, $organizationId);
+        $organization = app(FindOrganization::class)->handle($organizationId);
 
         $this->authorize('update', $organization);
 

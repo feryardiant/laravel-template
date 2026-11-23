@@ -360,3 +360,14 @@ test('a member cannot open another organization settings', function () {
         ->call('manage', $other->getKey())
         ->assertForbidden();
 });
+
+test('a user cannot open settings for an existing organization they do not belong to', function () {
+    $current = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    actingAsMember($current, Role::Owner);
+
+    Livewire::test(Organizations::class)
+        ->call('manage', $other->getKey())
+        ->assertForbidden();
+});
