@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Notifications;
 
+use App\Actions\Notifications\CountUnreadNotifications;
+use App\Actions\Notifications\FindNotification;
+use App\Actions\Notifications\ListNotifications;
+use App\Actions\Notifications\MarkNotificationsAsRead;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -58,13 +62,13 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $notification = $user->notifications()->whereKey($id)->first();
+        $notification = app(FindNotification::class)->handle($user, $id);
 
         if ($notification === null) {
             return;
         }
 
-        $notification->markAsRead();
+        app(MarkNotificationsAsRead::class)->handle($user, [$id], true);
 
         $this->selectedNotificationId = $id;
         $this->showNotificationModal = true;
@@ -169,9 +173,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $count = $user->notifications()
-            ->whereIn('id', $this->selectedNotifications)
-            ->update(['read_at' => $asRead ? now() : null]);
+        $count = app(MarkNotificationsAsRead::class)->handle($user, $this->selectedNotifications, $asRead);
 
         $this->selectedNotifications = [];
 
@@ -190,7 +192,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $this->dispatch('notifications-updated', count: $user->unreadNotifications()->count());
+        $this->dispatch('notifications-updated', count: app(CountUnreadNotifications::class)->total($user));
     }
 
     /**
@@ -201,13 +203,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        return $user->notifications()
-            ->reorder('created_at', $this->sortAscending ? 'asc' : 'desc')
-            ->orderBy('id', $this->sortAscending ? 'asc' : 'desc')
-            ->forPage($this->getPage(), 10)
-            ->pluck('id')
-            ->map(fn ($id): string => (string) $id)
-            ->all();
+        return app(ListNotifications::class)->idsOnPage($user, $this->sortAscending, $this->getPage());
     }
 
     #[Computed]
@@ -220,7 +216,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        return $user->notifications()->whereKey($this->selectedNotificationId)->first();
+        return app(FindNotification::class)->handle($user, $this->selectedNotificationId);
     }
 
     public function render(): View
@@ -230,10 +226,7 @@ class Index extends Component
 
         /** @disregard P1013 */
         return view('livewire.notifications.index', [
-            'notifications' => $user->notifications()
-                ->reorder('created_at', $this->sortAscending ? 'asc' : 'desc')
-                ->orderBy('id', $this->sortAscending ? 'asc' : 'desc')
-                ->paginate(10),
+            'notifications' => app(ListNotifications::class)->paginate($user, $this->sortAscending),
         ])->title(__('Notifications'));
     }
 }

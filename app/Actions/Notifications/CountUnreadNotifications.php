@@ -21,4 +21,12 @@ final class CountUnreadNotifications
             ->where('created_at', '<=', CarbonImmutable::parse($range['end'], $timezone)->endOfDay()->utc())
             ->count();
     }
+
+    /**
+     * Count all unread notifications.
+     */
+    public function total(User $user): int
+    {
+        return $user->unreadNotifications()->count();
+    }
 }
