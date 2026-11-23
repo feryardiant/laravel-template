@@ -1032,7 +1032,11 @@ it('does not emit change when an unchanged typed date closes', function () {
     $page->assertScript(<<<JS
         (() => {
             window.__dateChanges = 0;
-            document.querySelector('{$root}').addEventListener('change', () => window.__dateChanges++);
+            document.querySelector('{$root}').addEventListener('change', (event) => {
+                if (event instanceof CustomEvent) {
+                    window.__dateChanges++;
+                }
+            });
 
             return true;
         })()
@@ -1042,5 +1046,91 @@ it('does not emit change when an unchanged typed date closes', function () {
         ->click('[data-ui-test=move-date]')
         ->wait(0.5)
         ->assertScript('window.__dateChanges === 0')
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps the typed date as the draft when confirmation is enabled', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $root = '[data-ui-demo=date-picker-confirm] [data-ui-date-picker]';
+    $input = '[data-ui-demo=date-picker-confirm] [data-ui-trigger]';
+    $bound = '[data-ui-bound=confirmed]';
+    $confirm = '[data-ui-demo=date-picker-confirm] [data-ui-confirm]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->assertScript(<<<JS
+            (() => {
+                const root = document.querySelector('{$root}');
+                const committed = document.querySelector('{$bound}').textContent.trim();
+                const cell = Array.from(root.querySelectorAll('td[data-date]'))
+                    .find((td) => td.getAttribute('data-date') !== committed && td.querySelector('button:not([disabled])'));
+
+                window.__committed = committed;
+                cell?.querySelector('button')?.click();
+
+                return cell !== undefined;
+            })()
+            JS)
+        ->wait(0.3)
+        ->assertScript(<<<JS
+            (() => {
+                const input = document.querySelector('{$input}');
+                input.focus();
+                input.value = window.__committed;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+
+                return true;
+            })()
+            JS)
+        ->click($confirm)
+        ->wait(0.8)
+        ->assertScript("document.querySelector('{$bound}').textContent.trim() === window.__committed")
+        ->assertNoJavaScriptErrors();
+});
+
+it('closes on Enter without committing an unchanged date', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $trigger = '[data-ui-demo=date-picker-inputs] [data-ui-trigger]';
+    $popover = '[data-ui-demo=date-picker-inputs] [data-ui-popover]';
+
+    $page->click($trigger)
+        ->wait(0.3)
+        ->assertScript("document.querySelector('{$popover}').matches(':popover-open')")
+        ->keys($trigger, 'Enter')
+        ->wait(0.3)
+        ->assertScript("!document.querySelector('{$popover}').matches(':popover-open')")
+        ->assertNoJavaScriptErrors();
+});
+
+it('does not emit change when an empty clearable input closes', function () {
+    $page = visit('/ui/date-picker')->on()->desktop();
+    $root = '[data-ui-demo=date-picker-inputs] [data-ui-date-picker]';
+    $trigger = '[data-ui-demo=date-picker-inputs] [data-ui-trigger]';
+
+    $page->assertScript(<<<JS
+        (() => {
+            window.__emptyChanges = 0;
+            document.querySelector('{$root}').addEventListener('change', (event) => {
+                if (event instanceof CustomEvent) {
+                    window.__emptyChanges++;
+                }
+            });
+
+            return true;
+        })()
+        JS)
+        ->click($trigger)
+        ->wait(0.3)
+        ->keys($trigger, ['Backspace'])
+        ->keys($trigger, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=input-date]').textContent.trim() === ''")
+        ->assertScript('(() => { window.__emptyChanges = 0; return true })()')
+        ->click($trigger)
+        ->wait(0.3)
+        ->click('[data-ui-test=move-date]')
+        ->wait(0.5)
+        ->assertScript('window.__emptyChanges === 0')
         ->assertNoJavaScriptErrors();
 });

@@ -688,26 +688,32 @@ export function datePickerData(config: DatePickerConfig, wire: WireLike | null):
                 }
             }
 
-            if (rawStart === '' && this.mode === 'single' && !this.withConfirmation && config.clearable) {
+            if (
+                rawStart === '' &&
+                this.mode === 'single' &&
+                !this.withConfirmation &&
+                config.clearable &&
+                this.start !== null
+            ) {
                 this.clear()
 
                 return
             }
 
-            if (
-                this.mode === 'single' &&
-                start === this.start &&
-                !(start === null && config.clearable && this.start !== null)
-            ) {
-                this.syncTyped()
-
-                return
-            }
+            const unchanged = this.mode === 'single' && start === this.start
 
             this.draftStart = start
             this.draftEnd = this.mode === 'range' ? end : null
             this.syncCalendar()
             this.syncTyped()
+
+            if (unchanged) {
+                if (close && this.canConfirm()) {
+                    this.closePopover()
+                }
+
+                return
+            }
 
             if (close && this.canConfirm()) {
                 this.confirm()

@@ -530,13 +530,42 @@ it('moves focus to the retry action on Tab after a search failure', function () 
                 return true;
             })()
             JS)
+        ->wait(0.2)
         ->keys($trigger, ['Tab'])
         ->wait(0.2)
         ->assertScript("document.activeElement.hasAttribute('data-ui-retry')")
         ->keys($retry, 'Enter')
         ->wait(0.1)
+        ->assertScript("document.activeElement === document.querySelector('{$trigger}')")
         ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
         ->wait(1)
+        ->assertScript("document.activeElement === document.querySelector('{$trigger}')")
         ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('allows normal Tab navigation after dismissing a failed search', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $root = '[data-ui-demo=select-create] [data-ui-select]';
+
+    $page->click($trigger)
+        ->wait(1.2)
+        ->assertScript(<<<JS
+            (() => {
+                const data = window.Alpine.\$data(document.querySelector('{$root}'));
+                data.searchError = true;
+                data.lastSearchQuery = null;
+                data.applyQuery();
+
+                return true;
+            })()
+            JS)
+        ->keys($trigger, ['Escape'])
+        ->wait(0.2)
+        ->keys($trigger, ['Tab'])
+        ->wait(0.2)
+        ->assertScript("document.activeElement !== document.querySelector('{$trigger}')")
+        ->assertScript("!document.activeElement.hasAttribute('data-ui-retry')")
         ->assertNoJavaScriptErrors();
 });

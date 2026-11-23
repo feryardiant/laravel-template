@@ -38,6 +38,7 @@
             label="Confirmed date"
             clearable
             with-confirmation
+            with-inputs
             with-today
         />
 

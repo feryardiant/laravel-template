@@ -353,6 +353,7 @@
                         size="sm"
                         x-bind:disabled="!canConfirm()"
                         x-on:click="confirm()"
+                        data-ui-confirm
                         class="[@media(hover:none)]:min-h-11"
                     >{{ $isRange ? $labels['selectRange'] : $labels['select'] }}</flux:button>
                 </div>

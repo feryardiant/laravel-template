@@ -261,7 +261,7 @@
                 <button
                     type="button"
                     data-ui-retry
-                    x-on:click="scheduleSearch()"
+                    x-on:click="focusSearch(); scheduleSearch()"
                     class="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 [@media(hover:none)]:min-h-11"
                     x-text="retryText"
                 ></button>

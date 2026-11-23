@@ -600,7 +600,7 @@ export function selectData(config: SelectConfig, wire: WireLike | null): Select 
             }
 
             if (event.key === 'Tab') {
-                if (this.searchError) {
+                if (this.searchError && this.isPopoverOpen()) {
                     event.preventDefault()
                     listbox()?.closest('[data-ui-popover]')?.querySelector<HTMLElement>('[data-ui-retry]')?.focus()
 
