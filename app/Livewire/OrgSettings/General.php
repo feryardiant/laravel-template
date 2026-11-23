@@ -4,21 +4,16 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Addresses\SaveAddress;
-use App\Actions\Contacts\SaveContactDetails;
-use App\Actions\FileStorage;
+use App\Actions\Organizations\UpdateOrganization;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
-use App\Events\Organizations\OrganizationUpdated;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
-use App\Models\Organization;
 use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -131,7 +126,7 @@ class General extends Component
     /**
      * Update the current organization's name.
      */
-    public function update(FileStorage $fileStorage, SaveAddress $saveAddress, SaveContactDetails $saveContactDetails): void
+    public function update(UpdateOrganization $updateOrganization): void
     {
         $organization = $this->currentOrganization();
 
@@ -150,118 +145,59 @@ class General extends Component
             ...$this->addressRules(),
         ]);
 
-        $previousLogo = $organization->getRawOriginal('logo_url');
-        $newLogoPath = null;
-        $removeLogo = false;
+        /** @var User|null $actor */
+        $actor = Auth::user();
 
-        if ($this->logo instanceof UploadedFile) {
-            $newLogoPath = $fileStorage->handle($this->logo, 'logos');
-            $this->logo = null;
-            $this->logoUrl = $newLogoPath;
-        } elseif ($this->logoUrl === null && $this->originalLogoUrl !== null) {
-            $removeLogo = true;
-        }
+        abort_unless($actor instanceof User, 403);
+
+        $logo = $this->logo instanceof UploadedFile ? $this->logo : null;
+        $this->logo = null;
 
         try {
-            DB::transaction(function () use ($organization, $validated, $newLogoPath, $removeLogo, $previousLogo, $fileStorage, $saveAddress, $saveContactDetails): void {
-                if ($this->name !== $this->originalName) {
-                    $organization->name = $validated['name'];
-                }
-
-                if ($this->summary !== $this->originalSummary) {
-                    $organization->summary = $validated['summary'] ?? null;
-                }
-
-                if ($newLogoPath !== null) {
-                    $organization->logo_url = $newLogoPath;
-                } elseif ($removeLogo) {
-                    $organization->logo_url = null;
-                }
-
-                $organization->save();
-
-                $address = $this->addressPayload();
-
-                if ($address !== $this->originalAddress) {
-                    $saveAddress->handle($organization, $address);
-                }
-
-                $details = $saveContactDetails->handle($organization, $this->changedContactDetails());
-
-                $fields = [
-                    ...array_values(array_diff(array_keys($organization->getChanges()), ['updated_at'])),
-                    ...$details,
-                ];
-
-                if ($fields !== []) {
-                    $actor = Auth::user();
-
-                    event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, $fields));
-                }
-
-                if ($newLogoPath !== null) {
-                    // Replacement cleanup runs after commit; a failure is logged.
-                    DB::afterCommit(fn () => $fileStorage->delete($previousLogo));
-                }
-            });
+            $result = $updateOrganization->handle(
+                organization: $organization,
+                actor: $actor,
+                data: [
+                    'name' => $validated['name'],
+                    'summary' => $this->summary,
+                    'address' => $this->addressPayload(),
+                    'details' => $this->changedContactDetails(),
+                    'remove_logo' => $this->logoUrl === null && $this->originalLogoUrl !== null,
+                ],
+                expected: [
+                    'name' => $this->originalName,
+                    'summary' => $this->originalSummary,
+                    'address' => $this->originalAddress,
+                    'details' => $this->originalDetails,
+                    'logo_url' => $this->originalLogoUrl,
+                ],
+                logo: $logo,
+            );
         } catch (Throwable $exception) {
-            if ($newLogoPath !== null) {
-                $storedLogo = Organization::withTrashed()
-                    ->whereKey($organization->getKey())
-                    ->value('logo_url');
-
-                if ($storedLogo !== $newLogoPath) {
-                    $fileStorage->delete($newLogoPath);
-                }
-            }
-
             $organization->refresh();
             $this->logoUrl = $organization->getRawOriginal('logo_url');
 
             throw $exception;
         }
 
+        $organization = $result['organization'];
+        $this->logoUrl = $result['logo_url'];
+
         $this->rememberContactDetails();
         $this->originalAddress = $this->addressPayload();
-
-        $organization->refresh();
 
         $this->originalName = $organization->name;
         $this->originalSummary = (string) $organization->summary;
         $this->name = $this->originalName;
         $this->summary = $this->originalSummary;
 
-        if ($removeLogo && ! $fileStorage->delete($previousLogo)) {
-            $restored = Organization::query()
-                ->whereKey($organization->getKey())
-                ->whereNull('logo_url')
-                ->update(['logo_url' => $previousLogo]);
+        $this->originalLogoUrl = $this->logoUrl;
 
-            if ($restored === 0) {
-                $organization->refresh();
-                $this->logoUrl = $organization->getRawOriginal('logo_url');
-                $this->originalLogoUrl = $this->logoUrl;
-
-                Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
-
-                return;
-            }
-
-            $organization->refresh();
-
-            $actor = Auth::user();
-
-            event(new OrganizationUpdated($organization, $actor instanceof User ? $actor : null, ['logo_url'], true));
-
-            $this->logoUrl = $previousLogo;
-            $this->originalLogoUrl = $this->logoUrl;
-
+        if ($result['logo_removal_failed']) {
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Organization Logo')]));
 
             return;
         }
-
-        $this->originalLogoUrl = $this->logoUrl;
 
         unset($this->pendingApproval);
 
