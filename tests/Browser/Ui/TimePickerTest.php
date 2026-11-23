@@ -1021,3 +1021,51 @@ it('has no serious accessibility issues with an open range popover', function (s
         ->assertNoAccessibilityIssues()
         ->assertNoJavaScriptErrors();
 })->with(['desktop', 'mobile']);
+
+it('applies a typed time from the masked input', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+    $input = '[data-ui-demo=time-picker-inputs] [data-ui-trigger]';
+
+    $page->click($input)
+        ->wait(0.4)
+        ->assertScript("document.activeElement === document.querySelector('{$input}')")
+        ->keys($input, ['1', '0', '4', '5'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-bound=input-time]').textContent.trim() === '10:45'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps focus when tabbing into the typed time input and opens the columns with arrows', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+    $button = '[data-ui-demo=time-picker-single] [data-ui-test=move-time]';
+    $input = '[data-ui-demo=time-picker-inputs] [data-ui-trigger]';
+
+    $page->click($button)
+        ->keys($button, ['Tab'])
+        ->wait(0.4)
+        ->assertScript("document.activeElement === document.querySelector('{$input}')")
+        ->keys($input, ['ArrowDown'])
+        ->wait(0.4)
+        ->assertScript("document.activeElement.hasAttribute('data-ui-hours')")
+        ->assertScript("document.querySelector('{$input}').getAttribute('aria-expanded') === 'true'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('accepts a typed off-step range start when a valid end exists', function () {
+    $page = visit('/ui/time-picker')->on()->desktop();
+    $input = '[data-ui-demo=time-picker-range-inputs] [data-ui-trigger]';
+    $bound = '[data-ui-bound=input-time-range]';
+
+    $page->click($input)
+        ->wait(0.3)
+        ->keys($input, ['2', '3', '4', '5'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('{$bound}').textContent.trim().startsWith('23:45')")
+        ->keys($input, ['2', '3', '5', '0'])
+        ->keys($input, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('{$bound}').textContent.trim() === '23:45 / 23:50'")
+        ->assertNoJavaScriptErrors();
+});

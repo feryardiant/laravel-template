@@ -371,3 +371,201 @@ it('keeps pills compact and removes them from a pill click', function () {
             })()
             JS);
 });
+
+it('only offers creation when the query matches no options', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+    $empty = '[data-ui-demo=select-create] [role=status]';
+
+    $page->click($trigger)
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->keys($trigger, ['b', 'r', 'a', 'n', 'd'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 1")
+        ->assertScript("document.querySelector('[data-ui-bound=project-search]').textContent.trim() === 'brand'")
+        ->keys($trigger, ['Escape'])
+        ->click($trigger)
+        ->wait(0.8)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 3")
+        ->keys($trigger, ['z'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertScript("getComputedStyle(document.querySelector('{$empty}')).display !== 'none'")
+        ->keys($trigger, ['z'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->assertScript("getComputedStyle(document.querySelector('{$empty}')).display === 'none'")
+        ->assertScript("document.querySelector('[data-ui-bound=project-search]').textContent.trim() === 'zz'")
+        ->keys($trigger, ['Enter'])
+        ->wait(1)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create] [data-ui-option][data-value=zz]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=project]').textContent.trim() === 'zz'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('creates from the pillbox with the same event', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create-pillbox] [role=combobox]';
+    $create = '[data-ui-demo=select-create-pillbox] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['o', 'p', 's'])
+        ->wait(0.3)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->click($create)
+        ->wait(1)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=ops]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=tags]').textContent.includes('ops')")
+        ->assertNoJavaScriptErrors();
+});
+
+it('trims the displayed create label', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, [' ', ' ', 'z', 'z', ' ', ' '])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'flex'")
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).columnGap === 'normal'")
+        ->assertScript("document.querySelector('{$create}').textContent.trim() === 'Create \"zz\"'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('filters pillbox options on the server without dropping pills', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create-pillbox] [role=combobox]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['d', 'e', 'v'])
+        ->wait(0.8)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create-pillbox] [data-ui-option]').length === 1")
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=design]') !== null")
+        ->keys($trigger, 'Enter')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-pillbox] [data-ui-pill][data-value=development]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=tags]').textContent.includes('development')")
+        ->wait(0.8)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create-pillbox] [data-ui-option]').length === 2")
+        ->assertNoJavaScriptErrors();
+});
+
+it('creates a project from the modal flow', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create-modal] [role=combobox]';
+    $create = '[data-ui-demo=select-create-modal] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['o', 'p', 's'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->click($create)
+        ->wait(0.5)
+        ->assertScript("document.querySelector('dialog[open]') !== null")
+        ->assertScript("document.querySelector('dialog[open] input').value === 'ops'")
+        ->click('dialog[open] button[type=submit]')
+        ->wait(1)
+        ->assertScript("document.querySelector('dialog[open]') === null")
+        ->assertScript("document.querySelector('[data-ui-demo=select-create-modal] [data-ui-option][data-value=ops]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=modal-project]').textContent.trim() === 'ops'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('hides the create row while a backend search is pending', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['z', 'z', 'z', 'z'])
+        ->wait(0.8)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->keys($trigger, ['Escape'])
+        ->click($trigger)
+        ->keys($trigger, ['a', 'n', 'a'])
+        ->wait(0.1)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->wait(1)
+        ->assertScript("document.querySelectorAll('[data-ui-demo=select-create] [data-ui-option]').length === 1")
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('creates a distinct option when the slug would collide', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $create = '[data-ui-demo=select-create] [data-ui-create]';
+
+    $page->click($trigger)
+        ->keys($trigger, ['B', 'r', 'a', 'n', 'd', 'i', 'n', 'g', '!'])
+        ->wait(1)
+        ->assertScript("getComputedStyle(document.querySelector('{$create}')).display !== 'none'")
+        ->keys($trigger, ['Enter'])
+        ->wait(1)
+        ->assertScript("document.querySelector('[data-ui-demo=select-create] [data-ui-option][data-value=branding-2]') !== null")
+        ->assertScript("document.querySelector('[data-ui-bound=project]').textContent.trim() === 'branding-2'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('moves focus to the retry action on Tab after a search failure', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $root = '[data-ui-demo=select-create] [data-ui-select]';
+    $error = '[data-ui-demo=select-create] [data-ui-search-error]';
+    $retry = '[data-ui-demo=select-create] [data-ui-retry]';
+
+    $page->click($trigger)
+        ->wait(1.2)
+        ->assertScript(<<<JS
+            (() => {
+                const data = window.Alpine.\$data(document.querySelector('{$root}'));
+                data.searchError = true;
+                data.lastSearchQuery = null;
+                data.applyQuery();
+
+                return true;
+            })()
+            JS)
+        ->wait(0.2)
+        ->keys($trigger, ['Tab'])
+        ->wait(0.2)
+        ->assertScript("document.activeElement.hasAttribute('data-ui-retry')")
+        ->keys($retry, 'Enter')
+        ->wait(0.1)
+        ->assertScript("document.activeElement === document.querySelector('{$trigger}')")
+        ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
+        ->wait(1)
+        ->assertScript("document.activeElement === document.querySelector('{$trigger}')")
+        ->assertScript("getComputedStyle(document.querySelector('{$error}')).display === 'none'")
+        ->assertNoJavaScriptErrors();
+});
+
+it('allows normal Tab navigation after dismissing a failed search', function () {
+    $page = visit('/ui/select')->on()->desktop();
+    $trigger = '[data-ui-demo=select-create] [role=combobox]';
+    $root = '[data-ui-demo=select-create] [data-ui-select]';
+
+    $page->click($trigger)
+        ->wait(1.2)
+        ->assertScript(<<<JS
+            (() => {
+                const data = window.Alpine.\$data(document.querySelector('{$root}'));
+                data.searchError = true;
+                data.lastSearchQuery = null;
+                data.applyQuery();
+
+                return true;
+            })()
+            JS)
+        ->keys($trigger, ['Escape'])
+        ->wait(0.2)
+        ->keys($trigger, ['Tab'])
+        ->wait(0.2)
+        ->assertScript("document.activeElement !== document.querySelector('{$trigger}')")
+        ->assertScript("!document.activeElement.hasAttribute('data-ui-retry')")
+        ->assertNoJavaScriptErrors();
+});

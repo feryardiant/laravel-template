@@ -62,3 +62,14 @@ it('applies the class attribute to the control root', function () {
 
     expect((string) $view)->toMatch('/data-ui-date-picker[^>]*sm:w-48/');
 });
+
+it('renders masked typed date inputs', function () {
+    /** @var TestCase $this */
+    $single = (string) $this->blade('<x-ui.date-picker with-inputs label="Date" />');
+    $range = (string) $this->blade('<x-ui.date-picker mode="range" with-inputs label="Range" />');
+
+    expect(substr_count($single, 'x-mask="9999-99-99"'))->toBe(1)
+        ->and($single)->toContain('data-ui-trigger')
+        ->and(substr_count($range, 'x-mask="9999-99-99"'))->toBe(2)
+        ->and($range)->toContain('data-ui-end-trigger');
+});

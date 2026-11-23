@@ -14,6 +14,8 @@ export interface PopoverOptions {
     anchor?: HTMLElement | null
     /** Called after the popover enters the top layer. */
     onOpen?: () => void
+    /** Called before an outside pointer closes the popover. */
+    onBeforeOutsideClose?: () => void
     /** Called after the popover leaves the top layer. */
     onClose?: () => void
     /** Element to focus on close; defaults to the trigger. */
@@ -224,6 +226,7 @@ export function createPopover(
             return
         }
 
+        options.onBeforeOutsideClose?.()
         closePopover()
     }
 

@@ -9,8 +9,11 @@ return [
     ],
 
     'select' => [
+        'loading' => 'Loading...',
         'no-results' => 'No results found',
         'selected' => ':count selected',
+        'search-failed' => 'Search failed',
+        'retry' => 'Retry',
         'remove' => 'Remove selection :label',
         'clear' => 'Clear selection',
     ],
@@ -19,6 +22,10 @@ return [
         'no-results' => 'No results found',
         'loading' => 'Loading...',
         'clear' => 'Clear input',
+        'copy' => 'Copy to clipboard',
+        'copied' => 'Copied',
+        'show-password' => 'Show password',
+        'hide-password' => 'Hide password',
     ],
 
     'date-picker' => [
@@ -30,6 +37,9 @@ return [
         'select' => 'Select',
         'select-range' => 'Select range',
         'presets' => 'Presets',
+        'input' => 'Date',
+        'input-start' => 'Start date',
+        'input-end' => 'End date',
         'preset' => [
             'today' => 'Today',
             'yesterday' => 'Yesterday',
@@ -48,6 +58,8 @@ return [
     ],
 
     'file-upload' => [
+        'preview' => 'Preview file',
+        'preview-named' => 'Preview file: :name',
         'drop' => 'Drop files here or click to browse',
         'drop-inline' => 'Drop files or click to browse',
         'remove' => 'Remove file',
@@ -81,6 +93,7 @@ return [
         'placeholder' => 'Pick a time',
         'placeholder-multiple' => 'Pick times',
         'placeholder-range' => 'Pick a time range',
+        'input' => 'Time',
         'add-start' => 'Add start',
         'add-end' => 'Add end',
     ],

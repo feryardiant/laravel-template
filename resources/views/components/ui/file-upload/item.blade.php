@@ -1,4 +1,5 @@
 @props([
+    'file' => null,
     'heading' => null,
     'text' => null,
     'image' => null,
@@ -8,16 +9,29 @@
 ])
 
 @php
+    if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+        $heading ??= $file->getClientOriginalName();
+        $size ??= $file->getSize();
+        $image ??= $file->isPreviewable() && str_starts_with((string) $file->getMimeType(), 'image/')
+            ? $file->temporaryUrl()
+            : null;
+    }
+
     $formattedSize = $size === null ? null : \Illuminate\Support\Number::fileSize((int) $size, precision: 1);
+    $interactive = $attributes->whereStartsWith('wire:click')->isNotEmpty();
+    $class = $attributes->get('class');
 @endphp
 
 <div
+    {{ $attributes->except('class') }}
     data-ui-file-upload-item
     @if ($invalid) data-invalid @endif
     @class([
         'flex items-center gap-3 rounded-lg border bg-white p-2.5 dark:bg-white/5',
         'border-zinc-200 dark:border-white/10' => ! $invalid,
         'border-red-500 dark:border-red-500' => $invalid,
+        'cursor-pointer' => $interactive,
+        $class,
     ])
 >
     @if ($image !== null)
@@ -42,7 +56,7 @@
         @endif
     </div>
 
-    @isset($actions)
-        <div class="flex shrink-0 items-center gap-1">{{ $actions }}</div>
-    @endisset
+    @if ($slot->isNotEmpty())
+        <div class="flex shrink-0 items-center gap-1">{{ $slot }}</div>
+    @endif
 </div>

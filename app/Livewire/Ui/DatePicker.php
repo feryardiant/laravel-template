@@ -23,6 +23,13 @@ class DatePicker extends Component
      */
     public array $range = ['start' => null, 'end' => null];
 
+    public ?string $inputDate = null;
+
+    /**
+     * @var array{start: ?string, end: ?string}
+     */
+    public array $inputRange = ['start' => null, 'end' => null];
+
     public function mount(): void
     {
         $this->date = now()->format('Y-m-d');
@@ -31,6 +38,8 @@ class DatePicker extends Component
             'start' => now()->startOfMonth()->format('Y-m-d'),
             'end' => now()->startOfMonth()->addDays(4)->format('Y-m-d'),
         ];
+        $this->inputDate = now()->format('Y-m-d');
+        $this->inputRange = ['start' => null, 'end' => null];
     }
 
     /**

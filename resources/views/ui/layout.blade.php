@@ -12,5 +12,7 @@
             {{ $slot ?? '' }}
             @yield('content')
         </main>
+
+        @fluxScripts
     </body>
 </html>

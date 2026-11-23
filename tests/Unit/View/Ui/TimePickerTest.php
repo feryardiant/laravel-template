@@ -55,3 +55,11 @@ it('applies the class attribute to the control root', function () {
 
     expect((string) $view)->toMatch('/data-ui-time-picker[^>]*sm:w-48/');
 });
+
+it('renders a masked typed time input', function () {
+    /** @var TestCase $this */
+    $view = (string) $this->blade('<x-ui.time-picker with-inputs label="Time" />');
+
+    expect($view)->toContain('data-ui-trigger')
+        ->toContain('x-mask="99:99"');
+});

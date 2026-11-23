@@ -23,6 +23,23 @@
         <flux:button size="sm" wire:click="moveTime" data-ui-test="move-time">Set time to 15:30</flux:button>
     </section>
 
+    <section data-ui-demo="time-picker-inputs" class="max-w-xs flex flex-col gap-3">
+        <x-ui.time-picker wire:model.live="inputTime" label="Time with input" with-inputs :interval="15" />
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Bound value: <span data-ui-bound="input-time">{{ $inputTime }}</span>
+        </p>
+    </section>
+
+    <section data-ui-demo="time-picker-range-inputs" class="max-w-xs flex flex-col gap-3">
+        <x-ui.time-picker wire:model.live="inputTimeRange" mode="range" label="Range with input" with-inputs :interval="15" />
+
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Bound range:
+            <span data-ui-bound="input-time-range">{{ $inputTimeRange['start'] ?? '' }} / {{ $inputTimeRange['end'] ?? '' }}</span>
+        </p>
+    </section>
+
     <section data-ui-demo="time-picker-12h" class="max-w-xs flex flex-col gap-3">
         <x-ui.time-picker
             wire:model.live="time12"

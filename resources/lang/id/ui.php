@@ -9,8 +9,11 @@ return [
     ],
 
     'select' => [
+        'loading' => 'Memuat...',
         'no-results' => 'Tidak ada hasil',
         'selected' => ':count dipilih',
+        'search-failed' => 'Pencarian gagal',
+        'retry' => 'Coba lagi',
         'remove' => 'Hapus pilihan :label',
         'clear' => 'Kosongkan pilihan',
     ],
@@ -19,6 +22,10 @@ return [
         'no-results' => 'Tidak ada hasil',
         'loading' => 'Memuat...',
         'clear' => 'Kosongkan isian',
+        'copy' => 'Salin ke papan klip',
+        'copied' => 'Tersalin',
+        'show-password' => 'Tampilkan kata sandi',
+        'hide-password' => 'Sembunyikan kata sandi',
     ],
 
     'date-picker' => [
@@ -30,6 +37,9 @@ return [
         'select' => 'Pilih',
         'select-range' => 'Pilih rentang',
         'presets' => 'Pilihan cepat',
+        'input' => 'Tanggal',
+        'input-start' => 'Tanggal mulai',
+        'input-end' => 'Tanggal selesai',
         'preset' => [
             'today' => 'Hari ini',
             'yesterday' => 'Kemarin',
@@ -48,6 +58,8 @@ return [
     ],
 
     'file-upload' => [
+        'preview' => 'Pratinjau file',
+        'preview-named' => 'Pratinjau file: :name',
         'drop' => 'Seret file ke sini atau klik untuk memilih',
         'drop-inline' => 'Seret file atau klik untuk memilih',
         'remove' => 'Hapus file',
@@ -81,6 +93,7 @@ return [
         'placeholder' => 'Pilih waktu',
         'placeholder-multiple' => 'Pilih beberapa waktu',
         'placeholder-range' => 'Pilih rentang waktu',
+        'input' => 'Waktu',
         'add-start' => 'Tambah awal',
         'add-end' => 'Tambah akhir',
     ],

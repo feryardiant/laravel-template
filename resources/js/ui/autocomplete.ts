@@ -47,8 +47,12 @@ export interface Autocomplete {
     readonly: boolean
     emptyText: string
     loadingText: string
+    copied: boolean
+    revealed: boolean
     init: () => void
     destroy: () => void
+    copy: () => void
+    toggleReveal: () => void
     isPopoverOpen: () => boolean
     openPopover: () => void
     closePopover: () => void
@@ -110,6 +114,7 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
     let popover: PopoverController | null = null
     let unwatch: (() => void) | null = null
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    let copyResetTimer: ReturnType<typeof setTimeout> | null = null
     let abortController: AbortController | null = null
     // Monotonic request id: only the latest remote response may update the list.
     let requestId = 0
@@ -132,6 +137,8 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
         readonly: config.readonly,
         emptyText: config.empty,
         loadingText: config.loading,
+        copied: false,
+        revealed: false,
 
         init() {
             if (ready) {
@@ -180,6 +187,10 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
 
             if (debounceTimer !== null) {
                 clearTimeout(debounceTimer)
+            }
+
+            if (copyResetTimer !== null) {
+                clearTimeout(copyResetTimer)
             }
         },
 
@@ -371,6 +382,32 @@ export function autocompleteData(config: AutocompleteConfig, wire: WireLike | nu
             this.writeValue(option.value)
             this.closePopover()
             this.focusTrigger()
+        },
+
+        copy() {
+            if (this.query === '' || navigator.clipboard === undefined) {
+                return
+            }
+
+            navigator.clipboard
+                .writeText(this.query)
+                .then(() => {
+                    this.copied = true
+
+                    if (copyResetTimer !== null) {
+                        clearTimeout(copyResetTimer)
+                    }
+
+                    copyResetTimer = setTimeout(() => {
+                        this.copied = false
+                        copyResetTimer = null
+                    }, 2000)
+                })
+                .catch(() => {})
+        },
+
+        toggleReveal() {
+            this.revealed = !this.revealed
         },
 
         clear() {

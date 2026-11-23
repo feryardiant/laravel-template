@@ -11,6 +11,7 @@ export interface WireLike {
     get(name: string): unknown
     set(name: string, value: unknown, live?: boolean): void
     $watch(name: string, callback: (value: unknown) => void): () => void
+    call?(method: string, ...params: unknown[]): Promise<unknown>
 }
 
 /** Coerce a scalar to the string used by DOM values. */

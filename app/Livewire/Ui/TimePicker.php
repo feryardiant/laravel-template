@@ -28,6 +28,13 @@ class TimePicker extends Component
      */
     public array $times = ['09:00', '11:30'];
 
+    public ?string $inputTime = '10:15';
+
+    /**
+     * @var array{start: ?string, end: ?string}
+     */
+    public array $inputTimeRange = ['start' => null, 'end' => null];
+
     /**
      * Move the single-time demo to 15:30.
      */

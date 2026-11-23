@@ -24,9 +24,15 @@
     'debounce' => 300,
     'empty' => null,
     'loading' => null,
+    'kbd' => null,
+    'copyable' => false,
+    'viewable' => false,
+    'mask' => null,
+    'maskDynamic' => null,
 ])
 
 @php
+    $maskDynamic ??= $attributes->pluck('mask:dynamic');
     $wireModel = $attributes->wire('model');
     $model = $wireModel->value();
     $model = is_string($model) && $model !== '' ? $model : null;
@@ -65,9 +71,33 @@
 
     $class = $attributes->get('class');
     $rootAttributes = $attributes->filter(
-        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'class',
+        fn ($value, $key) => ! str_starts_with($key, 'wire:model') && $key !== 'class' && $key !== 'mask:dynamic',
     );
-    $inputClasses = trim(($inputClass ?? '').' '.($clearable ? 'pe-10' : ''));
+    $trailingCount = count(array_filter([
+        (bool) $iconTrailing,
+        (bool) $kbd,
+        (bool) $clearable,
+        (bool) $copyable,
+        (bool) $viewable,
+    ]));
+    $trailingPadding = match ($trailingCount) {
+        0 => 'pe-3',
+        1 => 'pe-10',
+        2 => 'pe-16',
+        3 => 'pe-23',
+        4 => 'pe-30',
+        5 => 'pe-37',
+        default => 'pe-44',
+    };
+    $touchPadding = match ($trailingCount) {
+        0 => '',
+        1 => '[@media(hover:none)]:pe-14',
+        2 => '[@media(hover:none)]:pe-26',
+        3 => '[@media(hover:none)]:pe-38',
+        4 => '[@media(hover:none)]:pe-50',
+        default => '[@media(hover:none)]:pe-62',
+    };
+    $inputClasses = trim(($inputClass ?? '').' '.$trailingPadding.' '.$touchPadding);
 @endphp
 
 <flux:with-field
@@ -99,18 +129,20 @@
                 :size="$size"
                 :variant="$variant"
                 :icon="$icon"
-                :icon-trailing="$iconTrailing"
+                :mask="$mask"
+                :mask-dynamic="$maskDynamic"
                 :invalid="$invalid"
                 :disabled="$disabled"
                 :readonly="$readonly"
                 :required="$required ?: null"
                 :autofocus="$autofocus ?: null"
                 class:input="{{ $inputClasses }}"
-                x-bind:value="query"
+                x-model="query"
                 x-on:input="onInput($event)"
                 x-on:focus="onFocus()"
                 x-on:keydown="onKeydown($event)"
                 x-bind:aria-activedescendant="activeId || null"
+                x-bind:type="revealed ? 'text' : '{{ $type }}'"
                 aria-controls="{{ $listboxId }}"
                 aria-autocomplete="list"
                 aria-haspopup="listbox"
@@ -119,22 +151,70 @@
                 role="combobox"
             />
 
-            <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1">
-                @if ($clearable)
-                    <flux:button
-                        type="button"
-                        variant="ghost"
-                        icon="x-mark"
-                        size="xs"
-                        x-cloak
-                        x-show="query.length > 0 && ! disabled && ! readonly"
-                        x-on:click.stop="clear()"
-                        :disabled="$disabled"
-                        aria-label="{{ __('ui.autocomplete.clear') }}"
-                        class="pointer-events-auto"
-                    />
-                @endif
-            </div>
+            @if ($trailingCount > 0)
+                <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1">
+                    @if ($iconTrailing)
+                        @if (is_string($iconTrailing))
+                            <flux:icon :name="$iconTrailing" variant="mini" class="size-5 text-zinc-400/75 dark:text-white/60" />
+                        @else
+                            {{ $iconTrailing }}
+                        @endif
+                    @endif
+
+                    @if ($kbd)
+                        <span data-ui-kbd class="text-xs text-zinc-500 dark:text-zinc-400">{{ $kbd }}</span>
+                    @endif
+
+                    @if ($copyable)
+                        <flux:button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            data-ui-copy
+                            x-on:click.stop="copy()"
+                            x-bind:aria-label="copied ? '{{ __('ui.autocomplete.copied') }}' : '{{ __('ui.autocomplete.copy') }}'"
+                            x-bind:data-copied="copied ? 'true' : null"
+                            aria-label="{{ __('ui.autocomplete.copy') }}"
+                            class="pointer-events-auto [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
+                        >
+                            <flux:icon name="clipboard-document" variant="micro" class="size-4" x-show="! copied" />
+                            <flux:icon name="clipboard-document-check" variant="micro" class="size-4" x-show="copied" x-cloak />
+                        </flux:button>
+                    @endif
+
+                    @if ($viewable)
+                        <flux:button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            data-ui-viewable
+                            x-on:click.stop="toggleReveal()"
+                            x-bind:aria-label="revealed ? '{{ __('ui.autocomplete.hide-password') }}' : '{{ __('ui.autocomplete.show-password') }}'"
+                            x-bind:data-revealed="revealed ? 'true' : null"
+                            aria-label="{{ __('ui.autocomplete.show-password') }}"
+                            class="pointer-events-auto [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11"
+                        >
+                            <flux:icon name="eye" variant="micro" class="size-4" x-show="! revealed" />
+                            <flux:icon name="eye-slash" variant="micro" class="size-4" x-show="revealed" x-cloak />
+                        </flux:button>
+                    @endif
+
+                    @if ($clearable)
+                        <flux:button
+                            type="button"
+                            variant="ghost"
+                            icon="x-mark"
+                            size="xs"
+                            x-cloak
+                            x-show="query.length > 0 && ! disabled && ! readonly"
+                            x-on:click.stop="clear()"
+                            :disabled="$disabled"
+                            aria-label="{{ __('ui.autocomplete.clear') }}"
+                            class="pointer-events-auto"
+                        />
+                    @endif
+                </div>
+            @endif
         </div>
 
         <x-ui.popover

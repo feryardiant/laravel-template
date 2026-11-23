@@ -36,11 +36,15 @@
     </x-ui.file-upload.dropzone>
 
     @if ($previewUrl && $remove)
-        <x-ui.file-upload.item.remove
-            circle
+        <flux:button
+            type="button"
+            square
+            size="xs"
+            variant="ghost"
+            icon="x-mark"
             wire:click="{{ $remove }}"
             :aria-label="__('ui.file-upload.remove')"
-            class="absolute end-0 bottom-0 z-10 border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-800"
+            class="absolute end-0 bottom-0 z-10 rounded-full border border-zinc-200 bg-white shadow-sm [@media(hover:none)]:min-h-11 [@media(hover:none)]:min-w-11 dark:border-white/10 dark:bg-zinc-800"
         />
     @elseif (! $previewUrl)
         <span class="pointer-events-none absolute end-0 bottom-0 rounded-full bg-white p-0.5 dark:bg-zinc-800">

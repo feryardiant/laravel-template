@@ -18,6 +18,7 @@
     'fixedWeeks' => false,
     'withToday' => false,
     'withConfirmation' => false,
+    'withInputs' => false,
     'withPresets' => false,
     'presets' => 'today yesterday thisWeek last7Days thisMonth yearToDate allTime',
     'today' => null,
@@ -73,6 +74,9 @@
         'select' => __('ui.date-picker.select'),
         'selectRange' => __('ui.date-picker.select-range'),
         'presets' => __('ui.date-picker.presets'),
+        'input' => __('ui.date-picker.input'),
+        'inputStart' => __('ui.date-picker.input-start'),
+        'inputEnd' => __('ui.date-picker.input-end'),
         'presetLabels' => [
             'today' => __('ui.date-picker.preset.today'),
             'yesterday' => __('ui.date-picker.preset.yesterday'),
@@ -103,6 +107,7 @@
         'minRange' => $minRange === null ? null : (int) $minRange,
         'maxRange' => $maxRange === null ? null : (int) $maxRange,
         'withConfirmation' => (bool) $withConfirmation,
+        'withInputs' => (bool) $withInputs,
         'withPresets' => (bool) $withPresets,
         'presetKeys' => $presetKeys,
         'today' => \App\View\Value::date($today),
@@ -167,6 +172,71 @@
             />
         @endif
 
+        @if ($withInputs)
+            <div @class(['relative', 'flex flex-col gap-2 sm:flex-row' => $isRange])>
+                <flux:input
+                    id="{{ $triggerId }}"
+                    mask="9999-99-99"
+                    x-model="typedStart"
+                    x-on:focus="$el.select()"
+                    placeholder="YYYY-MM-DD"
+                    :size="$size"
+                    :invalid="$invalid"
+                    :disabled="$disabled"
+                    class:input="{{ $isRange ? 'pe-3' : ($clearable ? 'pe-16' : 'pe-10') }} [@media(hover:none)]:min-h-11"
+                    x-on:click="$el.select(); onTriggerClick()"
+                    x-on:focus="onTriggerFocus()"
+                    x-on:change="applyTypedInputs()"
+                    x-on:keydown="onTriggerKeydown($event)"
+                    aria-controls="{{ $popoverId }}"
+                    aria-haspopup="dialog"
+                    aria-label="{{ $isRange ? $labels['inputStart'] : $accessibleLabel }}"
+                    aria-autocomplete="none"
+                    autocomplete="off"
+                    role="combobox"
+                    data-ui-trigger
+                />
+
+                @if ($isRange)
+                    <flux:input
+                        mask="9999-99-99"
+                        x-model="typedEnd"
+                        x-on:focus="$el.select()"
+                        placeholder="YYYY-MM-DD"
+                        :size="$size"
+                        :invalid="$invalid"
+                        :disabled="$disabled"
+                        class:input="pe-10 [@media(hover:none)]:min-h-11"
+                        x-on:click="$el.select(); onTriggerClick()"
+                        x-on:focus="onTriggerFocus()"
+                        x-on:change="applyTypedInputs()"
+                        x-on:keydown="onTriggerKeydown($event)"
+                        aria-label="{{ $labels['inputEnd'] }}"
+                        autocomplete="off"
+                        data-ui-end-trigger
+                    />
+                @endif
+
+                <div class="pointer-events-none absolute inset-y-0 end-2 flex items-center gap-1">
+                    @if ($clearable)
+                        <flux:button
+                            type="button"
+                            variant="ghost"
+                            icon="x-mark"
+                            size="xs"
+                            x-cloak
+                            x-show="start !== null && ! disabled"
+                            x-on:click.stop="clear()"
+                            aria-label="{{ $labels['clear'] }}"
+                            :disabled="$disabled"
+                            class="pointer-events-auto"
+                        />
+                    @endif
+
+                    <flux:icon name="chevron-down" variant="micro" class="size-4" />
+                </div>
+            </div>
+        @else
         <div class="relative">
             <flux:input
                 id="{{ $triggerId }}"
@@ -209,6 +279,8 @@
                 <flux:icon name="chevron-down" variant="micro" class="size-4" />
             </div>
         </div>
+
+        @endif
 
         <x-ui.popover
             :id="$popoverId"
@@ -281,6 +353,7 @@
                         size="sm"
                         x-bind:disabled="!canConfirm()"
                         x-on:click="confirm()"
+                        data-ui-confirm
                         class="[@media(hover:none)]:min-h-11"
                     >{{ $isRange ? $labels['selectRange'] : $labels['select'] }}</flux:button>
                 </div>
