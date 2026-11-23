@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Audit\ListAuditActors;
-use App\Actions\Audit\ListAuditLogs;
+use App\Actions\AuditLogs\ListAuditActors;
+use App\Actions\AuditLogs\ListAuditLogs;
 use App\Enums\AuditEvent;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\AuditLog;

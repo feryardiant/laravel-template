@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Enums\AuditEvent;
 use App\Models\Organization;
 use App\Models\OrganizationRelationshipPeriod;

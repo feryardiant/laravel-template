@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Casts\AsAuditPayload;
 use App\Enums\AuditEvent;
 use Illuminate\Database\Eloquent\Attributes\Fillable;

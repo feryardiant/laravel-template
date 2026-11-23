@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Approvals\Audit;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Enums\ApprovalRequestType;
 
 final class ApprovalPayload extends AuditPayload

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Casts;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Models\AuditLog;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;

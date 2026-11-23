@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts\Audit;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 
 final class ContactDeletedPayload extends AuditPayload
 {

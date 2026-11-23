@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Approvals\Audit\ApprovalPayload;
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Actions\Contacts\Audit\ContactDeletedPayload;
 use App\Actions\Contacts\Audit\ContactRelationPayload;
 use App\Actions\Contacts\Audit\ContactUpdatedPayload;

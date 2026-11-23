@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Actions\Audit\ListAuditActors;
-use App\Actions\Audit\ListAuditLogs;
+use App\Actions\AuditLogs\ListAuditActors;
+use App\Actions\AuditLogs\ListAuditLogs;
 use App\Enums\AuditEvent;
 use App\Models\AuditLog;
 use App\Models\Organization;

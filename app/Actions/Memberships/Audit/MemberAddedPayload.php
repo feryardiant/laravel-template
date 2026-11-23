@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships\Audit;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Enums\Role;
 
 final class MemberAddedPayload extends AuditPayload
