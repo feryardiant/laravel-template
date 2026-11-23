@@ -18,6 +18,13 @@ class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
 
+    public function __construct(
+        private CreateUser $createUser,
+        private ProvisionPublicTenant $provisionPublicTenant,
+    ) {
+        // .
+    }
+
     /**
      * Validate and create a newly registered user.
      *
@@ -35,13 +42,13 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         return DB::transaction(function () use ($input): User {
-            $user = app(CreateUser::class)->handle(
+            $user = $this->createUser->handle(
                 (string) $input['name'],
                 (string) $input['email'],
                 (string) $input['password'],
             );
 
-            app(ProvisionPublicTenant::class)->handle($user);
+            $this->provisionPublicTenant->handle($user);
 
             session()->flash('status', __('Your username is :handle. Use it to log in.', [
                 'handle' => $user->handle,

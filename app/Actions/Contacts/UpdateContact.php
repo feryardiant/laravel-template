@@ -7,7 +7,6 @@ namespace App\Actions\Contacts;
 use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Concerns\ToManageEntities;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Events\Contacts\ContactUpdated;
@@ -25,14 +24,13 @@ use Throwable;
 
 final class UpdateContact
 {
-    use ToManageEntities;
-
     public function __construct(
         private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
         private FindContact $findContact,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
+        private EnsureExternalRole $ensureExternalRole,
     ) {
         // .
     }
@@ -60,7 +58,7 @@ final class UpdateContact
         abort_if($stakeholder === null, 404);
 
         $role = \array_key_exists('role', $data)
-            ? $this->ensureExternalRole($data['role'])
+            ? $this->ensureExternalRole->handle($data['role'])
             : ($contact->type instanceof OrganizationRelationshipType ? $contact->type : OrganizationRelationshipType::Customer);
         $locked = $contact->profileLockedFor($tenant);
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';

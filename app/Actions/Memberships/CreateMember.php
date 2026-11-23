@@ -6,8 +6,8 @@ namespace App\Actions\Memberships;
 
 use App\Actions\Addresses\SaveAddress;
 use App\Actions\Contacts\SaveContactDetails;
+use App\Actions\People\CreatePerson;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Concerns\ToManageEntities;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
@@ -25,12 +25,11 @@ use InvalidArgumentException;
 
 final class CreateMember
 {
-    use ToManageEntities;
-
     public function __construct(
         private SaveAddress $saveAddress,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
+        private CreatePerson $createPerson,
     ) {
         // .
     }
@@ -58,7 +57,7 @@ final class CreateMember
         $user = null;
 
         $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, $actor, $address, $contactEmail, $contactPhone, &$user): Person {
-            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl, owner: $organization);
+            $person = $this->createPerson->handle($name, email: $email, photoPath: $photoUrl, owner: $organization);
             $user = $person->user;
 
             $this->saveAddress->handle($person, $address);
