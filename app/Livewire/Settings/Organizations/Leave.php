@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Approvals\CancelApprovalRequest;
-use App\Actions\Approvals\MembershipLeave;
-use App\Actions\Memberships\LeaveOrganization;
+use App\Actions\Approvals\FindApprovalRequest;
+use App\Actions\Memberships\LeaveWorkspace;
+use App\Actions\Organizations\FindUserOrganization;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\ApprovalRequest;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use InvalidArgumentException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -60,11 +59,7 @@ class Leave extends Component
 
         abort_unless($user instanceof User && $user->person !== null, 403);
 
-        $approval = ApprovalRequest::query()
-            ->whereKey($approvalId)
-            ->where('type', ApprovalRequestType::MembershipLeave)
-            ->where('requester_person_id', $user->person->getKey())
-            ->first();
+        $approval = app(FindApprovalRequest::class)->forRequester($user, $approvalId, ApprovalRequestType::MembershipLeave);
 
         abort_if($approval === null, 404);
 
@@ -78,47 +73,38 @@ class Leave extends Component
     /**
      * Leave the selected organization, or request approval when an admin.
      */
-    public function leave(LeaveOrganization $leaveOrganization, MembershipLeave $leaveMembership): void
+    public function leave(LeaveWorkspace $leaveWorkspace): void
     {
         /** @var User|null $user */
         $user = Auth::user();
 
         abort_if($this->organizationId === null || ! $user instanceof User, 404);
 
-        $organization = $user->organizations()->firstWhere('id', $this->organizationId);
+        $organization = app(FindUserOrganization::class)->handle($user, $this->organizationId);
+        $wasCurrent = $this->currentOrganization()?->is($organization) === true;
+        $result = $leaveWorkspace->handle($organization, $user);
 
-        abort_if($organization === null, 404);
+        $this->reset('showModal', 'organizationId', 'organizationName', 'needsApproval');
 
-        if ($user->roleIn($organization)?->isAdmin() === true) {
-            try {
-                $leaveMembership->request($organization, $user);
-            } catch (InvalidArgumentException) {
-                $this->reset('showModal', 'organizationId', 'organizationName', 'needsApproval');
+        if ($result === 'pending') {
+            Flux::toast(variant: 'danger', text: __('You already have a pending leave request.'));
 
-                Flux::toast(variant: 'danger', text: __('You already have a pending leave request.'));
+            return;
+        }
 
-                return;
-            }
+        if ($result === 'last_owner') {
+            Flux::toast(variant: 'danger', text: __('You cannot leave while you are the last owner.'));
 
-            $this->reset('showModal', 'organizationId', 'organizationName', 'needsApproval');
+            return;
+        }
+
+        if ($result === 'requested') {
             $this->dispatch('memberships-changed');
 
             Flux::toast(variant: 'success', text: __('Leave request sent. An owner must approve it.'));
 
             return;
         }
-
-        $wasCurrent = $this->currentOrganization()?->is($organization) === true;
-
-        if (! $leaveOrganization->handle($user, $organization)) {
-            Flux::toast(variant: 'danger', text: __('You cannot leave while you are the last owner.'));
-
-            $this->reset('showModal', 'organizationId', 'organizationName', 'needsApproval');
-
-            return;
-        }
-
-        $this->reset('showModal', 'organizationId', 'organizationName', 'needsApproval');
 
         if (! $wasCurrent) {
             $this->dispatch('memberships-changed');

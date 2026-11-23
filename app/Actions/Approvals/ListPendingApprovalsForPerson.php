@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Approvals;
+
+use App\Models\ApprovalRequest;
+use App\Models\Person;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+
+final class ListPendingApprovalsForPerson
+{
+    /**
+     * List the pending, unexpired approvals involving the person.
+     *
+     * @return Collection<int, ApprovalRequest>
+     */
+    public function handle(Person $person): Collection
+    {
+        return ApprovalRequest::query()
+            ->pending()
+            ->where('expires_at', '>', now())
+            ->where(fn (Builder $query): Builder => $query
+                ->where('requester_person_id', $person->getKey())
+                ->orWhere('approver_person_id', $person->getKey()))
+            ->with('requester')
+            ->get();
+    }
+}

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings\General;
 
 use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\FindApprovalRequest;
+use App\Actions\Approvals\ListOwnershipTransferCandidates;
 use App\Actions\Approvals\OwnershipTransfer;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -12,9 +14,8 @@ use App\Models\ApprovalRequest;
 use App\Models\Person;
 use App\Models\User;
 use Flux\Flux;
-use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
@@ -43,24 +44,13 @@ class TransferOwnership extends Component
     public function members(): Collection
     {
         $organization = $this->currentOrganization();
-        $owner = Auth::user()?->person?->getKey();
+        $owner = Auth::user()?->person;
 
         if ($organization === null || $owner === null) {
             return new Collection;
         }
 
-        $today = now()->toDateString();
-
-        return $organization->members()
-            ->whereHas('user')
-            ->whereKeyNot($owner)
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.start_date')
-                ->orWhere('organization_relationships.start_date', '<=', $today))
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.finish_date')
-                ->orWhere('organization_relationships.finish_date', '>=', $today))
-            ->with('user')
-            ->orderBy('people.name')
-            ->get();
+        return app(ListOwnershipTransferCandidates::class)->handle($organization, $owner);
     }
 
     /**
@@ -77,12 +67,7 @@ class TransferOwnership extends Component
 
         $this->authorize('transferOwnership', $organization);
 
-        return ApprovalRequest::query()
-            ->pending()
-            ->where('organization_id', $organization->getKey())
-            ->where('expires_at', '>', now())
-            ->with(['requester', 'approver'])
-            ->first();
+        return app(FindApprovalRequest::class)->pendingForOrganization($organization);
     }
 
     /**

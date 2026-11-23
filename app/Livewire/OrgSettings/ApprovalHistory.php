@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
+use App\Actions\Approvals\ListApprovals;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
 use Illuminate\Contracts\View\View;
@@ -33,13 +34,11 @@ class ApprovalHistory extends Component
     #[Computed]
     public function approvals(): Collection
     {
-        $this->authorize('viewApprovals', $this->requireOrganization());
+        $organization = $this->requireOrganization();
 
-        return ApprovalRequest::query()
-            ->where('organization_id', $this->requireOrganization()->getKey())
-            ->with(['requester', 'approver'])
-            ->latest()
-            ->get();
+        $this->authorize('viewApprovals', $organization);
+
+        return app(ListApprovals::class)->handle($organization);
     }
 
     public function render(): View
