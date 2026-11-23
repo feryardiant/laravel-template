@@ -9,6 +9,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\AuditLog;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\DateRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -43,7 +44,7 @@ class Audit extends Component
 
         $this->authorize('viewAudit', $this->requireOrganization());
 
-        $this->range = $this->defaultRange();
+        $this->range = DateRange::defaultWeek($this->timezone());
     }
 
     /**
@@ -81,7 +82,7 @@ class Audit extends Component
      */
     public function updatedRange(): void
     {
-        $this->range = $this->normalizeRange($this->range);
+        $this->range = DateRange::normalize($this->range, $this->timezone());
 
         unset($this->logs);
 
@@ -98,7 +99,7 @@ class Audit extends Component
     {
         $this->authorize('viewAudit', $this->requireOrganization());
 
-        $timezone = $this->userTimezone();
+        $timezone = $this->timezone();
         $start = $this->range['start'] ?? null;
         $end = $this->range['end'] ?? null;
 
@@ -154,59 +155,15 @@ class Audit extends Component
         /** @disregard P1013 */
         return view('livewire.org-settings.audit', [
             'events' => AuditEvent::cases(),
-            'today' => CarbonImmutable::now($this->userTimezone())->toDateString(),
-            'timezone' => $this->userTimezone(),
+            'today' => CarbonImmutable::now($this->timezone())->toDateString(),
+            'timezone' => $this->timezone(),
         ])->title(__('Audit log'));
     }
 
-    /**
-     * @return array{start: string, end: string}
-     */
-    private function defaultRange(): array
-    {
-        $today = CarbonImmutable::now($this->userTimezone());
-
-        return [
-            'start' => $today->startOfWeek(CarbonImmutable::SUNDAY)->toDateString(),
-            'end' => $today->endOfWeek(CarbonImmutable::SATURDAY)->toDateString(),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $range
-     * @return array{start: string, end: string}
-     */
-    private function normalizeRange(array $range): array
-    {
-        $start = $this->dateKey($range['start'] ?? null);
-        $end = $this->dateKey($range['end'] ?? null);
-
-        if ($start === null || $end === null) {
-            return $this->defaultRange();
-        }
-
-        if ($start > $end) {
-            [$start, $end] = [$end, $start];
-        }
-
-        return ['start' => $start, 'end' => $end];
-    }
-
-    private function dateKey(mixed $value): ?string
-    {
-        if (! \is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
-            return null;
-        }
-
-        [$year, $month, $day] = array_map('intval', explode('-', $value));
-
-        return checkdate($month, $day, $year) ? $value : null;
-    }
-
-    private function userTimezone(): string
+    private function timezone(): string
     {
         $user = Auth::user();
 
-        return $user instanceof User && $user->timezone !== null ? $user->timezone : 'UTC';
+        return $user instanceof User ? $user->timezoneOrDefault() : 'UTC';
     }
 }

@@ -137,6 +137,14 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
+     * Get the user's timezone, falling back to UTC.
+     */
+    public function timezoneOrDefault(): string
+    {
+        return $this->timezone ?? 'UTC';
+    }
+
+    /**
      * Resolve the person without caching a missing relation.
      */
     private function resolvedPerson(): ?Person
