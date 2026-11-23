@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\FindMember;
+use App\Actions\Memberships\ListMembers;
 use App\Actions\Memberships\RemoveMember;
+use App\Actions\Memberships\ResendMemberVerification;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
-use App\Notifications\VerifyEmailForNewUser;
 use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -99,21 +100,19 @@ class Index extends Component
     /**
      * Resend the verification email to the given member.
      */
-    public function resendVerification(int $personId): void
+    public function resendVerification(int $personId, ResendMemberVerification $resendVerification): void
     {
         $organization = $this->requireOrganization();
 
-        $person = $organization->members()->whereKey($personId)->firstOrFail();
+        $person = app(FindMember::class)->inOrganization($organization, $personId, ['user']);
 
         $this->authorize('manageMember', [$person, $organization]);
 
-        abort_if($person->user === null || $person->user->hasVerifiedEmail(), 422);
-
-        $person->user->notify(new VerifyEmailForNewUser);
+        $person = $resendVerification->handle($organization, $personId);
 
         Flux::toast(
             variant: 'success',
-            text: __('Verification email resent to :email.', ['email' => $person->user->email]),
+            text: __('Verification email resent to :email.', ['email' => $person->user?->email]),
         );
     }
 
@@ -186,7 +185,7 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $person = $organization->members()->whereKey($personId)->firstOrFail();
+        $person = app(FindMember::class)->inOrganization($organization, $personId);
 
         $this->authorize('removeMember', [$person, $organization]);
 
@@ -208,17 +207,21 @@ class Index extends Component
     #[Computed]
     public function deletingPerson(): ?Person
     {
-        return $this->deletingPersonId === null
+        $organization = $this->currentOrganization();
+
+        return $this->deletingPersonId === null || $organization === null
             ? null
-            : $this->currentOrganization()?->members()->whereKey($this->deletingPersonId)->first();
+            : app(FindMember::class)->findInOrganization($organization, $this->deletingPersonId);
     }
 
     #[Computed]
     public function roleChangePerson(): ?Person
     {
-        return $this->roleChangePersonId === null
+        $organization = $this->currentOrganization();
+
+        return $this->roleChangePersonId === null || $organization === null
             ? null
-            : $this->currentOrganization()?->members()->whereKey($this->roleChangePersonId)->first();
+            : app(FindMember::class)->findInOrganization($organization, $this->roleChangePersonId);
     }
 
     #[Computed]
@@ -290,7 +293,7 @@ class Index extends Component
         $pageIds = $this->members->pluck('id')->all();
         $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
 
-        $persons = $organization->members()->whereKey($selected)->get();
+        $persons = app(FindMember::class)->manyInOrganization($organization, $selected);
 
         foreach ($persons as $person) {
             $this->authorize('removeMember', [$person, $organization]);
@@ -347,17 +350,7 @@ class Index extends Component
             return new LengthAwarePaginator([], 0, 10);
         }
 
-        $term = trim($this->search);
-
-        return $organization->members()
-            ->with('user')
-            ->when($term !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($term): void {
-                $query->whereLike('people.name', "%{$term}%")
-                    ->orWhereHas('user', fn (Builder $query): Builder => $query->whereLike('users.email', "%{$term}%"));
-            }))
-            ->orderBy('organization_relationships.start_date', $this->sortDirection)
-            ->orderBy('people.id')
-            ->paginate(10);
+        return app(ListMembers::class)->handle($organization, $this->search, $this->sortDirection);
     }
 
     /**

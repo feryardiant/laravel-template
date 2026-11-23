@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
+use App\Actions\Memberships\FindMember;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -37,9 +38,7 @@ class View extends Component
     {
         $organization = $this->requireOrganization();
 
-        abort_unless($organization->members()->whereKey($person->getKey())->exists(), 404);
-
-        $this->person = $person->loadMissing('user');
+        $this->person = app(FindMember::class)->inOrganization($organization, $person->getKey(), ['user']);
     }
 
     public function openEdit(): void
@@ -131,25 +130,22 @@ class View extends Component
         $organization = $this->requireOrganization();
 
         // mount() only runs once; a later request must not render a removed member.
-        abort_unless($organization->members()->whereKey($this->person->getKey())->exists(), 404);
+        $member = app(FindMember::class)->inOrganization($organization, $this->person->getKey());
 
-        $role = $this->person->roleIn($organization);
-        $canManage = Gate::allows('manageMember', [$this->person, $organization])
-            && $this->person->user_id !== Auth::id();
+        $role = $member->roleIn($organization);
+        $canManage = Gate::allows('manageMember', [$member, $organization])
+            && $member->user_id !== Auth::id();
 
-        $joinedAt = $this->currentOrganization()
-            ?->members()
-            ->whereKey($this->person->getKey())
-            ->first()
-            ?->pivot->start_date ?? $this->person->created_at;
+        $joinedAt = $member->pivot->start_date ?? $member->created_at;
 
         /** @disregard P1013 */
         return view('livewire.members.view', [
+            'person' => $member,
             'organization' => $organization,
             'role' => $role,
             'joinedAt' => $joinedAt,
-            'contactEmail' => $this->person->contactDetailValue(ContactDetailType::Email),
-            'contactPhone' => $this->person->contactDetailValue(ContactDetailType::Phone),
+            'contactEmail' => $member->contactDetailValue(ContactDetailType::Email),
+            'contactPhone' => $member->contactDetailValue(ContactDetailType::Phone),
             'canManage' => $canManage,
         ])->title(__('Member profile'));
     }
