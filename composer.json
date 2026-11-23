@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "feryardiant/laravel-template",
     "type": "project",
-    "description": "Laravel Application Template.",
+    "description": "A Laravel 13 starter for a multi-tenant organization and contact manager.",
     "keywords": [],
     "license": "MIT",
     "require": {
