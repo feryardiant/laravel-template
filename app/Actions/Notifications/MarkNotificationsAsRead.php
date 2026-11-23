@@ -23,4 +23,12 @@ final class MarkNotificationsAsRead
             ->whereIn('id', $ids)
             ->update(['read_at' => $asRead ? now() : null]);
     }
+
+    /**
+     * Mark one notification as read, keeping an existing timestamp.
+     */
+    public function markOne(User $user, string $id): void
+    {
+        $user->notifications()->whereKey($id)->first()?->markAsRead();
+    }
 }

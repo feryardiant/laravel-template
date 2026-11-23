@@ -68,7 +68,7 @@ class Index extends Component
             return;
         }
 
-        app(MarkNotificationsAsRead::class)->handle($user, [$id], true);
+        app(MarkNotificationsAsRead::class)->markOne($user, $id);
 
         $this->selectedNotificationId = $id;
         $this->showNotificationModal = true;

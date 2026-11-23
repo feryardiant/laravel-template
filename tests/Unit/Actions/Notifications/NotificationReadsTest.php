@@ -37,3 +37,18 @@ it('lists, finds, and marks notifications', function () {
     expect(app(MarkNotificationsAsRead::class)->handle($user, [$new->getKey()], true))->toBe(1)
         ->and($new->fresh()->read_at)->not->toBeNull();
 });
+
+it('keeps an existing read timestamp when opening', function () {
+    $user = User::factory()->create();
+    $notification = $user->notifications()->create([
+        'id' => (string) Str::uuid(),
+        'type' => 'test',
+        'data' => [],
+        'read_at' => now()->subHour(),
+    ]);
+    $before = $notification->read_at?->toISOString();
+
+    app(MarkNotificationsAsRead::class)->markOne($user, $notification->getKey());
+
+    expect($notification->fresh()->read_at?->toISOString())->toBe($before);
+});
