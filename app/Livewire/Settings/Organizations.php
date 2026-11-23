@@ -5,20 +5,15 @@ declare(strict_types=1);
 namespace App\Livewire\Settings;
 
 use App\Actions\Memberships\SetDefaultOrganization;
-use App\Enums\OrganizationRelationshipType;
-use App\Enums\Role;
-use App\Enums\SubsidiaryKind;
+use App\Actions\Organizations\FindUserOrganization;
+use App\Actions\Organizations\ListUserMemberships;
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\ApprovalRequest;
-use App\Models\Organization;
-use App\Models\OrganizationRelationship;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -37,7 +32,7 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $organization = Organization::query()->findOrFail($organizationId);
+        $organization = app(FindUserOrganization::class)->handle($user, $organizationId);
 
         $this->authorize('update', $organization);
 
@@ -56,9 +51,8 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $organization = $user->organizations()->firstWhere('id', $organizationId);
+        $organization = app(FindUserOrganization::class)->handle($user, $organizationId);
 
-        abort_if($organization === null, 404);
         abort_unless($setDefault->handle($user, $organization), 404);
 
         unset($this->memberships);
@@ -69,65 +63,17 @@ class Organizations extends Component
     /**
      * The organizations the user belongs to, with their role and options.
      *
-     * @return Collection<int, array{organization: Organization, role: ?Role, isCurrent: bool, canManage: bool, isLastOwner: bool, isDefault: bool, parent: ?Organization, kind: ?SubsidiaryKind, pendingApproval: ?ApprovalRequest, pendingRequest: ?ApprovalRequest}>
+     * @return Collection<int, array<string, mixed>>
      */
     #[Computed]
     public function memberships(): Collection
     {
         /** @var User|null $user */
         $user = Auth::user();
-        $current = $this->currentOrganization();
-        $defaultId = $user?->defaultOrganization()?->getKey();
 
-        $organizations = $user instanceof User ? $user->organizations() : collect();
-
-        $parents = $organizations->isEmpty()
-            ? collect()
-            : OrganizationRelationship::query()
-                ->with('organization')
-                ->where('type', OrganizationRelationshipType::Subsidiary)
-                ->where('stakeholder_type', (new Organization)->getMorphClass())
-                ->whereIn('stakeholder_id', $organizations->pluck('id')->all())
-                ->get()
-                ->keyBy('stakeholder_id');
-
-        $personId = $user?->person?->getKey();
-
-        $approvals = $personId === null
-            ? collect()
-            : ApprovalRequest::query()
-                ->pending()
-                ->where('expires_at', '>', now())
-                ->where(fn ($query) => $query
-                    ->where('requester_person_id', $personId)
-                    ->orWhere('approver_person_id', $personId))
-                ->with('requester')
-                ->get();
-
-        $asApprover = $approvals->where('approver_person_id', $personId)->keyBy('organization_id');
-        $asRequester = $approvals->where('requester_person_id', $personId)->keyBy('organization_id');
-
-        return $organizations->map(function (Organization $organization) use ($user, $current, $defaultId, $parents, $asApprover, $asRequester): array {
-            $role = $user?->roleIn($organization);
-            $parent = $parents->get($organization->getKey());
-            $approval = $asApprover->get($organization->getKey());
-            $request = $asRequester->get($organization->getKey());
-
-            return [
-                'organization' => $organization,
-                'role' => $role,
-                'isCurrent' => $current?->is($organization) === true,
-                'canManage' => Gate::allows('update', $organization),
-                'isLastOwner' => $role?->isOwner() === true && $organization->activeOwnerCount() === 1,
-                'isDefault' => $defaultId !== null && $defaultId === $organization->getKey(),
-                'parent' => $parent instanceof OrganizationRelationship ? $parent->organization : null,
-                'kind' => $parent instanceof OrganizationRelationship
-                    ? ($parent->kind ?? SubsidiaryKind::Subsidiary)
-                    : null,
-                'pendingApproval' => $approval instanceof ApprovalRequest ? $approval : null,
-                'pendingRequest' => $request instanceof ApprovalRequest ? $request : null,
-            ];
-        });
+        return $user instanceof User
+            ? app(ListUserMemberships::class)->handle($user, $this->currentOrganization())
+            : collect();
     }
 
     #[On('organization-created')]

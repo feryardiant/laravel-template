@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Organizations\CreateOrganization;
-use App\Actions\Organizations\ListSubsidiaries;
+use App\Actions\Organizations\ListCreatableParents;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\SubsidiaryKind;
 use App\Models\Organization;
@@ -16,7 +16,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -153,22 +152,9 @@ class Create extends Component
     {
         $user = Auth::user();
 
-        if (! $user instanceof User) {
-            return collect();
-        }
-
-        if ($this->internal) {
-            $root = Organization::query()->rootTenant()->first();
-
-            return $root === null
-                ? collect()
-                : app(ListSubsidiaries::class)->handle($root)->pluck('organization');
-        }
-
-        return $user->organizations()
-            ->filter(fn (Organization $organization): bool => Gate::forUser($user)->allows('createSubsidiary', $organization))
-            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
-            ->values();
+        return $user instanceof User
+            ? app(ListCreatableParents::class)->handle($user, $this->internal)
+            : collect();
     }
 
     /**
