@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
+use App\Actions\Audit\ListAuditActors;
+use App\Actions\Audit\ListAuditLogs;
 use App\Enums\AuditEvent;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\AuditLog;
@@ -12,8 +14,8 @@ use App\Models\User;
 use App\Support\DateRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -97,27 +99,16 @@ class Audit extends Component
     #[Computed]
     public function logs(): LengthAwarePaginator
     {
-        $this->authorize('viewAudit', $this->requireOrganization());
+        $organization = $this->requireOrganization();
 
-        $timezone = $this->timezone();
-        $start = $this->range['start'] ?? null;
-        $end = $this->range['end'] ?? null;
+        $this->authorize('viewAudit', $organization);
 
-        $query = AuditLog::query()
-            ->where('organization_id', $this->requireOrganization()->getKey())
-            ->with(['actor.person', 'subject'])
-            ->when($this->event !== null, fn ($query) => $query->where('event', $this->event))
-            ->when($this->actor !== null, fn ($query) => $query->where('actor_id', $this->actor));
-
-        if ($start !== null) {
-            $query->where('created_at', '>=', CarbonImmutable::parse($start, $timezone)->startOfDay()->utc());
-        }
-
-        if ($end !== null) {
-            $query->where('created_at', '<=', CarbonImmutable::parse($end, $timezone)->endOfDay()->utc());
-        }
-
-        return $query->latest('id')->paginate(20);
+        return app(ListAuditLogs::class)->handle($organization, [
+            'event' => $this->event,
+            'actor' => $this->actor,
+            'start' => $this->range['start'] ?? null,
+            'end' => $this->range['end'] ?? null,
+        ], $this->timezone());
     }
 
     /**
@@ -129,25 +120,11 @@ class Audit extends Component
     public function actors(): Collection
     {
         $current = Auth::user();
-        $currentId = $current instanceof User ? (int) $current->getKey() : null;
 
-        $members = $this->requireOrganization()->members()
-            ->with('user')
-            ->whereNotNull('people.user_id')
-            ->orderBy('people.name')
-            ->get();
-
-        $currentPerson = $current instanceof User ? $current->person : null;
-
-        if ($currentPerson instanceof Person
-            && ! $members->contains(fn (Person $member): bool => $member->user_id === $currentId)) {
-            $currentPerson->loadMissing('user');
-            $members->push($currentPerson);
-        }
-
-        return $members
-            ->sortBy(fn (Person $member): int => $member->user_id === $currentId ? 0 : 1)
-            ->values();
+        return app(ListAuditActors::class)->handle(
+            $this->requireOrganization(),
+            $current instanceof User ? $current : null,
+        );
     }
 
     public function render(): View
