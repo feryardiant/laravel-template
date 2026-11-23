@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Profile;
 
 use App\Actions\Users\DeleteUser;
+use App\Actions\Users\Logout;
 use App\Concerns\PasswordValidationRules;
-use App\Livewire\Actions\Logout;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
