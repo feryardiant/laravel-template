@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Actions\Contacts\CountExpiringContacts;
+use App\Actions\Contacts\CountNewContacts;
+use App\Actions\Contacts\ListExpiringContacts;
+use App\Actions\Memberships\CountNewMembers;
+use App\Actions\Memberships\ListRecentMembers;
+use App\Actions\Notifications\CountUnreadNotifications;
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\DateRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -61,7 +63,7 @@ class Dashboard extends Component
     #[Computed]
     public function newMembers(): int
     {
-        return $this->membershipQuery()->count();
+        return app(CountNewMembers::class)->handle($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -70,7 +72,7 @@ class Dashboard extends Component
     #[Computed]
     public function newContacts(): int
     {
-        return $this->contactQuery()->count();
+        return app(CountNewContacts::class)->handle($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -79,7 +81,7 @@ class Dashboard extends Component
     #[Computed]
     public function expiringCount(): int
     {
-        return $this->expiringQuery()->count();
+        return app(CountExpiringContacts::class)->handle($this->requireOrganization(), $this->range);
     }
 
     #[Computed]
@@ -91,12 +93,7 @@ class Dashboard extends Component
             return 0;
         }
 
-        $timezone = $this->timezone();
-
-        return $user->unreadNotifications()
-            ->where('created_at', '>=', CarbonImmutable::parse($this->range['start'], $timezone)->startOfDay()->utc())
-            ->where('created_at', '<=', CarbonImmutable::parse($this->range['end'], $timezone)->endOfDay()->utc())
-            ->count();
+        return app(CountUnreadNotifications::class)->handle($user, $this->range, $this->timezone());
     }
 
     /**
@@ -105,11 +102,7 @@ class Dashboard extends Component
     #[Computed]
     public function expiringContacts(): Collection
     {
-        return $this->expiringQuery()
-            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()])
-            ->orderBy('finish_date')
-            ->limit(5)
-            ->get();
+        return app(ListExpiringContacts::class)->handle($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -118,11 +111,7 @@ class Dashboard extends Component
     #[Computed]
     public function recentMembers(): Collection
     {
-        return $this->membershipQuery()
-            ->with('user')
-            ->orderByDesc('organization_relationships.start_date')
-            ->limit(5)
-            ->get();
+        return app(ListRecentMembers::class)->handle($this->requireOrganization(), $this->range);
     }
 
     public function render(): View
@@ -135,48 +124,6 @@ class Dashboard extends Component
             'today' => CarbonImmutable::now($timezone)->toDateString(),
             'timezone' => $timezone,
         ])->title(__('Home'));
-    }
-
-    /**
-     * @return MorphToMany<Person, Organization, OrganizationRelationship>
-     */
-    private function membershipQuery(): MorphToMany
-    {
-        return $this->requireOrganization()
-            ->members()
-            ->whereDate('organization_relationships.start_date', '>=', $this->range['start'])
-            ->whereDate('organization_relationships.start_date', '<=', $this->range['end'])
-            ->where(fn ($query) => $query
-                ->whereNull('organization_relationships.finish_date')
-                ->orWhereDate('organization_relationships.finish_date', '>=', today()));
-    }
-
-    /**
-     * @return Builder<OrganizationRelationship>
-     */
-    private function contactQuery(): Builder
-    {
-        return OrganizationRelationship::query()
-            ->forOrganization($this->requireOrganization())
-            ->external()
-            ->whereDate('start_date', '>=', $this->range['start'])
-            ->whereDate('start_date', '<=', $this->range['end']);
-    }
-
-    /**
-     * @return Builder<OrganizationRelationship>
-     */
-    private function expiringQuery(): Builder
-    {
-        return OrganizationRelationship::query()
-            ->forOrganization($this->requireOrganization())
-            ->external()
-            ->notExpired()
-            ->whereDate('finish_date', '>=', $this->range['start'])
-            ->whereDate('finish_date', '<=', $this->range['end'])
-            ->where(fn ($query) => $query
-                ->whereNull('start_date')
-                ->orWhereDate('start_date', '<=', today()));
     }
 
     private function timezone(): string
