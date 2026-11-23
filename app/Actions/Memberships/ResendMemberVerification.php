@@ -7,6 +7,7 @@ namespace App\Actions\Memberships;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Notifications\VerifyEmailForNewUser;
+use Illuminate\Validation\ValidationException;
 
 final class ResendMemberVerification
 {
@@ -23,7 +24,11 @@ final class ResendMemberVerification
     {
         $person = $this->findMember->inOrganization($organization, $personId, ['user']);
 
-        abort_if($person->user === null || $person->user->hasVerifiedEmail(), 422);
+        if ($person->user === null || $person->user->hasVerifiedEmail()) {
+            throw ValidationException::withMessages([
+                'member' => __('Unable to resend the verification email.'),
+            ]);
+        }
 
         $person->user->notify(new VerifyEmailForNewUser);
 

@@ -11,6 +11,7 @@ use App\Events\Contacts\ContactDeleted;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 final class DeleteContact
@@ -37,7 +38,9 @@ final class DeleteContact
         $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
-        abort_if($stakeholder === null, 404);
+        if ($stakeholder === null) {
+            throw (new ModelNotFoundException)->setModel(OrganizationRelationship::class);
+        }
 
         $paths = [];
 

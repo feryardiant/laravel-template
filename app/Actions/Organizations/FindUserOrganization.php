@@ -6,6 +6,7 @@ namespace App\Actions\Organizations;
 
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class FindUserOrganization
 {
@@ -24,7 +25,9 @@ final class FindUserOrganization
     {
         $organization = $this->find($user, $organizationId);
 
-        abort_if($organization === null, 404);
+        if ($organization === null) {
+            throw (new ModelNotFoundException)->setModel(Organization::class);
+        }
 
         return $organization;
     }

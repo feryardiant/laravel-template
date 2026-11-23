@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -31,7 +31,7 @@ it('rejects a member whose email is already verified', function () {
     $user = User::factory()->asMemberOf($organization)->create();
 
     expect(fn () => app(ResendMemberVerification::class)->handle($organization, $user->person->getKey()))
-        ->toThrow(HttpException::class);
+        ->toThrow(ValidationException::class);
 });
 
 it('rejects a member without a credential', function () {
@@ -40,5 +40,5 @@ it('rejects a member without a credential', function () {
     app(CreateMember::class)->attach($organization, $person, startDate: now(), role: Role::Member);
 
     expect(fn () => app(ResendMemberVerification::class)->handle($organization, $person->getKey()))
-        ->toThrow(HttpException::class);
+        ->toThrow(ValidationException::class);
 });

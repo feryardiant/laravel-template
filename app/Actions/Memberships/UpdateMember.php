@@ -14,6 +14,8 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -71,14 +73,15 @@ final class UpdateMember
         $canEditProfile = $data['can_edit_profile'];
 
         if (! $canEditProfile) {
-            abort_if($data['name'] !== $expected['name'], 403);
-            abort_if($data['create_credential'], 403);
-            abort_if($photo instanceof UploadedFile, 403);
-
-            if ($expected['has_credential'] && $person->user !== null
+            $credentialEmailChanged = $expected['has_credential'] && $person->user !== null
                 && Str::lower($person->user->email) !== $data['email']
-                && $data['email'] !== $expected['email']) {
-                abort(403);
+                && $data['email'] !== $expected['email'];
+
+            if ($data['name'] !== $expected['name']
+                || $data['create_credential']
+                || $photo instanceof UploadedFile
+                || $credentialEmailChanged) {
+                throw new AuthorizationException;
             }
         }
 
@@ -105,8 +108,9 @@ final class UpdateMember
         // would hand them the account.
         if ($canEditProfile && $expected['has_credential'] && $person->user !== null
             && Str::lower($person->user->email) !== $data['email']
-            && $data['email'] !== $expected['email']) {
-            abort_if($person->organizations()->whereKeyNot($organization->getKey())->exists(), 403);
+            && $data['email'] !== $expected['email']
+            && $person->organizations()->whereKeyNot($organization->getKey())->exists()) {
+            throw new AuthorizationException;
         }
 
         $previousPhoto = $person->getRawOriginal('photo_url');
@@ -157,7 +161,9 @@ final class UpdateMember
                     if ($data['email'] !== $expected['email']) {
                         $user = $person->user;
 
-                        abort_if($user === null, 404);
+                        if ($user === null) {
+                            throw (new ModelNotFoundException)->setModel(User::class);
+                        }
 
                         $emailChanged = $user->email !== $data['email'];
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 use App\Actions\Organizations\FindUserOrganization;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -24,5 +24,5 @@ it('rejects an organization the user does not belong to', function () {
     $user = User::factory()->withProfile()->create();
 
     expect(fn () => app(FindUserOrganization::class)->handle($user, $organization->getKey()))
-        ->toThrow(HttpException::class);
+        ->toThrow(ModelNotFoundException::class);
 });

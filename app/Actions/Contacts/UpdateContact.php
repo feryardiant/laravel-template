@@ -16,6 +16,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -55,7 +56,9 @@ final class UpdateContact
         $contact = $this->findContact->byId($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
-        abort_if($stakeholder === null, 404);
+        if ($stakeholder === null) {
+            throw (new ModelNotFoundException)->setModel(OrganizationRelationship::class);
+        }
 
         $role = \array_key_exists('role', $data)
             ? $this->ensureExternalRole->handle($data['role'])
