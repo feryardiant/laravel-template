@@ -40,12 +40,13 @@ class Leave extends Component
         $user = Auth::user();
 
         $organization = $user instanceof User
-            ? $user->organizations()->firstWhere('id', $organizationId)
+            ? app(FindUserOrganization::class)->find($user, $organizationId)
             : null;
 
         $this->organizationId = $organizationId;
         $this->organizationName = $name;
-        $this->needsApproval = $organization !== null && $user->roleIn($organization)?->isAdmin() === true;
+        $this->needsApproval = $organization !== null
+            && $user->roleIn($organization)?->isAdmin() === true;
         $this->showModal = true;
     }
 

@@ -10,11 +10,19 @@ use App\Models\User;
 final class FindUserOrganization
 {
     /**
+     * Resolve one of the user's organizations without failing.
+     */
+    public function find(User $user, int $organizationId): ?Organization
+    {
+        return $user->organizations()->firstWhere('id', $organizationId);
+    }
+
+    /**
      * Resolve one of the user's organizations or fail.
      */
     public function handle(User $user, int $organizationId): Organization
     {
-        $organization = $user->organizations()->firstWhere('id', $organizationId);
+        $organization = $this->find($user, $organizationId);
 
         abort_if($organization === null, 404);
 
