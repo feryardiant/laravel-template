@@ -93,6 +93,19 @@ final class FindContact
     }
 
     /**
+     * Resolve the tenant's expired relationship for a reusable entity.
+     */
+    public function expiredRelationshipFor(Organization $tenant, Organization|Person $entity): ?OrganizationRelationship
+    {
+        return OrganizationRelationship::query()
+            ->external()
+            ->forOrganization($tenant)
+            ->expired()
+            ->whereStakeholder($entity)
+            ->first();
+    }
+
+    /**
      * @return Builder<OrganizationRelationship>
      */
     private function query(Organization $tenant): Builder

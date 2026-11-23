@@ -157,3 +157,16 @@ test('the candidate search is ordered and limited before merging', function () {
         'Candidate 05',
     ]);
 });
+
+test('the tenant expired relationship resolves for reuse', function () {
+    $current = Organization::factory()->create();
+    $person = contactIndividual($current, ['name' => 'Expired Candidate']);
+
+    OrganizationRelationship::query()
+        ->whereKey(contactRelationshipId($current, $person))
+        ->update(['finish_date' => now()->subDay()]);
+
+    $relationship = app(FindContact::class)->expiredRelationshipFor($current, $person);
+
+    expect($relationship?->getKey())->toBe(contactRelationshipId($current, $person));
+});

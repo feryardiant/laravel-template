@@ -229,12 +229,9 @@ class Form extends Component
 
         $this->selectedEntity = $reference;
         $this->resetAddress();
-        $this->reusedContactId = OrganizationRelationship::query()
-            ->external()
-            ->forOrganization($organization)
-            ->expired()
-            ->whereStakeholder($entity)
-            ->value('id');
+        $this->reusedContactId = app(FindContact::class)
+            ->expiredRelationshipFor($organization, $entity)
+            ?->getKey();
         $this->reusedType = $entity instanceof Organization ? 'organization' : 'individual';
         $this->reusedName = $entity->name;
         $this->type = $this->reusedType;
