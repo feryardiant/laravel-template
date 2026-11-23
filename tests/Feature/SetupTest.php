@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Tenancy\ProvisionTenant;
+use App\Actions\Tenancies\ProvisionTenant;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Livewire\Setup;

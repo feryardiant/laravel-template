@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Tenancy;
+namespace App\Actions\Tenancies;
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;

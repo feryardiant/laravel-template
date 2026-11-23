@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Organizations\ToggleFeature;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;

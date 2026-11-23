@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\Subsidiaries;
 
-use App\Actions\Organizations\QueueOrganizationRemoval;
 use App\Actions\Organizations\RemoveSubsidiary as RemoveSubsidiaryAction;
+use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
 use Flux\Flux;
@@ -75,7 +75,7 @@ class RemoveSubsidiary extends Component
 
         $this->authorize('delete', $preview['organization']);
 
-        app(QueueOrganizationRemoval::class)->handle($preview['organization'], $user);
+        dispatch(new DeleteOrganization($preview['organization'], $user->getKey()));
 
         $this->reset('showModal', 'removingId', 'removingName', 'removingCount');
 

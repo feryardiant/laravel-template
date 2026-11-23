@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Organizations;
+namespace App\Actions\Tenancies;
 
 use App\Events\FeatureToggled;
 use App\Models\Organization;

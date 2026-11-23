@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Organizations\Audit\FeatureToggledPayload;
-use App\Actions\Organizations\ToggleFeature;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Events\FeatureToggled;
 use App\Models\Organization;
 use App\Models\User;

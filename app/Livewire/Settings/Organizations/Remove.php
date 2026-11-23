@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Organizations\FindUserOrganization;
-use App\Actions\Organizations\QueueOrganizationRemoval;
+use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;
@@ -65,7 +65,7 @@ class Remove extends Component
             return;
         }
 
-        app(QueueOrganizationRemoval::class)->handle($organization, $user);
+        dispatch(new DeleteOrganization($organization, $user->getKey()));
 
         if ($this->currentOrganization()?->is($organization) === true) {
             session()->forget(CurrentOrganization::SESSION_KEY);

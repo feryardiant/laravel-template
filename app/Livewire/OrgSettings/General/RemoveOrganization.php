@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\General;
 
-use App\Actions\Organizations\QueueOrganizationRemoval;
+use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
@@ -66,7 +66,7 @@ class RemoveOrganization extends Component
 
         abort_unless($user instanceof User, 403);
 
-        app(QueueOrganizationRemoval::class)->handle($organization, $user);
+        dispatch(new DeleteOrganization($organization, $user->getKey()));
 
         session()->forget(CurrentOrganization::SESSION_KEY);
 
