@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\FindContact;
+use App\Actions\Relationships\ListRelationshipPeriods;
 use App\Enums\ContactDetailType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
@@ -42,14 +43,7 @@ class View extends Component
     #[Computed]
     public function history(): Collection
     {
-        return OrganizationRelationshipPeriod::query()
-            ->where('organization_id', $this->contact->organization_id)
-            ->where('stakeholder_type', $this->contact->stakeholder_type)
-            ->where('stakeholder_id', $this->contact->stakeholder_id)
-            ->with('actor')
-            ->orderByDesc('start_date')
-            ->orderByDesc('id')
-            ->get();
+        return app(ListRelationshipPeriods::class)->forContact($this->contact);
     }
 
     public function render(): ViewContract

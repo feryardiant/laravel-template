@@ -6,8 +6,8 @@ namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\FindMember;
+use App\Actions\Relationships\ListRelationshipPeriods;
 use App\Enums\ContactDetailType;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationshipPeriod;
@@ -108,15 +108,7 @@ class View extends Component
     #[Computed]
     public function history(): Collection
     {
-        return OrganizationRelationshipPeriod::query()
-            ->where('organization_id', $this->requireOrganization()->getKey())
-            ->where('stakeholder_type', (new Person)->getMorphClass())
-            ->where('stakeholder_id', $this->person->getKey())
-            ->where('type', OrganizationRelationshipType::Member)
-            ->with('actor')
-            ->orderByDesc('start_date')
-            ->orderByDesc('id')
-            ->get();
+        return app(ListRelationshipPeriods::class)->forMember($this->requireOrganization(), $this->person);
     }
 
     #[Computed]
