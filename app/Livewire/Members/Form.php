@@ -4,29 +4,23 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
-use App\Actions\Addresses\SaveAddress;
-use App\Actions\Contacts\SaveContactDetails;
-use App\Actions\FileStorage;
-use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\CreateMember;
-use App\Actions\Users\CreateUser;
+use App\Actions\Memberships\FindMember;
+use App\Actions\Memberships\UpdateMember;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
 use App\Enums\Gender;
-use App\Enums\RelationshipStatus;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
-use App\Notifications\VerifyEmailForNewUser;
 use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -34,7 +28,6 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Throwable;
 
 /**
  * @property-read bool $canEditProfile
@@ -121,10 +114,11 @@ class Form extends Component
     #[On('edit-member')]
     public function editMember(int $personId): void
     {
-        $person = $this->member($personId);
+        $organization = $this->requireOrganization();
+        $person = app(FindMember::class)->inOrganization($organization, $personId, ['user']);
 
-        $this->authorize('manageMember', [$person, $this->requireOrganization()]);
-        $this->genderEnabled = ContactGender::enabled($this->requireOrganization());
+        $this->authorize('manageMember', [$person, $organization]);
+        $this->genderEnabled = ContactGender::enabled($organization);
         $this->fillFrom($person);
 
         $this->showModal = true;
@@ -151,7 +145,7 @@ class Form extends Component
     /**
      * Add a person to the current organization.
      */
-    public function create(CreateMember $createMember, FileStorage $fileStorage): void
+    public function create(CreateMember $createMember): void
     {
         $organization = $this->requireOrganization();
 
@@ -176,31 +170,18 @@ class Form extends Component
         $role = Role::from((int) $validated['role']);
 
         $hasCredential = $this->createCredential;
-        $photoUrl = $this->photo instanceof UploadedFile
-            ? $fileStorage->handle($this->photo, 'photos')
-            : null;
 
-        try {
-            $createMember->handle(
-                $organization,
-                $validated['name'],
-                $role,
-                $hasCredential ? $validated['email'] : null,
-                $photoUrl,
-                Auth::user(),
-                $this->addressPayload(),
-                $validated['contactEmail'] ?? null,
-                $validated['contactPhone'] ?? null,
-            );
-        } catch (Throwable $exception) {
-            // A failure after the commit (such as the invite email) must not
-            // delete a photo the committed member already references.
-            if ($photoUrl !== null && ! Person::query()->where('photo_url', $photoUrl)->exists()) {
-                $fileStorage->delete($photoUrl);
-            }
-
-            throw $exception;
-        }
+        $createMember->handle(
+            $organization,
+            $validated['name'],
+            $role,
+            $hasCredential ? $validated['email'] : null,
+            $this->photo instanceof UploadedFile ? $this->photo : null,
+            Auth::user(),
+            $this->addressPayload(),
+            $validated['contactEmail'] ?? null,
+            $validated['contactPhone'] ?? null,
+        );
 
         $this->photo = null;
         $this->showModal = false;
@@ -218,42 +199,31 @@ class Form extends Component
     /**
      * Save the form, either creating a member or updating the selected one.
      */
-    public function save(CreateMember $createMember, FileStorage $fileStorage, SaveAddress $saveAddress, SaveContactDetails $saveContactDetails): void
+    public function save(CreateMember $createMember, UpdateMember $updateMember): void
     {
         if ($this->person === null) {
-            $this->create($createMember, $fileStorage);
+            $this->create($createMember);
 
             return;
         }
 
-        $this->update($fileStorage, $saveAddress, $saveContactDetails);
+        $this->update($updateMember);
     }
 
     /**
      * Update the selected member.
      */
-    public function update(FileStorage $fileStorage, SaveAddress $saveAddress, SaveContactDetails $saveContactDetails): void
+    public function update(UpdateMember $updateMember): void
     {
         $organization = $this->requireOrganization();
 
         abort_if($this->person === null, 404);
 
-        $this->person = $this->member($this->person->getKey());
+        $this->person = app(FindMember::class)->inOrganization($organization, $this->person->getKey(), ['user']);
         $this->authorize('manageMember', [$this->person, $organization]);
         $this->email = Str::lower($this->email);
 
         $canEditProfile = $this->canEditProfile;
-
-        if (! $canEditProfile) {
-            // Compare with what the form loaded: the member may have renamed themselves.
-            abort_if($this->name !== $this->originalName, 403);
-            abort_if($this->createCredential, 403);
-            abort_if($this->photo instanceof UploadedFile, 403);
-
-            if ($this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email && $this->email !== $this->originalEmail) {
-                abort(403);
-            }
-        }
 
         if ($canEditProfile) {
             $this->validate([
@@ -288,166 +258,43 @@ class Form extends Component
 
         abort_unless($actor instanceof User, 403);
 
-        $role = Role::from((int) $validated['role']);
-        $membership = $this->person->membershipIn($organization);
-        $currentRole = $membership?->role;
+        $result = $updateMember->handle(
+            organization: $organization,
+            person: $this->person,
+            actor: $actor,
+            data: [
+                'name' => $this->name,
+                'email' => $this->email,
+                'role' => Role::from((int) $validated['role']),
+                'gender' => $this->genderEnabled && $this->genderEditable
+                    ? ($validated['gender'] ?? null)
+                    : null,
+                'address' => $this->addressPayload(),
+                'details' => $this->changedContactDetails(),
+                'create_credential' => $this->createCredential,
+                'can_edit_profile' => $canEditProfile,
+                'remove_photo' => $this->photoUrl === null && $this->originalPhotoUrl !== null,
+            ],
+            expected: [
+                'name' => $this->originalName,
+                'email' => $this->originalEmail,
+                'role' => $this->originalRole ?? -1,
+                'address' => $this->originalAddress,
+                'details' => $this->originalDetails,
+                'photo_url' => $this->originalPhotoUrl,
+                'has_credential' => $this->hasCredential,
+            ],
+            photo: $this->photo instanceof UploadedFile ? $this->photo : null,
+        );
 
-        if ($role->value === $this->originalRole && $role !== $currentRole) {
-            // The editor did not change the role; keep the value saved elsewhere.
-            $role = $currentRole ?? $role;
-        }
-
-        if ($role !== $currentRole) {
-            if ($membership?->status !== RelationshipStatus::Active) {
-                $this->addError('role', __('The role of an inactive membership cannot be changed.'));
-
-                return;
-            }
-
-            $this->authorize('changeRole', [$this->person, $organization, $role]);
-        }
-
-        // Credentials are global: editing an email shared with other organizations would hand them the account.
-        if ($canEditProfile && $this->hasCredential && $this->person->user !== null && Str::lower($this->person->user->email) !== $this->email && $this->email !== $this->originalEmail) {
-            abort_if($this->person->organizations()->whereKeyNot($organization->getKey())->exists(), 403);
-        }
-
-        $previousPhoto = $this->person->getRawOriginal('photo_url');
-        $photoUrl = $previousPhoto;
-        $stagedPhoto = null;
-        $removePhoto = false;
-
-        if ($canEditProfile) {
-            if ($this->photo instanceof UploadedFile) {
-                $stagedPhoto = $fileStorage->handle($this->photo, 'photos');
-                $photoUrl = $stagedPhoto;
-            } elseif ($this->photoUrl === null && $this->originalPhotoUrl !== null) {
-                $photoUrl = null;
-                $removePhoto = true;
-            }
-        }
-
-        $emailChanged = false;
-        $credentialCreated = false;
-        $gender = $this->genderEnabled && $this->genderEditable
-            ? ($validated['gender'] ?? null)
-            : null;
-
-        try {
-            DB::transaction(function () use ($organization, $actor, $validated, $photoUrl, $stagedPhoto, $removePhoto, $role, $currentRole, $canEditProfile, $gender, $saveAddress, $saveContactDetails, &$emailChanged, &$credentialCreated): void {
-                if ($canEditProfile) {
-                    $attributes = [];
-
-                    if ($this->name !== $this->originalName) {
-                        $attributes['name'] = $validated['name'];
-                    }
-
-                    if ($stagedPhoto !== null || $removePhoto) {
-                        $attributes['photo_url'] = $photoUrl;
-                    }
-
-                    if ($gender !== null) {
-                        $attributes['gender'] = $gender;
-                    }
-
-                    if ($attributes !== []) {
-                        $this->person->update($attributes);
-                    }
-
-                    $address = $this->addressPayload();
-
-                    if ($address !== $this->originalAddress) {
-                        $saveAddress->handle($this->person, $address);
-                    }
-                }
-
-                // Communication records stay editable even when the profile is managed elsewhere.
-                $saveContactDetails->handle($this->person, $this->changedContactDetails());
-
-                if ($canEditProfile && $this->hasCredential) {
-                    if ($this->email !== $this->originalEmail) {
-                        $user = $this->person->user;
-
-                        abort_if($user === null, 404);
-
-                        $emailChanged = $user->email !== $this->email;
-
-                        $user->email = $this->email;
-
-                        if ($emailChanged) {
-                            $user->email_verified_at = null;
-                        }
-
-                        $user->save();
-                    }
-                } elseif ($canEditProfile && $this->createCredential) {
-                    $hasUser = Person::query()
-                        ->whereKey($this->person->getKey())
-                        ->lockForUpdate()
-                        ->value('user_id') !== null;
-
-                    if (! $hasUser) {
-                        $user = app(CreateUser::class)->handle(
-                            name: $this->person->name,
-                            email: $this->email,
-                            password: Str::random(16),
-                        );
-
-                        $this->person->update(['user_id' => $user->getKey()]);
-
-                        $credentialCreated = true;
-                    }
-                }
-
-                if ($role !== $currentRole) {
-                    app(ChangeMemberRole::class)->setRole($organization, $this->person, $role, $actor);
-                }
-            });
-        } catch (Throwable $exception) {
-            // A failure after the commit (an after-commit audit push) must not
-            // delete a photo the committed member references.
-            if ($stagedPhoto !== null && ! Person::query()->where('photo_url', $stagedPhoto)->exists()) {
-                $fileStorage->delete($stagedPhoto);
-            }
-
-            throw $exception;
-        }
-
-        if ($stagedPhoto !== null) {
-            // The replacement is committed; a failed cleanup only leaves an
-            // orphaned file, so it is logged rather than rolled back.
-            $fileStorage->delete($previousPhoto);
-        }
-
-        $this->person = $this->person->fresh(['user']) ?? $this->person;
+        $this->person = $result['person'];
         $this->photo = null;
-        $this->photoUrl = $photoUrl;
+        $this->photoUrl = $result['photo_url'];
 
         $this->rememberContactDetails();
         $this->rememberBaselines($organization);
 
-        $photoRemovalFailed = false;
-
-        if ($removePhoto && ! $fileStorage->delete($previousPhoto)) {
-            $restored = Person::query()
-                ->whereKey($this->person->getKey())
-                ->whereNull('photo_url')
-                ->update(['photo_url' => $previousPhoto]);
-
-            $this->photoUrl = $restored === 0
-                ? ($this->person->refresh())->getRawOriginal('photo_url')
-                : $previousPhoto;
-
-            $this->rememberBaselines($organization);
-
-            $photoRemovalFailed = true;
-        }
-
-        if (($this->hasCredential && $emailChanged) || $credentialCreated) {
-            $this->person->user?->notify(new VerifyEmailForNewUser);
-        }
-
-        if ($photoRemovalFailed) {
+        if ($result['photo_removal_failed']) {
             Flux::toast(variant: 'danger', text: __('Unable to remove the :field. Please try again.', ['field' => __('Photo')]));
 
             // The rest of the edit committed; let the list reload.
@@ -462,7 +309,7 @@ class Form extends Component
 
         Flux::toast(
             variant: 'success',
-            text: $emailChanged || $credentialCreated
+            text: $result['email_changed'] || $result['credential_created']
                 ? __('Member updated. A verification email has been sent to the new address.')
                 : __('Member updated.'),
         );
@@ -598,14 +445,5 @@ class Form extends Component
     public function photoPreviewUrl(): ?string
     {
         return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
-    }
-
-    private function member(int $personId): Person
-    {
-        return $this->requireOrganization()
-            ->members()
-            ->with('user')
-            ->whereKey($personId)
-            ->firstOrFail();
     }
 }
