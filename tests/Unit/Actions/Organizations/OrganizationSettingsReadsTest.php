@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Organizations\FindRootTenant;
 use App\Actions\Organizations\ListCreatableParents;
 use App\Actions\Organizations\ListUserMemberships;
 use App\Enums\OrganizationRelationshipType;
@@ -23,6 +24,13 @@ it('builds the user membership rows', function () {
         ->and($rows->first()['role'])->toBe(Role::Owner)
         ->and($rows->first()['isCurrent'])->toBeTrue()
         ->and($rows->first()['canManage'])->toBeTrue();
+});
+
+it('finds the root tenant', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    Organization::factory()->create();
+
+    expect(app(FindRootTenant::class)->handle()?->is($root))->toBeTrue();
 });
 
 it('lists organizations the owner can parent a subsidiary with', function () {

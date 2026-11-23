@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Organizations\CreateOrganization;
+use App\Actions\Organizations\FindRootTenant;
 use App\Actions\Organizations\ListCreatableParents;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\SubsidiaryKind;
@@ -56,7 +57,7 @@ class Create extends Component
     public function open(): void
     {
         if ($this->internal) {
-            $root = Organization::query()->rootTenant()->first();
+            $root = app(FindRootTenant::class)->handle();
 
             abort_if($root === null, 404);
 
@@ -93,7 +94,7 @@ class Create extends Component
             : $parents->firstWhere('id', (int) $validated['parentId']);
 
         if ($this->internal) {
-            $root = Organization::query()->rootTenant()->first();
+            $root = app(FindRootTenant::class)->handle();
 
             abort_if($root === null, 404);
 
