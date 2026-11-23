@@ -30,6 +30,11 @@ class Leave extends Component
 
     public bool $needsApproval = false;
 
+    public function render(): View
+    {
+        return view('livewire.settings.organizations.leave');
+    }
+
     /**
      * Select an organization to leave.
      */
@@ -118,10 +123,5 @@ class Leave extends Component
         session()->forget(CurrentOrganization::SESSION_KEY);
 
         $this->redirect(route('dashboard'), navigate: true);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.settings.organizations.leave');
     }
 }

@@ -19,9 +19,41 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * @property-read Collection<int, array<string, mixed>> $memberships
+ */
 class Organizations extends Component
 {
     use HasCurrentOrganization;
+
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.settings.organizations')->title(__('Organizations'));
+    }
+
+    #[On('organization-created')]
+    #[On('memberships-changed')]
+    public function refreshMemberships(): void
+    {
+        unset($this->memberships);
+    }
+
+    /**
+     * The organizations the user belongs to, with their role and options.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    #[Computed]
+    public function memberships(): Collection
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        return $user instanceof User
+            ? app(ListUserMemberships::class)->handle($user, $this->currentOrganization())
+            : collect();
+    }
 
     /**
      * Switch to the organization and open its settings.
@@ -59,34 +91,5 @@ class Organizations extends Component
         unset($this->memberships);
 
         Flux::toast(variant: 'success', text: __('Default organization updated.'));
-    }
-
-    /**
-     * The organizations the user belongs to, with their role and options.
-     *
-     * @return Collection<int, array<string, mixed>>
-     */
-    #[Computed]
-    public function memberships(): Collection
-    {
-        /** @var User|null $user */
-        $user = Auth::user();
-
-        return $user instanceof User
-            ? app(ListUserMemberships::class)->handle($user, $this->currentOrganization())
-            : collect();
-    }
-
-    #[On('organization-created')]
-    #[On('memberships-changed')]
-    public function refreshMemberships(): void
-    {
-        unset($this->memberships);
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.settings.organizations')->title(__('Organizations'));
     }
 }

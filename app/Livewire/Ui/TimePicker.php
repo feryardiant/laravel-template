@@ -35,16 +35,16 @@ class TimePicker extends Component
      */
     public array $inputTimeRange = ['start' => null, 'end' => null];
 
+    public function render(): View
+    {
+        return view('ui.time-picker');
+    }
+
     /**
      * Move the single-time demo to 15:30.
      */
     public function moveTime(): void
     {
         $this->time = '15:30';
-    }
-
-    public function render(): View
-    {
-        return view('ui.time-picker');
     }
 }

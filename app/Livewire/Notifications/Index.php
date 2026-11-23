@@ -18,6 +18,9 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/**
+ * @property-read ?DatabaseNotification $selectedNotification
+ */
 class Index extends Component
 {
     use WithPagination;
@@ -42,6 +45,30 @@ class Index extends Component
         }
 
         $this->openNotification($open);
+    }
+
+    public function render(): View
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        /** @disregard P1013 */
+        return view('livewire.notifications.index', [
+            'notifications' => app(ListNotifications::class)->paginate($user, $this->sortAscending),
+        ])->title(__('Notifications'));
+    }
+
+    #[Computed]
+    public function selectedNotification(): ?DatabaseNotification
+    {
+        if ($this->selectedNotificationId === null) {
+            return null;
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        return app(FindNotification::class)->handle($user, $this->selectedNotificationId);
     }
 
     public function sortByReceivedAt(): void
@@ -204,29 +231,5 @@ class Index extends Component
         $user = Auth::user();
 
         return app(ListNotifications::class)->idsOnPage($user, $this->sortAscending, $this->getPage());
-    }
-
-    #[Computed]
-    public function selectedNotification(): ?DatabaseNotification
-    {
-        if ($this->selectedNotificationId === null) {
-            return null;
-        }
-
-        /** @var User $user */
-        $user = Auth::user();
-
-        return app(FindNotification::class)->handle($user, $this->selectedNotificationId);
-    }
-
-    public function render(): View
-    {
-        /** @var User $user */
-        $user = Auth::user();
-
-        /** @disregard P1013 */
-        return view('livewire.notifications.index', [
-            'notifications' => app(ListNotifications::class)->paginate($user, $this->sortAscending),
-        ])->title(__('Notifications'));
     }
 }

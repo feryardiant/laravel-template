@@ -28,7 +28,10 @@ use Throwable;
 /**
  * @phpstan-type Member Person&object{pivot: \App\Models\OrganizationRelationship}
  *
+ * @property-read ?Person $deletingPerson
  * @property-read LengthAwarePaginator<int, Member> $members
+ * @property-read ?Person $roleChangePerson
+ * @property-read bool $roleChangeIsPromotion
  */
 class Index extends Component
 {
@@ -63,6 +66,67 @@ class Index extends Component
     public string $sortDirection = 'desc';
 
     public string $search = '';
+
+    public function render(): View
+    {
+        $organization = $this->currentOrganization();
+
+        /** @disregard P1013 */
+        return view('livewire.members.index', [
+            'members' => $this->members,
+            'organization' => $organization,
+            'currentRole' => $this->currentRole(),
+            'canManage' => $organization !== null && Gate::allows('manageMembers', $organization),
+            'canDeleteMembers' => MemberDeletion::enabled($organization),
+        ])->title(__('Members'));
+    }
+
+    #[On('member-updated')]
+    public function refreshMembers(): void
+    {
+        //
+    }
+
+    #[Computed]
+    public function deletingPerson(): ?Person
+    {
+        $organization = $this->currentOrganization();
+
+        return $this->deletingPersonId === null || $organization === null
+            ? null
+            : app(FindMember::class)->findInOrganization($organization, $this->deletingPersonId);
+    }
+
+    #[Computed]
+    public function roleChangePerson(): ?Person
+    {
+        $organization = $this->currentOrganization();
+
+        return $this->roleChangePersonId === null || $organization === null
+            ? null
+            : app(FindMember::class)->findInOrganization($organization, $this->roleChangePersonId);
+    }
+
+    #[Computed]
+    public function roleChangeIsPromotion(): bool
+    {
+        return $this->roleChangeTo === Role::Admin->value;
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, Member>
+     */
+    #[Computed]
+    public function members(): LengthAwarePaginator
+    {
+        $organization = $this->currentOrganization();
+
+        if ($organization === null) {
+            return new LengthAwarePaginator([], 0, 10);
+        }
+
+        return app(ListMembers::class)->handle($organization, $this->search, $this->sortDirection);
+    }
 
     /**
      * Open the form for a new member.
@@ -137,7 +201,7 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $person = $this->roleChangePerson();
+        $person = $this->roleChangePerson;
 
         $actor = Auth::user();
 
@@ -169,7 +233,7 @@ class Index extends Component
      */
     public function deleteConfirmed(RemoveMember $removeMember): void
     {
-        $person = $this->deletingPerson();
+        $person = $this->deletingPerson;
 
         abort_if($person === null, 404);
 
@@ -202,38 +266,6 @@ class Index extends Component
         $this->resetPage();
 
         Flux::toast(variant: 'success', text: __('Member removed.'));
-    }
-
-    #[Computed]
-    public function deletingPerson(): ?Person
-    {
-        $organization = $this->currentOrganization();
-
-        return $this->deletingPersonId === null || $organization === null
-            ? null
-            : app(FindMember::class)->findInOrganization($organization, $this->deletingPersonId);
-    }
-
-    #[Computed]
-    public function roleChangePerson(): ?Person
-    {
-        $organization = $this->currentOrganization();
-
-        return $this->roleChangePersonId === null || $organization === null
-            ? null
-            : app(FindMember::class)->findInOrganization($organization, $this->roleChangePersonId);
-    }
-
-    #[Computed]
-    public function roleChangeIsPromotion(): bool
-    {
-        return $this->roleChangeTo === Role::Admin->value;
-    }
-
-    #[On('member-updated')]
-    public function refreshMembers(): void
-    {
-        //
     }
 
     public function updatedPage(): void
@@ -322,35 +354,6 @@ class Index extends Component
             variant: 'success',
             text: __(':count members removed successfully.', ['count' => $removed->count()]),
         );
-    }
-
-    public function render(): View
-    {
-        $organization = $this->currentOrganization();
-
-        /** @disregard P1013 */
-        return view('livewire.members.index', [
-            'members' => $this->members,
-            'organization' => $organization,
-            'currentRole' => $this->currentRole(),
-            'canManage' => $organization !== null && Gate::allows('manageMembers', $organization),
-            'canDeleteMembers' => MemberDeletion::enabled($organization),
-        ])->title(__('Members'));
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, Member>
-     */
-    #[Computed]
-    public function members(): LengthAwarePaginator
-    {
-        $organization = $this->currentOrganization();
-
-        if ($organization === null) {
-            return new LengthAwarePaginator([], 0, 10);
-        }
-
-        return app(ListMembers::class)->handle($organization, $this->search, $this->sortDirection);
     }
 
     /**

@@ -23,6 +23,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 /**
+ * @property-read Collection<int, Person> $members
  * @property-read ?ApprovalRequest $pendingApproval
  */
 class TransferOwnership extends Component
@@ -34,6 +35,13 @@ class TransferOwnership extends Component
     public ?string $recipientId = null;
 
     public string $confirmation = '';
+
+    public function render(): View
+    {
+        return view('livewire.org-settings.general.transfer-ownership', [
+            'organization' => $this->currentOrganization(),
+        ]);
+    }
 
     /**
      * Active members with a credential, excluding the owner.
@@ -157,12 +165,5 @@ class TransferOwnership extends Component
             variant: 'success',
             text: __('Ownership transfer request sent to :name.', ['name' => $recipient->name]),
         );
-    }
-
-    public function render(): View
-    {
-        return view('livewire.org-settings.general.transfer-ownership', [
-            'organization' => $this->currentOrganization(),
-        ]);
     }
 }

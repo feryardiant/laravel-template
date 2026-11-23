@@ -42,6 +42,11 @@ class FileUpload extends Component
 
     public ?string $previewUrl = null;
 
+    public function render(): View
+    {
+        return view('ui.file-upload');
+    }
+
     /**
      * Open the preview modal for a temporary photo upload.
      */
@@ -91,10 +96,5 @@ class FileUpload extends Component
     public function clearCustomAvatar(): void
     {
         $this->customAvatar = null;
-    }
-
-    public function render(): View
-    {
-        return view('ui.file-upload');
     }
 }

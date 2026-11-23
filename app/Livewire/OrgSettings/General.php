@@ -20,6 +20,9 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Throwable;
 
+/**
+ * @property-read ?string $logoPreviewUrl
+ */
 class General extends Component
 {
     use HasCurrentOrganization, ManagesAddress, ProfileValidationRules, WithFileUploads;
@@ -89,32 +92,18 @@ class General extends Component
         $this->originalSummary = $this->summary;
     }
 
-    /**
-     * The detail values currently held by the form.
-     *
-     * @return array<string, string>
-     */
-    private function contactDetailValues(): array
+    public function render(): View
     {
-        return [
-            ContactDetailType::Email->value => $this->contactEmail,
-            ContactDetailType::Phone->value => $this->contactPhone,
-        ];
-    }
+        $organization = $this->currentOrganization();
 
-    /**
-     * The detail values the editor changed, so untouched ones keep another save.
-     *
-     * @return array<string, string>
-     */
-    private function changedContactDetails(): array
-    {
-        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
-    }
+        abort_if($organization === null, 404);
 
-    private function rememberContactDetails(): void
-    {
-        $this->originalDetails = $this->contactDetailValues();
+        $this->authorize('update', $organization);
+
+        /** @disregard P1013 */
+        return view('livewire.org-settings.general', [
+            'organization' => $organization,
+        ])->title(__('Organization settings'));
     }
 
     #[Computed]
@@ -213,17 +202,31 @@ class General extends Component
         $this->logoUrl = null;
     }
 
-    public function render(): View
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
     {
-        $organization = $this->currentOrganization();
+        return [
+            ContactDetailType::Email->value => $this->contactEmail,
+            ContactDetailType::Phone->value => $this->contactPhone,
+        ];
+    }
 
-        abort_if($organization === null, 404);
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
+    {
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
 
-        $this->authorize('update', $organization);
-
-        /** @disregard P1013 */
-        return view('livewire.org-settings.general', [
-            'organization' => $organization,
-        ])->title(__('Organization settings'));
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
     }
 }

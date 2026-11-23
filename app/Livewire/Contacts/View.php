@@ -19,6 +19,9 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * @property-read Collection<int, OrganizationRelationshipPeriod> $history
+ */
 class View extends Component
 {
     use HasCurrentOrganization;
@@ -33,17 +36,6 @@ class View extends Component
         $this->contact = app(FindContact::class)->byUuid($organization, $stakeholder);
 
         Gate::authorize('viewContact', [$this->contact->stakeholder, $organization]);
-    }
-
-    /**
-     * The relationship's full stint history.
-     *
-     * @return Collection<int, OrganizationRelationshipPeriod>
-     */
-    #[Computed]
-    public function history(): Collection
-    {
-        return app(ListRelationshipPeriods::class)->forContact($this->contact);
     }
 
     public function render(): ViewContract
@@ -73,5 +65,16 @@ class View extends Component
             'contactPersonPhone' => $contactPerson?->contactDetailValue(ContactDetailType::Phone),
             'showGender' => ContactGender::enabled($this->currentOrganization()),
         ])->title(__('Contact details'));
+    }
+
+    /**
+     * The relationship's full stint history.
+     *
+     * @return Collection<int, OrganizationRelationshipPeriod>
+     */
+    #[Computed]
+    public function history(): Collection
+    {
+        return app(ListRelationshipPeriods::class)->forContact($this->contact);
     }
 }

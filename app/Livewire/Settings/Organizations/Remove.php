@@ -28,6 +28,11 @@ class Remove extends Component
 
     public string $confirmation = '';
 
+    public function render(): View
+    {
+        return view('livewire.settings.organizations.remove');
+    }
+
     /**
      * Select an organization to remove.
      */
@@ -90,10 +95,5 @@ class Remove extends Component
         $this->authorize('deleteOwn', $organization);
 
         return $organization;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.settings.organizations.remove');
     }
 }

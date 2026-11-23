@@ -35,6 +35,12 @@ class Setup extends Component
         }
     }
 
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.setup')->layout('layouts.auth')->title(__('Set up your account'));
+    }
+
     /**
      * Provision the first credential and root tenant organization.
      */
@@ -63,11 +69,5 @@ class Setup extends Component
         session()->regenerate();
 
         $this->redirectRoute('dashboard', navigate: true);
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.setup')->layout('layouts.auth')->title(__('Set up your account'));
     }
 }

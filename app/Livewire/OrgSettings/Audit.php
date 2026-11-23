@@ -22,6 +22,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
+ * @property-read LengthAwarePaginator<int, AuditLog> $logs
  * @property-read Collection<int, Person> $actors
  */
 class Audit extends Component
@@ -47,6 +48,52 @@ class Audit extends Component
         $this->authorize('viewAudit', $this->requireOrganization());
 
         $this->range = DateRange::defaultWeek($this->timezone());
+    }
+
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.org-settings.audit', [
+            'events' => AuditEvent::cases(),
+            'today' => CarbonImmutable::now($this->timezone())->toDateString(),
+            'timezone' => $this->timezone(),
+        ])->title(__('Audit log'));
+    }
+
+    /**
+     * The current organization's audit entries, newest first.
+     *
+     * @return LengthAwarePaginator<int, AuditLog>
+     */
+    #[Computed]
+    public function logs(): LengthAwarePaginator
+    {
+        $organization = $this->requireOrganization();
+
+        $this->authorize('viewAudit', $organization);
+
+        return app(ListAuditLogs::class)->handle($organization, [
+            'event' => $this->event,
+            'actor' => $this->actor,
+            'start' => $this->range['start'] ?? null,
+            'end' => $this->range['end'] ?? null,
+        ], $this->timezone());
+    }
+
+    /**
+     * Organization members who can appear as an audit actor, current user first.
+     *
+     * @return Collection<int, Person>
+     */
+    #[Computed]
+    public function actors(): Collection
+    {
+        $current = Auth::user();
+
+        return app(ListAuditActors::class)->handle(
+            $this->requireOrganization(),
+            $current instanceof User ? $current : null,
+        );
     }
 
     /**
@@ -89,52 +136,6 @@ class Audit extends Component
         unset($this->logs);
 
         $this->resetPage();
-    }
-
-    /**
-     * The current organization's audit entries, newest first.
-     *
-     * @return LengthAwarePaginator<int, AuditLog>
-     */
-    #[Computed]
-    public function logs(): LengthAwarePaginator
-    {
-        $organization = $this->requireOrganization();
-
-        $this->authorize('viewAudit', $organization);
-
-        return app(ListAuditLogs::class)->handle($organization, [
-            'event' => $this->event,
-            'actor' => $this->actor,
-            'start' => $this->range['start'] ?? null,
-            'end' => $this->range['end'] ?? null,
-        ], $this->timezone());
-    }
-
-    /**
-     * Organization members who can appear as an audit actor, current user first.
-     *
-     * @return Collection<int, Person>
-     */
-    #[Computed]
-    public function actors(): Collection
-    {
-        $current = Auth::user();
-
-        return app(ListAuditActors::class)->handle(
-            $this->requireOrganization(),
-            $current instanceof User ? $current : null,
-        );
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.org-settings.audit', [
-            'events' => AuditEvent::cases(),
-            'today' => CarbonImmutable::now($this->timezone())->toDateString(),
-            'timezone' => $this->timezone(),
-        ])->title(__('Audit log'));
     }
 
     private function timezone(): string

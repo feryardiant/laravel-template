@@ -134,6 +134,11 @@ class Form extends Component
     #[Locked]
     public bool $genderEnabled = false;
 
+    public function render(): View
+    {
+        return view('livewire.contacts.form');
+    }
+
     #[On('create-contact')]
     public function openCreate(?string $role = null): void
     {
@@ -196,6 +201,49 @@ class Form extends Component
 
         $this->fillFrom($contact);
         $this->showModal = true;
+    }
+
+    /**
+     * @return array<int, OrganizationRelationshipType>
+     */
+    #[Computed]
+    public function roles(): array
+    {
+        return OrganizationRelationshipType::externals();
+    }
+
+    #[Computed]
+    public function reusing(): bool
+    {
+        return $this->contactId === null
+            && \is_string($this->selectedEntity)
+            && $this->selectedEntity !== '';
+    }
+
+    #[Computed]
+    public function isOrganizationType(): bool
+    {
+        if ($this->contactId !== null) {
+            return $this->contact?->isOrganization() ?? false;
+        }
+
+        if ($this->reusing) {
+            return $this->reusedType === 'organization';
+        }
+
+        return $this->type === 'organization';
+    }
+
+    #[Computed]
+    public function sharedFieldsLocked(): bool
+    {
+        return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
+    }
+
+    #[Computed]
+    public function photoPreviewUrl(): ?string
+    {
+        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
     }
 
     public function updatedSelectedEntity(?string $reference): void
@@ -358,54 +406,6 @@ class Form extends Component
         $this->dispatch('contact-updated', contactId: $entity?->getKey());
 
         Flux::toast(variant: 'success', text: $message);
-    }
-
-    /**
-     * @return array<int, OrganizationRelationshipType>
-     */
-    #[Computed]
-    public function roles(): array
-    {
-        return OrganizationRelationshipType::externals();
-    }
-
-    #[Computed]
-    public function reusing(): bool
-    {
-        return $this->contactId === null
-            && \is_string($this->selectedEntity)
-            && $this->selectedEntity !== '';
-    }
-
-    #[Computed]
-    public function isOrganizationType(): bool
-    {
-        if ($this->contactId !== null) {
-            return $this->contact?->isOrganization() ?? false;
-        }
-
-        if ($this->reusing) {
-            return $this->reusedType === 'organization';
-        }
-
-        return $this->type === 'organization';
-    }
-
-    #[Computed]
-    public function sharedFieldsLocked(): bool
-    {
-        return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
-    }
-
-    #[Computed]
-    public function photoPreviewUrl(): ?string
-    {
-        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.contacts.form');
     }
 
     /**

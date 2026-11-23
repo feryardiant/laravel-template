@@ -26,6 +26,11 @@ class RemoveSubsidiary extends Component
 
     public int $removingCount = 0;
 
+    public function render(): View
+    {
+        return view('livewire.org-settings.subsidiaries.remove-subsidiary');
+    }
+
     /**
      * Select a subsidiary to remove.
      */
@@ -80,10 +85,5 @@ class RemoveSubsidiary extends Component
             variant: 'success',
             text: __('Removal queued. :name will be deleted shortly.', ['name' => $preview['organization']->name]),
         );
-    }
-
-    public function render(): View
-    {
-        return view('livewire.org-settings.subsidiaries.remove-subsidiary');
     }
 }

@@ -44,16 +44,16 @@ class Calendar extends Component
         ];
     }
 
+    public function render(): View
+    {
+        return view('ui.calendar');
+    }
+
     /**
      * Move the single-date demo five days ahead of today.
      */
     public function moveSingleDate(): void
     {
         $this->date = now()->addDays(5)->format('Y-m-d');
-    }
-
-    public function render(): View
-    {
-        return view('ui.calendar');
     }
 }

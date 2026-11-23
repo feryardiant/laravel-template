@@ -22,6 +22,9 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
+/**
+ * @property-read array{title: string, description: string, buttonText: string} $modalConfig
+ */
 class Security extends Component
 {
     use PasswordValidationRules;
@@ -75,6 +78,43 @@ class Security extends Component
 
     }
 
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.settings.security')->title(__('Security settings'));
+    }
+
+    /**
+     * Get the current modal configuration state.
+     *
+     * @return array{title: string, description: string, buttonText: string}
+     */
+    #[Computed]
+    public function modalConfig(): array
+    {
+        if ($this->twoFactorEnabled) {
+            return [
+                'title' => __('Two-factor authentication enabled'),
+                'description' => __('Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.'),
+                'buttonText' => __('Close'),
+            ];
+        }
+
+        if ($this->showVerificationStep) {
+            return [
+                'title' => __('Verify authentication code'),
+                'description' => __('Enter the 6-digit code from your authenticator app.'),
+                'buttonText' => __('Continue'),
+            ];
+        }
+
+        return [
+            'title' => __('Enable two-factor authentication'),
+            'description' => __('To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app.'),
+            'buttonText' => __('Continue'),
+        ];
+    }
+
     /**
      * Update the password for the currently authenticated user.
      */
@@ -117,24 +157,6 @@ class Security extends Component
         $this->loadSetupData();
 
         $this->showModal = true;
-    }
-
-    /**
-     * Load the two-factor authentication setup data for the user.
-     */
-    private function loadSetupData(): void
-    {
-        /** @var User */
-        $user = Auth::user();
-
-        try {
-            $this->qrCodeSvg = $user->twoFactorQrCodeSvg();
-            $this->manualSetupKey = decrypt($user->two_factor_secret);
-        } catch (Exception) {
-            $this->addError('setupData', __('Failed to fetch setup data.'));
-
-            $this->reset('qrCodeSvg', 'manualSetupKey');
-        }
     }
 
     /**
@@ -210,39 +232,20 @@ class Security extends Component
     }
 
     /**
-     * Get the current modal configuration state.
-     *
-     * @return array{title: string, description: string, buttonText: string}
+     * Load the two-factor authentication setup data for the user.
      */
-    #[Computed]
-    public function modalConfig(): array
+    private function loadSetupData(): void
     {
-        if ($this->twoFactorEnabled) {
-            return [
-                'title' => __('Two-factor authentication enabled'),
-                'description' => __('Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.'),
-                'buttonText' => __('Close'),
-            ];
+        /** @var User */
+        $user = Auth::user();
+
+        try {
+            $this->qrCodeSvg = $user->twoFactorQrCodeSvg();
+            $this->manualSetupKey = decrypt($user->two_factor_secret);
+        } catch (Exception) {
+            $this->addError('setupData', __('Failed to fetch setup data.'));
+
+            $this->reset('qrCodeSvg', 'manualSetupKey');
         }
-
-        if ($this->showVerificationStep) {
-            return [
-                'title' => __('Verify authentication code'),
-                'description' => __('Enter the 6-digit code from your authenticator app.'),
-                'buttonText' => __('Continue'),
-            ];
-        }
-
-        return [
-            'title' => __('Enable two-factor authentication'),
-            'description' => __('To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app.'),
-            'buttonText' => __('Continue'),
-        ];
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.settings.security')->title(__('Security settings'));
     }
 }

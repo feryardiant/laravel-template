@@ -49,12 +49,16 @@ class Dashboard extends Component
         $this->range = DateRange::defaultWeek($this->timezone());
     }
 
-    /**
-     * Normalize the date range.
-     */
-    public function updatedRange(): void
+    public function render(): View
     {
-        $this->range = DateRange::normalize($this->range, $this->timezone());
+        $timezone = $this->timezone();
+
+        /** @disregard P1013 */
+        return view('livewire.dashboard', [
+            'organization' => $this->currentOrganization(),
+            'today' => CarbonImmutable::now($timezone)->toDateString(),
+            'timezone' => $timezone,
+        ])->title(__('Home'));
     }
 
     /**
@@ -114,16 +118,12 @@ class Dashboard extends Component
         return app(ListRecentMembers::class)->handle($this->requireOrganization(), $this->range);
     }
 
-    public function render(): View
+    /**
+     * Normalize the date range.
+     */
+    public function updatedRange(): void
     {
-        $timezone = $this->timezone();
-
-        /** @disregard P1013 */
-        return view('livewire.dashboard', [
-            'organization' => $this->currentOrganization(),
-            'today' => CarbonImmutable::now($timezone)->toDateString(),
-            'timezone' => $timezone,
-        ])->title(__('Home'));
+        $this->range = DateRange::normalize($this->range, $this->timezone());
     }
 
     private function timezone(): string

@@ -15,12 +15,6 @@ class OrganizationSwitcher extends Component
 {
     use HasCurrentOrganization;
 
-    #[On('organization-created')]
-    public function refreshOrganizations(): void
-    {
-        //
-    }
-
     public function render(): View
     {
         $user = Auth::user();
@@ -29,5 +23,11 @@ class OrganizationSwitcher extends Component
             'current' => $this->currentOrganization(),
             'organizations' => $user instanceof User ? $user->organizations() : collect(),
         ]);
+    }
+
+    #[On('organization-created')]
+    public function refreshOrganizations(): void
+    {
+        //
     }
 }

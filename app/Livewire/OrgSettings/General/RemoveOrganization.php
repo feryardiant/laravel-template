@@ -21,6 +21,13 @@ class RemoveOrganization extends Component
 
     public string $confirmation = '';
 
+    public function render(): View
+    {
+        return view('livewire.org-settings.general.remove-organization', [
+            'organization' => $this->currentOrganization(),
+        ]);
+    }
+
     /**
      * Open the organization removal modal.
      */
@@ -69,12 +76,5 @@ class RemoveOrganization extends Component
         );
 
         $this->redirect(route('organizations.index'), navigate: true);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.org-settings.general.remove-organization', [
-            'organization' => $this->currentOrganization(),
-        ]);
     }
 }

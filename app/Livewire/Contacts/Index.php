@@ -50,6 +50,56 @@ class Index extends Component
 
     public string $search = '';
 
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.contacts.index', [
+            'contacts' => $this->contacts,
+            'organization' => $this->currentOrganization(),
+            'canManage' => $this->canManage,
+            'canDeleteAny' => $this->canDeleteAny,
+        ])->title(__('Contacts'));
+    }
+
+    #[On('contact-updated')]
+    public function refreshContacts(): void
+    {
+        $this->clearSelection();
+        $this->selectionKey++;
+        unset($this->contacts);
+    }
+
+    #[Computed]
+    public function canManage(): bool
+    {
+        $organization = $this->currentOrganization();
+
+        return $organization !== null && Gate::allows('createContact', $organization);
+    }
+
+    #[Computed]
+    public function canDeleteAny(): bool
+    {
+        $organization = $this->currentOrganization();
+
+        return $organization !== null && Gate::allows('deleteAnyContact', $organization);
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, OrganizationRelationship>
+     */
+    #[Computed]
+    public function contacts(): LengthAwarePaginator
+    {
+        $organization = $this->currentOrganization();
+
+        if ($organization === null) {
+            return new LengthAwarePaginator([], 0, 10);
+        }
+
+        return app(ListContacts::class)->handle($organization, $this->search);
+    }
+
     public function createContact(): void
     {
         Gate::authorize('createContact', $this->requireOrganization());
@@ -181,56 +231,6 @@ class Index extends Component
         $this->selected = array_diff($pageIds, $selected) === [] ? [] : $pageIds;
         $this->selectionKey++;
         $this->updatedSelected();
-    }
-
-    #[On('contact-updated')]
-    public function refreshContacts(): void
-    {
-        $this->clearSelection();
-        $this->selectionKey++;
-        unset($this->contacts);
-    }
-
-    #[Computed]
-    public function canManage(): bool
-    {
-        $organization = $this->currentOrganization();
-
-        return $organization !== null && Gate::allows('createContact', $organization);
-    }
-
-    #[Computed]
-    public function canDeleteAny(): bool
-    {
-        $organization = $this->currentOrganization();
-
-        return $organization !== null && Gate::allows('deleteAnyContact', $organization);
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, OrganizationRelationship>
-     */
-    #[Computed]
-    public function contacts(): LengthAwarePaginator
-    {
-        $organization = $this->currentOrganization();
-
-        if ($organization === null) {
-            return new LengthAwarePaginator([], 0, 10);
-        }
-
-        return app(ListContacts::class)->handle($organization, $this->search);
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.contacts.index', [
-            'contacts' => $this->contacts,
-            'organization' => $this->currentOrganization(),
-            'canManage' => $this->canManage,
-            'canDeleteAny' => $this->canDeleteAny,
-        ])->title(__('Contacts'));
     }
 
     /**

@@ -11,6 +11,9 @@ use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 
+/**
+ * @property-read ?Organization $currentOrganization
+ */
 trait HasCurrentOrganization
 {
     #[Computed()]

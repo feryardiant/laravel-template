@@ -31,6 +31,9 @@ use Livewire\WithFileUploads;
  * @property-read bool $canEditOwnProfile
  * @property-read bool $genderEnabled
  * @property-read bool $genderEditable
+ * @property-read ?string $avatarPreviewUrl
+ * @property-read bool $hasUnverifiedEmail
+ * @property-read bool $showDeleteUser
  */
 class Profile extends Component
 {
@@ -103,52 +106,75 @@ class Profile extends Component
         $this->originalHandle = $this->handle;
     }
 
-    /**
-     * The detail values currently held by the form.
-     *
-     * @return array<string, string>
-     */
-    private function contactDetailValues(): array
-    {
-        return [
-            ContactDetailType::Email->value => $this->contactEmail,
-            ContactDetailType::Phone->value => $this->contactPhone,
-        ];
-    }
-
-    /**
-     * The detail values the editor changed, so untouched ones keep another save.
-     *
-     * @return array<string, string>
-     */
-    private function changedContactDetails(): array
-    {
-        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
-    }
-
-    private function rememberContactDetails(): void
-    {
-        $this->originalDetails = $this->contactDetailValues();
-    }
-
-    private function rememberBaselines(?User $fresh): void
-    {
-        $person = $fresh?->person;
-
-        $this->originalName = (string) $person?->name;
-        $this->name = $this->originalName;
-        $this->originalSummary = (string) $person?->summary;
-        $this->summary = $this->originalSummary;
-        $this->originalHandle = (string) $fresh?->handle;
-        $this->handle = $this->originalHandle;
-        $this->originalEmail = Str::lower((string) $fresh?->email);
-        $this->email = $this->originalEmail;
-    }
-
     public function render(): View
     {
         /** @disregard P1013 */
         return view('livewire.settings.profile')->title(__('Profile settings'));
+    }
+
+    #[Computed]
+    public function avatarPreviewUrl(): ?string
+    {
+        return $this->avatarUrl ? route('uploads', ['path' => $this->avatarUrl]) : null;
+    }
+
+    /**
+     * The authenticated user's person profile.
+     */
+    #[Computed]
+    public function person(): ?Person
+    {
+        /** @var User */
+        $user = Auth::user();
+
+        return $user->person;
+    }
+
+    /**
+     * Determine whether the person controls their profile fields.
+     */
+    #[Computed]
+    public function canEditOwnProfile(): bool
+    {
+        $person = $this->person;
+
+        return $person === null
+            || $person->owner_organization_id === null
+            || ProfileSelfEdit::enabled($person->ownerOrganization);
+    }
+
+    /**
+     * Determine whether the current workspace exposes the gender field.
+     */
+    #[Computed]
+    public function genderEnabled(): bool
+    {
+        return ContactGender::enabled($this->currentOrganization());
+    }
+
+    /**
+     * Gender can be set once.
+     */
+    #[Computed]
+    public function genderEditable(): bool
+    {
+        return $this->genderEnabled && $this->person !== null && $this->person->gender === null;
+    }
+
+    #[Computed]
+    public function hasUnverifiedEmail(): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail();
+    }
+
+    #[Computed]
+    public function showDeleteUser(): bool
+    {
+        $user = Auth::user();
+
+        return ! $user instanceof MustVerifyEmail || $user->hasVerifiedEmail();
     }
 
     /**
@@ -236,55 +262,6 @@ class Profile extends Component
         $this->avatarUrl = null;
     }
 
-    #[Computed]
-    public function avatarPreviewUrl(): ?string
-    {
-        return $this->avatarUrl ? route('uploads', ['path' => $this->avatarUrl]) : null;
-    }
-
-    /**
-     * The authenticated user's person profile.
-     */
-    #[Computed]
-    public function person(): ?Person
-    {
-        /** @var User */
-        $user = Auth::user();
-
-        return $user->person;
-    }
-
-    /**
-     * Determine whether the person controls their profile fields.
-     */
-    #[Computed]
-    public function canEditOwnProfile(): bool
-    {
-        $person = $this->person;
-
-        return $person === null
-            || $person->owner_organization_id === null
-            || ProfileSelfEdit::enabled($person->ownerOrganization);
-    }
-
-    /**
-     * Determine whether the current workspace exposes the gender field.
-     */
-    #[Computed]
-    public function genderEnabled(): bool
-    {
-        return ContactGender::enabled($this->currentOrganization());
-    }
-
-    /**
-     * Gender can be set once.
-     */
-    #[Computed]
-    public function genderEditable(): bool
-    {
-        return $this->genderEnabled && $this->person !== null && $this->person->gender === null;
-    }
-
     /**
      * Send an email verification notification to the current user.
      */
@@ -302,19 +279,45 @@ class Profile extends Component
         Flux::toast(text: __('A new verification link has been sent to your email address.'));
     }
 
-    #[Computed]
-    public function hasUnverifiedEmail(): bool
+    /**
+     * The detail values currently held by the form.
+     *
+     * @return array<string, string>
+     */
+    private function contactDetailValues(): array
     {
-        $user = Auth::user();
-
-        return $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail();
+        return [
+            ContactDetailType::Email->value => $this->contactEmail,
+            ContactDetailType::Phone->value => $this->contactPhone,
+        ];
     }
 
-    #[Computed]
-    public function showDeleteUser(): bool
+    /**
+     * The detail values the editor changed, so untouched ones keep another save.
+     *
+     * @return array<string, string>
+     */
+    private function changedContactDetails(): array
     {
-        $user = Auth::user();
+        return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
+    }
 
-        return ! $user instanceof MustVerifyEmail || $user->hasVerifiedEmail();
+    private function rememberContactDetails(): void
+    {
+        $this->originalDetails = $this->contactDetailValues();
+    }
+
+    private function rememberBaselines(?User $fresh): void
+    {
+        $person = $fresh?->person;
+
+        $this->originalName = (string) $person?->name;
+        $this->name = $this->originalName;
+        $this->originalSummary = (string) $person?->summary;
+        $this->summary = $this->originalSummary;
+        $this->originalHandle = (string) $fresh?->handle;
+        $this->handle = $this->originalHandle;
+        $this->originalEmail = Str::lower((string) $fresh?->email);
+        $this->email = $this->originalEmail;
     }
 }

@@ -56,6 +56,11 @@ class Select extends Component
         ['id' => 'infrastructure', 'name' => 'Infrastructure'],
     ];
 
+    public function render(): View
+    {
+        return view('ui.select');
+    }
+
     /**
      * Swap the single selection for the "legal" demo option.
      */
@@ -97,39 +102,6 @@ class Select extends Component
         ));
 
         return view('ui.partials.select-tags', ['tags' => $tags])->render();
-    }
-
-    /**
-     * Append a project if its name is new, returning its id.
-     */
-    private function appendProject(string $name): ?string
-    {
-        $name = trim($name);
-
-        if ($name === '') {
-            return null;
-        }
-
-        $needle = mb_strtolower($name);
-
-        foreach ($this->projects as $project) {
-            if (mb_strtolower($project['name']) === $needle) {
-                return $project['id'];
-            }
-        }
-
-        $base = Str::slug($name) ?: 'project-'.\count($this->projects);
-        $id = $base;
-        $suffix = 2;
-
-        while (\in_array($id, array_column($this->projects, 'id'), true)) {
-            $id = $base.'-'.$suffix;
-            $suffix++;
-        }
-
-        $this->projects[] = ['id' => $id, 'name' => $name];
-
-        return $id;
     }
 
     /**
@@ -214,8 +186,36 @@ class Select extends Component
         $this->tagSearch = '';
     }
 
-    public function render(): View
+    /**
+     * Append a project if its name is new, returning its id.
+     */
+    private function appendProject(string $name): ?string
     {
-        return view('ui.select');
+        $name = trim($name);
+
+        if ($name === '') {
+            return null;
+        }
+
+        $needle = mb_strtolower($name);
+
+        foreach ($this->projects as $project) {
+            if (mb_strtolower($project['name']) === $needle) {
+                return $project['id'];
+            }
+        }
+
+        $base = Str::slug($name) ?: 'project-'.\count($this->projects);
+        $id = $base;
+        $suffix = 2;
+
+        while (\in_array($id, array_column($this->projects, 'id'), true)) {
+            $id = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        $this->projects[] = ['id' => $id, 'name' => $name];
+
+        return $id;
     }
 }

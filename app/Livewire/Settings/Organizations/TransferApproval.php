@@ -47,6 +47,11 @@ class TransferApproval extends Component
         }
     }
 
+    public function render(): View
+    {
+        return view('livewire.settings.organizations.transfer-approval');
+    }
+
     /**
      * Open the review modal for an organization's pending request.
      */
@@ -203,10 +208,5 @@ class TransferApproval extends Component
         $this->organizationName = $approval->organization->name;
         $this->requesterName = $approval->requester->name;
         $this->showModal = true;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.settings.organizations.transfer-approval');
     }
 }

@@ -23,6 +23,10 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * @property-read Collection<int, OrganizationRelationshipPeriod> $history
+ * @property-read bool $roleChangeIsPromotion
+ */
 class View extends Component
 {
     use HasCurrentOrganization;
@@ -39,6 +43,54 @@ class View extends Component
         $organization = $this->requireOrganization();
 
         $this->person = app(FindMember::class)->inOrganization($organization, $person->getKey(), ['user']);
+    }
+
+    public function render(): ViewContract
+    {
+        $organization = $this->requireOrganization();
+
+        // mount() only runs once; a later request must not render a removed member.
+        $member = app(FindMember::class)->inOrganization($organization, $this->person->getKey());
+
+        $role = $member->roleIn($organization);
+        $canManage = Gate::allows('manageMember', [$member, $organization])
+            && $member->user_id !== Auth::id();
+
+        $joinedAt = $member->pivot->start_date ?? $member->created_at;
+
+        /** @disregard P1013 */
+        return view('livewire.members.view', [
+            'person' => $member,
+            'organization' => $organization,
+            'role' => $role,
+            'joinedAt' => $joinedAt,
+            'contactEmail' => $member->contactDetailValue(ContactDetailType::Email),
+            'contactPhone' => $member->contactDetailValue(ContactDetailType::Phone),
+            'canManage' => $canManage,
+        ])->title(__('Member profile'));
+    }
+
+    #[On('member-updated')]
+    public function refreshMember(): void
+    {
+        $this->person->refresh();
+    }
+
+    /**
+     * The membership's full stint history.
+     *
+     * @return Collection<int, OrganizationRelationshipPeriod>
+     */
+    #[Computed]
+    public function history(): Collection
+    {
+        return app(ListRelationshipPeriods::class)->forMember($this->requireOrganization(), $this->person);
+    }
+
+    #[Computed]
+    public function roleChangeIsPromotion(): bool
+    {
+        return $this->roleChangeTo === Role::Admin->value;
     }
 
     public function openEdit(): void
@@ -92,53 +144,5 @@ class View extends Component
         }
 
         $this->reset('showRoleModal', 'roleChangeTo');
-    }
-
-    #[On('member-updated')]
-    public function refreshMember(): void
-    {
-        $this->person->refresh();
-    }
-
-    /**
-     * The membership's full stint history.
-     *
-     * @return Collection<int, OrganizationRelationshipPeriod>
-     */
-    #[Computed]
-    public function history(): Collection
-    {
-        return app(ListRelationshipPeriods::class)->forMember($this->requireOrganization(), $this->person);
-    }
-
-    #[Computed]
-    public function roleChangeIsPromotion(): bool
-    {
-        return $this->roleChangeTo === Role::Admin->value;
-    }
-
-    public function render(): ViewContract
-    {
-        $organization = $this->requireOrganization();
-
-        // mount() only runs once; a later request must not render a removed member.
-        $member = app(FindMember::class)->inOrganization($organization, $this->person->getKey());
-
-        $role = $member->roleIn($organization);
-        $canManage = Gate::allows('manageMember', [$member, $organization])
-            && $member->user_id !== Auth::id();
-
-        $joinedAt = $member->pivot->start_date ?? $member->created_at;
-
-        /** @disregard P1013 */
-        return view('livewire.members.view', [
-            'person' => $member,
-            'organization' => $organization,
-            'role' => $role,
-            'joinedAt' => $joinedAt,
-            'contactEmail' => $member->contactDetailValue(ContactDetailType::Email),
-            'contactPhone' => $member->contactDetailValue(ContactDetailType::Phone),
-            'canManage' => $canManage,
-        ])->title(__('Member profile'));
     }
 }

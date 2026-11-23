@@ -23,6 +23,10 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
+/**
+ * @property-read Collection<int, Organization> $parentOrganizations
+ * @property-read list<SubsidiaryKind> $kinds
+ */
 class Create extends Component
 {
     use ProfileValidationRules, WithFileUploads;
@@ -50,6 +54,11 @@ class Create extends Component
         $this->internal = $internal;
     }
 
+    public function render(): View
+    {
+        return view('livewire.settings.organizations.create');
+    }
+
     /**
      * Open the create-organization flyout.
      */
@@ -68,6 +77,32 @@ class Create extends Component
         $this->kind = SubsidiaryKind::Subsidiary->value;
         $this->resetValidation();
         $this->showModal = true;
+    }
+
+    /**
+     * Organizations that can act as the parent.
+     *
+     * @return Collection<int, Organization>
+     */
+    #[Computed]
+    public function parentOrganizations(): Collection
+    {
+        $user = Auth::user();
+
+        return $user instanceof User
+            ? app(ListCreatableParents::class)->handle($user, $this->internal)
+            : collect();
+    }
+
+    /**
+     * The kinds a child organization can have.
+     *
+     * @return list<SubsidiaryKind>
+     */
+    #[Computed]
+    public function kinds(): array
+    {
+        return SubsidiaryKind::cases();
     }
 
     /**
@@ -141,36 +176,5 @@ class Create extends Component
     public function clearLogo(): void
     {
         $this->logo = null;
-    }
-
-    /**
-     * Organizations that can act as the parent.
-     *
-     * @return Collection<int, Organization>
-     */
-    #[Computed]
-    public function parentOrganizations(): Collection
-    {
-        $user = Auth::user();
-
-        return $user instanceof User
-            ? app(ListCreatableParents::class)->handle($user, $this->internal)
-            : collect();
-    }
-
-    /**
-     * The kinds a child organization can have.
-     *
-     * @return list<SubsidiaryKind>
-     */
-    #[Computed]
-    public function kinds(): array
-    {
-        return SubsidiaryKind::cases();
-    }
-
-    public function render(): View
-    {
-        return view('livewire.settings.organizations.create');
     }
 }

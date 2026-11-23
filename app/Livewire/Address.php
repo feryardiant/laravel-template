@@ -20,6 +20,11 @@ use Livewire\Component;
  *
  * The parent owns validation and persistence; this component only renders the
  * fields and resolves the region cascade.
+ *
+ * @property-read Collection<int, Province> $provinces
+ * @property-read Collection<int, Regency> $regencies
+ * @property-read Collection<int, District> $districts
+ * @property-read Collection<int, Village> $villages
  */
 class Address extends Component
 {
@@ -37,6 +42,47 @@ class Address extends Component
         'district_code' => '',
         'village_code' => '',
     ];
+
+    public function render(): View
+    {
+        return view('livewire.address');
+    }
+
+    /**
+     * @return Collection<int, Province>
+     */
+    #[Computed]
+    public function provinces(): Collection
+    {
+        return app(RegionLookup::class)->provinces();
+    }
+
+    /**
+     * @return Collection<int, Regency>
+     */
+    #[Computed]
+    public function regencies(): Collection
+    {
+        return app(RegionLookup::class)->regencies($this->address['province_code']);
+    }
+
+    /**
+     * @return Collection<int, District>
+     */
+    #[Computed]
+    public function districts(): Collection
+    {
+        return app(RegionLookup::class)->districts($this->address['regency_code']);
+    }
+
+    /**
+     * @return Collection<int, Village>
+     */
+    #[Computed]
+    public function villages(): Collection
+    {
+        return app(RegionLookup::class)->villages($this->address['district_code']);
+    }
 
     /**
      * Clear the levels below a changed field and keep the postal code in sync.
@@ -86,46 +132,5 @@ class Address extends Component
         $this->address['regency_code'] = (string) $village->regency_code;
         $this->address['district_code'] = (string) $village->district_code;
         $this->address['village_code'] = (string) $village->code;
-    }
-
-    /**
-     * @return Collection<int, Province>
-     */
-    #[Computed]
-    public function provinces(): Collection
-    {
-        return app(RegionLookup::class)->provinces();
-    }
-
-    /**
-     * @return Collection<int, Regency>
-     */
-    #[Computed]
-    public function regencies(): Collection
-    {
-        return app(RegionLookup::class)->regencies($this->address['province_code']);
-    }
-
-    /**
-     * @return Collection<int, District>
-     */
-    #[Computed]
-    public function districts(): Collection
-    {
-        return app(RegionLookup::class)->districts($this->address['regency_code']);
-    }
-
-    /**
-     * @return Collection<int, Village>
-     */
-    #[Computed]
-    public function villages(): Collection
-    {
-        return app(RegionLookup::class)->villages($this->address['district_code']);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.address');
     }
 }

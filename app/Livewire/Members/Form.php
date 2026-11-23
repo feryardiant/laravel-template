@@ -30,8 +30,10 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
+ * @property-read array<int, Role> $roles
  * @property-read bool $canEditProfile
  * @property-read bool $genderEditable
+ * @property-read ?string $photoPreviewUrl
  */
 class Form extends Component
 {
@@ -108,6 +110,11 @@ class Form extends Component
         }
     }
 
+    public function render(): View
+    {
+        return view('livewire.members.form');
+    }
+
     /**
      * Fill the form from the selected member.
      */
@@ -140,6 +147,42 @@ class Form extends Component
         $this->resetValidation();
 
         $this->showModal = true;
+    }
+
+    /**
+     * @return array<int, Role>
+     */
+    #[Computed]
+    public function roles(): array
+    {
+        return [Role::Admin, Role::Member];
+    }
+
+    /**
+     * Determine whether the current organization controls this person's profile.
+     */
+    #[Computed]
+    public function canEditProfile(): bool
+    {
+        $organization = $this->currentOrganization();
+
+        // A new member is always editable; existing profiles only when this organization owns them.
+        return $organization !== null && ($this->person === null || $this->person->isOwnedBy($organization));
+    }
+
+    /**
+     * Gender can be set once.
+     */
+    #[Computed]
+    public function genderEditable(): bool
+    {
+        return $this->canEditProfile && $this->person !== null && $this->person->gender === null;
+    }
+
+    #[Computed]
+    public function photoPreviewUrl(): ?string
+    {
+        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
     }
 
     /**
@@ -316,38 +359,12 @@ class Form extends Component
     }
 
     /**
-     * @return array<int, Role>
+     * Clear the pending or stored member photo.
      */
-    #[Computed]
-    public function roles(): array
+    public function clearPhoto(): void
     {
-        return [Role::Admin, Role::Member];
-    }
-
-    /**
-     * Determine whether the current organization controls this person's profile.
-     */
-    #[Computed]
-    public function canEditProfile(): bool
-    {
-        $organization = $this->currentOrganization();
-
-        // A new member is always editable; existing profiles only when this organization owns them.
-        return $organization !== null && ($this->person === null || $this->person->isOwnedBy($organization));
-    }
-
-    /**
-     * Gender can be set once.
-     */
-    #[Computed]
-    public function genderEditable(): bool
-    {
-        return $this->canEditProfile && $this->person !== null && $this->person->gender === null;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.members.form');
+        $this->photo = null;
+        $this->photoUrl = null;
     }
 
     /**
@@ -430,20 +447,5 @@ class Form extends Component
         if ($hasCredential) {
             $this->createCredential = false;
         }
-    }
-
-    /**
-     * Clear the pending or stored member photo.
-     */
-    public function clearPhoto(): void
-    {
-        $this->photo = null;
-        $this->photoUrl = null;
-    }
-
-    #[Computed]
-    public function photoPreviewUrl(): ?string
-    {
-        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
     }
 }
