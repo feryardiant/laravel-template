@@ -135,7 +135,7 @@ final class UpdateUserProfile
                 ->update(['photo_url' => $previousAvatar]);
 
             $avatarUrl = $restored === 0
-                ? $fresh?->person?->getRawOriginal('photo_url')
+                ? $fresh?->person?->refresh()->getRawOriginal('photo_url')
                 : $previousAvatar;
 
             $avatarRemovalFailed = true;
