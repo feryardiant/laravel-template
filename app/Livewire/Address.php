@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Actions\Addresses\RegionLookup;
 use Creasi\Nusa\Models\District;
 use Creasi\Nusa\Models\Province;
 use Creasi\Nusa\Models\Regency;
@@ -67,11 +68,7 @@ class Address extends Component
      */
     private function fillPostalCode(string $villageCode): void
     {
-        $postalCode = $villageCode === ''
-            ? null
-            : Village::query()->where('code', $villageCode)->value('postal_code');
-
-        $this->address['postal_code'] = $postalCode === null ? '' : (string) $postalCode;
+        $this->address['postal_code'] = app(RegionLookup::class)->postalCodeForVillage($villageCode) ?? '';
     }
 
     /**
@@ -79,15 +76,7 @@ class Address extends Component
      */
     private function resolvePostalCode(string $postalCode): void
     {
-        if (preg_match('/^\d{5}$/', $postalCode) !== 1) {
-            return;
-        }
-
-        // shortcut: a postal code can cover several villages; take the first.
-        $village = Village::query()
-            ->where('postal_code', $postalCode)
-            ->orderBy('code')
-            ->first(['code', 'district_code', 'regency_code', 'province_code']);
+        $village = app(RegionLookup::class)->villageByPostalCode($postalCode);
 
         if ($village === null) {
             return;
@@ -105,7 +94,7 @@ class Address extends Component
     #[Computed]
     public function provinces(): Collection
     {
-        return Province::query()->orderBy('name')->get(['code', 'name']);
+        return app(RegionLookup::class)->provinces();
     }
 
     /**
@@ -114,13 +103,7 @@ class Address extends Component
     #[Computed]
     public function regencies(): Collection
     {
-        $province = $this->address['province_code'];
-
-        if (blank($province)) {
-            return new Collection;
-        }
-
-        return Regency::query()->where('province_code', $province)->orderBy('name')->get(['code', 'name']);
+        return app(RegionLookup::class)->regencies($this->address['province_code']);
     }
 
     /**
@@ -129,13 +112,7 @@ class Address extends Component
     #[Computed]
     public function districts(): Collection
     {
-        $regency = $this->address['regency_code'];
-
-        if (blank($regency)) {
-            return new Collection;
-        }
-
-        return District::query()->where('regency_code', $regency)->orderBy('name')->get(['code', 'name']);
+        return app(RegionLookup::class)->districts($this->address['regency_code']);
     }
 
     /**
@@ -144,13 +121,7 @@ class Address extends Component
     #[Computed]
     public function villages(): Collection
     {
-        $district = $this->address['district_code'];
-
-        if (blank($district)) {
-            return new Collection;
-        }
-
-        return Village::query()->where('district_code', $district)->orderBy('name')->get(['code', 'name']);
+        return app(RegionLookup::class)->villages($this->address['district_code']);
     }
 
     public function render(): View
