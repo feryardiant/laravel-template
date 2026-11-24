@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Actions\Approvals\ListPendingApprovalsForPerson;
+use App\Actions\Approvals\ListApprovals;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Gate;
 final class ListUserMemberships
 {
     public function __construct(
-        private ListPendingApprovalsForPerson $pendingApprovals,
+        private ListApprovals $listApprovals,
     ) {
         // .
     }
@@ -47,7 +47,7 @@ final class ListUserMemberships
         $personId = $person?->getKey();
         $approvals = $person === null
             ? collect()
-            : $this->pendingApprovals->handle($person);
+            : $this->listApprovals->pendingForPerson($person);
 
         $asApprover = $approvals->where('approver_person_id', $personId)->keyBy('organization_id');
         $asRequester = $approvals->where('requester_person_id', $personId)->keyBy('organization_id');

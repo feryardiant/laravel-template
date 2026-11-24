@@ -103,9 +103,8 @@ final class DeleteOrganization implements ShouldQueue
 
         $organization->address()->delete();
 
-        ApprovalRequest::query()
+        ApprovalRequest::onlyPendings()
             ->where('organization_id', $organization->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
             ->update([
                 'status' => ApprovalRequestStatus::Canceled,
                 'canceled_at' => now(),

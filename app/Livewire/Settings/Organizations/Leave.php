@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings\Organizations;
 
-use App\Actions\Approvals\CancelApprovalRequest;
-use App\Actions\Approvals\FindApprovalRequest;
+use App\Actions\Approvals\CancelApproval;
+use App\Actions\Approvals\FindApproval;
 use App\Actions\Memberships\LeaveWorkspace;
 use App\Actions\Organizations\FindUserOrganization;
 use App\Enums\ApprovalRequestType;
@@ -59,13 +59,13 @@ class Leave extends Component
      * Cancel the current user's pending leave request.
      */
     #[On('cancel-leave-request')]
-    public function cancelRequest(int $approvalId, CancelApprovalRequest $cancelRequest): void
+    public function cancelRequest(int $approvalId, CancelApproval $cancelRequest): void
     {
         $user = Auth::user();
 
         abort_unless($user instanceof User && $user->person !== null, 403);
 
-        $approval = app(FindApprovalRequest::class)->forRequester($user, $approvalId, ApprovalRequestType::MembershipLeave);
+        $approval = app(FindApproval::class)->forRequester($user, $approvalId, ApprovalRequestType::MembershipLeave);
 
         abort_if($approval === null, 404);
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings\Organizations;
 
-use App\Actions\Approvals\FindApprovalRequest;
+use App\Actions\Approvals\FindApproval;
 use App\Actions\Approvals\MembershipLeave;
 use App\Actions\Approvals\OwnershipTransfer;
 use App\Enums\ApprovalRequestType;
@@ -40,7 +40,7 @@ class TransferApproval extends Component
             return;
         }
 
-        $approval = app(FindApprovalRequest::class)->openForApproverByUuid($user, $uuid);
+        $approval = app(FindApproval::class)->openForApproverByUuid($user, $uuid);
 
         if ($approval !== null) {
             $this->openModal($approval);
@@ -62,7 +62,7 @@ class TransferApproval extends Component
 
         abort_unless($user instanceof User && $user->person !== null, 403);
 
-        $approval = app(FindApprovalRequest::class)->openForApproverByOrganization($user, $organizationId);
+        $approval = app(FindApproval::class)->openForApproverByOrganization($user, $organizationId);
 
         abort_if($approval === null, 404);
 
@@ -163,7 +163,7 @@ class TransferApproval extends Component
             return null;
         }
 
-        return app(FindApprovalRequest::class)->forApprover($user, $this->approvalId);
+        return app(FindApproval::class)->forApprover($user, $this->approvalId);
     }
 
     /**

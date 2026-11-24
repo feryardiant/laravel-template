@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Actions\Approvals\FindApprovalRequest;
+use App\Actions\Approvals\FindApproval;
 use App\Actions\Approvals\ListApprovals;
-use App\Actions\Approvals\ListOwnershipTransferCandidates;
-use App\Actions\Approvals\ListPendingApprovalsForPerson;
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Memberships\ListCredentialedMembers;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\Role;
@@ -41,7 +40,7 @@ it('lists the organization approvals', function () {
     $approver = Person::factory()->withoutCredential()->create();
     $approval = approvalForReads($organization, $requester, $approver);
 
-    $approvals = app(ListApprovals::class)->handle($organization);
+    $approvals = app(ListApprovals::class)->forOrganization($organization);
 
     expect($approvals)->toHaveCount(1)
         ->and($approvals->first()?->is($approval))->toBeTrue();
@@ -53,9 +52,9 @@ it('lists pending approvals for the requester and approver', function () {
     $approver = Person::factory()->withoutCredential()->create();
     $approval = approvalForReads($organization, $requester, $approver);
 
-    expect(app(ListPendingApprovalsForPerson::class)->handle($requester)->pluck('id')->all())
+    expect(app(ListApprovals::class)->pendingForPerson($requester)->pluck('id')->all())
         ->toBe([$approval->getKey()])
-        ->and(app(ListPendingApprovalsForPerson::class)->handle($approver)->pluck('id')->all())
+        ->and(app(ListApprovals::class)->pendingForPerson($approver)->pluck('id')->all())
         ->toBe([$approval->getKey()]);
 });
 
@@ -65,7 +64,7 @@ it('finds approvals by link, organization, approver, and requester', function ()
     $approver = User::factory()->asMemberOf($organization)->create();
     $approval = approvalForReads($organization, $requester, $approver->person);
 
-    $find = app(FindApprovalRequest::class);
+    $find = app(FindApproval::class);
 
     expect($find->openForApproverByUuid($approver, $approval->uuid)?->is($approval))->toBeTrue()
         ->and($find->openForApproverByOrganization($approver, $organization->getKey())?->is($approval))->toBeTrue()
@@ -81,7 +80,7 @@ it('lists active credentialed members other than the owner', function () {
     $credentialless = Person::factory()->withoutCredential()->create();
     app(CreateMember::class)->attach($organization, $credentialless, startDate: now(), role: Role::Member);
 
-    $candidates = app(ListOwnershipTransferCandidates::class)->handle($organization, $owner->person);
+    $candidates = app(ListCredentialedMembers::class)->handle($organization, $owner->person->getKey(), activeOnly: true);
 
     expect($candidates->pluck('id')->all())->toBe([$member->person->getKey()])
         ->and($candidates->contains($credentialless))->toBeFalse();

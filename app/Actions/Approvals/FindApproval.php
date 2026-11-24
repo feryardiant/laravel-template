@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Approvals;
 
-use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
 
-final class FindApprovalRequest
+final class FindApproval
 {
     /**
      * Resolve a pending approval opened from a signed email link.
@@ -23,10 +22,9 @@ final class FindApprovalRequest
             return null;
         }
 
-        return ApprovalRequest::query()
+        return ApprovalRequest::onlyPendings()
             ->where('uuid', $uuid)
             ->where('approver_person_id', $personId)
-            ->where('status', ApprovalRequestStatus::Pending)
             ->where('expires_at', '>', now())
             ->first();
     }
@@ -42,10 +40,9 @@ final class FindApprovalRequest
             return null;
         }
 
-        return ApprovalRequest::query()
+        return ApprovalRequest::onlyPendings()
             ->where('organization_id', $organizationId)
             ->where('approver_person_id', $personId)
-            ->where('status', ApprovalRequestStatus::Pending)
             ->where('expires_at', '>', now())
             ->first();
     }
@@ -72,8 +69,7 @@ final class FindApprovalRequest
      */
     public function pendingForOrganization(Organization $organization): ?ApprovalRequest
     {
-        return ApprovalRequest::query()
-            ->pending()
+        return ApprovalRequest::onlyPendings()
             ->where('organization_id', $organization->getKey())
             ->where('expires_at', '>', now())
             ->with(['requester', 'approver'])

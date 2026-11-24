@@ -10,13 +10,8 @@ use App\Models\ApprovalRequest;
 use App\Models\User;
 use InvalidArgumentException;
 
-final class CancelApprovalRequest
+final class CancelApproval
 {
-    public function __construct()
-    {
-        // .
-    }
-
     /**
      * Cancel a pending approval request as its requester.
      */
@@ -32,9 +27,8 @@ final class CancelApprovalRequest
             return false;
         }
 
-        $canceled = ApprovalRequest::query()
-            ->whereKey($request->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
+        $canceled = ApprovalRequest::onlyPendings()
+            ->whereKey($request)
             ->update([
                 'status' => ApprovalRequestStatus::Canceled,
                 'canceled_at' => now(),

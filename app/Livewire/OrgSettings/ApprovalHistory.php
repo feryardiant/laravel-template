@@ -47,6 +47,6 @@ class ApprovalHistory extends Component
 
         $this->authorize('viewApprovals', $organization);
 
-        return app(ListApprovals::class)->handle($organization);
+        return app(ListApprovals::class)->forOrganization($organization);
     }
 }

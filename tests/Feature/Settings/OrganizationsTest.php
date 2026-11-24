@@ -314,7 +314,7 @@ test('an admin leave asks the owner for approval', function () {
         ->assertNoRedirect();
 
     expect($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue()
-        ->and(ApprovalRequest::query()->pending()->count())->toBe(1);
+        ->and(ApprovalRequest::onlyPendings()->count())->toBe(1);
 
     Notification::assertSentTo($owner, MembershipLeaveRequestedNotification::class);
 });

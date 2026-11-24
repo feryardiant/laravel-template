@@ -122,7 +122,7 @@ test('a pending leave request blocks an ownership transfer', function () {
     expect(fn () => app(OwnershipTransfer::class)->request($organization, $owner, $admin->person))
         ->toThrow(InvalidArgumentException::class);
 
-    expect(ApprovalRequest::query()->pending()->count())->toBe(1);
+    expect(ApprovalRequest::onlyPendings()->count())->toBe(1);
 });
 
 test('a pending transfer blocks an admin leave request', function () {
@@ -137,7 +137,7 @@ test('a pending transfer blocks an admin leave request', function () {
     expect(fn () => app(MembershipLeave::class)->request($organization, $admin))
         ->toThrow(InvalidArgumentException::class);
 
-    expect(ApprovalRequest::query()->pending()->count())->toBe(1);
+    expect(ApprovalRequest::onlyPendings()->count())->toBe(1);
 });
 
 test('removing the admin cancels their pending leave request', function () {

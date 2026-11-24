@@ -32,7 +32,7 @@ use Illuminate\Support\Str;
  * @property-read Person $requester
  * @property-read Person $approver
  *
- * @method static Builder<static> pending()
+ * @method static Builder<static> onlyPendings()
  */
 #[Fillable([
     'organization_id',
@@ -102,7 +102,7 @@ class ApprovalRequest extends Model
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopePending(Builder $query): Builder
+    public function scopeOnlyPendings(Builder $query): Builder
     {
         return $query->where('status', ApprovalRequestStatus::Pending);
     }

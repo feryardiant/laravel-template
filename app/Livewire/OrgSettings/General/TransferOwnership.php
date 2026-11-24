@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\General;
 
-use App\Actions\Approvals\CancelApprovalRequest;
-use App\Actions\Approvals\FindApprovalRequest;
-use App\Actions\Approvals\ListOwnershipTransferCandidates;
+use App\Actions\Approvals\CancelApproval;
+use App\Actions\Approvals\FindApproval;
 use App\Actions\Approvals\OwnershipTransfer;
+use App\Actions\Memberships\ListCredentialedMembers;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
@@ -58,7 +58,7 @@ class TransferOwnership extends Component
             return new Collection;
         }
 
-        return app(ListOwnershipTransferCandidates::class)->handle($organization, $owner);
+        return app(ListCredentialedMembers::class)->handle($organization, $owner->getKey(), activeOnly: true);
     }
 
     /**
@@ -75,13 +75,13 @@ class TransferOwnership extends Component
 
         $this->authorize('transferOwnership', $organization);
 
-        return app(FindApprovalRequest::class)->pendingForOrganization($organization);
+        return app(FindApproval::class)->pendingForOrganization($organization);
     }
 
     /**
      * Cancel the pending ownership transfer.
      */
-    public function cancelTransfer(CancelApprovalRequest $cancelRequest): void
+    public function cancelTransfer(CancelApproval $cancelRequest): void
     {
         $organization = $this->currentOrganization();
 

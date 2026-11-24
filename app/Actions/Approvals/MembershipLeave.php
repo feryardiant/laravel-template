@@ -49,17 +49,15 @@ final class MembershipLeave
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            ApprovalRequest::query()
+            ApprovalRequest::onlyPendings()
                 ->where('organization_id', $organization->getKey())
-                ->where('status', ApprovalRequestStatus::Pending)
                 ->where('expires_at', '<=', now())
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,
                     'canceled_at' => now(),
                 ]);
 
-            if (ApprovalRequest::query()
-                ->pending()
+            if (ApprovalRequest::onlyPendings()
                 ->where('organization_id', $organization->getKey())
                 ->where('expires_at', '>', now())
                 ->exists()) {

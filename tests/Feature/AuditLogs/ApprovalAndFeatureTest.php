@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Approvals\Audit\ApprovalPayload;
-use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\CancelApproval;
 use App\Actions\Approvals\MembershipLeave;
 use App\Actions\Approvals\OwnershipTransfer;
 use App\Actions\FileStorage;
@@ -94,7 +94,7 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
 
     $cancelRequest = app(OwnershipTransfer::class)->request($organization, $secondOwner, $owner->person);
 
-    expect(app(CancelApprovalRequest::class)->handle($cancelRequest, $secondOwner))->toBeTrue();
+    expect(app(CancelApproval::class)->handle($cancelRequest, $secondOwner))->toBeTrue();
 
     $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
@@ -117,7 +117,7 @@ test('cancelling a stale pending request does not overwrite a decision', functio
         'accepted_at' => now(),
     ]);
 
-    expect(app(CancelApprovalRequest::class)->handle($stale, $owner))->toBeFalse()
+    expect(app(CancelApproval::class)->handle($stale, $owner))->toBeFalse()
         ->and($request->fresh()->status)->toBe(ApprovalRequestStatus::Accepted);
 });
 
@@ -184,7 +184,7 @@ test('a membership leave decline and cancellation are recorded', function () {
 
     $cancelRequest = app(MembershipLeave::class)->request($organization, $admin);
 
-    expect(app(CancelApprovalRequest::class)->handle($cancelRequest, $admin))->toBeTrue();
+    expect(app(CancelApproval::class)->handle($cancelRequest, $admin))->toBeTrue();
 
     $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
