@@ -20,11 +20,8 @@ final class CountExpiringContacts
             ->forOrganization($organization)
             ->externals()
             ->notExpired()
-            ->whereDate('finish_date', '>=', $range['start'])
-            ->whereDate('finish_date', '<=', $range['end'])
-            ->where(fn ($query) => $query
-                ->whereNull('start_date')
-                ->orWhereDate('start_date', '<=', today()))
+            ->finishingBetween($range)
+            ->started()
             ->count();
     }
 }

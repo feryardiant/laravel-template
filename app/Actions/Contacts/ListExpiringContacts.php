@@ -7,7 +7,6 @@ namespace App\Actions\Contacts;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 final class ListExpiringContacts
 {
@@ -23,12 +22,9 @@ final class ListExpiringContacts
             ->forOrganization($organization)
             ->externals()
             ->notExpired()
-            ->whereDate('finish_date', '>=', $range['start'])
-            ->whereDate('finish_date', '<=', $range['end'])
-            ->where(fn ($query) => $query
-                ->whereNull('start_date')
-                ->orWhereDate('start_date', '<=', today()))
-            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()])
+            ->finishingBetween($range)
+            ->started()
+            ->withStakeholder()
             ->orderBy('finish_date')
             ->limit($limit)
             ->get();

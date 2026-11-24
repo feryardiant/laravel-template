@@ -9,7 +9,6 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 final class FindContact
 {
@@ -38,7 +37,18 @@ final class FindContact
      */
     public function byId(Organization $tenant, int $contactId): OrganizationRelationship
     {
-        return $this->query($tenant)->whereKey($contactId)->firstOrFail();
+        return $this->query($tenant)
+            ->whereHasMorph(
+                'stakeholder',
+                [Organization::class, Person::class],
+                function (Builder $query, string $type): void {
+                    if ($type === Organization::class) {
+                        $query->withTrashed();
+                    }
+                }
+            )
+            ->whereKey($contactId)
+            ->firstOrFail();
     }
 
     /**
@@ -67,7 +77,7 @@ final class FindContact
 
         $registeredElsewhere = OrganizationRelationship::query()
             ->externals()
-            ->where('organization_id', '!=', $tenant->getKey())
+            ->outsideOrganization($tenant)
             ->whereStakeholder($entity)
             ->exists();
 
@@ -113,13 +123,6 @@ final class FindContact
         return OrganizationRelationship::query()
             ->forOrganization($tenant)
             ->externals()
-            ->whereHasMorph('stakeholder', [Organization::class, Person::class], function (Builder $query, string $type): void {
-                if ($type === Organization::class) {
-                    $query->withTrashed();
-                }
-            })
-            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()->morphWith([
-                Organization::class => ['primaryContact'],
-            ])]);
+            ->withStakeholderAndPrimaryContact();
     }
 }

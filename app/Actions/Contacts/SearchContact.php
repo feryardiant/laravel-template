@@ -67,14 +67,14 @@ final class SearchContact
     {
         $query = OrganizationRelationship::query()
             ->externals()
-            ->where('stakeholder_type', $stakeholder)
+            ->whereStakeholderType($stakeholder)
             ->select('stakeholder_id');
 
         if ($own) {
             return $query->forOrganization($tenant)->expired();
         }
 
-        return $query->where('organization_id', '!=', $tenant->getKey());
+        return $query->outsideOrganization($tenant);
     }
 
     /**
@@ -89,7 +89,7 @@ final class SearchContact
             ->forOrganization($tenant)
             ->externals()
             ->notExpired()
-            ->where('stakeholder_type', $stakeholder)
+            ->whereStakeholderType($stakeholder)
             ->select('stakeholder_id');
     }
 }

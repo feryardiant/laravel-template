@@ -67,9 +67,9 @@ final class ProvisionPublicTenant
 
         $membership = OrganizationRelationship::query()
             ->forOrganization($organization)
-            ->where('stakeholder_type', (new Person)->getMorphClass())
+            ->whereStakeholderType((new Person)->getMorphClass())
             ->where('stakeholder_id', $organization->contact_id)
-            ->where('type', OrganizationRelationshipType::Member)
+            ->members()
             ->first();
 
         if ($membership !== null) {

@@ -6,7 +6,6 @@ namespace App\Actions\Memberships;
 
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Events\Approvals\ApprovalCanceled;
 use App\Events\Memberships\MemberRemoved;
@@ -78,9 +77,9 @@ final class RemoveMember
             if ($removed->isNotEmpty()) {
                 $relationships = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->where('stakeholder_type', (new Person)->getMorphClass())
+                    ->whereStakeholderType((new Person)->getMorphClass())
                     ->whereIn('stakeholder_id', $removed->modelKeys())
-                    ->where('type', OrganizationRelationshipType::Member)
+                    ->members()
                     ->get();
 
                 foreach ($relationships as $relationship) {

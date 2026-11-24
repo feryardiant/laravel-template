@@ -141,7 +141,7 @@ final class CreateMember
             $existing = OrganizationRelationship::query()
                 ->forOrganization($organization)
                 ->whereStakeholder($member)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->members()
                 ->lockForUpdate()
                 ->first();
 
@@ -183,7 +183,7 @@ final class CreateMember
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
                 ->whereStakeholder($member)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->members()
                 ->firstOrFail();
 
             $period = $this->timeline->open(

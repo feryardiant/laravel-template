@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Actions\Organizations;
 
 use App\Actions\Approvals\ListApprovals;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
 use App\Models\ApprovalRequest;
@@ -37,8 +36,8 @@ final class ListUserMemberships
             ? collect()
             : OrganizationRelationship::query()
                 ->with('organization')
-                ->where('type', OrganizationRelationshipType::Subsidiary)
-                ->where('stakeholder_type', (new Organization)->getMorphClass())
+                ->subsidiaries()
+                ->whereStakeholderType((new Organization)->getMorphClass())
                 ->whereIn('stakeholder_id', $organizations->pluck('id')->all())
                 ->get()
                 ->keyBy('stakeholder_id');

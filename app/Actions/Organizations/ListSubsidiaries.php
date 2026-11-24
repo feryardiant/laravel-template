@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\SubsidiaryKind;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -21,7 +20,7 @@ final class ListSubsidiaries
     public function handle(Organization $root): Collection
     {
         $relationships = OrganizationRelationship::query()
-            ->where('type', OrganizationRelationshipType::Subsidiary)
+            ->subsidiaries()
             ->orderBy('id')
             ->get();
 

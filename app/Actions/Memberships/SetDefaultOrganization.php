@@ -42,7 +42,7 @@ final class SetDefaultOrganization
             OrganizationRelationship::query()
                 ->forOrganization($organization)
                 ->whereStakeholder($person)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->members()
                 ->update(['is_primary' => true]);
 
             return true;

@@ -19,8 +19,7 @@ final class CountNewContacts
         return OrganizationRelationship::query()
             ->forOrganization($organization)
             ->externals()
-            ->whereDate('start_date', '>=', $range['start'])
-            ->whereDate('start_date', '<=', $range['end'])
+            ->startedBetween($range)
             ->count();
     }
 }
