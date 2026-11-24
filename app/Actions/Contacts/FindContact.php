@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts;
 
+use App\Models\Builders\OrganizationRelationshipBuilder;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class FindContact
@@ -18,17 +18,7 @@ final class FindContact
     public function byUuid(Organization $tenant, string $uuid): OrganizationRelationship
     {
         return $this->query($tenant)
-            ->whereHasMorph(
-                'stakeholder',
-                [Organization::class, Person::class],
-                function (Builder $query, string $type) use ($uuid): void {
-                    if ($type === Organization::class) {
-                        $query->withTrashed();
-                    }
-
-                    $query->where('uuid', $uuid);
-                },
-            )
+            ->hasStakeholder($uuid)
             ->firstOrFail();
     }
 
@@ -38,15 +28,7 @@ final class FindContact
     public function byId(Organization $tenant, int $contactId): OrganizationRelationship
     {
         return $this->query($tenant)
-            ->whereHasMorph(
-                'stakeholder',
-                [Organization::class, Person::class],
-                function (Builder $query, string $type): void {
-                    if ($type === Organization::class) {
-                        $query->withTrashed();
-                    }
-                }
-            )
+            ->hasStakeholder()
             ->whereKey($contactId)
             ->firstOrFail();
     }
@@ -76,23 +58,23 @@ final class FindContact
         }
 
         $registeredElsewhere = OrganizationRelationship::query()
+            ->forStakeholder($entity)
             ->externals()
             ->outsideOrganization($tenant)
-            ->whereStakeholder($entity)
             ->exists();
 
         $ownExpired = OrganizationRelationship::query()
             ->forOrganization($tenant)
+            ->forStakeholder($entity)
             ->externals()
             ->expired()
-            ->whereStakeholder($entity)
             ->exists();
 
         $ownCurrent = OrganizationRelationship::query()
             ->forOrganization($tenant)
+            ->forStakeholder($entity)
             ->externals()
             ->notExpired()
-            ->whereStakeholder($entity)
             ->exists();
 
         if ((! $registeredElsewhere && ! $ownExpired) || $ownCurrent) {
@@ -109,16 +91,13 @@ final class FindContact
     {
         return OrganizationRelationship::query()
             ->forOrganization($tenant)
+            ->forStakeholder($entity)
             ->externals()
             ->expired()
-            ->whereStakeholder($entity)
             ->first();
     }
 
-    /**
-     * @return Builder<OrganizationRelationship>
-     */
-    private function query(Organization $tenant): Builder
+    private function query(Organization $tenant): OrganizationRelationshipBuilder
     {
         return OrganizationRelationship::query()
             ->forOrganization($tenant)

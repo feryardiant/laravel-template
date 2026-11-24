@@ -19,7 +19,7 @@ final class CountNewContacts
         return OrganizationRelationship::query()
             ->forOrganization($organization)
             ->externals()
-            ->startedBetween($range)
+            ->startedBetween($range['start'], $range['end'])
             ->count();
     }
 }

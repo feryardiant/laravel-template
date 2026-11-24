@@ -22,4 +22,14 @@ trait ForOrganization
 
         return $this->where('organization_id', $organization);
     }
+
+    /**
+     * Limit the query to relationships owned by another organization.
+     */
+    public function outsideOrganization(Organization|int $organization): static
+    {
+        $organization = $organization instanceof Organization ? $organization->getKey() : $organization;
+
+        return $this->where('organization_id', '!=', $organization);
+    }
 }

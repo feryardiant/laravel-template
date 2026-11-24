@@ -48,9 +48,9 @@ class ContactLookupController extends Controller
     {
         return OrganizationRelationship::query()
             ->forOrganization($organization)
+            ->forStakeholder($entity)
             ->externals()
             ->expired()
-            ->whereStakeholder($entity)
             ->exists();
     }
 

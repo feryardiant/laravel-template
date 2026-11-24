@@ -21,18 +21,10 @@ final class ListCredentialedMembers
         ?int $excludePersonId = null,
         bool $activeOnly = false,
     ): Collection {
-        $today = now()->toDateString();
-
         return $organization->members()
-            ->whereHas('user')
+            ->credentialed()
             ->when($excludePersonId !== null, fn (Builder $query): Builder => $query->whereKeyNot($excludePersonId))
-            ->when($activeOnly, fn (Builder $query): Builder => $query
-                ->where(fn (Builder $query): Builder => $query
-                    ->whereNull('organization_relationships.start_date')
-                    ->orWhere('organization_relationships.start_date', '<=', $today))
-                ->where(fn (Builder $query): Builder => $query
-                    ->whereNull('organization_relationships.finish_date')
-                    ->orWhere('organization_relationships.finish_date', '>=', $today)))
+            ->when($activeOnly, fn (Builder $query): Builder => $query->membershipActive())
             ->with('user')
             ->orderBy('people.name')
             ->get();

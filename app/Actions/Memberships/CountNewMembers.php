@@ -16,11 +16,8 @@ final class CountNewMembers
     public function handle(Organization $organization, array $range): int
     {
         return $organization->members()
-            ->whereDate('organization_relationships.start_date', '>=', $range['start'])
-            ->whereDate('organization_relationships.start_date', '<=', $range['end'])
-            ->where(fn ($query) => $query
-                ->whereNull('organization_relationships.finish_date')
-                ->orWhereDate('organization_relationships.finish_date', '>=', today()))
+            ->membershipStartedBetween($range)
+            ->membershipNotFinished()
             ->count();
     }
 }

@@ -55,7 +55,7 @@ final class ChangeMemberRole
 
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($person, OrganizationRelationshipType::Member)
+                ->forStakeholder($person, OrganizationRelationshipType::Member)
                 ->where(fn ($query) => $query->whereNull('start_date')->orWhere('start_date', '<=', $today))
                 ->where(fn ($query) => $query->whereNull('finish_date')->orWhere('finish_date', '>=', $today))
                 ->lockForUpdate()

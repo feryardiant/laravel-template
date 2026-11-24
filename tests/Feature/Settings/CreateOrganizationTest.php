@@ -72,7 +72,7 @@ test('selecting an owned parent links the new organization as a subsidiary', fun
     $child = Organization::query()->where('name', 'Child Org')->firstOrFail();
 
     $relationship = OrganizationRelationship::query()
-        ->whereStakeholder($child)
+        ->forStakeholder($child)
         ->where('type', OrganizationRelationshipType::Subsidiary)
         ->firstOrFail();
 
@@ -98,7 +98,7 @@ test('a branch kind is stored and shown on the organization list', function () {
     $child = Organization::query()->where('name', 'Branch Org')->firstOrFail();
 
     $relationship = OrganizationRelationship::query()
-        ->whereStakeholder($child)
+        ->forStakeholder($child)
         ->where('type', OrganizationRelationshipType::Subsidiary)
         ->firstOrFail();
 

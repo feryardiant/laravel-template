@@ -19,11 +19,8 @@ final class ListRecentMembers
     public function handle(Organization $organization, array $range, int $limit = 5): Collection
     {
         return $organization->members()
-            ->whereDate('organization_relationships.start_date', '>=', $range['start'])
-            ->whereDate('organization_relationships.start_date', '<=', $range['end'])
-            ->where(fn ($query) => $query
-                ->whereNull('organization_relationships.finish_date')
-                ->orWhereDate('organization_relationships.finish_date', '>=', today()))
+            ->membershipStartedBetween($range)
+            ->membershipNotFinished()
             ->with('user')
             ->orderByDesc('organization_relationships.start_date')
             ->limit($limit)

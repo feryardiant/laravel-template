@@ -39,7 +39,7 @@ test('the contact view page renders the contact information', function () {
 
     OrganizationRelationship::query()
         ->forOrganization($organization)
-        ->whereStakeholder($contact)
+        ->forStakeholder($contact)
         ->update(['code' => 'VIEW-1', 'start_date' => '2026-01-01']);
 
     get(route('contacts.view', ['stakeholder' => $contact]))

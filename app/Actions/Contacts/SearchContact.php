@@ -35,7 +35,7 @@ final class SearchContact
                 ->whereIn('id', $this->stakeholderIds($tenant, Organization::class, own: false))
                 ->orWhereIn('id', $this->stakeholderIds($tenant, Organization::class, own: true)))
             ->whereNotIn('id', $this->currentStakeholderIds($tenant, Organization::class))
-            ->whereLike('name', "%{$term}%")
+            ->namedLike($term)
             ->orderBy('name')
             ->limit($limit)
             ->get();
@@ -45,7 +45,7 @@ final class SearchContact
                 ->whereIn('id', $this->stakeholderIds($tenant, Person::class, own: false))
                 ->orWhereIn('id', $this->stakeholderIds($tenant, Person::class, own: true)))
             ->whereNotIn('id', $this->currentStakeholderIds($tenant, Person::class))
-            ->whereLike('name', "%{$term}%")
+            ->namedLike($term)
             ->orderBy('name')
             ->limit($limit)
             ->get();

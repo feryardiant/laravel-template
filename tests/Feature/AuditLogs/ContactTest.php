@@ -45,8 +45,8 @@ function auditContactRelationship(Organization $organization, Entity $entity): O
 {
     return OrganizationRelationship::query()
         ->forOrganization($organization)
+        ->forStakeholder($entity)
         ->externals()
-        ->whereStakeholder($entity)
         ->firstOrFail();
 }
 

@@ -166,7 +166,7 @@ function contactRelationshipId(Organization $organization, Organization|Person $
 {
     return (int) OrganizationRelationship::query()
         ->forOrganization($organization)
-        ->whereStakeholder($stakeholder)
+        ->forStakeholder($stakeholder)
         ->value('id');
 }
 

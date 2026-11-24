@@ -129,13 +129,13 @@ final class OwnershipTransfer
 
                 $requesterRelationship = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->whereStakeholder($request->requester, OrganizationRelationshipType::Member)
+                    ->forStakeholder($request->requester, OrganizationRelationshipType::Member)
                     ->lockForUpdate()
                     ->first();
 
                 $approverRelationship = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->whereStakeholder($request->approver, OrganizationRelationshipType::Member)
+                    ->forStakeholder($request->approver, OrganizationRelationshipType::Member)
                     ->lockForUpdate()
                     ->first();
 

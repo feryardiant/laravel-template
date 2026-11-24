@@ -26,15 +26,7 @@ final class ListContacts
             ->forOrganization($tenant)
             ->externals()
             ->select('organization_relationships.*')
-            ->whereHasMorph(
-                'stakeholder',
-                [Organization::class, Person::class],
-                function (Builder $query, string $type): void {
-                    if ($type === Organization::class) {
-                        $query->withTrashed();
-                    }
-                }
-            )
+            ->hasStakeholder()
             ->leftJoin('people', function (JoinClause $join): void {
                 $join->on('people.id', '=', 'organization_relationships.stakeholder_id')
                     ->where('organization_relationships.stakeholder_type', '=', (new Person)->getMorphClass());

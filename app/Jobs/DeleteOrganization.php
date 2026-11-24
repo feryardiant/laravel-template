@@ -115,7 +115,7 @@ final class DeleteOrganization implements ShouldQueue
             ->delete();
 
         $externallyReferenced = OrganizationRelationship::query()
-            ->whereStakeholder($organization)
+            ->forStakeholder($organization)
             ->externals()
             ->exists();
 
@@ -130,7 +130,7 @@ final class DeleteOrganization implements ShouldQueue
             ->delete();
 
         OrganizationRelationship::query()
-            ->whereStakeholder($organization)
+            ->forStakeholder($organization)
             ->internals()
             ->delete();
 

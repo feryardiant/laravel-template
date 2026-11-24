@@ -19,4 +19,12 @@ final class OrganizationBuilder extends Builder
     {
         return $this->where('is_tenant', true)->whereNull('root_organization_id');
     }
+
+    /**
+     * Limit the query to the given name.
+     */
+    public function namedLike(string $term): static
+    {
+        return $this->whereLike('name', "%{$term}%");
+    }
 }

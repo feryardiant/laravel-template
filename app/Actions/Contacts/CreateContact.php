@@ -63,8 +63,8 @@ final class CreateContact
 
                 $existing = OrganizationRelationship::query()
                     ->forOrganization($tenant)
+                    ->forStakeholder($stakeholder)
                     ->externals()
-                    ->whereStakeholder($stakeholder)
                     ->lockForUpdate()
                     ->first();
 
@@ -190,8 +190,8 @@ final class CreateContact
 
         $relationship = OrganizationRelationship::query()
             ->forOrganization($tenant)
+            ->forStakeholder($stakeholder)
             ->externals()
-            ->whereStakeholder($stakeholder)
             ->latest('id')
             ->firstOrFail();
 

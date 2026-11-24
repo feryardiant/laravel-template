@@ -22,7 +22,7 @@ final class ListExpiringContacts
             ->forOrganization($organization)
             ->externals()
             ->notExpired()
-            ->finishingBetween($range)
+            ->finishingBetween($range['start'], $range['end'])
             ->started()
             ->withStakeholder()
             ->orderBy('finish_date')

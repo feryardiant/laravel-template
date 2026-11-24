@@ -214,8 +214,8 @@ test('a plain member cannot create, update or delete contacts', function () {
     $contact = contactIndividual($organization, ['name' => 'Protected Contact']);
     $contactId = OrganizationRelationship::query()
         ->forOrganization($organization)
+        ->forStakeholder($contact)
         ->externals()
-        ->whereStakeholder($contact)
         ->value('id');
 
     Livewire::test(Index::class)
@@ -235,7 +235,7 @@ test('a plain member cannot create, update or delete contacts', function () {
     Livewire::test(Index::class)
         ->assertDontSee(__('Select all contacts'));
 
-    expect(OrganizationRelationship::query()->whereStakeholder($contact)->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->forStakeholder($contact)->exists())->toBeTrue();
 });
 
 test('a plain member can open a contact view page', function () {

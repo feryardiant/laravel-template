@@ -24,16 +24,11 @@ final class ListMembers
         int $perPage = 10,
     ): LengthAwarePaginator {
         $term = trim($search);
-        $direction = $sortDirection === 'asc' ? 'asc' : 'desc';
 
         return $organization->members()
             ->with('user')
-            ->when($term !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($term): void {
-                $query->whereLike('people.name', "%{$term}%")
-                    ->orWhereHas('user', fn (Builder $query): Builder => $query->whereLike('users.email', "%{$term}%"));
-            }))
-            ->orderBy('organization_relationships.start_date', $direction)
-            ->orderBy('people.id')
+            ->when($term !== '', fn (Builder $query): Builder => $query->membershipSearch($term))
+            ->membershipOrder($sortDirection)
             ->paginate($perPage);
     }
 }

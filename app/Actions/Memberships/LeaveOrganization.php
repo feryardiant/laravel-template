@@ -49,7 +49,7 @@ final class LeaveOrganization
 
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($person, OrganizationRelationshipType::Member)
+                ->forStakeholder($person, OrganizationRelationshipType::Member)
                 ->first();
 
             $period = $relationship !== null

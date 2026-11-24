@@ -7,7 +7,9 @@ namespace App\Models;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
+use App\Models\Builders\OrganizationRelationshipPeriodBuilder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -32,6 +34,8 @@ use Illuminate\Support\Carbon;
  * @property-read ?OrganizationRelationship $relationship
  * @property-read Organization|Person $stakeholder
  * @property-read ?User $actor
+ *
+ * @method static OrganizationRelationshipPeriodBuilder query()
  */
 #[Fillable([
     'organization_id',
@@ -47,6 +51,7 @@ use Illuminate\Support\Carbon;
     'actor_id',
     'closed_at',
 ])]
+#[UseEloquentBuilder(OrganizationRelationshipPeriodBuilder::class)]
 class OrganizationRelationshipPeriod extends Model
 {
     /**

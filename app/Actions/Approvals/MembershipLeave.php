@@ -7,7 +7,6 @@ namespace App\Actions\Approvals;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
 use App\Events\Approvals\ApprovalAccepted;
@@ -139,7 +138,7 @@ final class MembershipLeave
 
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($requester, OrganizationRelationshipType::Member)
+                ->forMember($requester)
                 ->first();
 
             $period = $relationship !== null

@@ -7,7 +7,6 @@ namespace App\Actions\AuditLogs;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 final class ListAuditLogs
@@ -24,25 +23,19 @@ final class ListAuditLogs
         string $timezone,
         int $perPage = 20,
     ): LengthAwarePaginator {
-        $event = $filters['event'] ?? null;
-        $actor = $filters['actor'] ?? null;
         $start = $filters['start'] ?? null;
         $end = $filters['end'] ?? null;
 
-        $query = AuditLog::query()
-            ->where('organization_id', $organization->getKey())
+        return AuditLog::query()
+            ->forOrganization($organization)
+            ->ofEvent($filters['event'] ?? null)
+            ->byActor($filters['actor'] ?? null)
+            ->createdBetween(
+                $start !== null ? CarbonImmutable::parse($start, $timezone)->startOfDay()->utc() : null,
+                $end !== null ? CarbonImmutable::parse($end, $timezone)->endOfDay()->utc() : null,
+            )
             ->with(['actor.person', 'subject'])
-            ->when($event !== null, fn (Builder $query): Builder => $query->where('event', $event))
-            ->when($actor !== null, fn (Builder $query): Builder => $query->where('actor_id', $actor));
-
-        if ($start !== null) {
-            $query->where('created_at', '>=', CarbonImmutable::parse($start, $timezone)->startOfDay()->utc());
-        }
-
-        if ($end !== null) {
-            $query->where('created_at', '<=', CarbonImmutable::parse($end, $timezone)->endOfDay()->utc());
-        }
-
-        return $query->latest('id')->paginate($perPage);
+            ->latest('id')
+            ->paginate($perPage);
     }
 }

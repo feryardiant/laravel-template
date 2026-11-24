@@ -176,7 +176,7 @@ class Person extends Entity implements HasAddresses
     {
         return OrganizationRelationship::query()
             ->forOrganization($organization)
-            ->whereStakeholder($this, OrganizationRelationshipType::Member)
+            ->forStakeholder($this, OrganizationRelationshipType::Member)
             ->first();
     }
 

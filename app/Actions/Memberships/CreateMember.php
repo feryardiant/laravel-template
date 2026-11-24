@@ -140,7 +140,7 @@ final class CreateMember
 
             $existing = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($member)
+                ->forStakeholder($member)
                 ->members()
                 ->lockForUpdate()
                 ->first();
@@ -182,7 +182,7 @@ final class CreateMember
 
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($member)
+                ->forStakeholder($member)
                 ->members()
                 ->firstOrFail();
 

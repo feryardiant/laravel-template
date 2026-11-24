@@ -94,7 +94,7 @@ test('new users register as members with a tenant organization owned by their pe
 
     expect(OrganizationRelationship::query()
         ->forOrganization($root)
-        ->whereStakeholder($organization)
+        ->forStakeholder($organization)
         ->where('type', OrganizationRelationshipType::Customer)
         ->exists())->toBeTrue();
 

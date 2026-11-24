@@ -45,8 +45,8 @@ trait AuthorizesContacts
 
         return OrganizationRelationship::query()
             ->forOrganization($organization)
+            ->forStakeholder($entity)
             ->externals()
-            ->whereStakeholder($entity)
             ->exists();
     }
 }
