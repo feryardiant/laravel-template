@@ -38,7 +38,7 @@ use InvalidArgumentException;
  *
  * @method static Builder<static> whereStakeholder(Organization|Person $entity)
  * @method static Builder<static> forOrganization(Organization $organization)
- * @method static Builder<static> external()
+ * @method static Builder<static> onlyExternals()
  */
 class OrganizationRelationship extends MorphPivot
 {
@@ -143,9 +143,33 @@ class OrganizationRelationship extends MorphPivot
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeExternal(Builder $query): Builder
+    public function scopeOnlyExternals(Builder $query): Builder
     {
         return $query->whereIn('type', OrganizationRelationshipType::externals());
+    }
+
+    /**
+     * Limit the query to relationships whose window has ended.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeExpired(Builder $query): Builder
+    {
+        return $query->whereNotNull('finish_date')->whereDate('finish_date', '<', today());
+    }
+
+    /**
+     * Limit the query to relationships that have not ended (active or scheduled).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeNotExpired(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $query): Builder => $query
+            ->whereNull('finish_date')
+            ->orWhereDate('finish_date', '>=', today()));
     }
 
     /**
@@ -166,6 +190,32 @@ class OrganizationRelationship extends MorphPivot
         }
 
         return $query;
+    }
+
+    /**
+     * @return Attribute<bool, never>
+     */
+    public function isInternal(): Attribute
+    {
+        return Attribute::get(fn () => $this->type?->isInternal() ?? false);
+    }
+
+    /**
+     * @return Attribute<bool, never>
+     */
+    public function isExternal(): Attribute
+    {
+        return Attribute::get(fn () => $this->type?->isExternal() ?? false);
+    }
+
+    /**
+     * Get the relationship status derived from its dates.
+     *
+     * @return Attribute<RelationshipStatus, never>
+     */
+    public function status(): Attribute
+    {
+        return Attribute::get(fn (): RelationshipStatus => $this->resolveStatus());
     }
 
     /**
@@ -292,56 +342,6 @@ class OrganizationRelationship extends MorphPivot
             ->where('stakeholder_id', $stakeholder->getKey())
             ->where('organization_id', '!=', $this->organization_id)
             ->exists();
-    }
-
-    /**
-     * @return Attribute<bool, never>
-     */
-    public function isInternal(): Attribute
-    {
-        return Attribute::get(fn () => $this->type?->isInternal() ?? false);
-    }
-
-    /**
-     * @return Attribute<bool, never>
-     */
-    public function isExternal(): Attribute
-    {
-        return Attribute::get(fn () => $this->type?->isExternal() ?? false);
-    }
-
-    /**
-     * Get the relationship status derived from its dates.
-     *
-     * @return Attribute<RelationshipStatus, never>
-     */
-    public function status(): Attribute
-    {
-        return Attribute::get(fn (): RelationshipStatus => $this->resolveStatus());
-    }
-
-    /**
-     * Limit the query to relationships whose window has ended.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeExpired(Builder $query): Builder
-    {
-        return $query->whereNotNull('finish_date')->whereDate('finish_date', '<', today());
-    }
-
-    /**
-     * Limit the query to relationships that have not ended (active or scheduled).
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeNotExpired(Builder $query): Builder
-    {
-        return $query->where(fn (Builder $query): Builder => $query
-            ->whereNull('finish_date')
-            ->orWhereDate('finish_date', '>=', today()));
     }
 
     /**

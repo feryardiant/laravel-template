@@ -23,10 +23,9 @@ final class ListContacts
     {
         $term = trim($search);
 
-        return OrganizationRelationship::query()
+        return OrganizationRelationship::forOrganization($tenant)
+            ->onlyExternals()
             ->select('organization_relationships.*')
-            ->forOrganization($tenant)
-            ->external()
             ->whereHasMorph('stakeholder', [Organization::class, Person::class], function (Builder $query, string $type): void {
                 if ($type === Organization::class) {
                     $query->withTrashed();
@@ -50,9 +49,11 @@ final class ListContacts
             }))
             ->orderByRaw('COALESCE(people.created_at, organizations.created_at) desc')
             ->orderByDesc('organization_relationships.id')
-            ->with(['stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()->morphWith([
-                Organization::class => ['primaryContact'],
-            ])])
+            ->with([
+                'stakeholder' => fn (MorphTo $morphTo) => $morphTo->withTrashed()->morphWith([
+                    Organization::class => ['primaryContact'],
+                ]),
+            ])
             ->paginate($perPage);
     }
 }

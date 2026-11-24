@@ -99,6 +99,43 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
+     * Get the user's display name from their person profile.
+     *
+     * Users without a person yet keep a transient name from creation or a factory.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => $this->resolvedPerson()->name ?? $this->displayName ?? $this->handle,
+            set: function (?string $value): array {
+                $this->displayName = $value;
+
+                return [];
+            },
+        );
+    }
+
+    /**
+     * Get the user's avatar from their person profile.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->resolvedPerson()->photo_url
+                ?? ($this->displayAvatarPath !== null ? route('uploads', ['path' => $this->displayAvatarPath]) : null),
+            set: function (?string $value): array {
+                $this->displayAvatarPath = $value;
+
+                return [];
+            },
+        );
+    }
+
+    /**
      * Get the organizations the user is currently a member of.
      *
      * @return Collection<int, Organization>
@@ -106,6 +143,18 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public function organizations(): Collection
     {
         return $this->person?->organizations()->get() ?? new Collection;
+    }
+
+    /**
+     * Get the user's initials
+     */
+    public function initials(): string
+    {
+        $initials = Str::initials($this->name, true);
+
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
     }
 
     /**
@@ -162,54 +211,5 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         }
 
         return $person;
-    }
-
-    /**
-     * Get the user's display name from their person profile.
-     *
-     * Users without a person yet keep a transient name from creation or a factory.
-     *
-     * @return Attribute<string, string>
-     */
-    protected function name(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): string => $this->resolvedPerson()->name ?? $this->displayName ?? $this->handle,
-            set: function (?string $value): array {
-                $this->displayName = $value;
-
-                return [];
-            },
-        );
-    }
-
-    /**
-     * Get the user's avatar from their person profile.
-     *
-     * @return Attribute<?string, ?string>
-     */
-    protected function avatarUrl(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): ?string => $this->resolvedPerson()->photo_url
-                ?? ($this->displayAvatarPath !== null ? route('uploads', ['path' => $this->displayAvatarPath]) : null),
-            set: function (?string $value): array {
-                $this->displayAvatarPath = $value;
-
-                return [];
-            },
-        );
-    }
-
-    /**
-     * Get the user's initials
-     */
-    public function initials(): string
-    {
-        $initials = Str::initials($this->name, true);
-
-        return Str::length($initials) > 1
-            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
-            : $initials;
     }
 }

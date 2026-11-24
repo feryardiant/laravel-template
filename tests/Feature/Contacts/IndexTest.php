@@ -212,9 +212,8 @@ test('a plain member cannot create, update or delete contacts', function () {
     actingAsMember($organization, Role::Member);
 
     $contact = contactIndividual($organization, ['name' => 'Protected Contact']);
-    $contactId = OrganizationRelationship::query()
-        ->forOrganization($organization)
-        ->external()
+    $contactId = OrganizationRelationship::forOrganization($organization)
+        ->onlyExternals()
         ->whereStakeholder($contact)
         ->value('id');
 
@@ -286,9 +285,8 @@ test('select all toggles the current page rows', function () {
 
     contactIndividual($organization, ['name' => 'First']);
     contactIndividual($organization, ['name' => 'Second']);
-    $ids = OrganizationRelationship::query()
-        ->forOrganization($organization)
-        ->external()
+    $ids = OrganizationRelationship::forOrganization($organization)
+        ->onlyExternals()
         ->pluck('id')
         ->all();
 

@@ -83,50 +83,6 @@ class Organization extends Entity implements HasAddress
     }
 
     /**
-     * Limit the query to root tenant organizations.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeRootTenant(Builder $query): Builder
-    {
-        return $query->where('is_tenant', true)->whereNull('root_organization_id');
-    }
-
-    /**
-     * Determine whether the organization is the root tenant.
-     */
-    public function isRootTenant(): bool
-    {
-        return $this->is_tenant && $this->root_organization_id === null;
-    }
-
-    /**
-     * Get the organization's logo URL.
-     *
-     * @return Attribute<?string, ?string>
-     */
-    protected function logoUrl(): Attribute
-    {
-        return Attribute::make(
-            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
-            set: fn (?string $value): array => ['logo_url' => $value],
-        );
-    }
-
-    /**
-     * Get the organization's initials.
-     */
-    public function initials(): string
-    {
-        $initials = Str::initials($this->name, true);
-
-        return Str::length($initials) > 1
-            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
-            : $initials;
-    }
-
-    /**
      * @return BelongsTo<Person, $this>
      */
     public function primaryContact(): BelongsTo
@@ -176,32 +132,6 @@ class Organization extends Entity implements HasAddress
     }
 
     /**
-     * @return Collection<int, Organization|Person>
-     */
-    public function counterparties(?OrganizationRelationshipType ...$type): Collection
-    {
-        return $this->organizationCounterparties(...$type)->get()
-            ->concat($this->personCounterparties(...$type)->get());
-    }
-
-    /**
-     * Count the owners who can currently sign in to the organization.
-     */
-    public function activeOwnerCount(): int
-    {
-        $today = now()->toDateString();
-
-        return $this->members()
-            ->wherePivot('role', Role::Owner->value)
-            ->whereHas('user')
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.start_date')
-                ->orWhere('organization_relationships.start_date', '<=', $today))
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.finish_date')
-                ->orWhere('organization_relationships.finish_date', '>=', $today))
-            ->count();
-    }
-
-    /**
      * @return MorphToMany<Person, $this, OrganizationRelationship>
      */
     public function members(): MorphToMany
@@ -229,5 +159,75 @@ class Organization extends Entity implements HasAddress
         return $this->relationships(Organization::class)
             ->wherePivot('type', '=', OrganizationRelationshipType::Subsidiary)
             ->as('subsidiary');
+    }
+
+    /**
+     * Limit the query to root tenant organizations.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeRootTenant(Builder $query): Builder
+    {
+        return $query->where('is_tenant', true)->whereNull('root_organization_id');
+    }
+
+    /**
+     * Get the organization's logo URL.
+     *
+     * @return Attribute<?string, ?string>
+     */
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
+            set: fn (?string $value): array => ['logo_url' => $value],
+        );
+    }
+
+    /**
+     * @return Collection<int, Organization|Person>
+     */
+    public function counterparties(?OrganizationRelationshipType ...$type): Collection
+    {
+        return $this->organizationCounterparties(...$type)->get()
+            ->concat($this->personCounterparties(...$type)->get());
+    }
+
+    /**
+     * Determine whether the organization is the root tenant.
+     */
+    public function isRootTenant(): bool
+    {
+        return $this->is_tenant && $this->root_organization_id === null;
+    }
+
+    /**
+     * Get the organization's initials.
+     */
+    public function initials(): string
+    {
+        $initials = Str::initials($this->name, true);
+
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
+    }
+
+    /**
+     * Count the owners who can currently sign in to the organization.
+     */
+    public function activeOwnerCount(): int
+    {
+        $today = now()->toDateString();
+
+        return $this->members()
+            ->wherePivot('role', Role::Owner->value)
+            ->whereHas('user')
+            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.start_date')
+                ->orWhere('organization_relationships.start_date', '<=', $today))
+            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.finish_date')
+                ->orWhere('organization_relationships.finish_date', '>=', $today))
+            ->count();
     }
 }

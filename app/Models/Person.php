@@ -122,14 +122,6 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
-     * Get the person's default workspace.
-     */
-    public function defaultOrganization(): ?Organization
-    {
-        return $this->organizations()->wherePivot('is_primary', true)->first();
-    }
-
-    /**
      * @return Attribute<?Gender, Gender|string|null>
      */
     protected function gender(): Attribute
@@ -150,6 +142,14 @@ class Person extends Entity implements HasAddresses
             get: fn (?string $value): ?string => $value ? route('uploads', ['path' => $value]) : null,
             set: fn (?string $value): array => ['photo_url' => $value],
         );
+    }
+
+    /**
+     * Get the person's default workspace.
+     */
+    public function defaultOrganization(): ?Organization
+    {
+        return $this->organizations()->wherePivot('is_primary', true)->first();
     }
 
     /**

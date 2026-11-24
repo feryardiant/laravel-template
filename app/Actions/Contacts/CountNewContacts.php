@@ -16,9 +16,8 @@ final class CountNewContacts
      */
     public function handle(Organization $organization, array $range): int
     {
-        return OrganizationRelationship::query()
-            ->forOrganization($organization)
-            ->external()
+        return OrganizationRelationship::forOrganization($organization)
+            ->onlyExternals()
             ->whereDate('start_date', '>=', $range['start'])
             ->whereDate('start_date', '<=', $range['end'])
             ->count();

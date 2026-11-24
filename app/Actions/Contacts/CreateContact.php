@@ -60,9 +60,8 @@ final class CreateContact
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $existing = OrganizationRelationship::query()
-                    ->forOrganization($tenant)
-                    ->external()
+                $existing = OrganizationRelationship::forOrganization($tenant)
+                    ->onlyExternals()
                     ->whereStakeholder($stakeholder)
                     ->lockForUpdate()
                     ->first();
@@ -187,9 +186,8 @@ final class CreateContact
             'finish_date' => $data['finish_date'] ?? null,
         ]);
 
-        $relationship = OrganizationRelationship::query()
-            ->forOrganization($tenant)
-            ->external()
+        $relationship = OrganizationRelationship::forOrganization($tenant)
+            ->onlyExternals()
             ->whereStakeholder($stakeholder)
             ->latest('id')
             ->firstOrFail();

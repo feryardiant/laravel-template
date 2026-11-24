@@ -65,22 +65,19 @@ final class FindContact
             throw (new ModelNotFoundException)->setModel($class);
         }
 
-        $registeredElsewhere = OrganizationRelationship::query()
-            ->external()
+        $registeredElsewhere = OrganizationRelationship::onlyExternals()
             ->where('organization_id', '!=', $tenant->getKey())
             ->whereStakeholder($entity)
             ->exists();
 
-        $ownExpired = OrganizationRelationship::query()
-            ->external()
-            ->forOrganization($tenant)
+        $ownExpired = OrganizationRelationship::forOrganization($tenant)
+            ->onlyExternals()
             ->expired()
             ->whereStakeholder($entity)
             ->exists();
 
-        $ownCurrent = OrganizationRelationship::query()
-            ->external()
-            ->forOrganization($tenant)
+        $ownCurrent = OrganizationRelationship::forOrganization($tenant)
+            ->onlyExternals()
             ->notExpired()
             ->whereStakeholder($entity)
             ->exists();
@@ -97,9 +94,8 @@ final class FindContact
      */
     public function expiredRelationshipFor(Organization $tenant, Organization|Person $entity): ?OrganizationRelationship
     {
-        return OrganizationRelationship::query()
-            ->external()
-            ->forOrganization($tenant)
+        return OrganizationRelationship::forOrganization($tenant)
+            ->onlyExternals()
             ->expired()
             ->whereStakeholder($entity)
             ->first();
@@ -110,9 +106,8 @@ final class FindContact
      */
     private function query(Organization $tenant): Builder
     {
-        return OrganizationRelationship::query()
-            ->external()
-            ->forOrganization($tenant)
+        return OrganizationRelationship::forOrganization($tenant)
+            ->onlyExternals()
             ->whereHasMorph('stakeholder', [Organization::class, Person::class], function (Builder $query, string $type): void {
                 if ($type === Organization::class) {
                     $query->withTrashed();

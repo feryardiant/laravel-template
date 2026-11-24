@@ -43,9 +43,8 @@ function contactDataForAudit(array $overrides = []): array
 
 function auditContactRelationship(Organization $organization, Entity $entity): OrganizationRelationship
 {
-    return OrganizationRelationship::query()
-        ->forOrganization($organization)
-        ->external()
+    return OrganizationRelationship::forOrganization($organization)
+        ->onlyExternals()
         ->whereStakeholder($entity)
         ->firstOrFail();
 }
