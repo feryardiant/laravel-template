@@ -90,7 +90,7 @@ final class FindApproval
         return ApprovalRequest::query()
             ->forRequester($personId)
             ->whereKey($approvalId)
-            ->where('type', $type)
+            ->ofType($type)
             ->first();
     }
 }

@@ -119,7 +119,7 @@ final class ChangeMemberRole
         $pending = ApprovalRequest::query()
             ->onlyPendings()
             ->forOrganization($organization)
-            ->where('type', ApprovalRequestType::MembershipLeave)
+            ->ofType(ApprovalRequestType::MembershipLeave)
             ->where('requester_person_id', $person->getKey())
             ->get();
 

@@ -7,7 +7,6 @@ namespace App\Actions\Approvals;
 use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\Person;
-use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 final class ListApprovals
@@ -35,9 +34,7 @@ final class ListApprovals
     {
         return ApprovalRequest::query()
             ->onlyPendings()
-            ->where(fn (Builder $query): Builder => $query
-                ->where('requester_person_id', $person->getKey())
-                ->orWhere('approver_person_id', $person->getKey()))
+            ->involvingPerson($person)
             ->with('requester')
             ->get();
     }

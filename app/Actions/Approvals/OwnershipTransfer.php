@@ -56,7 +56,7 @@ final class OwnershipTransfer
                 ->firstOrFail();
 
             ApprovalRequest::query()
-                ->onlyPendings(expired: true)
+                ->expiredPendings()
                 ->forOrganization($organization)
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,
