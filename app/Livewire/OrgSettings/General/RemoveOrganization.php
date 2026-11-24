@@ -13,6 +13,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
+/**
+ * Queues removal of the current organization after typed confirmation.
+ */
 class RemoveOrganization extends Component
 {
     use HasCurrentOrganization;
@@ -20,6 +23,13 @@ class RemoveOrganization extends Component
     public bool $showModal = false;
 
     public string $confirmation = '';
+
+    public function render(): View
+    {
+        return view('livewire.org-settings.general.remove-organization', [
+            'organization' => $this->currentOrganization(),
+        ]);
+    }
 
     /**
      * Open the organization removal modal.
@@ -69,12 +79,5 @@ class RemoveOrganization extends Component
         );
 
         $this->redirect(route('organizations.index'), navigate: true);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.org-settings.general.remove-organization', [
-            'organization' => $this->currentOrganization(),
-        ]);
     }
 }

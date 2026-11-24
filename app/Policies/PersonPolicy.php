@@ -12,6 +12,9 @@ use App\Policies\Concerns\AuthorizesContacts;
 use App\Policies\Concerns\ResolvesMemberRole;
 use App\Support\Feature\MemberDeletion;
 
+/**
+ * Authorizes manager actions on the members of an organization.
+ */
 class PersonPolicy
 {
     use AuthorizesContacts, ResolvesMemberRole;

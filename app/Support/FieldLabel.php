@@ -9,6 +9,9 @@ namespace App\Support;
  */
 final class FieldLabel
 {
+    /**
+     * The human-readable label for a field name.
+     */
     public static function label(string $field): string
     {
         return match ($field) {

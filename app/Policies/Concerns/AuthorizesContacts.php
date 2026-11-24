@@ -18,11 +18,17 @@ use App\Support\Feature\ContactDeletion;
  */
 trait AuthorizesContacts
 {
+    /**
+     * Determine whether the actor may view the contact's relationship.
+     */
     public function viewContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
         return $this->isCounterparty($user, $entity, $organization);
     }
 
+    /**
+     * Determine whether the actor may edit a live external contact.
+     */
     public function updateContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
         return ! $entity->trashed()
@@ -30,6 +36,9 @@ trait AuthorizesContacts
             && $this->isCounterparty($user, $entity, $organization);
     }
 
+    /**
+     * Determine whether the actor may delete the contact while contact deletion is enabled.
+     */
     public function deleteContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
         return ContactDeletion::enabled($organization)
@@ -37,6 +46,9 @@ trait AuthorizesContacts
             && $this->isCounterparty($user, $entity, $organization);
     }
 
+    /**
+     * Determine whether the organization holds an external relationship with the entity.
+     */
     protected function isCounterparty(User $user, Organization|Person $entity, Organization $organization): bool
     {
         if ($this->memberRole($user, $organization) === null) {
@@ -45,8 +57,8 @@ trait AuthorizesContacts
 
         return OrganizationRelationship::query()
             ->forOrganization($organization)
-            ->external()
-            ->whereStakeholder($entity)
+            ->forStakeholder($entity)
+            ->externals()
             ->exists();
     }
 }

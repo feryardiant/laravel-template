@@ -6,12 +6,13 @@ namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Enums\ContactDetailType;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\MembershipRepository;
+use App\Repositories\RelationshipRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
@@ -22,6 +23,10 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * @property-read Collection<int, OrganizationRelationshipPeriod> $history
+ * @property-read bool $roleChangeIsPromotion
+ */
 class View extends Component
 {
     use HasCurrentOrganization;
@@ -37,28 +42,98 @@ class View extends Component
     {
         $organization = $this->requireOrganization();
 
-        abort_unless($organization->members()->whereKey($person->getKey())->exists(), 404);
+        $member = app(MembershipRepository::class)->findInOrganization($organization, $person->getKey(), ['user']);
 
-        $this->person = $person->loadMissing('user');
+        abort_if($member === null, 404);
+
+        $this->person = $member;
     }
 
+    public function render(): ViewContract
+    {
+        $organization = $this->requireOrganization();
+
+        // mount() only runs once; a later request must not render a removed member.
+        $member = app(MembershipRepository::class)->findInOrganization($organization, $this->person->getKey());
+
+        abort_if($member === null, 404);
+
+        $role = $member->roleIn($organization);
+        $canManage = Gate::allows('manageMember', [$member, $organization])
+            && $member->user_id !== Auth::id();
+
+        $joinedAt = $member->pivot->start_date ?? $member->created_at;
+
+        /** @disregard P1013 */
+        return view('livewire.members.view', [
+            'person' => $member,
+            'organization' => $organization,
+            'role' => $role,
+            'joinedAt' => $joinedAt,
+            'contactEmail' => $member->contactDetailValue(ContactDetailType::Email),
+            'contactPhone' => $member->contactDetailValue(ContactDetailType::Phone),
+            'canManage' => $canManage,
+        ])->title(__('Member profile'));
+    }
+
+    /**
+     * Reload the member after an edit.
+     */
+    #[On('member-updated')]
+    public function refreshMember(): void
+    {
+        $this->person->refresh();
+    }
+
+    /**
+     * The membership's full stint history.
+     *
+     * @return Collection<int, OrganizationRelationshipPeriod>
+     */
+    #[Computed]
+    public function history(): Collection
+    {
+        return app(RelationshipRepository::class)->getForMember($this->requireOrganization(), $this->person);
+    }
+
+    /**
+     * Whether the pending role change promotes the member to Admin.
+     */
+    #[Computed]
+    public function roleChangeIsPromotion(): bool
+    {
+        return $this->roleChangeTo === Role::Admin->value;
+    }
+
+    /**
+     * Open the edit form for this member.
+     */
     public function openEdit(): void
     {
         $this->dispatch('edit-member', personId: $this->person->getKey());
     }
 
+    /**
+     * Open the confirmation to promote this member to Admin.
+     */
     public function confirmPromote(): void
     {
         $this->roleChangeTo = Role::Admin->value;
         $this->showRoleModal = true;
     }
 
+    /**
+     * Open the confirmation to demote this member to Member.
+     */
     public function confirmDemote(): void
     {
         $this->roleChangeTo = Role::Member->value;
         $this->showRoleModal = true;
     }
 
+    /**
+     * Apply the confirmed role change.
+     */
     public function changeRoleConfirmed(ChangeMemberRole $changeMemberRole): void
     {
         $organization = $this->requireOrganization();
@@ -93,64 +168,5 @@ class View extends Component
         }
 
         $this->reset('showRoleModal', 'roleChangeTo');
-    }
-
-    #[On('member-updated')]
-    public function refreshMember(): void
-    {
-        $this->person->refresh();
-    }
-
-    /**
-     * The membership's full stint history.
-     *
-     * @return Collection<int, OrganizationRelationshipPeriod>
-     */
-    #[Computed]
-    public function history(): Collection
-    {
-        return OrganizationRelationshipPeriod::query()
-            ->where('organization_id', $this->requireOrganization()->getKey())
-            ->where('stakeholder_type', (new Person)->getMorphClass())
-            ->where('stakeholder_id', $this->person->getKey())
-            ->where('type', OrganizationRelationshipType::Member)
-            ->with('actor')
-            ->orderByDesc('start_date')
-            ->orderByDesc('id')
-            ->get();
-    }
-
-    #[Computed]
-    public function roleChangeIsPromotion(): bool
-    {
-        return $this->roleChangeTo === Role::Admin->value;
-    }
-
-    public function render(): ViewContract
-    {
-        $organization = $this->requireOrganization();
-
-        // mount() only runs once; a later request must not render a removed member.
-        abort_unless($organization->members()->whereKey($this->person->getKey())->exists(), 404);
-
-        $role = $this->person->roleIn($organization);
-        $canManage = Gate::allows('manageMember', [$this->person, $organization])
-            && $this->person->user_id !== Auth::id();
-
-        $joinedAt = $this->currentOrganization()
-            ?->members()
-            ->whereKey($this->person->getKey())
-            ->first()
-            ?->pivot->start_date ?? $this->person->created_at;
-
-        /** @disregard P1013 */
-        return view('livewire.members.view', [
-            'organization' => $organization,
-            'role' => $role,
-            'joinedAt' => $joinedAt,
-            'contactEmail' => $this->person->contactDetailValue(ContactDetailType::Email),
-            'contactPhone' => $this->person->contactDetailValue(ContactDetailType::Phone),
-            'canManage' => $canManage,
-        ])->title(__('Member profile'));
     }
 }

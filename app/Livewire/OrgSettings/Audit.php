@@ -9,16 +9,19 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\AuditLog;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\AuditRepository;
+use App\Support\DateRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
+ * @property-read LengthAwarePaginator<int, AuditLog> $logs
  * @property-read Collection<int, Person> $actors
  */
 class Audit extends Component
@@ -43,7 +46,53 @@ class Audit extends Component
 
         $this->authorize('viewAudit', $this->requireOrganization());
 
-        $this->range = $this->defaultRange();
+        $this->range = DateRange::defaultWeek($this->timezone());
+    }
+
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.org-settings.audit', [
+            'events' => AuditEvent::cases(),
+            'today' => CarbonImmutable::now($this->timezone())->toDateString(),
+            'timezone' => $this->timezone(),
+        ])->title(__('Audit log'));
+    }
+
+    /**
+     * The current organization's audit entries, newest first.
+     *
+     * @return LengthAwarePaginator<int, AuditLog>
+     */
+    #[Computed]
+    public function logs(): LengthAwarePaginator
+    {
+        $organization = $this->requireOrganization();
+
+        $this->authorize('viewAudit', $organization);
+
+        return app(AuditRepository::class)->get($organization, [
+            'event' => $this->event,
+            'actor' => $this->actor,
+            'start' => $this->range['start'] ?? null,
+            'end' => $this->range['end'] ?? null,
+        ], $this->timezone());
+    }
+
+    /**
+     * Organization members who can appear as an audit actor, current user first.
+     *
+     * @return Collection<int, Person>
+     */
+    #[Computed]
+    public function actors(): Collection
+    {
+        $current = Auth::user();
+
+        return app(AuditRepository::class)->getActors(
+            $this->requireOrganization(),
+            $current instanceof User ? $current : null,
+        );
     }
 
     /**
@@ -81,7 +130,7 @@ class Audit extends Component
      */
     public function updatedRange(): void
     {
-        $this->range = $this->normalizeRange($this->range);
+        $this->range = DateRange::normalize($this->range, $this->timezone());
 
         unset($this->logs);
 
@@ -89,124 +138,12 @@ class Audit extends Component
     }
 
     /**
-     * The current organization's audit entries, newest first.
-     *
-     * @return LengthAwarePaginator<int, AuditLog>
+     * The signed-in user's timezone, falling back to UTC.
      */
-    #[Computed]
-    public function logs(): LengthAwarePaginator
-    {
-        $this->authorize('viewAudit', $this->requireOrganization());
-
-        $timezone = $this->userTimezone();
-        $start = $this->range['start'] ?? null;
-        $end = $this->range['end'] ?? null;
-
-        $query = AuditLog::query()
-            ->where('organization_id', $this->requireOrganization()->getKey())
-            ->with(['actor.person', 'subject'])
-            ->when($this->event !== null, fn ($query) => $query->where('event', $this->event))
-            ->when($this->actor !== null, fn ($query) => $query->where('actor_id', $this->actor));
-
-        if ($start !== null) {
-            $query->where('created_at', '>=', CarbonImmutable::parse($start, $timezone)->startOfDay()->utc());
-        }
-
-        if ($end !== null) {
-            $query->where('created_at', '<=', CarbonImmutable::parse($end, $timezone)->endOfDay()->utc());
-        }
-
-        return $query->latest('id')->paginate(20);
-    }
-
-    /**
-     * Organization members who can appear as an audit actor, current user first.
-     *
-     * @return Collection<int, Person>
-     */
-    #[Computed]
-    public function actors(): Collection
-    {
-        $current = Auth::user();
-        $currentId = $current instanceof User ? (int) $current->getKey() : null;
-
-        $members = $this->requireOrganization()->members()
-            ->with('user')
-            ->whereNotNull('people.user_id')
-            ->orderBy('people.name')
-            ->get();
-
-        $currentPerson = $current instanceof User ? $current->person : null;
-
-        if ($currentPerson instanceof Person
-            && ! $members->contains(fn (Person $member): bool => $member->user_id === $currentId)) {
-            $currentPerson->loadMissing('user');
-            $members->push($currentPerson);
-        }
-
-        return $members
-            ->sortBy(fn (Person $member): int => $member->user_id === $currentId ? 0 : 1)
-            ->values();
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.org-settings.audit', [
-            'events' => AuditEvent::cases(),
-            'today' => CarbonImmutable::now($this->userTimezone())->toDateString(),
-            'timezone' => $this->userTimezone(),
-        ])->title(__('Audit log'));
-    }
-
-    /**
-     * @return array{start: string, end: string}
-     */
-    private function defaultRange(): array
-    {
-        $today = CarbonImmutable::now($this->userTimezone());
-
-        return [
-            'start' => $today->startOfWeek(CarbonImmutable::SUNDAY)->toDateString(),
-            'end' => $today->endOfWeek(CarbonImmutable::SATURDAY)->toDateString(),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $range
-     * @return array{start: string, end: string}
-     */
-    private function normalizeRange(array $range): array
-    {
-        $start = $this->dateKey($range['start'] ?? null);
-        $end = $this->dateKey($range['end'] ?? null);
-
-        if ($start === null || $end === null) {
-            return $this->defaultRange();
-        }
-
-        if ($start > $end) {
-            [$start, $end] = [$end, $start];
-        }
-
-        return ['start' => $start, 'end' => $end];
-    }
-
-    private function dateKey(mixed $value): ?string
-    {
-        if (! \is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
-            return null;
-        }
-
-        [$year, $month, $day] = array_map('intval', explode('-', $value));
-
-        return checkdate($month, $day, $year) ? $value : null;
-    }
-
-    private function userTimezone(): string
+    private function timezone(): string
     {
         $user = Auth::user();
 
-        return $user instanceof User && $user->timezone !== null ? $user->timezone : 'UTC';
+        return $user instanceof User ? $user->timezoneOrDefault() : 'UTC';
     }
 }

@@ -31,11 +31,17 @@ trait ManagesAddress
         'village_code' => '',
     ];
 
+    /**
+     * Clear the address form state.
+     */
     protected function resetAddress(): void
     {
         $this->address = $this->emptyAddress();
     }
 
+    /**
+     * Load the address form state from the given address.
+     */
     protected function fillAddress(?AddressModel $address): void
     {
         $this->address = $address === null ? $this->emptyAddress() : [

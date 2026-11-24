@@ -6,8 +6,9 @@ namespace App\Actions\Contacts;
 
 use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
+use App\Actions\Organizations\CreateOrganization;
+use App\Actions\People\CreatePerson;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Concerns\ToManageEntities;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
@@ -19,21 +20,26 @@ use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ContactRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+/**
+ * Creates a tenant contact, reusing or renewing an existing counterparty.
+ */
 final class CreateContact
 {
-    use ToManageEntities;
-
     public function __construct(
         private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
-        private FindContact $findContact,
+        private ContactRepository $contacts,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
+        private CreatePerson $createPerson,
+        private CreateOrganization $createOrganization,
+        private EnsureExternalRole $ensureExternalRole,
     ) {
         // .
     }
@@ -45,13 +51,13 @@ final class CreateContact
      */
     public function handle(Organization $tenant, array $data, ?UploadedFile $photo = null, ?User $actor = null): Entity
     {
-        $role = $this->ensureExternalRole($data['role'] ?? null);
+        $role = $this->ensureExternalRole->handle($data['role'] ?? null);
 
         $reference = $data['reference'] ?? null;
 
         if (\is_string($reference) && $reference !== '') {
             return DB::transaction(function () use ($tenant, $reference, $role, $data, $actor): Entity {
-                $stakeholder = $this->findContact->byReference($tenant, $reference);
+                $stakeholder = $this->contacts->findByReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
                 $stakeholder->newQuery()
@@ -61,8 +67,8 @@ final class CreateContact
 
                 $existing = OrganizationRelationship::query()
                     ->forOrganization($tenant)
-                    ->external()
-                    ->whereStakeholder($stakeholder)
+                    ->forStakeholder($stakeholder)
+                    ->externals()
                     ->lockForUpdate()
                     ->first();
 
@@ -106,7 +112,7 @@ final class CreateContact
         try {
             return DB::transaction(function () use ($tenant, $data, $role, $photoPath, $actor): Entity {
                 $stakeholder = ($data['type'] ?? 'individual') === 'organization'
-                    ? $this->createOrganization(
+                    ? $this->createOrganization->contact(
                         name: $data['name'],
                         user: $data['user'] ?? null,
                         contactName: $data['contact_name'],
@@ -116,7 +122,7 @@ final class CreateContact
                         logoPath: $photoPath,
                         owner: $tenant,
                     )
-                    : $this->createIndividual(
+                    : $this->createPerson->handle(
                         name: $data['name'],
                         user: $data['user'] ?? null,
                         gender: $data['gender'] ?? null,
@@ -127,7 +133,7 @@ final class CreateContact
 
                 $this->saveAddress->handle($stakeholder, $data['address'] ?? null);
 
-                // Contact records only; never pass these to createIndividual(),
+                // Contact records only; never pass these to CreatePerson::handle(),
                 // whose $email argument creates a login user.
                 $this->saveContactDetails->handle($stakeholder, [
                     ContactDetailType::Email->value => $data['contact_email'] ?? null,
@@ -188,8 +194,8 @@ final class CreateContact
 
         $relationship = OrganizationRelationship::query()
             ->forOrganization($tenant)
-            ->external()
-            ->whereStakeholder($stakeholder)
+            ->forStakeholder($stakeholder)
+            ->externals()
             ->latest('id')
             ->firstOrFail();
 

@@ -7,7 +7,6 @@ namespace App\Actions\Approvals;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Enums\Role;
 use App\Events\Approvals\ApprovalAccepted;
@@ -24,6 +23,9 @@ use App\Notifications\MembershipLeaveRequestedNotification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
+/**
+ * Requests, accepts, and declines an admin's membership leave.
+ */
 final class MembershipLeave
 {
     public function __construct(
@@ -50,18 +52,16 @@ final class MembershipLeave
                 ->firstOrFail();
 
             ApprovalRequest::query()
-                ->where('organization_id', $organization->getKey())
-                ->where('status', ApprovalRequestStatus::Pending)
-                ->where('expires_at', '<=', now())
+                ->expiredPendings()
+                ->forOrganization($organization)
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,
                     'canceled_at' => now(),
                 ]);
 
             if (ApprovalRequest::query()
-                ->pending()
-                ->where('organization_id', $organization->getKey())
-                ->where('expires_at', '>', now())
+                ->onlyPendings()
+                ->forOrganization($organization)
                 ->exists()) {
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }
@@ -139,8 +139,9 @@ final class MembershipLeave
                 return false;
             }
 
-            $relationship = OrganizationRelationship::forOrganization($organization)
-                ->whereStakeholder($requester, OrganizationRelationshipType::Member)
+            $relationship = OrganizationRelationship::query()
+                ->forOrganization($organization)
+                ->forMember($requester)
                 ->first();
 
             $period = $relationship !== null

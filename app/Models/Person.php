@@ -9,10 +9,12 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\PersonRelativeType;
 use App\Enums\RelationshipStatus;
 use App\Enums\Role;
+use App\Models\Builders\PersonBuilder;
 use Creasi\Nusa\Contracts\HasAddresses;
 use Creasi\Nusa\Models\Concerns\WithAddresses;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,9 +37,12 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, Organization> $organizationRelationships
  * @property-read Collection<int, Organization> $primaryContactOrganizations
  *
+ * @method static PersonBuilder query()
+ *
  * @implements HasAddresses<static>
  */
 #[Fillable(['user_id', 'owner_organization_id', 'name', 'gender', 'summary', 'photo_url'])]
+#[UseEloquentBuilder(PersonBuilder::class)]
 class Person extends Entity implements HasAddresses
 {
     /** @use HasFactory<PersonFactory> */
@@ -122,14 +127,6 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
-     * Get the person's default workspace.
-     */
-    public function defaultOrganization(): ?Organization
-    {
-        return $this->organizations()->wherePivot('is_primary', true)->first();
-    }
-
-    /**
      * @return Attribute<?Gender, Gender|string|null>
      */
     protected function gender(): Attribute
@@ -153,6 +150,14 @@ class Person extends Entity implements HasAddresses
     }
 
     /**
+     * Get the person's default workspace.
+     */
+    public function defaultOrganization(): ?Organization
+    {
+        return $this->organizations()->wherePivot('is_primary', true)->first();
+    }
+
+    /**
      * Get the person's initials.
      */
     public function initials(): string
@@ -171,7 +176,7 @@ class Person extends Entity implements HasAddresses
     {
         return OrganizationRelationship::query()
             ->forOrganization($organization)
-            ->whereStakeholder($this, OrganizationRelationshipType::Member)
+            ->forStakeholder($this, OrganizationRelationshipType::Member)
             ->first();
     }
 

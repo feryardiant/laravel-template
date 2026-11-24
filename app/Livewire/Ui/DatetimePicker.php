@@ -28,16 +28,16 @@ class DatetimePicker extends Component
 
     public ?string $confirmedAt = '2026-11-08T10:30';
 
+    public function render(): View
+    {
+        return view('ui.datetime-picker');
+    }
+
     /**
      * Move the single datetime demo to 10 Nov 2026 14:30.
      */
     public function moveStartAt(): void
     {
         $this->startAt = '2026-11-10T14:30';
-    }
-
-    public function render(): View
-    {
-        return view('ui.datetime-picker');
     }
 }

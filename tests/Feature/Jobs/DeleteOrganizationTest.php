@@ -70,8 +70,8 @@ test('it deletes the subsidiary subtree and its data', function () {
         ->where('addressable_type', Organization::class)
         ->exists())->toBeFalse();
 
-    expect(OrganizationRelationship::query()->whereStakeholder($alpha)->exists())->toBeFalse()
-        ->and(OrganizationRelationship::query()->whereStakeholder($beta)->exists())->toBeFalse();
+    expect(OrganizationRelationship::query()->forStakeholder($alpha)->exists())->toBeFalse()
+        ->and(OrganizationRelationship::query()->forStakeholder($beta)->exists())->toBeFalse();
 
     expect(DB::table('features')
         ->where('scope', app(FeatureManager::class)->serializeScope($alpha))
@@ -133,7 +133,7 @@ test('it tombstones an externally referenced organization', function () {
 
     expect(OrganizationRelationship::query()
         ->forOrganization($vendor)
-        ->whereStakeholder($customer)
+        ->forStakeholder($customer)
         ->exists())->toBeTrue();
 
     expect(OrganizationRelationship::query()->where('organization_id', $customer->getKey())->exists())->toBeFalse()

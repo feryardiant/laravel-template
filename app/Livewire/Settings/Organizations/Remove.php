@@ -8,6 +8,7 @@ use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;
+use App\Repositories\OrganizationRepository;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -15,6 +16,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Queues removal of one of the user's own organizations.
+ */
 class Remove extends Component
 {
     use HasCurrentOrganization;
@@ -26,6 +30,11 @@ class Remove extends Component
     public ?string $organizationName = null;
 
     public string $confirmation = '';
+
+    public function render(): View
+    {
+        return view('livewire.settings.organizations.remove');
+    }
 
     /**
      * Select an organization to remove.
@@ -84,17 +93,12 @@ class Remove extends Component
 
         abort_if(! $user instanceof User, 403);
 
-        $organization = $user->organizations()->firstWhere('id', $organizationId);
+        $organization = app(OrganizationRepository::class)->findUser($user, $organizationId);
 
         abort_if($organization === null, 404);
 
         $this->authorize('deleteOwn', $organization);
 
         return $organization;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.settings.organizations.remove');
     }
 }

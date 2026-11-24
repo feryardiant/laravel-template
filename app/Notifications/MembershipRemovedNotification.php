@@ -11,6 +11,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Notifies a person when their membership is removed.
+ */
 class MembershipRemovedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -63,6 +66,9 @@ class MembershipRemovedNotification extends Notification implements ShouldQueue
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return \in_array($this->via, ['self', 'approval'], true)
@@ -70,11 +76,17 @@ class MembershipRemovedNotification extends Notification implements ShouldQueue
             : __('You were removed from :organization', ['organization' => $this->organization->name]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing why the membership ended.
+     */
     private function description(): string
     {
         if (\in_array($this->via, ['self', 'approval'], true)) {
@@ -91,6 +103,9 @@ class MembershipRemovedNotification extends Notification implements ShouldQueue
         ]);
     }
 
+    /**
+     * The line shown when the recipient is left without an organization.
+     */
     private function lastMembershipLine(): string
     {
         return __('You are no longer a member of any organization.');

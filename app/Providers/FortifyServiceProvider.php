@@ -17,6 +17,9 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\LogoutResponse;
 use Laravel\Fortify\Fortify;
 
+/**
+ * Configures Fortify's actions, views, notifications, and rate limiting.
+ */
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -26,6 +29,9 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->app->instance(LogoutResponse::class, new class implements LogoutResponse
         {
+            /**
+             * Redirect to the login screen after logging out.
+             */
             public function toResponse($request)
             {
                 return redirect()->route('login');

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Actions\Tenancy\ProvisionTenant;
+use App\Actions\Tenancies\ProvisionTenant;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Redirects to the setup screen until the root tenant exists.
+ */
 class EnsureSetupCompleted
 {
     public function __construct(private ProvisionTenant $provisioning)

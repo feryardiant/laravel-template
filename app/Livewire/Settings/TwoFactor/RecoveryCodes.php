@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings\TwoFactor;
 
+use App\Actions\Users\GetRecoveryCodes;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,9 @@ use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * Shows and regenerates the signed-in user's two-factor recovery codes.
+ */
 class RecoveryCodes extends Component
 {
     /** @var list<string> */
@@ -20,37 +24,35 @@ class RecoveryCodes extends Component
     /**
      * Mount the component.
      */
-    public function mount(): void
+    public function mount(GetRecoveryCodes $getRecoveryCodes): void
     {
-        $this->loadRecoveryCodes();
+        $this->loadRecoveryCodes($getRecoveryCodes);
     }
 
     /**
      * Generate new recovery codes for the user.
      */
-    public function regenerateRecoveryCodes(GenerateNewRecoveryCodes $generateNewRecoveryCodes): void
+    public function regenerateRecoveryCodes(GenerateNewRecoveryCodes $generateNewRecoveryCodes, GetRecoveryCodes $getRecoveryCodes): void
     {
         $generateNewRecoveryCodes(Auth::user());
 
-        $this->loadRecoveryCodes();
+        $this->loadRecoveryCodes($getRecoveryCodes);
     }
 
     /**
      * Load the recovery codes for the user.
      */
-    private function loadRecoveryCodes(): void
+    private function loadRecoveryCodes(GetRecoveryCodes $getRecoveryCodes): void
     {
         /** @var User */
         $user = Auth::user();
 
-        if ($user->hasEnabledTwoFactorAuthentication() && $user->two_factor_recovery_codes) {
-            try {
-                $this->recoveryCodes = json_decode(decrypt($user->two_factor_recovery_codes), true);
-            } catch (Exception) {
-                $this->addError('recoveryCodes', __('Failed to load recovery codes'));
+        try {
+            $this->recoveryCodes = $getRecoveryCodes->handle($user) ?? [];
+        } catch (Exception) {
+            $this->addError('recoveryCodes', __('Failed to load recovery codes'));
 
-                $this->recoveryCodes = [];
-            }
+            $this->recoveryCodes = [];
         }
     }
 }

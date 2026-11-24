@@ -11,13 +11,18 @@ use App\Events\Contacts\ContactDeleted;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
+use App\Repositories\ContactRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Deletes tenant contacts and their no longer shared entities.
+ */
 final class DeleteContact
 {
     public function __construct(
         private FileStorage $fileStorage,
-        private FindContact $findContact,
+        private ContactRepository $contacts,
         private RelationshipTimeline $timeline,
     ) {
         // .
@@ -34,10 +39,12 @@ final class DeleteContact
      */
     public function handle(Organization $tenant, int $contactId, bool $cleanupFiles = true, ?User $actor = null): array
     {
-        $contact = $this->findContact->byId($tenant, $contactId);
+        $contact = $this->contacts->findById($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
-        abort_if($stakeholder === null, 404);
+        if ($stakeholder === null) {
+            throw (new ModelNotFoundException)->setModel(OrganizationRelationship::class);
+        }
 
         $paths = [];
 
@@ -70,7 +77,7 @@ final class DeleteContact
 
             OrganizationRelationship::query()
                 ->forOrganization($tenant)
-                ->external()
+                ->externals()
                 ->whereKey($contact->getKey())
                 ->delete();
 

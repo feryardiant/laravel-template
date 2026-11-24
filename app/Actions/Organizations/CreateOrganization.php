@@ -6,6 +6,8 @@ namespace App\Actions\Organizations;
 
 use App\Actions\FileStorage;
 use App\Actions\Memberships\CreateMember;
+use App\Actions\People\CreatePerson;
+use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
@@ -17,11 +19,15 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Throwable;
 
+/**
+ * Creates an owned organization, or a contact organization with its person.
+ */
 final class CreateOrganization
 {
     public function __construct(
         private CreateMember $membership,
         private FileStorage $fileStorage,
+        private CreatePerson $createPerson,
     ) {
         // .
     }
@@ -97,5 +103,35 @@ final class CreateOrganization
 
             throw $exception;
         }
+    }
+
+    /**
+     * Create a contact organization and its primary contact person.
+     */
+    public function contact(
+        string $name,
+        string $contactName,
+        ?string $summary = null,
+        ?string $logoPath = null,
+        Gender|string|null $contactGender = null,
+        ?string $contactSummary = null,
+        ?User $user = null,
+        ?Organization $owner = null,
+    ): Organization {
+        $contactPerson = $this->createPerson->handle(
+            name: $contactName,
+            gender: $contactGender,
+            summary: $contactSummary,
+            user: $user,
+            owner: $owner,
+        );
+
+        return Organization::create([
+            'contact_id' => $contactPerson->getKey(),
+            'owner_organization_id' => $owner?->getKey(),
+            'name' => $name,
+            'summary' => $summary,
+            'logo_url' => $logoPath,
+        ]);
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\CancelApproval;
 use App\Actions\Approvals\OwnershipTransfer;
 use App\Actions\Memberships\RemoveMember;
 use App\Enums\ApprovalRequestStatus;
@@ -76,7 +76,7 @@ test('a pending request blocks a new transfer', function () {
         ->toThrow(InvalidArgumentException::class);
 
     expect($firstTransfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
-        ->and(ApprovalRequest::query()->pending()->count())->toBe(1);
+        ->and(ApprovalRequest::query()->onlyPendings()->count())->toBe(1);
 });
 
 test('the owner can cancel a pending transfer and the recipient row returns to normal', function () {
@@ -230,7 +230,7 @@ test('the wrong person cannot accept, decline, or cancel a transfer', function (
     $attempt = match ($action) {
         'accept' => fn () => app(OwnershipTransfer::class)->accept($transfer, $outsider),
         'decline' => fn () => app(OwnershipTransfer::class)->decline($transfer, $outsider),
-        'cancel' => fn () => app(CancelApprovalRequest::class)->handle($transfer, $recipient),
+        'cancel' => fn () => app(CancelApproval::class)->handle($transfer, $recipient),
     };
 
     expect($attempt)->toThrow(InvalidArgumentException::class);
@@ -259,7 +259,7 @@ test('a handled transfer cannot be accepted, declined, or canceled again', funct
 
     expect(app(OwnershipTransfer::class)->accept($handled, $recipient))->toBeFalse()
         ->and(app(OwnershipTransfer::class)->decline($handled, $recipient))->toBeFalse()
-        ->and(app(CancelApprovalRequest::class)->handle($handled, $owner))->toBeFalse();
+        ->and(app(CancelApproval::class)->handle($handled, $owner))->toBeFalse();
 
     expect($recipient->person->roleIn($organization))->toBe(Role::Owner)
         ->and($owner->person->roleIn($organization))->toBe(Role::Admin)

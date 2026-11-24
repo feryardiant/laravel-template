@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Contacts\Audit;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Support\FieldLabel;
 
+/**
+ * Audit payload describing the changed contact fields.
+ */
 final class ContactUpdatedPayload extends AuditPayload
 {
     /**
@@ -19,6 +22,9 @@ final class ContactUpdatedPayload extends AuditPayload
         return ['fields' => $this->fields];
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         $fields = $data['fields'] ?? [];
@@ -28,6 +34,9 @@ final class ContactUpdatedPayload extends AuditPayload
         );
     }
 
+    /**
+     * Describe the changed contact fields.
+     */
     public function details(): array
     {
         return $this->fields === [] ? [] : [__('Fields').': '.implode(', ', array_map(

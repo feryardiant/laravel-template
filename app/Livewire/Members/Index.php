@@ -6,15 +6,15 @@ namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
+use App\Actions\Memberships\ResendMemberVerification;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
-use App\Notifications\VerifyEmailForNewUser;
+use App\Repositories\MembershipRepository;
 use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -27,7 +27,10 @@ use Throwable;
 /**
  * @phpstan-type Member Person&object{pivot: \App\Models\OrganizationRelationship}
  *
+ * @property-read ?Person $deletingPerson
  * @property-read LengthAwarePaginator<int, Member> $members
+ * @property-read ?Person $roleChangePerson
+ * @property-read bool $roleChangeIsPromotion
  */
 class Index extends Component
 {
@@ -63,6 +66,79 @@ class Index extends Component
 
     public string $search = '';
 
+    public function render(): View
+    {
+        $organization = $this->currentOrganization();
+
+        /** @disregard P1013 */
+        return view('livewire.members.index', [
+            'members' => $this->members,
+            'organization' => $organization,
+            'currentRole' => $this->currentRole(),
+            'canManage' => $organization !== null && Gate::allows('manageMembers', $organization),
+            'canDeleteMembers' => MemberDeletion::enabled($organization),
+        ])->title(__('Members'));
+    }
+
+    /**
+     * Refresh the list after a member changes.
+     */
+    #[On('member-updated')]
+    public function refreshMembers(): void
+    {
+        //
+    }
+
+    /**
+     * The member awaiting delete confirmation.
+     */
+    #[Computed]
+    public function deletingPerson(): ?Person
+    {
+        $organization = $this->currentOrganization();
+
+        return $this->deletingPersonId === null || $organization === null
+            ? null
+            : app(MembershipRepository::class)->findInOrganization($organization, $this->deletingPersonId);
+    }
+
+    /**
+     * The member awaiting a role change.
+     */
+    #[Computed]
+    public function roleChangePerson(): ?Person
+    {
+        $organization = $this->currentOrganization();
+
+        return $this->roleChangePersonId === null || $organization === null
+            ? null
+            : app(MembershipRepository::class)->findInOrganization($organization, $this->roleChangePersonId);
+    }
+
+    /**
+     * Whether the pending role change promotes the member to Admin.
+     */
+    #[Computed]
+    public function roleChangeIsPromotion(): bool
+    {
+        return $this->roleChangeTo === Role::Admin->value;
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, Member>
+     */
+    #[Computed]
+    public function members(): LengthAwarePaginator
+    {
+        $organization = $this->currentOrganization();
+
+        if ($organization === null) {
+            return new LengthAwarePaginator([], 0, 10);
+        }
+
+        return app(MembershipRepository::class)->get($organization, $this->search, $this->sortDirection);
+    }
+
     /**
      * Open the form for a new member.
      */
@@ -73,17 +149,26 @@ class Index extends Component
         $this->dispatch('create-member');
     }
 
+    /**
+     * Open the delete confirmation for the given member.
+     */
     public function confirmDelete(int $personId): void
     {
         $this->deletingPersonId = $personId;
         $this->showDeleteModal = true;
     }
 
+    /**
+     * Open the bulk delete confirmation for the selected members.
+     */
     public function confirmDeleteSelected(): void
     {
         $this->showBatchDeleteModal = true;
     }
 
+    /**
+     * Delete the selected members and close the bulk confirmation.
+     */
     public function deleteSelectedConfirmed(RemoveMember $removeMember): void
     {
         $this->deleteSelected($removeMember);
@@ -91,6 +176,9 @@ class Index extends Component
         $this->reset('showBatchDeleteModal');
     }
 
+    /**
+     * Open the form for the given member.
+     */
     public function openEdit(int $personId): void
     {
         $this->dispatch('edit-member', personId: $personId);
@@ -99,24 +187,27 @@ class Index extends Component
     /**
      * Resend the verification email to the given member.
      */
-    public function resendVerification(int $personId): void
+    public function resendVerification(int $personId, ResendMemberVerification $resendVerification): void
     {
         $organization = $this->requireOrganization();
 
-        $person = $organization->members()->whereKey($personId)->firstOrFail();
+        $person = app(MembershipRepository::class)->findInOrganization($organization, $personId, ['user']);
+
+        abort_if($person === null, 404);
 
         $this->authorize('manageMember', [$person, $organization]);
 
-        abort_if($person->user === null || $person->user->hasVerifiedEmail(), 422);
-
-        $person->user->notify(new VerifyEmailForNewUser);
+        $person = $resendVerification->handle($organization, $personId);
 
         Flux::toast(
             variant: 'success',
-            text: __('Verification email resent to :email.', ['email' => $person->user->email]),
+            text: __('Verification email resent to :email.', ['email' => $person->user?->email]),
         );
     }
 
+    /**
+     * Open the confirmation to promote the given member to Admin.
+     */
     public function confirmPromote(int $personId): void
     {
         $this->roleChangePersonId = $personId;
@@ -124,6 +215,9 @@ class Index extends Component
         $this->showRoleModal = true;
     }
 
+    /**
+     * Open the confirmation to demote the given member to Member.
+     */
     public function confirmDemote(int $personId): void
     {
         $this->roleChangePersonId = $personId;
@@ -138,7 +232,7 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $person = $this->roleChangePerson();
+        $person = $this->roleChangePerson;
 
         $actor = Auth::user();
 
@@ -170,7 +264,7 @@ class Index extends Component
      */
     public function deleteConfirmed(RemoveMember $removeMember): void
     {
-        $person = $this->deletingPerson();
+        $person = $this->deletingPerson;
 
         abort_if($person === null, 404);
 
@@ -186,7 +280,9 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $person = $organization->members()->whereKey($personId)->firstOrFail();
+        $person = app(MembershipRepository::class)->findInOrganization($organization, $personId);
+
+        abort_if($person === null, 404);
 
         $this->authorize('removeMember', [$person, $organization]);
 
@@ -205,34 +301,9 @@ class Index extends Component
         Flux::toast(variant: 'success', text: __('Member removed.'));
     }
 
-    #[Computed]
-    public function deletingPerson(): ?Person
-    {
-        return $this->deletingPersonId === null
-            ? null
-            : $this->currentOrganization()?->members()->whereKey($this->deletingPersonId)->first();
-    }
-
-    #[Computed]
-    public function roleChangePerson(): ?Person
-    {
-        return $this->roleChangePersonId === null
-            ? null
-            : $this->currentOrganization()?->members()->whereKey($this->roleChangePersonId)->first();
-    }
-
-    #[Computed]
-    public function roleChangeIsPromotion(): bool
-    {
-        return $this->roleChangeTo === Role::Admin->value;
-    }
-
-    #[On('member-updated')]
-    public function refreshMembers(): void
-    {
-        //
-    }
-
+    /**
+     * Clear the selection when the page changes.
+     */
     public function updatedPage(): void
     {
         $this->selected = [];
@@ -240,6 +311,9 @@ class Index extends Component
         $this->someSelected = false;
     }
 
+    /**
+     * Reset paging and selection after the search term changes.
+     */
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -247,6 +321,9 @@ class Index extends Component
         $this->selectionKey++;
     }
 
+    /**
+     * Recompute whether all or some members on the page are selected.
+     */
     public function updatedSelected(): void
     {
         $pageIds = $this->selectablePageIds();
@@ -256,6 +333,9 @@ class Index extends Component
         $this->someSelected = ! $this->allSelected && array_intersect($pageIds, $selected) !== [];
     }
 
+    /**
+     * Select or deselect every removable member on the page.
+     */
     public function toggleSelectAll(): void
     {
         $pageIds = $this->selectablePageIds();
@@ -266,6 +346,9 @@ class Index extends Component
         $this->updatedSelected();
     }
 
+    /**
+     * Toggle the join-date sort direction.
+     */
     public function sortByJoinedAt(): void
     {
         $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
@@ -290,7 +373,7 @@ class Index extends Component
         $pageIds = $this->members->pluck('id')->all();
         $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
 
-        $persons = $organization->members()->whereKey($selected)->get();
+        $persons = app(MembershipRepository::class)->getInOrganization($organization, $selected);
 
         foreach ($persons as $person) {
             $this->authorize('removeMember', [$person, $organization]);
@@ -319,45 +402,6 @@ class Index extends Component
             variant: 'success',
             text: __(':count members removed successfully.', ['count' => $removed->count()]),
         );
-    }
-
-    public function render(): View
-    {
-        $organization = $this->currentOrganization();
-
-        /** @disregard P1013 */
-        return view('livewire.members.index', [
-            'members' => $this->members,
-            'organization' => $organization,
-            'currentRole' => $this->currentRole(),
-            'canManage' => $organization !== null && Gate::allows('manageMembers', $organization),
-            'canDeleteMembers' => MemberDeletion::enabled($organization),
-        ])->title(__('Members'));
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, Member>
-     */
-    #[Computed]
-    public function members(): LengthAwarePaginator
-    {
-        $organization = $this->currentOrganization();
-
-        if ($organization === null) {
-            return new LengthAwarePaginator([], 0, 10);
-        }
-
-        $term = trim($this->search);
-
-        return $organization->members()
-            ->with('user')
-            ->when($term !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($term): void {
-                $query->whereLike('people.name', "%{$term}%")
-                    ->orWhereHas('user', fn (Builder $query): Builder => $query->whereLike('users.email', "%{$term}%"));
-            }))
-            ->orderBy('organization_relationships.start_date', $this->sortDirection)
-            ->orderBy('people.id')
-            ->paginate(10);
     }
 
     /**

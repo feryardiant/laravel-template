@@ -127,7 +127,7 @@ test('an owner creates a direct subsidiary under the root', function () {
     $organization = Organization::query()->where('name', 'Support')->firstOrFail();
 
     $relationship = OrganizationRelationship::query()
-        ->whereStakeholder($organization)
+        ->forStakeholder($organization)
         ->where('type', OrganizationRelationshipType::Subsidiary)
         ->firstOrFail();
 
@@ -154,7 +154,7 @@ test('an owner creates a nested subsidiary under an existing subsidiary', functi
     $beta = Organization::query()->where('name', 'Beta')->firstOrFail();
 
     $relationship = OrganizationRelationship::query()
-        ->whereStakeholder($beta)
+        ->forStakeholder($beta)
         ->where('type', OrganizationRelationshipType::Subsidiary)
         ->firstOrFail();
 

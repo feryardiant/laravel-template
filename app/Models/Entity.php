@@ -40,6 +40,16 @@ abstract class Entity extends Model
     }
 
     /**
+     * @codeCoverageIgnore
+     *
+     * @return list<string>
+     */
+    public function uniqueIds(): array
+    {
+        return ['uuid'];
+    }
+
+    /**
      * @return BelongsTo<Organization, $this>
      */
     public function ownerOrganization(): BelongsTo
@@ -71,15 +81,5 @@ abstract class Entity extends Model
     public function isOwnedBy(?Organization $organization): bool
     {
         return $organization !== null && $this->owner_organization_id === $organization->getKey();
-    }
-
-    /**
-     * @codeCoverageIgnore
-     *
-     * @return list<string>
-     */
-    public function uniqueIds(): array
-    {
-        return ['uuid'];
     }
 }

@@ -61,7 +61,7 @@ it('links the role audit to the member period when another relationship is open'
 
     $customer = OrganizationRelationship::query()
         ->forOrganization($organization)
-        ->whereStakeholder($member->person)
+        ->forStakeholder($member->person)
         ->where('type', OrganizationRelationshipType::Customer)
         ->firstOrFail();
 

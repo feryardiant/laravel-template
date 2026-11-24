@@ -12,6 +12,9 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
 
+/**
+ * Raised when a contact relationship is updated.
+ */
 final class ContactUpdated extends AuditableEvent
 {
     /**
@@ -27,6 +30,9 @@ final class ContactUpdated extends AuditableEvent
         parent::__construct($organization, $actor, $contact, new ContactUpdatedPayload($fields), $period);
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::ContactUpdated;

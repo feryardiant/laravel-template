@@ -6,16 +6,19 @@ namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Approvals\MembershipLeave;
 use App\Actions\Approvals\OwnershipTransfer;
-use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Models\ApprovalRequest;
 use App\Models\User;
+use App\Repositories\ApprovalRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Reviews and answers pending ownership-transfer and leave requests.
+ */
 class TransferApproval extends Component
 {
     public bool $showModal = false;
@@ -36,20 +39,20 @@ class TransferApproval extends Component
         $uuid = request()->query('approval');
         $user = Auth::user();
 
-        if (! \is_string($uuid) || $uuid === '' || ! $user instanceof User || $user->person === null) {
+        if (! \is_string($uuid) || $uuid === '' || ! $user instanceof User) {
             return;
         }
 
-        $approval = ApprovalRequest::query()
-            ->where('uuid', $uuid)
-            ->where('approver_person_id', $user->person->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
-            ->where('expires_at', '>', now())
-            ->first();
+        $approval = app(ApprovalRepository::class)->findForApproverByUuid($user, $uuid);
 
         if ($approval !== null) {
             $this->openModal($approval);
         }
+    }
+
+    public function render(): View
+    {
+        return view('livewire.settings.organizations.transfer-approval');
     }
 
     /**
@@ -62,12 +65,7 @@ class TransferApproval extends Component
 
         abort_unless($user instanceof User && $user->person !== null, 403);
 
-        $approval = ApprovalRequest::query()
-            ->where('organization_id', $organizationId)
-            ->where('approver_person_id', $user->person->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
-            ->where('expires_at', '>', now())
-            ->first();
+        $approval = app(ApprovalRepository::class)->findOpenForApproverByOrganization($user, $organizationId);
 
         abort_if($approval === null, 404);
 
@@ -164,14 +162,11 @@ class TransferApproval extends Component
     {
         $user = Auth::user();
 
-        if ($this->approvalId === null || ! $user instanceof User || $user->person === null) {
+        if ($this->approvalId === null || ! $user instanceof User) {
             return null;
         }
 
-        return ApprovalRequest::query()
-            ->whereKey($this->approvalId)
-            ->where('approver_person_id', $user->person->getKey())
-            ->first();
+        return app(ApprovalRepository::class)->findForApprover($user, $this->approvalId);
     }
 
     /**
@@ -216,10 +211,5 @@ class TransferApproval extends Component
         $this->organizationName = $approval->organization->name;
         $this->requesterName = $approval->requester->name;
         $this->showModal = true;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.settings.organizations.transfer-approval');
     }
 }

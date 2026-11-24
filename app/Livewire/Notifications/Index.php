@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Notifications;
 
+use App\Actions\Notifications\MarkNotificationsAsRead;
 use App\Models\User;
+use App\Repositories\NotificationRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -14,6 +16,9 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+/**
+ * @property-read ?DatabaseNotification $selectedNotification
+ */
 class Index extends Component
 {
     use WithPagination;
@@ -40,6 +45,36 @@ class Index extends Component
         $this->openNotification($open);
     }
 
+    public function render(): View
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        /** @disregard P1013 */
+        return view('livewire.notifications.index', [
+            'notifications' => app(NotificationRepository::class)->get($user, $this->sortAscending),
+        ])->title(__('Notifications'));
+    }
+
+    /**
+     * The notification open in the detail modal.
+     */
+    #[Computed]
+    public function selectedNotification(): ?DatabaseNotification
+    {
+        if ($this->selectedNotificationId === null) {
+            return null;
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        return app(NotificationRepository::class)->find($user, $this->selectedNotificationId);
+    }
+
+    /**
+     * Toggle the received-date sort order and clear the selection.
+     */
     public function sortByReceivedAt(): void
     {
         $this->sortAscending = ! $this->sortAscending;
@@ -48,23 +83,29 @@ class Index extends Component
         $this->resetPage();
     }
 
+    /**
+     * Clear the selection when the page changes.
+     */
     public function updatedPage(): void
     {
         $this->selectedNotifications = [];
     }
 
+    /**
+     * Open the notification, mark it read, and focus its modal.
+     */
     public function openNotification(string $id): void
     {
         /** @var User $user */
         $user = Auth::user();
 
-        $notification = $user->notifications()->whereKey($id)->first();
+        $notification = app(NotificationRepository::class)->find($user, $id);
 
         if ($notification === null) {
             return;
         }
 
-        $notification->markAsRead();
+        app(MarkNotificationsAsRead::class)->markOne($user, $id);
 
         $this->selectedNotificationId = $id;
         $this->showNotificationModal = true;
@@ -134,6 +175,9 @@ class Index extends Component
         JS);
     }
 
+    /**
+     * Add or remove the given notification from the selection.
+     */
     public function toggleSelected(string $id): void
     {
         $this->selectedNotifications = \in_array($id, $this->selectedNotifications, true)
@@ -141,6 +185,9 @@ class Index extends Component
             : [...$this->selectedNotifications, $id];
     }
 
+    /**
+     * Select or deselect every notification on the page.
+     */
     public function toggleSelectAll(): void
     {
         $ids = $this->notificationIdsOnPage();
@@ -150,16 +197,25 @@ class Index extends Component
             : $ids;
     }
 
+    /**
+     * Mark the selected notifications as read.
+     */
     public function markSelectedAsRead(): void
     {
         $this->markSelected(asRead: true);
     }
 
+    /**
+     * Mark the selected notifications as unread.
+     */
     public function markSelectedAsUnread(): void
     {
         $this->markSelected(asRead: false);
     }
 
+    /**
+     * Mark the selected notifications with the given read state.
+     */
     private function markSelected(bool $asRead): void
     {
         if ($this->selectedNotifications === []) {
@@ -169,9 +225,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $count = $user->notifications()
-            ->whereIn('id', $this->selectedNotifications)
-            ->update(['read_at' => $asRead ? now() : null]);
+        $count = app(MarkNotificationsAsRead::class)->handle($user, $this->selectedNotifications, $asRead);
 
         $this->selectedNotifications = [];
 
@@ -185,12 +239,15 @@ class Index extends Component
         $this->dispatchUnreadCount();
     }
 
+    /**
+     * Broadcast the user's current unread notification count.
+     */
     private function dispatchUnreadCount(): void
     {
         /** @var User $user */
         $user = Auth::user();
 
-        $this->dispatch('notifications-updated', count: $user->unreadNotifications()->count());
+        $this->dispatch('notifications-updated', count: app(NotificationRepository::class)->countUnread($user));
     }
 
     /**
@@ -201,39 +258,6 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        return $user->notifications()
-            ->reorder('created_at', $this->sortAscending ? 'asc' : 'desc')
-            ->orderBy('id', $this->sortAscending ? 'asc' : 'desc')
-            ->forPage($this->getPage(), 10)
-            ->pluck('id')
-            ->map(fn ($id): string => (string) $id)
-            ->all();
-    }
-
-    #[Computed]
-    public function selectedNotification(): ?DatabaseNotification
-    {
-        if ($this->selectedNotificationId === null) {
-            return null;
-        }
-
-        /** @var User $user */
-        $user = Auth::user();
-
-        return $user->notifications()->whereKey($this->selectedNotificationId)->first();
-    }
-
-    public function render(): View
-    {
-        /** @var User $user */
-        $user = Auth::user();
-
-        /** @disregard P1013 */
-        return view('livewire.notifications.index', [
-            'notifications' => $user->notifications()
-                ->reorder('created_at', $this->sortAscending ? 'asc' : 'desc')
-                ->orderBy('id', $this->sortAscending ? 'asc' : 'desc')
-                ->paginate(10),
-        ])->title(__('Notifications'));
+        return app(NotificationRepository::class)->getIdsOnPage($user, $this->sortAscending, $this->getPage());
     }
 }

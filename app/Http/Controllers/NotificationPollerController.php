@@ -8,6 +8,9 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Serves the newest unread notification and its pending list to the poller.
+ */
 class NotificationPollerController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
@@ -64,6 +67,9 @@ class NotificationPollerController extends Controller
         ]);
     }
 
+    /**
+     * Mark the given notifications as seen and drop them from the pending list.
+     */
     public function ack(Request $request): JsonResponse
     {
         /** @var User $user */

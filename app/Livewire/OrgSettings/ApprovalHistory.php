@@ -6,11 +6,15 @@ namespace App\Livewire\OrgSettings;
 
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
+use App\Repositories\ApprovalRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
+/**
+ * @property-read Collection<int, ApprovalRequest> $approvals
+ */
 class ApprovalHistory extends Component
 {
     use HasCurrentOrganization;
@@ -25,6 +29,12 @@ class ApprovalHistory extends Component
         $this->authorize('viewApprovals', $this->requireOrganization());
     }
 
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.org-settings.approval-history')->title(__('Approvals history'));
+    }
+
     /**
      * The current organization's approval requests, newest first.
      *
@@ -33,18 +43,10 @@ class ApprovalHistory extends Component
     #[Computed]
     public function approvals(): Collection
     {
-        $this->authorize('viewApprovals', $this->requireOrganization());
+        $organization = $this->requireOrganization();
 
-        return ApprovalRequest::query()
-            ->where('organization_id', $this->requireOrganization()->getKey())
-            ->with(['requester', 'approver'])
-            ->latest()
-            ->get();
-    }
+        $this->authorize('viewApprovals', $organization);
 
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.org-settings.approval-history')->title(__('Approvals history'));
+        return app(ApprovalRepository::class)->getForOrganization($organization);
     }
 }

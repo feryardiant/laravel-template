@@ -276,6 +276,7 @@
     "this member": "anggota ini",
     "this organization": "organisasi ini",
     "Unable to change the member role.": "Tidak dapat mengubah peran anggota.",
+    "Unable to resend the verification email.": "Tidak dapat mengirim ulang email verifikasi.",
     "Unable to demote the member to Member.": "Tidak dapat menjadikan anggota sebagai Anggota.",
     "Unable to promote the member to Admin.": "Tidak dapat menjadikan anggota sebagai Admin.",
     "Contacts": "Kontak",

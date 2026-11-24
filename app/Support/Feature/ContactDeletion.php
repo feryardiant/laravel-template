@@ -7,6 +7,9 @@ namespace App\Support\Feature;
 use App\Models\Organization;
 use Laravel\Pennant\Feature;
 
+/**
+ * The tenant flag that gates deleting contacts from an organization.
+ */
 final class ContactDeletion
 {
     public const FEATURE = 'contact-deletion';

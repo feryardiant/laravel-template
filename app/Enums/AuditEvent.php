@@ -45,6 +45,9 @@ enum AuditEvent: string
         };
     }
 
+    /**
+     * The human-readable label for the event.
+     */
     public function label(): string
     {
         return match ($this) {

@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\ResetsUserPasswords;
 
+/**
+ * Validates a reset password, applies it, and signs the user in.
+ */
 final class ResetUserPassword implements ResetsUserPasswords
 {
     use PasswordValidationRules;

@@ -61,7 +61,7 @@ it('removes inbound relationships when an organization is force-deleted', functi
 
     $organization->forceDelete();
 
-    expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeFalse();
+    expect(OrganizationRelationship::query()->forStakeholder($organization)->exists())->toBeFalse();
 });
 
 it('cannot force-delete a root tenant that still has tenant children', function () {
@@ -78,7 +78,7 @@ it('cannot force-delete a root tenant that still has tenant children', function 
     expect(fn () => $root->forceDelete())->toThrow(QueryException::class);
 
     expect(Organization::query()->whereKey($root->getKey())->exists())->toBeTrue();
-    expect(OrganizationRelationship::whereStakeholder($root)->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->forStakeholder($root)->exists())->toBeTrue();
 });
 
 it('force-deletes a childless root tenant and its inbound relationships', function () {
@@ -92,7 +92,7 @@ it('force-deletes a childless root tenant and its inbound relationships', functi
     $root->forceDelete();
 
     expect(Organization::query()->whereKey($root->getKey())->exists())->toBeFalse();
-    expect(OrganizationRelationship::whereStakeholder($root)->exists())->toBeFalse();
+    expect(OrganizationRelationship::query()->forStakeholder($root)->exists())->toBeFalse();
 });
 
 it('keeps inbound relationships when an organization is soft-deleted', function () {
@@ -105,7 +105,7 @@ it('keeps inbound relationships when an organization is soft-deleted', function 
 
     $organization->delete();
 
-    expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->forStakeholder($organization)->exists())->toBeTrue();
 });
 
 test('external counterparties can be organizations or people', function (OrganizationRelationshipType $type) {
@@ -193,7 +193,7 @@ test('subsidiary relationships default to the subsidiary kind', function () {
 
     $parent->subsidiaries()->attach($child, ['type' => OrganizationRelationshipType::Subsidiary]);
 
-    $relationship = OrganizationRelationship::query()->whereStakeholder($child)->firstOrFail();
+    $relationship = OrganizationRelationship::query()->forStakeholder($child)->firstOrFail();
 
     expect($relationship->kind)->toBe(SubsidiaryKind::Subsidiary);
 });
@@ -207,7 +207,7 @@ test('non-subsidiary relationships have no kind', function () {
         'kind' => SubsidiaryKind::Branch,
     ]);
 
-    $relationship = OrganizationRelationship::query()->whereStakeholder($customer)->firstOrFail();
+    $relationship = OrganizationRelationship::query()->forStakeholder($customer)->firstOrFail();
 
     expect($relationship->kind)->toBeNull();
 });

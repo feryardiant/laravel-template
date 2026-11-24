@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Memberships\Audit;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use UnexpectedValueException;
 
+/**
+ * Audit payload describing a member removed from an organization.
+ */
 final class MemberRemovedPayload extends AuditPayload
 {
     /**
@@ -22,6 +25,9 @@ final class MemberRemovedPayload extends AuditPayload
         ];
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         $via = (string) ($data['via'] ?? '');
@@ -35,6 +41,9 @@ final class MemberRemovedPayload extends AuditPayload
         );
     }
 
+    /**
+     * Describe the removal route and whether it was the last membership.
+     */
     public function details(): array
     {
         $details = [__('Via :via', ['via' => match ($this->via) {

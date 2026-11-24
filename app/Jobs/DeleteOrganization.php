@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Actions\FileStorage;
-use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\OrganizationRelationshipType;
 use App\Models\ApprovalRequest;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
 use App\Notifications\OrganizationDeletedNotification;
+use App\Repositories\OrganizationRepository;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +25,9 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Pennant\FeatureManager;
 
+/**
+ * Deletes an organization and its nested subsidiaries with their owned data.
+ */
 final class DeleteOrganization implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -55,8 +57,8 @@ final class DeleteOrganization implements ShouldQueue
             return;
         }
 
-        $branch = app(ListSubsidiaries::class)
-            ->handle($organization)
+        $branch = app(OrganizationRepository::class)
+            ->getSubsidiaries($organization)
             ->pluck('organization')
             ->prepend($organization)
             ->all();
@@ -104,8 +106,8 @@ final class DeleteOrganization implements ShouldQueue
         $organization->address()->delete();
 
         ApprovalRequest::query()
-            ->where('organization_id', $organization->getKey())
-            ->where('status', ApprovalRequestStatus::Pending)
+            ->onlyPendings()
+            ->forOrganization($organization)
             ->update([
                 'status' => ApprovalRequestStatus::Canceled,
                 'canceled_at' => now(),
@@ -116,9 +118,8 @@ final class DeleteOrganization implements ShouldQueue
             ->delete();
 
         $externallyReferenced = OrganizationRelationship::query()
-            ->where('stakeholder_type', $organization->getMorphClass())
-            ->where('stakeholder_id', $organization->getKey())
-            ->whereIn('type', OrganizationRelationshipType::externals())
+            ->forStakeholder($organization)
+            ->externals()
             ->exists();
 
         if (! $externallyReferenced) {
@@ -128,12 +129,12 @@ final class DeleteOrganization implements ShouldQueue
         }
 
         OrganizationRelationship::query()
-            ->where('organization_id', $organization->getKey())
+            ->forOrganization($organization)
             ->delete();
 
         OrganizationRelationship::query()
-            ->whereStakeholder($organization)
-            ->whereIn('type', OrganizationRelationshipType::internals())
+            ->forStakeholder($organization)
+            ->internals()
             ->delete();
 
         $organization->update([

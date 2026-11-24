@@ -130,7 +130,7 @@ test('an admin can create an organization contact with a contact person', functi
     expect($contact->contact_id)->toBe($contactPerson->getKey());
     expect($contactPerson->gender)->toBe(Gender::Female);
     expect($contactPerson->summary)->toBe('Primary contact');
-    expect(OrganizationRelationship::whereStakeholder($contact)->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->forStakeholder($contact)->exists())->toBeTrue();
 });
 
 test('contact creation validates its required fields', function () {
@@ -212,8 +212,9 @@ test('a contact code is unique per tenant', function () {
 
     $contact = contactIndividual($organization, ['name' => 'Existing']);
 
-    OrganizationRelationship::forOrganization($organization)
-        ->whereStakeholder($contact)
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->forStakeholder($contact)
         ->update(['code' => 'DUP-1']);
 
     Livewire::test(Form::class)
@@ -254,7 +255,7 @@ test('an admin can attach an existing contact from another tenant', function () 
     $target = Organization::factory()->create();
 
     $person = contactIndividual($source, ['name' => 'Shared Person', 'summary' => 'Shared summary']);
-    $relationship = OrganizationRelationship::whereStakeholder($person)->value('id');
+    $relationship = OrganizationRelationship::query()->forStakeholder($person)->value('id');
 
     actingAsMember($target, Role::Admin);
 
@@ -267,8 +268,9 @@ test('an admin can attach an existing contact from another tenant', function () 
         ->call('save')
         ->assertHasNoErrors();
 
-    $attached = OrganizationRelationship::forOrganization($target)
-        ->whereStakeholder($person)
+    $attached = OrganizationRelationship::query()
+        ->forOrganization($target)
+        ->forStakeholder($person)
         ->firstOrFail();
 
     expect($attached->code)->toBe('T-1');
@@ -285,8 +287,9 @@ test('a failed create removes the uploaded photo', function () {
 
     $existing = contactIndividual($organization, ['name' => 'Existing Code']);
 
-    OrganizationRelationship::forOrganization($organization)
-        ->whereStakeholder($existing)
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->forStakeholder($existing)
         ->update(['code' => 'DUP-CREATE']);
 
     $data = [

@@ -13,6 +13,9 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
 
+/**
+ * Raised when a contact relationship is created.
+ */
 final class ContactCreated extends AuditableEvent
 {
     /**
@@ -33,6 +36,9 @@ final class ContactCreated extends AuditableEvent
         ), $period);
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::ContactCreated;

@@ -24,6 +24,11 @@ class Autocomplete extends Component
 
     public string $masked = '';
 
+    public function render(): View
+    {
+        return view('ui.autocomplete');
+    }
+
     /**
      * Set the local demo value to "New York".
      */
@@ -31,10 +36,5 @@ class Autocomplete extends Component
     {
         $this->state = 'New York';
         $this->stateValue = 'New York';
-    }
-
-    public function render(): View
-    {
-        return view('ui.autocomplete');
     }
 }

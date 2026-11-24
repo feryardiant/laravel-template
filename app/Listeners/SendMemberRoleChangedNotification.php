@@ -7,6 +7,9 @@ namespace App\Listeners;
 use App\Events\Memberships\MemberRoleChanged;
 use App\Notifications\UserRoleChangedNotification;
 
+/**
+ * Queues the role changed notification for the member whose role changed.
+ */
 class SendMemberRoleChangedNotification
 {
     public function handle(MemberRoleChanged $event): void

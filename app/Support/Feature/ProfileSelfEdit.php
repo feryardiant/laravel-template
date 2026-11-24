@@ -7,6 +7,9 @@ namespace App\Support\Feature;
 use App\Models\Organization;
 use Laravel\Pennant\Feature;
 
+/**
+ * The tenant flag that lets org-owned people edit their own profile.
+ */
 final class ProfileSelfEdit
 {
     public const FEATURE = 'profile-self-edit';

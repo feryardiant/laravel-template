@@ -15,6 +15,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
+/**
+ * Serves contact candidates for the name autocomplete.
+ */
 class ContactLookupController extends Controller
 {
     /**
@@ -47,10 +50,10 @@ class ContactLookupController extends Controller
     private function isExpiredFor(Organization $organization, Organization|Person $entity): bool
     {
         return OrganizationRelationship::query()
-            ->external()
             ->forOrganization($organization)
+            ->forStakeholder($entity)
+            ->externals()
             ->expired()
-            ->whereStakeholder($entity)
             ->exists();
     }
 

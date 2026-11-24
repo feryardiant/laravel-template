@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Actions\Tenancy\ProvisionTenant;
+use App\Actions\Tenancies\ProvisionTenant;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\View\View;
@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
+/**
+ * First-run form that provisions the owner account and root tenant.
+ */
 class Setup extends Component
 {
     use PasswordValidationRules, ProfileValidationRules;
@@ -33,6 +36,12 @@ class Setup extends Component
         if (! $provisioning->isRequired()) {
             $this->redirectRoute('dashboard', navigate: true);
         }
+    }
+
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.setup')->layout('layouts.auth')->title(__('Set up your account'));
     }
 
     /**
@@ -63,11 +72,5 @@ class Setup extends Component
         session()->regenerate();
 
         $this->redirectRoute('dashboard', navigate: true);
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.setup')->layout('layouts.auth')->title(__('Set up your account'));
     }
 }

@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Creates a user with a unique login handle.
+ */
 final class CreateUser
 {
     /**

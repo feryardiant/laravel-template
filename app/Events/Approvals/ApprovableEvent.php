@@ -10,6 +10,9 @@ use App\Models\ApprovalRequest;
 use App\Models\User;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Base event for approval lifecycle changes.
+ */
 abstract class ApprovableEvent extends AuditableEvent
 {
     use SerializesModels;

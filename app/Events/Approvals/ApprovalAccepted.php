@@ -6,8 +6,14 @@ namespace App\Events\Approvals;
 
 use App\Enums\AuditEvent;
 
+/**
+ * Raised when an approval request is accepted.
+ */
 final class ApprovalAccepted extends ApprovableEvent
 {
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::ApprovalAccepted;

@@ -10,6 +10,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Notifies the requester when an ownership transfer is declined.
+ */
 class OwnershipTransferDeclinedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -52,16 +55,25 @@ class OwnershipTransferDeclinedNotification extends Notification implements Shou
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return __('Ownership transfer for :organization declined', ['organization' => $this->organizationName]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing what happened.
+     */
     private function description(): string
     {
         return __(':name declined ownership of :organization.', [

@@ -6,7 +6,6 @@ namespace App\Actions\Memberships;
 
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
 use App\Events\Approvals\ApprovalCanceled;
 use App\Events\Memberships\MemberRemoved;
@@ -19,6 +18,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * Detaches one or more people from an organization.
+ */
 final class RemoveMember
 {
     public function __construct(
@@ -78,9 +80,9 @@ final class RemoveMember
             if ($removed->isNotEmpty()) {
                 $relationships = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->where('stakeholder_type', (new Person)->getMorphClass())
+                    ->whereStakeholderType((new Person)->getMorphClass())
                     ->whereIn('stakeholder_id', $removed->modelKeys())
-                    ->where('type', OrganizationRelationshipType::Member)
+                    ->members()
                     ->get();
 
                 foreach ($relationships as $relationship) {
@@ -96,8 +98,8 @@ final class RemoveMember
 
             if ($removed->isNotEmpty()) {
                 $pending = ApprovalRequest::query()
-                    ->pending()
-                    ->where('organization_id', $organization->getKey())
+                    ->onlyPendings()
+                    ->forOrganization($organization)
                     ->where(fn ($query) => $query
                         ->whereIn('requester_person_id', $removed->modelKeys())
                         ->orWhereIn('approver_person_id', $removed->modelKeys()))
@@ -105,8 +107,8 @@ final class RemoveMember
 
                 foreach ($pending as $request) {
                     $canceled = ApprovalRequest::query()
+                        ->onlyPendings()
                         ->whereKey($request->getKey())
-                        ->where('status', ApprovalRequestStatus::Pending)
                         ->update([
                             'status' => ApprovalRequestStatus::Canceled,
                             'canceled_at' => now(),

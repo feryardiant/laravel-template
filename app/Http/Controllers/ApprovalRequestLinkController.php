@@ -8,6 +8,9 @@ use App\Models\ApprovalRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Redirects a signed email link to the approval review modal.
+ */
 class ApprovalRequestLinkController
 {
     /**

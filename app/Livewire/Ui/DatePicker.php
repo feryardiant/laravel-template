@@ -42,16 +42,16 @@ class DatePicker extends Component
         $this->inputRange = ['start' => null, 'end' => null];
     }
 
+    public function render(): View
+    {
+        return view('ui.date-picker');
+    }
+
     /**
      * Move the single-date demo five days ahead of today.
      */
     public function moveDate(): void
     {
         $this->date = now()->addDays(5)->format('Y-m-d');
-    }
-
-    public function render(): View
-    {
-        return view('ui.date-picker');
     }
 }

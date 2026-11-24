@@ -7,7 +7,6 @@ namespace App\Actions\Contacts;
 use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Concerns\ToManageEntities;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Events\Contacts\ContactUpdated;
@@ -17,22 +16,26 @@ use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ContactRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+/**
+ * Updates a contact's shared entity data and per-tenant relationship fields.
+ */
 final class UpdateContact
 {
-    use ToManageEntities;
-
     public function __construct(
         private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
-        private FindContact $findContact,
+        private ContactRepository $contacts,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
+        private EnsureExternalRole $ensureExternalRole,
     ) {
         // .
     }
@@ -54,13 +57,15 @@ final class UpdateContact
         bool $validatedSharedFieldsLocked = false,
         ?User $actor = null,
     ): void {
-        $contact = $this->findContact->byId($tenant, $contactId);
+        $contact = $this->contacts->findById($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
-        abort_if($stakeholder === null, 404);
+        if ($stakeholder === null) {
+            throw (new ModelNotFoundException)->setModel(OrganizationRelationship::class);
+        }
 
         $role = \array_key_exists('role', $data)
-            ? $this->ensureExternalRole($data['role'])
+            ? $this->ensureExternalRole->handle($data['role'])
             : ($contact->type instanceof OrganizationRelationshipType ? $contact->type : OrganizationRelationshipType::Customer);
         $locked = $contact->profileLockedFor($tenant);
         $column = $stakeholder instanceof Organization ? 'logo_url' : 'photo_url';
@@ -138,7 +143,7 @@ final class UpdateContact
                 if ($attributes !== []) {
                     OrganizationRelationship::query()
                         ->forOrganization($tenant)
-                        ->external()
+                        ->externals()
                         ->whereKey($contact->getKey())
                         ->update($attributes);
                 }

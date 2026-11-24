@@ -9,6 +9,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 
+/**
+ * Validation rules for a user's name, handle, and email profile fields.
+ */
 trait ProfileValidationRules
 {
     /**

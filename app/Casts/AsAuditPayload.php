@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Casts;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Models\AuditLog;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +18,9 @@ use UnexpectedValueException;
  */
 final class AsAuditPayload implements CastsAttributes
 {
+    /**
+     * Rebuild the typed payload from its stored class name and array form.
+     */
     public function get(Model $model, string $key, mixed $value, array $attributes): ?AuditPayload
     {
         if ($value === null) {
@@ -49,6 +52,9 @@ final class AsAuditPayload implements CastsAttributes
         return $class::fromEvent($model->event, $model->subject, $stored[1]);
     }
 
+    /**
+     * Store the payload's class name next to its array form.
+     */
     public function set(Model $model, string $key, mixed $value, array $attributes): ?string
     {
         if ($value === null) {

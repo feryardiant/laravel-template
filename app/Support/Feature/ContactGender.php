@@ -7,6 +7,9 @@ namespace App\Support\Feature;
 use App\Models\Organization;
 use Laravel\Pennant\Feature;
 
+/**
+ * The tenant flag that turns the contact gender field on or off.
+ */
 final class ContactGender
 {
     public const FEATURE = 'contact-gender';

@@ -10,6 +10,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 
+/**
+ * Verifies an invited user's email and opens the password reset page.
+ */
 class VerifyNewUserEmailController extends Controller
 {
     /**

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\SubsidiaryKind;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
+use App\Repositories\OrganizationRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -15,6 +15,11 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * @property-read ?Organization $root
+ * @property-read Collection<int, array{organization: Organization, parent: Organization, kind: ?SubsidiaryKind, depth: int}> $subsidiaries
+ * @property-read bool $canManage
+ */
 class Subsidiaries extends Component
 {
     use HasCurrentOrganization;
@@ -29,6 +34,22 @@ class Subsidiaries extends Component
         abort_if($organization === null || ! $organization->isRootTenant(), 404);
 
         $this->authorize('viewSubsidiaries', $organization);
+    }
+
+    public function render(): View
+    {
+        /** @disregard P1013 */
+        return view('livewire.org-settings.subsidiaries')->title(__('Subsidiaries'));
+    }
+
+    /**
+     * Refresh after a subsidiary is created or removed.
+     */
+    #[On('organization-created')]
+    #[On('subsidiary-removed')]
+    public function refreshSubsidiaries(): void
+    {
+        //
     }
 
     /**
@@ -56,7 +77,7 @@ class Subsidiaries extends Component
 
         $this->authorize('viewSubsidiaries', $organization);
 
-        return app(ListSubsidiaries::class)->handle($organization);
+        return app(OrganizationRepository::class)->getSubsidiaries($organization);
     }
 
     /**
@@ -68,18 +89,5 @@ class Subsidiaries extends Component
         $organization = $this->currentOrganization();
 
         return $organization !== null && Gate::allows('createSubsidiary', $organization);
-    }
-
-    #[On('organization-created')]
-    #[On('subsidiary-removed')]
-    public function refreshSubsidiaries(): void
-    {
-        //
-    }
-
-    public function render(): View
-    {
-        /** @disregard P1013 */
-        return view('livewire.org-settings.subsidiaries')->title(__('Subsidiaries'));
     }
 }

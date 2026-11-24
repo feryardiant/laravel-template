@@ -10,6 +10,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Notifies the members when an organization is deleted.
+ */
 class OrganizationDeletedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -57,6 +60,9 @@ class OrganizationDeletedNotification extends Notification implements ShouldQueu
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return __('The organization :organization has been deleted', [
@@ -64,11 +70,17 @@ class OrganizationDeletedNotification extends Notification implements ShouldQueu
         ]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing what happened.
+     */
     private function description(): string
     {
         return $this->actorName === null
@@ -79,11 +91,17 @@ class OrganizationDeletedNotification extends Notification implements ShouldQueu
             ]);
     }
 
+    /**
+     * The line shown when the recipient is left without an organization.
+     */
     private function lastMembershipLine(): string
     {
         return __('You are no longer a member of any organization.');
     }
 
+    /**
+     * Whether the recipient has no other organization memberships.
+     */
     private function isLastMembership(User $notifiable): bool
     {
         return $notifiable->person?->organizations()->doesntExist() ?? true;

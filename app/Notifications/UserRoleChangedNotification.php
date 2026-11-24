@@ -12,6 +12,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Notifies a user when their role changes.
+ */
 class UserRoleChangedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -54,6 +57,9 @@ class UserRoleChangedNotification extends Notification implements ShouldQueue
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return $this->organization === null
@@ -61,11 +67,17 @@ class UserRoleChangedNotification extends Notification implements ShouldQueue
             : __('Your role at :organization has changed', ['organization' => $this->organization->name]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing what happened.
+     */
     private function description(): string
     {
         return $this->organization === null

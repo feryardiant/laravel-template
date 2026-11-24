@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\Subsidiaries;
 
-use App\Actions\Organizations\ListSubsidiaries;
-use App\Enums\SubsidiaryKind;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
-use App\Models\Organization;
 use App\Models\User;
+use App\Repositories\OrganizationRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Queues removal of a subsidiary and its nested subsidiaries.
+ */
 class RemoveSubsidiary extends Component
 {
     use HasCurrentOrganization;
@@ -29,37 +29,30 @@ class RemoveSubsidiary extends Component
 
     public int $removingCount = 0;
 
+    public function render(): View
+    {
+        return view('livewire.org-settings.subsidiaries.remove-subsidiary');
+    }
+
     /**
      * Select a subsidiary to remove.
      */
     #[On('remove-subsidiary')]
     public function confirmRemove(int $organizationId): void
     {
-        $this->authorize('createSubsidiary', $this->requireOrganization());
+        $root = $this->requireOrganization();
 
-        $rows = $this->subsidiaries();
-        $index = $rows->search(
-            fn (array $row): bool => $row['organization']->getKey() === $organizationId,
-        );
+        $this->authorize('createSubsidiary', $root);
 
-        abort_if($index === false, 404);
+        $preview = app(OrganizationRepository::class)->preview($root, $organizationId);
 
-        $this->authorize('delete', $rows[$index]['organization']);
+        abort_if($preview === null, 404);
 
-        $depth = $rows[$index]['depth'];
-        $count = 1;
-
-        for ($position = $index + 1; $position < $rows->count(); $position++) {
-            if ($rows[$position]['depth'] <= $depth) {
-                break;
-            }
-
-            $count++;
-        }
+        $this->authorize('delete', $preview['organization']);
 
         $this->removingId = $organizationId;
-        $this->removingName = $rows[$index]['organization']->name;
-        $this->removingCount = $count;
+        $this->removingName = $preview['organization']->name;
+        $this->removingCount = $preview['count'];
         $this->showModal = true;
     }
 
@@ -73,18 +66,19 @@ class RemoveSubsidiary extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $this->authorize('createSubsidiary', $this->requireOrganization());
+        $root = $this->requireOrganization();
 
-        $rows = $this->subsidiaries();
-        $organization = $rows->first(
-            fn (array $row): bool => $row['organization']->getKey() === $this->removingId,
-        );
+        $this->authorize('createSubsidiary', $root);
 
-        abort_if($organization === null, 404);
+        abort_if($this->removingId === null, 404);
 
-        $this->authorize('delete', $organization['organization']);
+        $preview = app(OrganizationRepository::class)->preview($root, $this->removingId);
 
-        dispatch(new DeleteOrganization($organization['organization'], $user->getKey()));
+        abort_if($preview === null, 404);
+
+        $this->authorize('delete', $preview['organization']);
+
+        dispatch(new DeleteOrganization($preview['organization'], $user->getKey()));
 
         $this->reset('showModal', 'removingId', 'removingName', 'removingCount');
 
@@ -92,26 +86,7 @@ class RemoveSubsidiary extends Component
 
         Flux::toast(
             variant: 'success',
-            text: __('Removal queued. :name will be deleted shortly.', ['name' => $organization['organization']->name]),
+            text: __('Removal queued. :name will be deleted shortly.', ['name' => $preview['organization']->name]),
         );
-    }
-
-    /**
-     * The root tenant's subsidiary tree, depth-first.
-     *
-     * @return Collection<int, array{organization: Organization, parent: Organization, kind: ?SubsidiaryKind, depth: int}>
-     */
-    private function subsidiaries(): Collection
-    {
-        $organization = $this->currentOrganization();
-
-        return $organization?->isRootTenant() === true
-            ? app(ListSubsidiaries::class)->handle($organization)
-            : collect();
-    }
-
-    public function render(): View
-    {
-        return view('livewire.org-settings.subsidiaries.remove-subsidiary');
     }
 }

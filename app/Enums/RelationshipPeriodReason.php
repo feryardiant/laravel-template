@@ -19,6 +19,9 @@ enum RelationshipPeriodReason: string
 
     case Deleted = 'deleted';
 
+    /**
+     * The human-readable label for the reason.
+     */
     public function label(): string
     {
         return match ($this) {

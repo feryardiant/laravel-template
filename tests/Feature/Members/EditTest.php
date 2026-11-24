@@ -300,7 +300,7 @@ test('a stale member save does not revert a role change', function () {
 
     OrganizationRelationship::query()
         ->forOrganization($organization)
-        ->whereStakeholder($member->person)
+        ->forStakeholder($member->person)
         ->update(['role' => Role::Admin->value]);
 
     $form->set('name', 'Renamed Member')->call('update')->assertHasNoErrors();
@@ -483,7 +483,7 @@ test('retrying after a failed photo removal does not revert the role or email', 
 
     OrganizationRelationship::query()
         ->forOrganization($organization)
-        ->whereStakeholder($member->person)
+        ->forStakeholder($member->person)
         ->update(['role' => Role::Admin->value]);
 
     $member->update(['email' => 'newer@example.test']);

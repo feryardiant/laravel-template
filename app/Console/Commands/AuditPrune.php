@@ -9,6 +9,9 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
+/**
+ * Prunes audit log entries older than the keep window.
+ */
 #[Signature('app:audit-prune'
     .' {--keep=30 : Number of days of audit history to keep}'
     .' {--dry-run : Count the entries without deleting them}')]

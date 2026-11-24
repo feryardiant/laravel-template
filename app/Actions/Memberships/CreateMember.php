@@ -6,8 +6,9 @@ namespace App\Actions\Memberships;
 
 use App\Actions\Addresses\SaveAddress;
 use App\Actions\Contacts\SaveContactDetails;
+use App\Actions\FileStorage;
+use App\Actions\People\CreatePerson;
 use App\Actions\Relationships\RelationshipTimeline;
-use App\Concerns\ToManageEntities;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipPeriodReason;
@@ -20,17 +21,22 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
 use Carbon\CarbonInterface;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Throwable;
 
+/**
+ * Adds a person to an organization as a member.
+ */
 final class CreateMember
 {
-    use ToManageEntities;
-
     public function __construct(
         private SaveAddress $saveAddress,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
+        private CreatePerson $createPerson,
+        private FileStorage $fileStorage,
     ) {
         // .
     }
@@ -45,7 +51,7 @@ final class CreateMember
         string $name,
         Role $role,
         ?string $email = null,
-        ?string $photoUrl = null,
+        ?UploadedFile $photo = null,
         ?User $actor = null,
         ?array $address = null,
         ?string $contactEmail = null,
@@ -56,34 +62,45 @@ final class CreateMember
         }
 
         $user = null;
+        $photoPath = $photo instanceof UploadedFile ? $this->fileStorage->handle($photo, 'photos') : null;
 
-        $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoUrl, $actor, $address, $contactEmail, $contactPhone, &$user): Person {
-            $person = $this->createIndividual($name, email: $email, photoPath: $photoUrl, owner: $organization);
-            $user = $person->user;
+        try {
+            $person = DB::transaction(function () use ($organization, $name, $role, $email, $photoPath, $actor, $address, $contactEmail, $contactPhone, &$user): Person {
+                $person = $this->createPerson->handle($name, email: $email, photoPath: $photoPath, owner: $organization);
+                $user = $person->user;
 
-            $this->saveAddress->handle($person, $address);
+                $this->saveAddress->handle($person, $address);
 
-            $this->saveContactDetails->handle($person, [
-                ContactDetailType::Email->value => $contactEmail,
-                ContactDetailType::Phone->value => $contactPhone,
-            ]);
+                $this->saveContactDetails->handle($person, [
+                    ContactDetailType::Email->value => $contactEmail,
+                    ContactDetailType::Phone->value => $contactPhone,
+                ]);
 
-            $this->attach(
-                $organization,
-                $person,
-                startDate: now(),
-                role: $role,
-                actor: $actor,
-            );
+                $this->attach(
+                    $organization,
+                    $person,
+                    startDate: now(),
+                    role: $role,
+                    actor: $actor,
+                );
+
+                return $person;
+            });
+
+            if ($user instanceof User) {
+                $user->notify(new VerifyEmailForNewUser);
+            }
 
             return $person;
-        });
+        } catch (Throwable $exception) {
+            // A failure after the commit (such as the invite email) must not
+            // delete a photo the committed member already references.
+            if ($photoPath !== null && ! Person::query()->where('photo_url', $photoPath)->exists()) {
+                $this->fileStorage->delete($photoPath);
+            }
 
-        if ($user instanceof User) {
-            $user->notify(new VerifyEmailForNewUser);
+            throw $exception;
         }
-
-        return $person;
     }
 
     /**
@@ -126,8 +143,8 @@ final class CreateMember
 
             $existing = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($member)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->forStakeholder($member)
+                ->members()
                 ->lockForUpdate()
                 ->first();
 
@@ -168,8 +185,8 @@ final class CreateMember
 
             $relationship = OrganizationRelationship::query()
                 ->forOrganization($organization)
-                ->whereStakeholder($member)
-                ->where('type', OrganizationRelationshipType::Member)
+                ->forStakeholder($member)
+                ->members()
                 ->firstOrFail();
 
             $period = $this->timeline->open(

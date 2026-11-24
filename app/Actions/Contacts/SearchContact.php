@@ -10,6 +10,9 @@ use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Searches reusable external counterparties by name.
+ */
 final class SearchContact
 {
     /**
@@ -35,7 +38,7 @@ final class SearchContact
                 ->whereIn('id', $this->stakeholderIds($tenant, Organization::class, own: false))
                 ->orWhereIn('id', $this->stakeholderIds($tenant, Organization::class, own: true)))
             ->whereNotIn('id', $this->currentStakeholderIds($tenant, Organization::class))
-            ->whereLike('name', "%{$term}%")
+            ->namedLike($term)
             ->orderBy('name')
             ->limit($limit)
             ->get();
@@ -45,7 +48,7 @@ final class SearchContact
                 ->whereIn('id', $this->stakeholderIds($tenant, Person::class, own: false))
                 ->orWhereIn('id', $this->stakeholderIds($tenant, Person::class, own: true)))
             ->whereNotIn('id', $this->currentStakeholderIds($tenant, Person::class))
-            ->whereLike('name', "%{$term}%")
+            ->namedLike($term)
             ->orderBy('name')
             ->limit($limit)
             ->get();
@@ -66,15 +69,15 @@ final class SearchContact
     private function stakeholderIds(Organization $tenant, string $stakeholder, bool $own): Builder
     {
         $query = OrganizationRelationship::query()
-            ->external()
-            ->where('stakeholder_type', $stakeholder)
+            ->externals()
+            ->whereStakeholderType($stakeholder)
             ->select('stakeholder_id');
 
         if ($own) {
             return $query->forOrganization($tenant)->expired();
         }
 
-        return $query->where('organization_id', '!=', $tenant->getKey());
+        return $query->outsideOrganization($tenant);
     }
 
     /**
@@ -86,10 +89,10 @@ final class SearchContact
     private function currentStakeholderIds(Organization $tenant, string $stakeholder): Builder
     {
         return OrganizationRelationship::query()
-            ->external()
             ->forOrganization($tenant)
+            ->externals()
             ->notExpired()
-            ->where('stakeholder_type', $stakeholder)
+            ->whereStakeholderType($stakeholder)
             ->select('stakeholder_id');
     }
 }

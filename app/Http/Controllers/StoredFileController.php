@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * Streams stored uploads to the signed-in user.
+ */
 class StoredFileController extends Controller
 {
     /**

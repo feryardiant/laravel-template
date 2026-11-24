@@ -437,8 +437,9 @@ test('a failed update removes the new photo and keeps the previous one', functio
 
     $first = contactIndividual($organization, ['name' => 'First Photo']);
     $first->update(['photo_url' => 'photos/first.jpg']);
-    OrganizationRelationship::forOrganization($organization)
-        ->whereStakeholder($first)
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->forStakeholder($first)
         ->update(['code' => 'DUP-UPDATE']);
 
     $second = contactIndividual($organization, ['name' => 'Second Photo']);
@@ -745,6 +746,7 @@ test('an organization contact person email and phone are editable and clearable'
         ->call('save')
         ->assertHasNoErrors();
 
+    /** @disregard P1006 */
     expect($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('person@acme.test')
         ->and($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 444')
         ->and(AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole()->changes?->toArray())
@@ -792,6 +794,7 @@ test('contact detail audit records field names without values', function () {
         ->call('save')
         ->assertHasNoErrors();
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
     $encoded = $log->getRawOriginal('changes');
 

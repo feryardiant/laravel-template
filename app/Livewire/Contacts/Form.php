@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\CreateContact;
-use App\Actions\Contacts\FindContact;
 use App\Actions\Contacts\UpdateContact;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
@@ -16,6 +15,7 @@ use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Repositories\ContactRepository;
 use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -134,6 +134,14 @@ class Form extends Component
     #[Locked]
     public bool $genderEnabled = false;
 
+    public function render(): View
+    {
+        return view('livewire.contacts.form');
+    }
+
+    /**
+     * Open the form for a new external contact.
+     */
     #[On('create-contact')]
     public function openCreate(?string $role = null): void
     {
@@ -183,12 +191,15 @@ class Form extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Open the form filled with the given contact.
+     */
     #[On('edit-contact')]
     public function openEdit(int $contactId): void
     {
         $organization = $this->requireOrganization();
 
-        $contact = app(FindContact::class)->byId($organization, $contactId);
+        $contact = app(ContactRepository::class)->findById($organization, $contactId);
 
         Gate::authorize('updateContact', [$contact->stakeholder, $organization]);
 
@@ -198,6 +209,64 @@ class Form extends Component
         $this->showModal = true;
     }
 
+    /**
+     * @return array<int, OrganizationRelationshipType>
+     */
+    #[Computed]
+    public function roles(): array
+    {
+        return OrganizationRelationshipType::externals();
+    }
+
+    /**
+     * Whether a new contact reuses an existing entity's profile.
+     */
+    #[Computed]
+    public function reusing(): bool
+    {
+        return $this->contactId === null
+            && \is_string($this->selectedEntity)
+            && $this->selectedEntity !== '';
+    }
+
+    /**
+     * Whether the contact being created or edited is an organization.
+     */
+    #[Computed]
+    public function isOrganizationType(): bool
+    {
+        if ($this->contactId !== null) {
+            return $this->contact?->isOrganization() ?? false;
+        }
+
+        if ($this->reusing) {
+            return $this->reusedType === 'organization';
+        }
+
+        return $this->type === 'organization';
+    }
+
+    /**
+     * Whether the shared profile fields are locked by another owner or a reused contact.
+     */
+    #[Computed]
+    public function sharedFieldsLocked(): bool
+    {
+        return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
+    }
+
+    /**
+     * The preview URL for the stored photo, when one is set.
+     */
+    #[Computed]
+    public function photoPreviewUrl(): ?string
+    {
+        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
+    }
+
+    /**
+     * Fill the shared fields from the entity chosen for reuse.
+     */
     public function updatedSelectedEntity(?string $reference): void
     {
         // Reuse only applies while creating; an edited contact keeps its own values.
@@ -216,7 +285,7 @@ class Form extends Component
         $organization = $this->requireOrganization();
 
         try {
-            $entity = app(FindContact::class)->byReference($organization, $reference);
+            $entity = app(ContactRepository::class)->findByReference($organization, $reference);
         } catch (Throwable) {
             $this->resetReuse();
 
@@ -229,12 +298,9 @@ class Form extends Component
 
         $this->selectedEntity = $reference;
         $this->resetAddress();
-        $this->reusedContactId = OrganizationRelationship::query()
-            ->external()
-            ->forOrganization($organization)
-            ->expired()
-            ->whereStakeholder($entity)
-            ->value('id');
+        $this->reusedContactId = app(ContactRepository::class)
+            ->findExpiredRelationshipFor($organization, $entity)
+            ?->getKey();
         $this->reusedType = $entity instanceof Organization ? 'organization' : 'individual';
         $this->reusedName = $entity->name;
         $this->type = $this->reusedType;
@@ -254,6 +320,9 @@ class Form extends Component
         $this->resetValidation();
     }
 
+    /**
+     * Drop the reuse state when the name no longer matches the reused entity.
+     */
     public function updatedName(): void
     {
         if ($this->contactId !== null || ! $this->reusing) {
@@ -267,12 +336,18 @@ class Form extends Component
         $this->resetReuse();
     }
 
+    /**
+     * Clear the pending or stored contact photo.
+     */
     public function clearPhoto(): void
     {
         $this->photo = null;
         $this->photoUrl = null;
     }
 
+    /**
+     * Validate and persist the contact being created or edited.
+     */
     public function save(CreateContact $createContact, UpdateContact $updateContact): void
     {
         $organization = $this->requireOrganization();
@@ -364,54 +439,6 @@ class Form extends Component
     }
 
     /**
-     * @return array<int, OrganizationRelationshipType>
-     */
-    #[Computed]
-    public function roles(): array
-    {
-        return OrganizationRelationshipType::externals();
-    }
-
-    #[Computed]
-    public function reusing(): bool
-    {
-        return $this->contactId === null
-            && \is_string($this->selectedEntity)
-            && $this->selectedEntity !== '';
-    }
-
-    #[Computed]
-    public function isOrganizationType(): bool
-    {
-        if ($this->contactId !== null) {
-            return $this->contact?->isOrganization() ?? false;
-        }
-
-        if ($this->reusing) {
-            return $this->reusedType === 'organization';
-        }
-
-        return $this->type === 'organization';
-    }
-
-    #[Computed]
-    public function sharedFieldsLocked(): bool
-    {
-        return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
-    }
-
-    #[Computed]
-    public function photoPreviewUrl(): ?string
-    {
-        return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
-    }
-
-    public function render(): View
-    {
-        return view('livewire.contacts.form');
-    }
-
-    /**
      * @return array<string, array<int, mixed>>
      */
     private function rules(Organization $organization, bool $sharedFieldsLocked): array
@@ -477,6 +504,9 @@ class Form extends Component
         return $rules;
     }
 
+    /**
+     * Fill the form from the given relationship.
+     */
     private function fillFrom(OrganizationRelationship $contact): void
     {
         $stakeholder = $contact->stakeholder;
@@ -550,6 +580,9 @@ class Form extends Component
         return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
     }
 
+    /**
+     * Reset the detail baselines to the values now in the form.
+     */
     private function rememberContactDetails(): void
     {
         $this->originalDetails = $this->contactDetailValues();
@@ -607,6 +640,9 @@ class Form extends Component
         return array_diff_assoc($this->relationshipValues(), $this->originalRelationship);
     }
 
+    /**
+     * Reset the profile, relationship, and address baselines to the current form values.
+     */
     private function rememberBaselines(): void
     {
         $this->originalProfile = $this->profileValues();
@@ -615,6 +651,9 @@ class Form extends Component
         $this->originalAddress = $this->addressPayload();
     }
 
+    /**
+     * Clear the reused entity and the fields it filled, optionally resetting the name.
+     */
     private function resetReuse(bool $resetName = false): void
     {
         $this->selectedEntity = null;

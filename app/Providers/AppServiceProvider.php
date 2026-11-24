@@ -18,6 +18,9 @@ use Illuminate\Validation\Rules\Password;
 use Laravel\Pennant\Feature;
 use Livewire\Livewire;
 
+/**
+ * Registers the application's service bindings and event listeners.
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**

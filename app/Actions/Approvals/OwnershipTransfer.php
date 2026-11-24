@@ -26,6 +26,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
+/**
+ * Requests, accepts, and declines an ownership transfer between members.
+ */
 final class OwnershipTransfer
 {
     public function __construct(
@@ -56,18 +59,16 @@ final class OwnershipTransfer
                 ->firstOrFail();
 
             ApprovalRequest::query()
-                ->where('organization_id', $organization->getKey())
-                ->where('status', ApprovalRequestStatus::Pending)
-                ->where('expires_at', '<=', now())
+                ->expiredPendings()
+                ->forOrganization($organization)
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,
                     'canceled_at' => now(),
                 ]);
 
             if (ApprovalRequest::query()
-                ->pending()
-                ->where('organization_id', $organization->getKey())
-                ->where('expires_at', '>', now())
+                ->onlyPendings()
+                ->forOrganization($organization)
                 ->exists()) {
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }
@@ -131,13 +132,13 @@ final class OwnershipTransfer
 
                 $requesterRelationship = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->whereStakeholder($request->requester, OrganizationRelationshipType::Member)
+                    ->forStakeholder($request->requester, OrganizationRelationshipType::Member)
                     ->lockForUpdate()
                     ->first();
 
                 $approverRelationship = OrganizationRelationship::query()
                     ->forOrganization($organization)
-                    ->whereStakeholder($request->approver, OrganizationRelationshipType::Member)
+                    ->forStakeholder($request->approver, OrganizationRelationshipType::Member)
                     ->lockForUpdate()
                     ->first();
 

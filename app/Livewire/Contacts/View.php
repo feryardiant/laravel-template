@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Livewire\Contacts;
 
-use App\Actions\Contacts\FindContact;
 use App\Enums\ContactDetailType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
+use App\Repositories\ContactRepository;
+use App\Repositories\RelationshipRepository;
 use App\Support\Feature\ContactGender;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
@@ -18,6 +19,9 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * @property-read Collection<int, OrganizationRelationshipPeriod> $history
+ */
 class View extends Component
 {
     use HasCurrentOrganization;
@@ -29,27 +33,9 @@ class View extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->contact = app(FindContact::class)->byUuid($organization, $stakeholder);
+        $this->contact = app(ContactRepository::class)->findByUuid($organization, $stakeholder);
 
         Gate::authorize('viewContact', [$this->contact->stakeholder, $organization]);
-    }
-
-    /**
-     * The relationship's full stint history.
-     *
-     * @return Collection<int, OrganizationRelationshipPeriod>
-     */
-    #[Computed]
-    public function history(): Collection
-    {
-        return OrganizationRelationshipPeriod::query()
-            ->where('organization_id', $this->contact->organization_id)
-            ->where('stakeholder_type', $this->contact->stakeholder_type)
-            ->where('stakeholder_id', $this->contact->stakeholder_id)
-            ->with('actor')
-            ->orderByDesc('start_date')
-            ->orderByDesc('id')
-            ->get();
     }
 
     public function render(): ViewContract
@@ -79,5 +65,16 @@ class View extends Component
             'contactPersonPhone' => $contactPerson?->contactDetailValue(ContactDetailType::Phone),
             'showGender' => ContactGender::enabled($this->currentOrganization()),
         ])->title(__('Contact details'));
+    }
+
+    /**
+     * The relationship's full stint history.
+     *
+     * @return Collection<int, OrganizationRelationshipPeriod>
+     */
+    #[Computed]
+    public function history(): Collection
+    {
+        return app(RelationshipRepository::class)->getForContact($this->contact);
     }
 }

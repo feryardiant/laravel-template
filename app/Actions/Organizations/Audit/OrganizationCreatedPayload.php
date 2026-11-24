@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations\Audit;
 
-use App\Actions\Audit\AuditPayload;
+use App\Actions\AuditLogs\AuditPayload;
 use App\Enums\SubsidiaryKind;
 
+/**
+ * Audit payload describing a created organization and its parent.
+ */
 final class OrganizationCreatedPayload extends AuditPayload
 {
     public function __construct(public ?int $parentId, public ?SubsidiaryKind $kind) {}
@@ -19,6 +22,9 @@ final class OrganizationCreatedPayload extends AuditPayload
         ];
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         $parentId = $data['parent_id'] ?? null;
@@ -30,6 +36,9 @@ final class OrganizationCreatedPayload extends AuditPayload
         );
     }
 
+    /**
+     * Return no extra detail lines for a created organization.
+     */
     public function details(): array
     {
         return [];

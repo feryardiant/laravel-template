@@ -10,6 +10,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Notifies the owners when a member leaves an organization.
+ */
 class MemberLeftNotification extends Notification implements ShouldQueue
 {
     use Queueable;

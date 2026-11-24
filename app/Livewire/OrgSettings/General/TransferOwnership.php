@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\General;
 
-use App\Actions\Approvals\CancelApprovalRequest;
+use App\Actions\Approvals\CancelApproval;
 use App\Actions\Approvals\OwnershipTransfer;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ApprovalRepository;
+use App\Repositories\MembershipRepository;
 use Flux\Flux;
-use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
@@ -22,6 +23,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 /**
+ * @property-read Collection<int, Person> $members
  * @property-read ?ApprovalRequest $pendingApproval
  */
 class TransferOwnership extends Component
@@ -34,6 +36,13 @@ class TransferOwnership extends Component
 
     public string $confirmation = '';
 
+    public function render(): View
+    {
+        return view('livewire.org-settings.general.transfer-ownership', [
+            'organization' => $this->currentOrganization(),
+        ]);
+    }
+
     /**
      * Active members with a credential, excluding the owner.
      *
@@ -43,24 +52,13 @@ class TransferOwnership extends Component
     public function members(): Collection
     {
         $organization = $this->currentOrganization();
-        $owner = Auth::user()?->person?->getKey();
+        $owner = Auth::user()?->person;
 
         if ($organization === null || $owner === null) {
             return new Collection;
         }
 
-        $today = now()->toDateString();
-
-        return $organization->members()
-            ->whereHas('user')
-            ->whereKeyNot($owner)
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.start_date')
-                ->orWhere('organization_relationships.start_date', '<=', $today))
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.finish_date')
-                ->orWhere('organization_relationships.finish_date', '>=', $today))
-            ->with('user')
-            ->orderBy('people.name')
-            ->get();
+        return app(MembershipRepository::class)->getCredentialed($organization, $owner->getKey(), activeOnly: true);
     }
 
     /**
@@ -77,18 +75,13 @@ class TransferOwnership extends Component
 
         $this->authorize('transferOwnership', $organization);
 
-        return ApprovalRequest::query()
-            ->pending()
-            ->where('organization_id', $organization->getKey())
-            ->where('expires_at', '>', now())
-            ->with(['requester', 'approver'])
-            ->first();
+        return app(ApprovalRepository::class)->findPendingForOrganization($organization);
     }
 
     /**
      * Cancel the pending ownership transfer.
      */
-    public function cancelTransfer(CancelApprovalRequest $cancelRequest): void
+    public function cancelTransfer(CancelApproval $cancelRequest): void
     {
         $organization = $this->currentOrganization();
 
@@ -172,12 +165,5 @@ class TransferOwnership extends Component
             variant: 'success',
             text: __('Ownership transfer request sent to :name.', ['name' => $recipient->name]),
         );
-    }
-
-    public function render(): View
-    {
-        return view('livewire.org-settings.general.transfer-ownership', [
-            'organization' => $this->currentOrganization(),
-        ]);
     }
 }

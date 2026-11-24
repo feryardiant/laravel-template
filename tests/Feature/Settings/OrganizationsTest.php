@@ -314,7 +314,7 @@ test('an admin leave asks the owner for approval', function () {
         ->assertNoRedirect();
 
     expect($organization->members()->whereKey($admin->person->getKey())->exists())->toBeTrue()
-        ->and(ApprovalRequest::query()->pending()->count())->toBe(1);
+        ->and(ApprovalRequest::query()->onlyPendings()->count())->toBe(1);
 
     Notification::assertSentTo($owner, MembershipLeaveRequestedNotification::class);
 });
@@ -355,6 +355,17 @@ test('a member cannot open another organization settings', function () {
 
     $user = actingAsMember($current, Role::Member);
     app(CreateMember::class)->attach($other, $user->person, startDate: now(), role: Role::Member);
+
+    Livewire::test(Organizations::class)
+        ->call('manage', $other->getKey())
+        ->assertForbidden();
+});
+
+test('a user cannot open settings for an existing organization they do not belong to', function () {
+    $current = Organization::factory()->create();
+    $other = Organization::factory()->create();
+
+    actingAsMember($current, Role::Owner);
 
     Livewire::test(Organizations::class)
         ->call('manage', $other->getKey())

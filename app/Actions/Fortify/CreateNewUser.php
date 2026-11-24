@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Fortify;
 
-use App\Actions\Tenancy\ProvisionPublicTenant;
+use App\Actions\Tenancies\ProvisionPublicTenant;
 use App\Actions\Users\CreateUser;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
@@ -14,9 +14,19 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
+/**
+ * Creates a registered user and provisions the tenant they own.
+ */
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
+
+    public function __construct(
+        private CreateUser $createUser,
+        private ProvisionPublicTenant $provisionPublicTenant,
+    ) {
+        // .
+    }
 
     /**
      * Validate and create a newly registered user.
@@ -35,13 +45,13 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         return DB::transaction(function () use ($input): User {
-            $user = app(CreateUser::class)->handle(
+            $user = $this->createUser->handle(
                 (string) $input['name'],
                 (string) $input['email'],
                 (string) $input['password'],
             );
 
-            app(ProvisionPublicTenant::class)->handle($user);
+            $this->provisionPublicTenant->handle($user);
 
             session()->flash('status', __('Your username is :handle. Use it to log in.', [
                 'handle' => $user->handle,

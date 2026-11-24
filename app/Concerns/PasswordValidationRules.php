@@ -7,6 +7,9 @@ namespace App\Concerns;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Validation rules shared by the password forms.
+ */
 trait PasswordValidationRules
 {
     /**

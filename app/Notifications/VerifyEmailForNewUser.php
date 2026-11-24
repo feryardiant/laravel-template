@@ -10,6 +10,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
 
+/**
+ * Notifies a new user when their email address needs verification.
+ */
 class VerifyEmailForNewUser extends VerifyEmail
 {
     /**

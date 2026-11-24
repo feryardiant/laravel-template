@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
+/**
+ * Stores, links, and deletes uploaded files on the default disk.
+ */
 final class FileStorage
 {
     /**

@@ -99,64 +99,6 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * Get the organizations the user is currently a member of.
-     *
-     * @return Collection<int, Organization>
-     */
-    public function organizations(): Collection
-    {
-        return $this->person?->organizations()->get() ?? new Collection;
-    }
-
-    /**
-     * Get the user's default workspace.
-     */
-    public function defaultOrganization(): ?Organization
-    {
-        return $this->person?->defaultOrganization();
-    }
-
-    /**
-     * Get the user's role in the given organization.
-     */
-    public function roleIn(Organization $organization): ?Role
-    {
-        return $this->person?->roleIn($organization);
-    }
-
-    /**
-     * Get the user's preferred locale for notifications and mail.
-     */
-    public function preferredLocale(): string
-    {
-        $locale = $this->locale;
-
-        return $locale === null
-            ? (string) config('app.default_locale')
-            : $locale->value;
-    }
-
-    /**
-     * Resolve the person without caching a missing relation.
-     */
-    private function resolvedPerson(): ?Person
-    {
-        if ($this->relationLoaded('person')) {
-            $person = $this->getRelation('person');
-
-            return $person instanceof Person ? $person : null;
-        }
-
-        $person = $this->person()->first();
-
-        if ($person instanceof Person) {
-            $this->setRelation('person', $person);
-        }
-
-        return $person;
-    }
-
-    /**
      * Get the user's display name from their person profile.
      *
      * Users without a person yet keep a transient name from creation or a factory.
@@ -194,6 +136,16 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
+     * Get the organizations the user is currently a member of.
+     *
+     * @return Collection<int, Organization>
+     */
+    public function organizations(): Collection
+    {
+        return $this->person?->organizations()->get() ?? new Collection;
+    }
+
+    /**
      * Get the user's initials
      */
     public function initials(): string
@@ -203,5 +155,61 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         return Str::length($initials) > 1
             ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
             : $initials;
+    }
+
+    /**
+     * Get the user's default workspace.
+     */
+    public function defaultOrganization(): ?Organization
+    {
+        return $this->person?->defaultOrganization();
+    }
+
+    /**
+     * Get the user's role in the given organization.
+     */
+    public function roleIn(Organization $organization): ?Role
+    {
+        return $this->person?->roleIn($organization);
+    }
+
+    /**
+     * Get the user's preferred locale for notifications and mail.
+     */
+    public function preferredLocale(): string
+    {
+        $locale = $this->locale;
+
+        return $locale === null
+            ? (string) config('app.default_locale')
+            : $locale->value;
+    }
+
+    /**
+     * Get the user's timezone, falling back to UTC.
+     */
+    public function timezoneOrDefault(): string
+    {
+        return $this->timezone ?? 'UTC';
+    }
+
+    /**
+     * Resolve the person without caching a missing relation.
+     */
+    private function resolvedPerson(): ?Person
+    {
+        if ($this->relationLoaded('person')) {
+            $person = $this->getRelation('person');
+
+            return $person instanceof Person ? $person : null;
+        }
+
+        $person = $this->person()->first();
+
+        if ($person instanceof Person) {
+            $this->setRelation('person', $person);
+        }
+
+        return $person;
     }
 }
