@@ -28,6 +28,7 @@ use InvalidArgumentException;
  * @property null|OrganizationRelationshipType $type
  * @property null|SubsidiaryKind $kind
  * @property null|Role $role
+ * @property null|bool $is_primary
  * @property null|string $remark
  * @property null|CarbonImmutable $start_date
  * @property null|CarbonImmutable $finish_date

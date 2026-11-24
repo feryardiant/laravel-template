@@ -20,9 +20,7 @@ trait ResolvesMemberRole
 
     protected function isManager(User $user, Organization $organization): bool
     {
-        $role = $this->memberRole($user, $organization);
-
-        return $role === Role::Owner || $role === Role::Admin;
+        return $this->memberRole($user, $organization)?->isManager() === true;
     }
 
     protected function isOwner(User $user, Organization $organization): bool

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Organizations;
 
+use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Gate;
 
 final class ListCreatableParents
 {
@@ -32,8 +32,16 @@ final class ListCreatableParents
                 : $this->listSubsidiaries->handle($root)->pluck('organization');
         }
 
-        return $user->organizations()
-            ->filter(fn (Organization $organization): bool => Gate::forUser($user)->allows('createSubsidiary', $organization))
+        $person = $user->person;
+
+        if ($person === null) {
+            return collect();
+        }
+
+        // Mirrors OrganizationPolicy::createSubsidiary without a role query per organization.
+        return $person->organizations()
+            ->wherePivot('role', Role::Owner->value)
+            ->get()
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values();
     }

@@ -26,6 +26,14 @@ enum Role: int
     }
 
     /**
+     * Determine whether the role can manage an organization.
+     */
+    public function isManager(): bool
+    {
+        return $this->isOwner() || $this->isAdmin();
+    }
+
+    /**
      * Get the badge color for the role.
      */
     public function badgeColor(): string
