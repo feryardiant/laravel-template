@@ -13,6 +13,9 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Raised when a member is removed from an organization.
+ */
 final class MemberRemoved extends AuditableEvent
 {
     use SerializesModels;
@@ -37,6 +40,9 @@ final class MemberRemoved extends AuditableEvent
         );
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::MemberRemoved;

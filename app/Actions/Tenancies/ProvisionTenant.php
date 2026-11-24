@@ -14,6 +14,9 @@ use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Converts the seeded placeholder user into the root tenant owner.
+ */
 final class ProvisionTenant
 {
     public function __construct(

@@ -7,6 +7,9 @@ namespace App\Actions\Notifications;
 use App\Models\User;
 use Illuminate\Notifications\DatabaseNotification;
 
+/**
+ * Resolves one of the user's notifications by id.
+ */
 final class FindNotification
 {
     /**

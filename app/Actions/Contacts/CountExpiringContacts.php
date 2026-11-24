@@ -7,6 +7,9 @@ namespace App\Actions\Contacts;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 
+/**
+ * Counts active external contacts finishing inside the range.
+ */
 final class CountExpiringContacts
 {
     /**

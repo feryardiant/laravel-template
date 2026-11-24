@@ -32,6 +32,9 @@ class Organizations extends Component
         return view('livewire.settings.organizations')->title(__('Organizations'));
     }
 
+    /**
+     * Invalidate the cached membership list after an organization change.
+     */
     #[On('organization-created')]
     #[On('memberships-changed')]
     public function refreshMemberships(): void

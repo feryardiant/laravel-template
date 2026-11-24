@@ -10,6 +10,9 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Lists the members that can appear as audit log actors.
+ */
 final class ListAuditActors
 {
     public function __construct(

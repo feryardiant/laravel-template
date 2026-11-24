@@ -13,6 +13,9 @@ use App\Models\OrganizationRelationship;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Removes the user's own non-owner membership from an organization.
+ */
 final class LeaveOrganization
 {
     public function __construct(

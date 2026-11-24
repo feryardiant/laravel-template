@@ -10,6 +10,9 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 
+/**
+ * Writes the audit log entry for an audited event.
+ */
 final class RecordAuditLog implements ShouldQueueAfterCommit
 {
     public int $tries = 3;

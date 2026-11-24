@@ -106,6 +106,9 @@ class General extends Component
         ])->title(__('Organization settings'));
     }
 
+    /**
+     * The preview URL for the stored logo, when one is set.
+     */
     #[Computed]
     public function logoPreviewUrl(): ?string
     {
@@ -225,6 +228,9 @@ class General extends Component
         return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
     }
 
+    /**
+     * Reset the detail baselines to the values now in the form.
+     */
     private function rememberContactDetails(): void
     {
         $this->originalDetails = $this->contactDetailValues();

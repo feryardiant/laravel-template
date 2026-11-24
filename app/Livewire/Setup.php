@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
+/**
+ * First-run form that provisions the owner account and root tenant.
+ */
 class Setup extends Component
 {
     use PasswordValidationRules, ProfileValidationRules;

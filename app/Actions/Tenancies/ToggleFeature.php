@@ -15,6 +15,9 @@ use App\Support\Feature\Registration;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
+/**
+ * Toggles an organization feature flag and records the audit event.
+ */
 final class ToggleFeature
 {
     /**

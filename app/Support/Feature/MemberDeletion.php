@@ -7,6 +7,9 @@ namespace App\Support\Feature;
 use App\Models\Organization;
 use Laravel\Pennant\Feature;
 
+/**
+ * The tenant flag that gates removing members from an organization.
+ */
 final class MemberDeletion
 {
     public const FEATURE = 'member-deletion';

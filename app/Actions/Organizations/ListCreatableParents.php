@@ -9,6 +9,9 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
+/**
+ * Lists the organizations that may act as a parent for a new one.
+ */
 final class ListCreatableParents
 {
     public function __construct(

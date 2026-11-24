@@ -13,6 +13,9 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
 
+/**
+ * Raised when a contact relationship is renewed.
+ */
 final class ContactRenewed extends AuditableEvent
 {
     /**
@@ -33,6 +36,9 @@ final class ContactRenewed extends AuditableEvent
         ), $period);
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::ContactRenewed;

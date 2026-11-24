@@ -21,6 +21,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * Changes a member's role within an organization.
+ */
 final class ChangeMemberRole
 {
     public function __construct(
@@ -29,11 +32,17 @@ final class ChangeMemberRole
         // .
     }
 
+    /**
+     * Promote a member from member to admin.
+     */
     public function promote(Organization $organization, Person $person, User $actor): bool
     {
         return $this->change($organization, $person, $actor, Role::Member, Role::Admin);
     }
 
+    /**
+     * Demote an admin back to member.
+     */
     public function demote(Organization $organization, Person $person, User $actor): bool
     {
         return $this->change($organization, $person, $actor, Role::Admin, Role::Member);
@@ -83,6 +92,9 @@ final class ChangeMemberRole
         return true;
     }
 
+    /**
+     * Change the role when the member still holds the expected one.
+     */
     private function change(
         Organization $organization,
         Person $person,
@@ -97,11 +109,17 @@ final class ChangeMemberRole
         return $this->setRole($organization, $person, $newRole, $actor);
     }
 
+    /**
+     * Check whether the actor may assign the new role.
+     */
     private function canAct(Organization $organization, Person $person, User $actor, Role $newRole): bool
     {
         return Gate::forUser($actor)->allows('changeRole', [$person, $organization, $newRole]);
     }
 
+    /**
+     * Apply the role change and cancel the member's pending leave request.
+     */
     private function updateRole(
         Organization $organization,
         Person $person,

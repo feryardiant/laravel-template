@@ -112,6 +112,9 @@ class Profile extends Component
         return view('livewire.settings.profile')->title(__('Profile settings'));
     }
 
+    /**
+     * The preview URL for the stored avatar, when one is set.
+     */
     #[Computed]
     public function avatarPreviewUrl(): ?string
     {
@@ -161,6 +164,9 @@ class Profile extends Component
         return $this->genderEnabled && $this->person !== null && $this->person->gender === null;
     }
 
+    /**
+     * Whether the user still has an unverified email address.
+     */
     #[Computed]
     public function hasUnverifiedEmail(): bool
     {
@@ -169,6 +175,9 @@ class Profile extends Component
         return $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail();
     }
 
+    /**
+     * Whether the account deletion section may be shown to the user.
+     */
     #[Computed]
     public function showDeleteUser(): bool
     {
@@ -302,11 +311,17 @@ class Profile extends Component
         return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
     }
 
+    /**
+     * Reset the detail baselines to the values now in the form.
+     */
     private function rememberContactDetails(): void
     {
         $this->originalDetails = $this->contactDetailValues();
     }
 
+    /**
+     * Reset the profile baselines to the values on the saved user.
+     */
     private function rememberBaselines(?User $fresh): void
     {
         $person = $fresh?->person;

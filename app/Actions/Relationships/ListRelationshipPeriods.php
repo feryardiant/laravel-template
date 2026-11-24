@@ -10,6 +10,9 @@ use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Lists the recorded periods of a membership or contact relationship.
+ */
 final class ListRelationshipPeriods
 {
     /**

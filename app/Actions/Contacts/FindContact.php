@@ -10,6 +10,9 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
+/**
+ * Resolves a tenant's contact relationships and reusable counterparties.
+ */
 final class FindContact
 {
     /**
@@ -97,6 +100,9 @@ final class FindContact
             ->first();
     }
 
+    /**
+     * Build the tenant-scoped external contact query.
+     */
     private function query(Organization $tenant): OrganizationRelationshipBuilder
     {
         return OrganizationRelationship::query()

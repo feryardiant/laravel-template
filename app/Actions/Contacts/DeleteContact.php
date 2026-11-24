@@ -14,6 +14,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Deletes tenant contacts and their no longer shared entities.
+ */
 final class DeleteContact
 {
     public function __construct(

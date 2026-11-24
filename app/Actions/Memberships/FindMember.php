@@ -8,6 +8,9 @@ use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Resolves members of an organization by person id.
+ */
 final class FindMember
 {
     /**

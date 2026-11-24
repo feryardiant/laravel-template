@@ -13,6 +13,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
+/**
+ * Queues removal of the current organization after typed confirmation.
+ */
 class RemoveOrganization extends Component
 {
     use HasCurrentOrganization;

@@ -12,6 +12,9 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\User;
 
+/**
+ * Raised when a contact relationship is deleted.
+ */
 final class ContactDeleted extends AuditableEvent
 {
     public function __construct(
@@ -24,6 +27,9 @@ final class ContactDeleted extends AuditableEvent
         parent::__construct($organization, $actor, $contact, new ContactDeletedPayload($detachedOnly), $period);
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::ContactDeleted;

@@ -179,6 +179,9 @@ class Form extends Component
         return $this->canEditProfile && $this->person !== null && $this->person->gender === null;
     }
 
+    /**
+     * The preview URL for the stored photo, when one is set.
+     */
     #[Computed]
     public function photoPreviewUrl(): ?string
     {
@@ -417,11 +420,17 @@ class Form extends Component
         return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
     }
 
+    /**
+     * Reset the detail baselines to the values now in the form.
+     */
     private function rememberContactDetails(): void
     {
         $this->originalDetails = $this->contactDetailValues();
     }
 
+    /**
+     * Reset the role, email, name, and address baselines to the saved member.
+     */
     private function rememberBaselines(Organization $organization): void
     {
         $membership = $this->person?->membershipIn($organization);

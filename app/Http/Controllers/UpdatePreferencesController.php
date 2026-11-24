@@ -10,6 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+/**
+ * Updates the user's locale, timezone, and appearance preferences.
+ */
 class UpdatePreferencesController extends Controller
 {
     /**

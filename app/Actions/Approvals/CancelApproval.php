@@ -10,6 +10,9 @@ use App\Models\ApprovalRequest;
 use App\Models\User;
 use InvalidArgumentException;
 
+/**
+ * Cancels a pending approval request on behalf of its requester.
+ */
 final class CancelApproval
 {
     /**

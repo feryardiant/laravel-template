@@ -8,6 +8,9 @@ use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Lists the members whose membership started inside the range.
+ */
 final class ListRecentMembers
 {
     /**

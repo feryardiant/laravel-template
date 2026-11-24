@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Lets a member request to leave an organization.
+ */
 class Leave extends Component
 {
     use HasCurrentOrganization;

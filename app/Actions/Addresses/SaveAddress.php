@@ -7,6 +7,9 @@ namespace App\Actions\Addresses;
 use App\Models\Organization;
 use App\Models\Person;
 
+/**
+ * Creates, updates, or removes an entity's managed address.
+ */
 final class SaveAddress
 {
     /**

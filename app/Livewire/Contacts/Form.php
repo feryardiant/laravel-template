@@ -139,6 +139,9 @@ class Form extends Component
         return view('livewire.contacts.form');
     }
 
+    /**
+     * Open the form for a new external contact.
+     */
     #[On('create-contact')]
     public function openCreate(?string $role = null): void
     {
@@ -188,6 +191,9 @@ class Form extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Open the form filled with the given contact.
+     */
     #[On('edit-contact')]
     public function openEdit(int $contactId): void
     {
@@ -212,6 +218,9 @@ class Form extends Component
         return OrganizationRelationshipType::externals();
     }
 
+    /**
+     * Whether a new contact reuses an existing entity's profile.
+     */
     #[Computed]
     public function reusing(): bool
     {
@@ -220,6 +229,9 @@ class Form extends Component
             && $this->selectedEntity !== '';
     }
 
+    /**
+     * Whether the contact being created or edited is an organization.
+     */
     #[Computed]
     public function isOrganizationType(): bool
     {
@@ -234,18 +246,27 @@ class Form extends Component
         return $this->type === 'organization';
     }
 
+    /**
+     * Whether the shared profile fields are locked by another owner or a reused contact.
+     */
     #[Computed]
     public function sharedFieldsLocked(): bool
     {
         return $this->reusing || ($this->contactId !== null && ($this->contact?->profileLockedFor($this->requireOrganization()) ?? true));
     }
 
+    /**
+     * The preview URL for the stored photo, when one is set.
+     */
     #[Computed]
     public function photoPreviewUrl(): ?string
     {
         return $this->photoUrl ? route('uploads', ['path' => $this->photoUrl]) : null;
     }
 
+    /**
+     * Fill the shared fields from the entity chosen for reuse.
+     */
     public function updatedSelectedEntity(?string $reference): void
     {
         // Reuse only applies while creating; an edited contact keeps its own values.
@@ -299,6 +320,9 @@ class Form extends Component
         $this->resetValidation();
     }
 
+    /**
+     * Drop the reuse state when the name no longer matches the reused entity.
+     */
     public function updatedName(): void
     {
         if ($this->contactId !== null || ! $this->reusing) {
@@ -312,12 +336,18 @@ class Form extends Component
         $this->resetReuse();
     }
 
+    /**
+     * Clear the pending or stored contact photo.
+     */
     public function clearPhoto(): void
     {
         $this->photo = null;
         $this->photoUrl = null;
     }
 
+    /**
+     * Validate and persist the contact being created or edited.
+     */
     public function save(CreateContact $createContact, UpdateContact $updateContact): void
     {
         $organization = $this->requireOrganization();
@@ -474,6 +504,9 @@ class Form extends Component
         return $rules;
     }
 
+    /**
+     * Fill the form from the given relationship.
+     */
     private function fillFrom(OrganizationRelationship $contact): void
     {
         $stakeholder = $contact->stakeholder;
@@ -547,6 +580,9 @@ class Form extends Component
         return array_diff_assoc($this->contactDetailValues(), $this->originalDetails);
     }
 
+    /**
+     * Reset the detail baselines to the values now in the form.
+     */
     private function rememberContactDetails(): void
     {
         $this->originalDetails = $this->contactDetailValues();
@@ -604,6 +640,9 @@ class Form extends Component
         return array_diff_assoc($this->relationshipValues(), $this->originalRelationship);
     }
 
+    /**
+     * Reset the profile, relationship, and address baselines to the current form values.
+     */
     private function rememberBaselines(): void
     {
         $this->originalProfile = $this->profileValues();
@@ -612,6 +651,9 @@ class Form extends Component
         $this->originalAddress = $this->addressPayload();
     }
 
+    /**
+     * Clear the reused entity and the fields it filled, optionally resetting the name.
+     */
     private function resetReuse(bool $resetName = false): void
     {
         $this->selectedEntity = null;

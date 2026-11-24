@@ -81,12 +81,18 @@ class Index extends Component
         ])->title(__('Members'));
     }
 
+    /**
+     * Refresh the list after a member changes.
+     */
     #[On('member-updated')]
     public function refreshMembers(): void
     {
         //
     }
 
+    /**
+     * The member awaiting delete confirmation.
+     */
     #[Computed]
     public function deletingPerson(): ?Person
     {
@@ -97,6 +103,9 @@ class Index extends Component
             : app(FindMember::class)->findInOrganization($organization, $this->deletingPersonId);
     }
 
+    /**
+     * The member awaiting a role change.
+     */
     #[Computed]
     public function roleChangePerson(): ?Person
     {
@@ -107,6 +116,9 @@ class Index extends Component
             : app(FindMember::class)->findInOrganization($organization, $this->roleChangePersonId);
     }
 
+    /**
+     * Whether the pending role change promotes the member to Admin.
+     */
     #[Computed]
     public function roleChangeIsPromotion(): bool
     {
@@ -138,17 +150,26 @@ class Index extends Component
         $this->dispatch('create-member');
     }
 
+    /**
+     * Open the delete confirmation for the given member.
+     */
     public function confirmDelete(int $personId): void
     {
         $this->deletingPersonId = $personId;
         $this->showDeleteModal = true;
     }
 
+    /**
+     * Open the bulk delete confirmation for the selected members.
+     */
     public function confirmDeleteSelected(): void
     {
         $this->showBatchDeleteModal = true;
     }
 
+    /**
+     * Delete the selected members and close the bulk confirmation.
+     */
     public function deleteSelectedConfirmed(RemoveMember $removeMember): void
     {
         $this->deleteSelected($removeMember);
@@ -156,6 +177,9 @@ class Index extends Component
         $this->reset('showBatchDeleteModal');
     }
 
+    /**
+     * Open the form for the given member.
+     */
     public function openEdit(int $personId): void
     {
         $this->dispatch('edit-member', personId: $personId);
@@ -180,6 +204,9 @@ class Index extends Component
         );
     }
 
+    /**
+     * Open the confirmation to promote the given member to Admin.
+     */
     public function confirmPromote(int $personId): void
     {
         $this->roleChangePersonId = $personId;
@@ -187,6 +214,9 @@ class Index extends Component
         $this->showRoleModal = true;
     }
 
+    /**
+     * Open the confirmation to demote the given member to Member.
+     */
     public function confirmDemote(int $personId): void
     {
         $this->roleChangePersonId = $personId;
@@ -268,6 +298,9 @@ class Index extends Component
         Flux::toast(variant: 'success', text: __('Member removed.'));
     }
 
+    /**
+     * Clear the selection when the page changes.
+     */
     public function updatedPage(): void
     {
         $this->selected = [];
@@ -275,6 +308,9 @@ class Index extends Component
         $this->someSelected = false;
     }
 
+    /**
+     * Reset paging and selection after the search term changes.
+     */
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -282,6 +318,9 @@ class Index extends Component
         $this->selectionKey++;
     }
 
+    /**
+     * Recompute whether all or some members on the page are selected.
+     */
     public function updatedSelected(): void
     {
         $pageIds = $this->selectablePageIds();
@@ -291,6 +330,9 @@ class Index extends Component
         $this->someSelected = ! $this->allSelected && array_intersect($pageIds, $selected) !== [];
     }
 
+    /**
+     * Select or deselect every removable member on the page.
+     */
     public function toggleSelectAll(): void
     {
         $pageIds = $this->selectablePageIds();
@@ -301,6 +343,9 @@ class Index extends Component
         $this->updatedSelected();
     }
 
+    /**
+     * Toggle the join-date sort direction.
+     */
     public function sortByJoinedAt(): void
     {
         $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';

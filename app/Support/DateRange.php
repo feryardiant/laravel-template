@@ -6,6 +6,9 @@ namespace App\Support;
 
 use Carbon\CarbonImmutable;
 
+/**
+ * Builds and normalizes the date ranges used by dashboard and audit filters.
+ */
 final class DateRange
 {
     /**

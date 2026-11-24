@@ -7,6 +7,9 @@ namespace App\Actions\Notifications;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
+/**
+ * Counts the user's unread notifications.
+ */
 final class CountUnreadNotifications
 {
     /**

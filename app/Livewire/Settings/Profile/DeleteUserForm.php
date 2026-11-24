@@ -11,6 +11,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
+/**
+ * Deletes the signed-in user's account after password confirmation.
+ */
 class DeleteUserForm extends Component
 {
     use PasswordValidationRules;

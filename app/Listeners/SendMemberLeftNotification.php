@@ -8,6 +8,9 @@ use App\Events\Memberships\MemberLeft;
 use App\Notifications\MemberLeftNotification;
 use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * Queues the member left notification for the organization owners.
+ */
 class SendMemberLeftNotification
 {
     public function handle(MemberLeft $event): void

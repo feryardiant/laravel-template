@@ -7,6 +7,9 @@ namespace App\Actions\Organizations\Audit;
 use App\Actions\AuditLogs\AuditPayload;
 use App\Support\FieldLabel;
 
+/**
+ * Audit payload describing the changed organization fields.
+ */
 final class OrganizationUpdatedPayload extends AuditPayload
 {
     /**
@@ -25,6 +28,9 @@ final class OrganizationUpdatedPayload extends AuditPayload
         return $data;
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         $fields = $data['fields'] ?? [];
@@ -35,6 +41,9 @@ final class OrganizationUpdatedPayload extends AuditPayload
         );
     }
 
+    /**
+     * Describe the changed fields and whether the profile was restored.
+     */
     public function details(): array
     {
         $details = [];

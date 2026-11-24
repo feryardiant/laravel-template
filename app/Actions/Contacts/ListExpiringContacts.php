@@ -8,6 +8,9 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Lists active external contacts whose relationship finishes inside the range.
+ */
 final class ListExpiringContacts
 {
     /**

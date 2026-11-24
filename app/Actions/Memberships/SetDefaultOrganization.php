@@ -10,6 +10,9 @@ use App\Models\OrganizationRelationship;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Marks one of the user's memberships as the default workspace.
+ */
 final class SetDefaultOrganization
 {
     /**

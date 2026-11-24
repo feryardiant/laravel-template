@@ -12,6 +12,8 @@ use App\Support\FieldLabel;
 use UnexpectedValueException;
 
 /**
+ * Audit payload for a contact relationship's type and shared fields.
+ *
  * @property Entity $subject
  */
 final class ContactRelationPayload extends AuditPayload
@@ -49,6 +51,9 @@ final class ContactRelationPayload extends AuditPayload
         return $data;
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         $kind = (string) ($data['kind'] ?? '');
@@ -64,6 +69,9 @@ final class ContactRelationPayload extends AuditPayload
         );
     }
 
+    /**
+     * Describe the contact kind, type, and changed fields.
+     */
     public function details(): array
     {
         $details = [$this->type->label()];

@@ -13,16 +13,25 @@ use App\Models\User;
  */
 trait ResolvesMemberRole
 {
+    /**
+     * Resolve the actor's role inside the organization, if any.
+     */
     protected function memberRole(User $user, Organization $organization): ?Role
     {
         return $user->roleIn($organization);
     }
 
+    /**
+     * Determine whether the actor is an owner or admin of the organization.
+     */
     protected function isManager(User $user, Organization $organization): bool
     {
         return $this->memberRole($user, $organization)?->isManager() === true;
     }
 
+    /**
+     * Determine whether the actor owns the organization.
+     */
     protected function isOwner(User $user, Organization $organization): bool
     {
         return $this->memberRole($user, $organization) === Role::Owner;

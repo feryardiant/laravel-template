@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Reviews and answers pending ownership-transfer and leave requests.
+ */
 class TransferApproval extends Component
 {
     public bool $showModal = false;

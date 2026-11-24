@@ -10,6 +10,9 @@ use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * Paginates the organization members with optional search and sorting.
+ */
 final class ListMembers
 {
     /**

@@ -26,6 +26,9 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Throwable;
 
+/**
+ * Adds a person to an organization as a member.
+ */
 final class CreateMember
 {
     public function __construct(

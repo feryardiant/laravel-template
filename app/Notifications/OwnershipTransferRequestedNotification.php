@@ -12,6 +12,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
 
+/**
+ * Notifies the recipient when an ownership transfer is requested.
+ */
 class OwnershipTransferRequestedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -75,6 +78,9 @@ class OwnershipTransferRequestedNotification extends Notification implements Sho
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return __('Ownership transfer request for :organization', [
@@ -82,11 +88,17 @@ class OwnershipTransferRequestedNotification extends Notification implements Sho
         ]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing what happened.
+     */
     private function description(): string
     {
         return __(':owner wants to transfer ownership of :organization to you.', [

@@ -6,6 +6,9 @@ namespace App\Actions\Organizations;
 
 use App\Models\Organization;
 
+/**
+ * Resolves an organization by id without checking membership.
+ */
 final class FindOrganization
 {
     /**

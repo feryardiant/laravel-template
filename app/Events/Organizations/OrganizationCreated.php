@@ -11,6 +11,9 @@ use App\Events\AuditableEvent;
 use App\Models\Organization;
 use App\Models\User;
 
+/**
+ * Raised when an organization is created.
+ */
 final class OrganizationCreated extends AuditableEvent
 {
     public function __construct(
@@ -27,6 +30,9 @@ final class OrganizationCreated extends AuditableEvent
         );
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::OrganizationCreated;

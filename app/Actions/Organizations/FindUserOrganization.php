@@ -8,6 +8,9 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
+/**
+ * Finds one of the user's organizations, optionally failing when absent.
+ */
 final class FindUserOrganization
 {
     /**

@@ -12,6 +12,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
 
+/**
+ * Notifies the organization owner when a member requests to leave.
+ */
 class MembershipLeaveRequestedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -75,6 +78,9 @@ class MembershipLeaveRequestedNotification extends Notification implements Shoul
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return __('Leave request for :organization', [
@@ -82,11 +88,17 @@ class MembershipLeaveRequestedNotification extends Notification implements Shoul
         ]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing what happened.
+     */
     private function description(): string
     {
         return __(':name requested to leave :organization. They keep access until you respond.', [

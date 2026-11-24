@@ -26,6 +26,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
+/**
+ * Requests, accepts, and declines an ownership transfer between members.
+ */
 final class OwnershipTransfer
 {
     public function __construct(

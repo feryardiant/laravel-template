@@ -10,6 +10,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Notifies the former owner when ownership is transferred.
+ */
 class OwnershipTransferredNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -52,16 +55,25 @@ class OwnershipTransferredNotification extends Notification implements ShouldQue
         ];
     }
 
+    /**
+     * The notification title and mail subject.
+     */
     private function subject(): string
     {
         return __('Ownership of :organization transferred', ['organization' => $this->organizationName]);
     }
 
+    /**
+     * The personalized greeting for the recipient.
+     */
     private function greeting(User $notifiable): string
     {
         return __('Hi :name', ['name' => $notifiable->name]);
     }
 
+    /**
+     * The body line describing what happened.
+     */
     private function description(): string
     {
         return __(':name is now the owner of :organization. You are now an Admin.', [

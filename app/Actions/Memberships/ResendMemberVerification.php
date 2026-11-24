@@ -9,6 +9,9 @@ use App\Models\Person;
 use App\Notifications\VerifyEmailForNewUser;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Resends the verification email to an unverified member.
+ */
 final class ResendMemberVerification
 {
     public function __construct(

@@ -8,6 +8,9 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Holds the active workspace organization for the current session.
+ */
 final class CurrentOrganization
 {
     public const SESSION_KEY = 'current_organization_id';

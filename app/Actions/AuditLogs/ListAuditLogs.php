@@ -9,6 +9,9 @@ use App\Models\Organization;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * Paginates the organization's audit log with its filters applied.
+ */
 final class ListAuditLogs
 {
     /**

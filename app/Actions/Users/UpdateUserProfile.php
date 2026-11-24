@@ -13,6 +13,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
+/**
+ * Updates the authenticated user's account and person profile.
+ */
 final class UpdateUserProfile
 {
     public function __construct(

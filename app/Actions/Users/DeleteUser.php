@@ -10,6 +10,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Deletes a user account unless it is an organization's last owner.
+ */
 final class DeleteUser
 {
     /**

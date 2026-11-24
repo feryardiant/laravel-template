@@ -9,6 +9,9 @@ use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Lists the organization's approvals and the pending ones for a person.
+ */
 final class ListApprovals
 {
     /**

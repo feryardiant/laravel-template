@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Queues removal of a subsidiary and its nested subsidiaries.
+ */
 class RemoveSubsidiary extends Component
 {
     use HasCurrentOrganization;

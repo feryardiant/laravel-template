@@ -11,6 +11,9 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Str;
 
+/**
+ * Creates a person, optionally with a login credential.
+ */
 final class CreatePerson
 {
     public function __construct(

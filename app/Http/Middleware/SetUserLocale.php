@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Applies the authenticated user's locale preference to the request.
+ */
 class SetUserLocale
 {
     /**

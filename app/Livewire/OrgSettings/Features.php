@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * Toggles the feature flags available to the current organization.
+ */
 class Features extends Component
 {
     use HasCurrentOrganization;

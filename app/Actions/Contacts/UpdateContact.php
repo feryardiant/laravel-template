@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+/**
+ * Updates a contact's shared entity data and per-tenant relationship fields.
+ */
 final class UpdateContact
 {
     public function __construct(

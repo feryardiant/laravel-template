@@ -23,6 +23,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+/**
+ * Updates a member profile, credential, role, and photo.
+ */
 final class UpdateMember
 {
     public function __construct(

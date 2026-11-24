@@ -9,6 +9,9 @@ use App\Models\Organization;
 use App\Models\User;
 use InvalidArgumentException;
 
+/**
+ * Leaves a workspace directly or requests an owner's approval.
+ */
 final class LeaveWorkspace
 {
     public function __construct(

@@ -88,6 +88,9 @@ class Dashboard extends Component
         return app(CountExpiringContacts::class)->handle($this->requireOrganization(), $this->range);
     }
 
+    /**
+     * Unread notifications received inside the selected range.
+     */
     #[Computed]
     public function unreadNotifications(): int
     {
@@ -126,6 +129,9 @@ class Dashboard extends Component
         $this->range = DateRange::normalize($this->range, $this->timezone());
     }
 
+    /**
+     * The signed-in user's timezone, falling back to UTC.
+     */
     private function timezone(): string
     {
         $user = Auth::user();

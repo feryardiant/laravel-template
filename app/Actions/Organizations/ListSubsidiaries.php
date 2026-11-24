@@ -10,6 +10,9 @@ use App\Models\OrganizationRelationship;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
+/**
+ * Lists the root tenant's subsidiary tree depth-first.
+ */
 final class ListSubsidiaries
 {
     /**

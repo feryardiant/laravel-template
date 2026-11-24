@@ -25,6 +25,9 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Pennant\FeatureManager;
 
+/**
+ * Deletes an organization and its nested subsidiaries with their owned data.
+ */
 final class DeleteOrganization implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

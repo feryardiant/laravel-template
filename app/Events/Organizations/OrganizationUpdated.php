@@ -10,6 +10,9 @@ use App\Events\AuditableEvent;
 use App\Models\Organization;
 use App\Models\User;
 
+/**
+ * Raised when an organization is updated.
+ */
 final class OrganizationUpdated extends AuditableEvent
 {
     /**
@@ -29,6 +32,9 @@ final class OrganizationUpdated extends AuditableEvent
         );
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::OrganizationUpdated;

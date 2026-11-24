@@ -6,6 +6,9 @@ namespace App\Actions\Users;
 
 use App\Models\User;
 
+/**
+ * Updates a user's password.
+ */
 final class UpdatePassword
 {
     /**

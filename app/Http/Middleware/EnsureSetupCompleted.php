@@ -9,6 +9,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Redirects to the setup screen until the root tenant exists.
+ */
 class EnsureSetupCompleted
 {
     public function __construct(private ProvisionTenant $provisioning)

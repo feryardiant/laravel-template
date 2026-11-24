@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Throwable;
 
+/**
+ * Creates an owned organization, or a contact organization with its person.
+ */
 final class CreateOrganization
 {
     public function __construct(

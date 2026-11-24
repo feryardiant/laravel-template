@@ -23,6 +23,9 @@ use App\Notifications\MembershipLeaveRequestedNotification;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
+/**
+ * Requests, accepts, and declines an admin's membership leave.
+ */
 final class MembershipLeave
 {
     public function __construct(

@@ -30,6 +30,9 @@ enum ApprovalRequestStatus: string
         };
     }
 
+    /**
+     * The human-readable label for the status.
+     */
     public function label(): string
     {
         return match ($this) {
@@ -40,26 +43,41 @@ enum ApprovalRequestStatus: string
         };
     }
 
+    /**
+     * Determine whether the request has left the pending state.
+     */
     public function isFinished(): bool
     {
         return $this !== self::Pending;
     }
 
+    /**
+     * Determine whether the request is still pending.
+     */
     public function isPending(): bool
     {
         return $this === self::Pending;
     }
 
+    /**
+     * Determine whether the request was accepted.
+     */
     public function isAccepted(): bool
     {
         return $this === self::Accepted;
     }
 
+    /**
+     * Determine whether the request was declined.
+     */
     public function isDeclined(): bool
     {
         return $this === self::Declined;
     }
 
+    /**
+     * Determine whether the request was canceled.
+     */
     public function isCanceled(): bool
     {
         return $this === self::Canceled;

@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Limits public registration attempts per IP address.
+ */
 class ThrottleRegistration
 {
     /**

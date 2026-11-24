@@ -6,6 +6,9 @@ namespace App\Actions\Organizations;
 
 use App\Models\Organization;
 
+/**
+ * Previews the subtree a subsidiary removal would detach.
+ */
 final class RemoveSubsidiary
 {
     public function __construct(

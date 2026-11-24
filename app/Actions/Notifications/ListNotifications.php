@@ -8,6 +8,9 @@ use App\Models\User;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * Lists the user's notifications one page at a time.
+ */
 final class ListNotifications
 {
     /**

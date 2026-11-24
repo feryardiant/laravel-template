@@ -8,6 +8,9 @@ use App\Enums\ContactDetailType;
 use App\Models\Entity;
 use Illuminate\Support\Str;
 
+/**
+ * Persists an entity's contact detail values by type.
+ */
 final class SaveContactDetails
 {
     /**
@@ -67,6 +70,9 @@ final class SaveContactDetails
         return $type->value;
     }
 
+    /**
+     * Trim the value, treating a blank as null and lowercasing emails.
+     */
     private function normalize(ContactDetailType $type, ?string $value): ?string
     {
         $value = trim((string) $value);

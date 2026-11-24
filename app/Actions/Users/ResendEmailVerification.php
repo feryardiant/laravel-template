@@ -6,6 +6,9 @@ namespace App\Actions\Users;
 
 use App\Models\User;
 
+/**
+ * Sends a verification email to an unverified user.
+ */
 final class ResendEmailVerification
 {
     /**

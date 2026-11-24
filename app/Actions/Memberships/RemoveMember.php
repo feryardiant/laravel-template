@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * Detaches one or more people from an organization.
+ */
 final class RemoveMember
 {
     public function __construct(

@@ -138,6 +138,9 @@ class Audit extends Component
         $this->resetPage();
     }
 
+    /**
+     * The signed-in user's timezone, falling back to UTC.
+     */
     private function timezone(): string
     {
         $user = Auth::user();

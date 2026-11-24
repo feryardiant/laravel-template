@@ -6,6 +6,9 @@ namespace App\Actions\Memberships;
 
 use App\Models\Organization;
 
+/**
+ * Counts members whose membership started inside the range.
+ */
 final class CountNewMembers
 {
     /**

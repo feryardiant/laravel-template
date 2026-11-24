@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * Paginates the tenant's external contacts with their stakeholder data.
+ */
 final class ListContacts
 {
     /**

@@ -6,6 +6,9 @@ namespace App\Actions\Organizations\Audit;
 
 use App\Actions\AuditLogs\AuditPayload;
 
+/**
+ * Audit payload describing a toggled organization feature.
+ */
 final class FeatureToggledPayload extends AuditPayload
 {
     public function __construct(public string $feature, public bool $enabled) {}
@@ -18,11 +21,17 @@ final class FeatureToggledPayload extends AuditPayload
         ];
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         return new self((string) $data['feature'], (bool) $data['enabled']);
     }
 
+    /**
+     * Describe the feature and whether it is now on or off.
+     */
     public function details(): array
     {
         return [__(':feature: :state', [
@@ -31,6 +40,9 @@ final class FeatureToggledPayload extends AuditPayload
         ])];
     }
 
+    /**
+     * Map a feature key to its translated label.
+     */
     private static function featureLabel(string $feature): string
     {
         return match ($feature) {

@@ -25,6 +25,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+/**
+ * Creates a tenant contact, reusing or renewing an existing counterparty.
+ */
 final class CreateContact
 {
     public function __construct(

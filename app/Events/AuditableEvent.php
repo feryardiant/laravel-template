@@ -55,5 +55,8 @@ abstract class AuditableEvent implements Auditable
         $this->occurredAt = CarbonImmutable::now();
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     abstract public function auditEvent(): AuditEvent;
 }

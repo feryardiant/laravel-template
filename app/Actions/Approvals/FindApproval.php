@@ -9,6 +9,9 @@ use App\Models\ApprovalRequest;
 use App\Models\Organization;
 use App\Models\User;
 
+/**
+ * Resolves approval requests for their approver or requester.
+ */
 final class FindApproval
 {
     /**

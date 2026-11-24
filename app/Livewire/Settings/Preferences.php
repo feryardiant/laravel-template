@@ -11,6 +11,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
+/**
+ * Edits the signed-in user's locale and timezone preferences.
+ */
 class Preferences extends Component
 {
     public string $locale = '';

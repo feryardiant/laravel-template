@@ -13,6 +13,9 @@ enum ApprovalRequestType: string
 
     case MembershipLeave = 'membership_leave';
 
+    /**
+     * The human-readable label for the request type.
+     */
     public function label(): string
     {
         return match ($this) {

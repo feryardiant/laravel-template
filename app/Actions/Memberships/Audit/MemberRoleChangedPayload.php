@@ -9,6 +9,8 @@ use App\Enums\Role;
 use App\Models\Person;
 
 /**
+ * Audit payload for a member's role change.
+ *
  * @property Person $subject
  */
 final class MemberRoleChangedPayload extends AuditPayload
@@ -28,6 +30,9 @@ final class MemberRoleChangedPayload extends AuditPayload
         ];
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         return new self(
@@ -36,6 +41,9 @@ final class MemberRoleChangedPayload extends AuditPayload
         );
     }
 
+    /**
+     * Describe the previous and new role.
+     */
     public function details(): array
     {
         return [$this->from->label().' → '.$this->to->label()];

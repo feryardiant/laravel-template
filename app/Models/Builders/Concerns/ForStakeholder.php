@@ -17,6 +17,9 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 trait ForStakeholder
 {
+    /**
+     * Limit the query to relationships whose stakeholder is the given entity.
+     */
     public function forStakeholder(Organization|Person $entity, ?OrganizationRelationshipType $type = null): static
     {
         return $this
@@ -114,7 +117,7 @@ trait ForStakeholder
     }
 
     /**
-     * Limit the query to external contact relationships.
+     * Limit the query to internal relationships (members and subsidiaries).
      */
     public function internals(): static
     {

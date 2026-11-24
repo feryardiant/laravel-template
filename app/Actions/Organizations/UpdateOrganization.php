@@ -14,6 +14,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
+/**
+ * Updates an organization profile, logo, address, and contact details.
+ */
 final class UpdateOrganization
 {
     public function __construct(

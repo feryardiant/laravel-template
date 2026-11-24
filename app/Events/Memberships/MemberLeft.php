@@ -14,6 +14,9 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Raised when a member leaves an organization.
+ */
 final class MemberLeft extends AuditableEvent
 {
     use SerializesModels;
@@ -38,6 +41,9 @@ final class MemberLeft extends AuditableEvent
         );
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::MemberLeft;

@@ -58,6 +58,9 @@ class Index extends Component
         ])->title(__('Notifications'));
     }
 
+    /**
+     * The notification open in the detail modal.
+     */
     #[Computed]
     public function selectedNotification(): ?DatabaseNotification
     {
@@ -71,6 +74,9 @@ class Index extends Component
         return app(FindNotification::class)->handle($user, $this->selectedNotificationId);
     }
 
+    /**
+     * Toggle the received-date sort order and clear the selection.
+     */
     public function sortByReceivedAt(): void
     {
         $this->sortAscending = ! $this->sortAscending;
@@ -79,11 +85,17 @@ class Index extends Component
         $this->resetPage();
     }
 
+    /**
+     * Clear the selection when the page changes.
+     */
     public function updatedPage(): void
     {
         $this->selectedNotifications = [];
     }
 
+    /**
+     * Open the notification, mark it read, and focus its modal.
+     */
     public function openNotification(string $id): void
     {
         /** @var User $user */
@@ -165,6 +177,9 @@ class Index extends Component
         JS);
     }
 
+    /**
+     * Add or remove the given notification from the selection.
+     */
     public function toggleSelected(string $id): void
     {
         $this->selectedNotifications = \in_array($id, $this->selectedNotifications, true)
@@ -172,6 +187,9 @@ class Index extends Component
             : [...$this->selectedNotifications, $id];
     }
 
+    /**
+     * Select or deselect every notification on the page.
+     */
     public function toggleSelectAll(): void
     {
         $ids = $this->notificationIdsOnPage();
@@ -181,16 +199,25 @@ class Index extends Component
             : $ids;
     }
 
+    /**
+     * Mark the selected notifications as read.
+     */
     public function markSelectedAsRead(): void
     {
         $this->markSelected(asRead: true);
     }
 
+    /**
+     * Mark the selected notifications as unread.
+     */
     public function markSelectedAsUnread(): void
     {
         $this->markSelected(asRead: false);
     }
 
+    /**
+     * Mark the selected notifications with the given read state.
+     */
     private function markSelected(bool $asRead): void
     {
         if ($this->selectedNotifications === []) {
@@ -214,6 +241,9 @@ class Index extends Component
         $this->dispatchUnreadCount();
     }
 
+    /**
+     * Broadcast the user's current unread notification count.
+     */
     private function dispatchUnreadCount(): void
     {
         /** @var User $user */

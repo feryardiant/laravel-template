@@ -10,6 +10,9 @@ use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Searches reusable external counterparties by name.
+ */
 final class SearchContact
 {
     /**

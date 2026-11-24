@@ -15,6 +15,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
+/**
+ * Lists the user's organizations with role, default, and approval state.
+ */
 final class ListUserMemberships
 {
     public function __construct(

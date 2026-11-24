@@ -7,6 +7,9 @@ namespace App\Actions\Contacts;
 use App\Enums\OrganizationRelationshipType;
 use InvalidArgumentException;
 
+/**
+ * Validates that a relationship role is external to the tenant.
+ */
 final class EnsureExternalRole
 {
     /**

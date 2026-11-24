@@ -42,6 +42,9 @@ class Subsidiaries extends Component
         return view('livewire.org-settings.subsidiaries')->title(__('Subsidiaries'));
     }
 
+    /**
+     * Refresh after a subsidiary is created or removed.
+     */
     #[On('organization-created')]
     #[On('subsidiary-removed')]
     public function refreshSubsidiaries(): void

@@ -6,6 +6,9 @@ namespace App\Actions\Users;
 
 use App\Models\User;
 
+/**
+ * Reads a user's two-factor recovery codes.
+ */
 final class GetRecoveryCodes
 {
     /**

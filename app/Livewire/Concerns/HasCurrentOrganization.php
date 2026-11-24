@@ -16,12 +16,18 @@ use Livewire\Attributes\Computed;
  */
 trait HasCurrentOrganization
 {
+    /**
+     * The workspace the user currently has active.
+     */
     #[Computed()]
     public function currentOrganization(): ?Organization
     {
         return app(CurrentOrganization::class)->get();
     }
 
+    /**
+     * The user's role in the current organization.
+     */
     protected function currentRole(): ?Role
     {
         $organization = $this->currentOrganization();
@@ -32,6 +38,9 @@ trait HasCurrentOrganization
             : null;
     }
 
+    /**
+     * The current organization, aborting when none is active.
+     */
     protected function requireOrganization(): Organization
     {
         $organization = $this->currentOrganization();

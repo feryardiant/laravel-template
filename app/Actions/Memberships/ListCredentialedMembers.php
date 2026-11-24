@@ -9,6 +9,9 @@ use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Lists members that have a login credential.
+ */
 final class ListCredentialedMembers
 {
     /**

@@ -70,6 +70,9 @@ class View extends Component
         ])->title(__('Member profile'));
     }
 
+    /**
+     * Reload the member after an edit.
+     */
     #[On('member-updated')]
     public function refreshMember(): void
     {
@@ -87,29 +90,44 @@ class View extends Component
         return app(ListRelationshipPeriods::class)->forMember($this->requireOrganization(), $this->person);
     }
 
+    /**
+     * Whether the pending role change promotes the member to Admin.
+     */
     #[Computed]
     public function roleChangeIsPromotion(): bool
     {
         return $this->roleChangeTo === Role::Admin->value;
     }
 
+    /**
+     * Open the edit form for this member.
+     */
     public function openEdit(): void
     {
         $this->dispatch('edit-member', personId: $this->person->getKey());
     }
 
+    /**
+     * Open the confirmation to promote this member to Admin.
+     */
     public function confirmPromote(): void
     {
         $this->roleChangeTo = Role::Admin->value;
         $this->showRoleModal = true;
     }
 
+    /**
+     * Open the confirmation to demote this member to Member.
+     */
     public function confirmDemote(): void
     {
         $this->roleChangeTo = Role::Member->value;
         $this->showRoleModal = true;
     }
 
+    /**
+     * Apply the confirmed role change.
+     */
     public function changeRoleConfirmed(ChangeMemberRole $changeMemberRole): void
     {
         $organization = $this->requireOrganization();

@@ -6,6 +6,9 @@ namespace App\Actions\Notifications;
 
 use App\Models\User;
 
+/**
+ * Marks the user's notifications as read or unread.
+ */
 final class MarkNotificationsAsRead
 {
     /**

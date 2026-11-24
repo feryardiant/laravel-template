@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Queues removal of one of the user's own organizations.
+ */
 class Remove extends Component
 {
     use HasCurrentOrganization;

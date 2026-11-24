@@ -7,6 +7,9 @@ namespace App\Actions\Approvals\Audit;
 use App\Actions\AuditLogs\AuditPayload;
 use App\Enums\ApprovalRequestType;
 
+/**
+ * Audit payload describing an approval request's type and reason.
+ */
 final class ApprovalPayload extends AuditPayload
 {
     public function __construct(public ApprovalRequestType $type, public ?string $reason = null) {}
@@ -22,6 +25,9 @@ final class ApprovalPayload extends AuditPayload
         return $data;
     }
 
+    /**
+     * Rebuild the payload from its stored representation.
+     */
     public static function fromArray(array $data): static
     {
         $reason = $data['reason'] ?? null;
@@ -32,6 +38,9 @@ final class ApprovalPayload extends AuditPayload
         );
     }
 
+    /**
+     * Describe the approval type and its reason.
+     */
     public function details(): array
     {
         $details = [$this->type->label()];
@@ -43,6 +52,9 @@ final class ApprovalPayload extends AuditPayload
         return $details;
     }
 
+    /**
+     * Map a stored reason code to its translated label.
+     */
     private static function reasonLabel(string $reason): string
     {
         return match ($reason) {

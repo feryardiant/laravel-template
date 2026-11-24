@@ -9,6 +9,9 @@ use App\Enums\AuditEvent;
 use App\Models\Organization;
 use App\Models\User;
 
+/**
+ * Raised when an organization feature flag is toggled.
+ */
 final class FeatureToggled extends AuditableEvent
 {
     public function __construct(
@@ -25,6 +28,9 @@ final class FeatureToggled extends AuditableEvent
         );
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::FeatureToggled;

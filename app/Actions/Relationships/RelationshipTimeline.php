@@ -12,6 +12,9 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
+/**
+ * Opens, closes, and syncs organization relationship periods.
+ */
 final class RelationshipTimeline
 {
     /**

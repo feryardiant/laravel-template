@@ -9,6 +9,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Hides the registration routes unless the root tenant enables them.
+ */
 class EnsureRegistrationEnabled
 {
     /**

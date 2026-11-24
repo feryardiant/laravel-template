@@ -10,6 +10,9 @@ use Creasi\Nusa\Models\Regency;
 use Creasi\Nusa\Models\Village;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Reads Indonesian region options and postal codes for address forms.
+ */
 final class RegionLookup
 {
     /**

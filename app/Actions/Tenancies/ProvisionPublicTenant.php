@@ -17,6 +17,9 @@ use App\Models\User;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Turns a public registration into a customer tenant owned by its person.
+ */
 final class ProvisionPublicTenant
 {
     public function __construct(

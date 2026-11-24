@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/**
+ * Lists the user's organizations and switches the active workspace.
+ */
 class OrganizationSwitcher extends Component
 {
     use HasCurrentOrganization;
@@ -25,6 +28,9 @@ class OrganizationSwitcher extends Component
         ]);
     }
 
+    /**
+     * Refresh the list after an organization is created.
+     */
     #[On('organization-created')]
     public function refreshOrganizations(): void
     {

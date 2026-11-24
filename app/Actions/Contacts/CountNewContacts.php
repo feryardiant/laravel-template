@@ -7,6 +7,9 @@ namespace App\Actions\Contacts;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 
+/**
+ * Counts external contacts whose relationship started inside the range.
+ */
 final class CountNewContacts
 {
     /**

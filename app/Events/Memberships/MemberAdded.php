@@ -13,6 +13,9 @@ use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
 
+/**
+ * Raised when a member is added to an organization.
+ */
 final class MemberAdded extends AuditableEvent
 {
     public function __construct(
@@ -25,6 +28,9 @@ final class MemberAdded extends AuditableEvent
         parent::__construct($organization, $actor, $person, new MemberAddedPayload($role), $period);
     }
 
+    /**
+     * The audit event recorded for this change.
+     */
     public function auditEvent(): AuditEvent
     {
         return AuditEvent::MemberAdded;

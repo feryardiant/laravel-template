@@ -7,6 +7,9 @@ namespace App\Support\Feature;
 use App\Models\Organization;
 use Laravel\Pennant\Feature;
 
+/**
+ * The root tenant flag that allows public registration.
+ */
 final class Registration
 {
     public const FEATURE = 'registration';

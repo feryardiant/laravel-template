@@ -11,6 +11,9 @@ use App\Policies\Concerns\AuthorizesContacts;
 use App\Policies\Concerns\ResolvesMemberRole;
 use App\Support\Feature\ContactDeletion;
 
+/**
+ * Authorizes the settings, membership, and contact actions of an organization.
+ */
 class OrganizationPolicy
 {
     use AuthorizesContacts, ResolvesMemberRole;
