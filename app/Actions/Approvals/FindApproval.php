@@ -22,17 +22,17 @@ final class FindApproval
             return null;
         }
 
-        return ApprovalRequest::onlyPendings()
+        return ApprovalRequest::query()
+            ->onlyPendings()
+            ->forApprover($personId)
             ->where('uuid', $uuid)
-            ->where('approver_person_id', $personId)
-            ->where('expires_at', '>', now())
             ->first();
     }
 
     /**
      * Resolve a pending approval for the organization and approver.
      */
-    public function openForApproverByOrganization(User $user, int $organizationId): ?ApprovalRequest
+    public function openForApproverByOrganization(User $user, Organization|int $organization): ?ApprovalRequest
     {
         $personId = $user->person?->getKey();
 
@@ -40,10 +40,10 @@ final class FindApproval
             return null;
         }
 
-        return ApprovalRequest::onlyPendings()
-            ->where('organization_id', $organizationId)
-            ->where('approver_person_id', $personId)
-            ->where('expires_at', '>', now())
+        return ApprovalRequest::query()
+            ->onlyPendings()
+            ->forOrganization($organization)
+            ->forApprover($personId)
             ->first();
     }
 
@@ -59,8 +59,8 @@ final class FindApproval
         }
 
         return ApprovalRequest::query()
+            ->forApprover($personId)
             ->whereKey($approvalId)
-            ->where('approver_person_id', $personId)
             ->first();
     }
 
@@ -69,9 +69,9 @@ final class FindApproval
      */
     public function pendingForOrganization(Organization $organization): ?ApprovalRequest
     {
-        return ApprovalRequest::onlyPendings()
-            ->where('organization_id', $organization->getKey())
-            ->where('expires_at', '>', now())
+        return ApprovalRequest::query()
+            ->onlyPendings()
+            ->forOrganization($organization)
             ->with(['requester', 'approver'])
             ->first();
     }
@@ -88,9 +88,9 @@ final class FindApproval
         }
 
         return ApprovalRequest::query()
+            ->forRequester($personId)
             ->whereKey($approvalId)
             ->where('type', $type)
-            ->where('requester_person_id', $personId)
             ->first();
     }
 }

@@ -6,10 +6,12 @@ namespace App\Models;
 
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
+use App\Models\Builders\OrganizationBuilder;
 use Creasi\Nusa\Contracts\HasAddress;
 use Creasi\Nusa\Models\Concerns\WithAddress;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -34,11 +36,12 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, Organization> $subsidiaries
  * @property-read Collection<int, Person> $members
  *
- * @method static Builder<static> rootTenant()
+ * @method static OrganizationBuilder query()
  *
  * @implements HasAddress<static>
  */
 #[Fillable(['contact_id', 'owner_organization_id', 'name', 'summary', 'is_tenant', 'root_organization_id', 'logo_url'])]
+#[UseEloquentBuilder(OrganizationBuilder::class)]
 class Organization extends Entity implements HasAddress
 {
     /** @use HasFactory<OrganizationFactory> */
@@ -46,16 +49,6 @@ class Organization extends Entity implements HasAddress
 
     /** @use WithAddress<static, Address> */
     use WithAddress;
-
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'is_tenant' => 'boolean',
-        ];
-    }
 
     /**
      * {@inheritdoc}
@@ -69,6 +62,16 @@ class Organization extends Entity implements HasAddress
                 ->whereStakeholder($organization)
                 ->delete();
         });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_tenant' => 'boolean',
+        ];
     }
 
     /**
@@ -159,17 +162,6 @@ class Organization extends Entity implements HasAddress
         return $this->relationships(Organization::class)
             ->wherePivot('type', '=', OrganizationRelationshipType::Subsidiary)
             ->as('subsidiary');
-    }
-
-    /**
-     * Limit the query to root tenant organizations.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeRootTenant(Builder $query): Builder
-    {
-        return $query->where('is_tenant', true)->whereNull('root_organization_id');
     }
 
     /**

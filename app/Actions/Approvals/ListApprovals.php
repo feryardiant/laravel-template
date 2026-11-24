@@ -20,7 +20,7 @@ final class ListApprovals
     public function forOrganization(Organization $organization): Collection
     {
         return ApprovalRequest::query()
-            ->where('organization_id', $organization->getKey())
+            ->forOrganization($organization)
             ->with(['requester', 'approver'])
             ->latest()
             ->get();
@@ -33,8 +33,8 @@ final class ListApprovals
      */
     public function pendingForPerson(Person $person): Collection
     {
-        return ApprovalRequest::onlyPendings()
-            ->where('expires_at', '>', now())
+        return ApprovalRequest::query()
+            ->onlyPendings()
             ->where(fn (Builder $query): Builder => $query
                 ->where('requester_person_id', $person->getKey())
                 ->orWhere('approver_person_id', $person->getKey()))

@@ -71,8 +71,9 @@ final class DeleteContact
 
             $period = $this->timeline->close($contact, RelationshipPeriodReason::Deleted, $actor);
 
-            OrganizationRelationship::forOrganization($tenant)
-                ->onlyExternals()
+            OrganizationRelationship::query()
+                ->forOrganization($tenant)
+                ->externals()
                 ->whereKey($contact->getKey())
                 ->delete();
 

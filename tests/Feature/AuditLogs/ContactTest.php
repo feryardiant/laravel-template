@@ -43,8 +43,9 @@ function contactDataForAudit(array $overrides = []): array
 
 function auditContactRelationship(Organization $organization, Entity $entity): OrganizationRelationship
 {
-    return OrganizationRelationship::forOrganization($organization)
-        ->onlyExternals()
+    return OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->externals()
         ->whereStakeholder($entity)
         ->firstOrFail();
 }
@@ -55,6 +56,7 @@ test('creating a contact records the actor and period', function () {
 
     $entity = app(CreateContact::class)->handle($organization, contactDataForAudit(), actor: $actor);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactCreated)->sole();
 
     expect($log->organization_id)->toBe($organization->getKey())
@@ -88,6 +90,7 @@ test('reusing a referenced contact records a creation for the new tenant', funct
         'reference' => 'individual:'.$person->uuid,
     ]), actor: $actor);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()
         ->where('organization_id', $second->getKey())
         ->where('event', AuditEvent::ContactCreated)
@@ -110,6 +113,7 @@ test('a contact code is recorded as a field name, not a value', function () {
         'code' => 'person@example.com',
     ]), actor: $actor);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactCreated)->sole();
 
     expect($log->changes?->toArray()['fields'] ?? [])->toBe(['code'])
@@ -130,6 +134,7 @@ test('renewing an expired contact records a renewal instead of a duplicate creat
         'reference' => 'individual:'.$entity->uuid,
     ]), actor: $actor);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactRenewed)->sole();
 
     expect($log->subject_id)->toBe($entity->getKey())
@@ -162,6 +167,7 @@ test('updating a contact records field names but no personal values', function (
         'finish_date' => null,
     ], actor: $actor);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
     $changes = $log->changes?->toArray() ?? [];
     $encoded = $log->getRawOriginal('changes');
@@ -185,6 +191,7 @@ test('deleting a contact keeps the subject readable after the soft delete', func
 
     app(DeleteContact::class)->handle($organization, $relationship->getKey(), actor: $actor);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactDeleted)->sole()->fresh();
 
     expect($log->actor_id)->toBe($actor->getKey())

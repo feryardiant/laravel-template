@@ -65,7 +65,8 @@ final class SearchContact
      */
     private function stakeholderIds(Organization $tenant, string $stakeholder, bool $own): Builder
     {
-        $query = OrganizationRelationship::onlyExternals()
+        $query = OrganizationRelationship::query()
+            ->externals()
             ->where('stakeholder_type', $stakeholder)
             ->select('stakeholder_id');
 
@@ -84,8 +85,9 @@ final class SearchContact
      */
     private function currentStakeholderIds(Organization $tenant, string $stakeholder): Builder
     {
-        return OrganizationRelationship::forOrganization($tenant)
-            ->onlyExternals()
+        return OrganizationRelationship::query()
+            ->forOrganization($tenant)
+            ->externals()
             ->notExpired()
             ->where('stakeholder_type', $stakeholder)
             ->select('stakeholder_id');

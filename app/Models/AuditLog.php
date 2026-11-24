@@ -7,7 +7,9 @@ namespace App\Models;
 use App\Actions\AuditLogs\AuditPayload;
 use App\Casts\AsAuditPayload;
 use App\Enums\AuditEvent;
+use App\Models\Builders\AuditLogBuilder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -29,6 +31,8 @@ use Illuminate\Support\Carbon;
  * @property-read ?User $actor
  * @property-read ?Model $subject
  * @property-read ?OrganizationRelationshipPeriod $period
+ *
+ * @method static AuditLogBuilder query()
  */
 #[Fillable([
     'organization_id',
@@ -40,6 +44,7 @@ use Illuminate\Support\Carbon;
     'changes',
     'created_at',
 ])]
+#[UseEloquentBuilder(AuditLogBuilder::class)]
 class AuditLog extends Model
 {
     public const UPDATED_AT = null;

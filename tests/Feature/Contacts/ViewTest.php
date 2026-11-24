@@ -37,7 +37,8 @@ test('the contact view page renders the contact information', function () {
     ]);
     $organization->organizationCounterparties()->attach($contact, ['type' => OrganizationRelationshipType::Supplier]);
 
-    OrganizationRelationship::forOrganization($organization)
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
         ->whereStakeholder($contact)
         ->update(['code' => 'VIEW-1', 'start_date' => '2026-01-01']);
 

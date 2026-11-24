@@ -6,9 +6,10 @@ namespace App\Models;
 
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
+use App\Models\Builders\ApprovalRequestBuilder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -32,7 +33,7 @@ use Illuminate\Support\Str;
  * @property-read Person $requester
  * @property-read Person $approver
  *
- * @method static Builder<static> onlyPendings()
+ * @method static ApprovalRequestBuilder query()
  */
 #[Fillable([
     'organization_id',
@@ -47,8 +48,16 @@ use Illuminate\Support\Str;
     'canceled_at',
 ])]
 #[RouteKey('uuid')]
+#[UseEloquentBuilder(ApprovalRequestBuilder::class)]
 class ApprovalRequest extends Model
 {
+    protected static function booted(): void
+    {
+        static::creating(function (self $request): void {
+            $request->uuid ??= (string) Str::uuid7();
+        });
+    }
+
     /**
      * @return array<string, string>
      */
@@ -63,13 +72,6 @@ class ApprovalRequest extends Model
             'declined_at' => 'datetime',
             'canceled_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $request): void {
-            $request->uuid ??= (string) Str::uuid7();
-        });
     }
 
     /**
@@ -94,17 +96,6 @@ class ApprovalRequest extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(Person::class, 'approver_person_id');
-    }
-
-    /**
-     * Limit the query to pending requests.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeOnlyPendings(Builder $query): Builder
-    {
-        return $query->where('status', ApprovalRequestStatus::Pending);
     }
 
     /**

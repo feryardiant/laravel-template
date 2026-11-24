@@ -116,14 +116,16 @@ final class ChangeMemberRole
         $period = $this->timeline->open($relationship->refresh(), today());
 
         // A role change invalidates an admin's pending request to leave.
-        $pending = ApprovalRequest::onlyPendings()
-            ->where('organization_id', $organization->getKey())
+        $pending = ApprovalRequest::query()
+            ->onlyPendings()
+            ->forOrganization($organization)
             ->where('type', ApprovalRequestType::MembershipLeave)
             ->where('requester_person_id', $person->getKey())
             ->get();
 
         foreach ($pending as $request) {
-            $canceled = ApprovalRequest::onlyPendings()
+            $canceled = ApprovalRequest::query()
+                ->onlyPendings()
                 ->whereKey($request->getKey())
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,

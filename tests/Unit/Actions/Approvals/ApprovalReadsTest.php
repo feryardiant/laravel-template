@@ -67,7 +67,7 @@ it('finds approvals by link, organization, approver, and requester', function ()
     $find = app(FindApproval::class);
 
     expect($find->openForApproverByUuid($approver, $approval->uuid)?->is($approval))->toBeTrue()
-        ->and($find->openForApproverByOrganization($approver, $organization->getKey())?->is($approval))->toBeTrue()
+        ->and($find->openForApproverByOrganization($approver, $organization)?->is($approval))->toBeTrue()
         ->and($find->forApprover($approver, $approval->getKey())?->is($approval))->toBeTrue()
         ->and($find->pendingForOrganization($organization)?->is($approval))->toBeTrue()
         ->and($find->forRequester($approver, $approval->getKey(), ApprovalRequestType::OwnershipTransfer))->toBeNull();

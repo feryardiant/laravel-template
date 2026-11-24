@@ -16,8 +16,9 @@ final class CountExpiringContacts
      */
     public function handle(Organization $organization, array $range): int
     {
-        return OrganizationRelationship::forOrganization($organization)
-            ->onlyExternals()
+        return OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->externals()
             ->notExpired()
             ->whereDate('finish_date', '>=', $range['start'])
             ->whereDate('finish_date', '<=', $range['end'])

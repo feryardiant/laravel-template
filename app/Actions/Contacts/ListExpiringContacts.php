@@ -19,8 +19,9 @@ final class ListExpiringContacts
      */
     public function handle(Organization $organization, array $range, int $limit = 5): Collection
     {
-        return OrganizationRelationship::forOrganization($organization)
-            ->onlyExternals()
+        return OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->externals()
             ->notExpired()
             ->whereDate('finish_date', '>=', $range['start'])
             ->whereDate('finish_date', '<=', $range['end'])

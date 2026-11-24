@@ -137,8 +137,9 @@ final class UpdateContact
                 }
 
                 if ($attributes !== []) {
-                    OrganizationRelationship::forOrganization($tenant)
-                        ->onlyExternals()
+                    OrganizationRelationship::query()
+                        ->forOrganization($tenant)
+                        ->externals()
                         ->whereKey($contact->getKey())
                         ->update($attributes);
                 }

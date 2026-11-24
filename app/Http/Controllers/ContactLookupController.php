@@ -46,8 +46,9 @@ class ContactLookupController extends Controller
      */
     private function isExpiredFor(Organization $organization, Organization|Person $entity): bool
     {
-        return OrganizationRelationship::forOrganization($organization)
-            ->onlyExternals()
+        return OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->externals()
             ->expired()
             ->whereStakeholder($entity)
             ->exists();

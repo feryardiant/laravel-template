@@ -8,8 +8,9 @@ use App\Enums\OrganizationRelationshipType;
 use App\Enums\RelationshipStatus;
 use App\Enums\Role;
 use App\Enums\SubsidiaryKind;
+use App\Models\Builders\OrganizationRelationshipBuilder;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,10 +37,9 @@ use InvalidArgumentException;
  * @property-read ?Organization $organization
  * @property-read Organization|Person|null $stakeholder
  *
- * @method static Builder<static> whereStakeholder(Organization|Person $entity)
- * @method static Builder<static> forOrganization(Organization $organization)
- * @method static Builder<static> onlyExternals()
+ * @method static OrganizationRelationshipBuilder query()
  */
+#[UseEloquentBuilder(OrganizationRelationshipBuilder::class)]
 class OrganizationRelationship extends MorphPivot
 {
     protected $table = 'organization_relationships';
@@ -124,72 +124,6 @@ class OrganizationRelationship extends MorphPivot
     public function stakeholder(): MorphTo
     {
         return $this->morphTo('stakeholder', 'stakeholder_type', 'stakeholder_id');
-    }
-
-    /**
-     * Limit the query to the given tenant.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeForOrganization(Builder $query, Organization $organization): Builder
-    {
-        return $query->where('organization_id', $organization->getKey());
-    }
-
-    /**
-     * Limit the query to external contact relationships.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeOnlyExternals(Builder $query): Builder
-    {
-        return $query->whereIn('type', OrganizationRelationshipType::externals());
-    }
-
-    /**
-     * Limit the query to relationships whose window has ended.
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeExpired(Builder $query): Builder
-    {
-        return $query->whereNotNull('finish_date')->whereDate('finish_date', '<', today());
-    }
-
-    /**
-     * Limit the query to relationships that have not ended (active or scheduled).
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeNotExpired(Builder $query): Builder
-    {
-        return $query->where(fn (Builder $query): Builder => $query
-            ->whereNull('finish_date')
-            ->orWhereDate('finish_date', '>=', today()));
-    }
-
-    /**
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeWhereStakeholder(
-        Builder $query,
-        Organization|Person $entity,
-        ?OrganizationRelationshipType $type = null
-    ): Builder {
-        $query
-            ->where('stakeholder_type', $entity->getMorphClass())
-            ->where('stakeholder_id', $entity->getKey());
-
-        if ($type) {
-            $query->where('type', $type);
-        }
-
-        return $query;
     }
 
     /**

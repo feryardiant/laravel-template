@@ -95,15 +95,17 @@ final class RemoveMember
             $organization->members()->detach($removed->modelKeys());
 
             if ($removed->isNotEmpty()) {
-                $pending = ApprovalRequest::onlyPendings()
-                    ->where('organization_id', $organization->getKey())
+                $pending = ApprovalRequest::query()
+                    ->onlyPendings()
+                    ->forOrganization($organization)
                     ->where(fn ($query) => $query
                         ->whereIn('requester_person_id', $removed->modelKeys())
                         ->orWhereIn('approver_person_id', $removed->modelKeys()))
                     ->get();
 
                 foreach ($pending as $request) {
-                    $canceled = ApprovalRequest::onlyPendings()
+                    $canceled = ApprovalRequest::query()
+                        ->onlyPendings()
                         ->whereKey($request->getKey())
                         ->update([
                             'status' => ApprovalRequestStatus::Canceled,

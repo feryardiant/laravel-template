@@ -23,8 +23,9 @@ final class ListContacts
     {
         $term = trim($search);
 
-        return OrganizationRelationship::forOrganization($tenant)
-            ->onlyExternals()
+        return OrganizationRelationship::query()
+            ->forOrganization($tenant)
+            ->externals()
             ->select('organization_relationships.*')
             ->whereHasMorph('stakeholder', [Organization::class, Person::class], function (Builder $query, string $type): void {
                 if ($type === Organization::class) {

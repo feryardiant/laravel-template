@@ -49,17 +49,17 @@ final class MembershipLeave
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            ApprovalRequest::onlyPendings()
-                ->where('organization_id', $organization->getKey())
-                ->where('expires_at', '<=', now())
+            ApprovalRequest::query()
+                ->onlyPendings(expired: true)
+                ->forOrganization($organization)
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,
                     'canceled_at' => now(),
                 ]);
 
-            if (ApprovalRequest::onlyPendings()
-                ->where('organization_id', $organization->getKey())
-                ->where('expires_at', '>', now())
+            if (ApprovalRequest::query()
+                ->onlyPendings()
+                ->forOrganization($organization)
                 ->exists()) {
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }
@@ -137,7 +137,8 @@ final class MembershipLeave
                 return false;
             }
 
-            $relationship = OrganizationRelationship::forOrganization($organization)
+            $relationship = OrganizationRelationship::query()
+                ->forOrganization($organization)
                 ->whereStakeholder($requester, OrganizationRelationshipType::Member)
                 ->first();
 

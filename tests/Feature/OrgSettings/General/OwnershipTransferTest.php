@@ -76,7 +76,7 @@ test('a pending request blocks a new transfer', function () {
         ->toThrow(InvalidArgumentException::class);
 
     expect($firstTransfer->fresh()->status)->toBe(ApprovalRequestStatus::Pending)
-        ->and(ApprovalRequest::onlyPendings()->count())->toBe(1);
+        ->and(ApprovalRequest::query()->onlyPendings()->count())->toBe(1);
 });
 
 test('the owner can cancel a pending transfer and the recipient row returns to normal', function () {

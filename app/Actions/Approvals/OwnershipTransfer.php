@@ -55,17 +55,17 @@ final class OwnershipTransfer
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            ApprovalRequest::onlyPendings()
-                ->where('organization_id', $organization->getKey())
-                ->where('expires_at', '<=', now())
+            ApprovalRequest::query()
+                ->onlyPendings(expired: true)
+                ->forOrganization($organization)
                 ->update([
                     'status' => ApprovalRequestStatus::Canceled,
                     'canceled_at' => now(),
                 ]);
 
-            if (ApprovalRequest::onlyPendings()
-                ->where('organization_id', $organization->getKey())
-                ->where('expires_at', '>', now())
+            if (ApprovalRequest::query()
+                ->onlyPendings()
+                ->forOrganization($organization)
                 ->exists()) {
                 throw new InvalidArgumentException('Another approval request is already pending.');
             }

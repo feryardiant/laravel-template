@@ -27,7 +27,8 @@ final class CancelApproval
             return false;
         }
 
-        $canceled = ApprovalRequest::onlyPendings()
+        $canceled = ApprovalRequest::query()
+            ->onlyPendings()
             ->whereKey($request)
             ->update([
                 'status' => ApprovalRequestStatus::Canceled,

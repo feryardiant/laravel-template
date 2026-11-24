@@ -437,7 +437,8 @@ test('a failed update removes the new photo and keeps the previous one', functio
 
     $first = contactIndividual($organization, ['name' => 'First Photo']);
     $first->update(['photo_url' => 'photos/first.jpg']);
-    OrganizationRelationship::forOrganization($organization)
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
         ->whereStakeholder($first)
         ->update(['code' => 'DUP-UPDATE']);
 
@@ -792,6 +793,7 @@ test('contact detail audit records field names without values', function () {
         ->call('save')
         ->assertHasNoErrors();
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole();
     $encoded = $log->getRawOriginal('changes');
 

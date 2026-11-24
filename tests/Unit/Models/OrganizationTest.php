@@ -61,7 +61,7 @@ it('removes inbound relationships when an organization is force-deleted', functi
 
     $organization->forceDelete();
 
-    expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeFalse();
+    expect(OrganizationRelationship::query()->whereStakeholder($organization)->exists())->toBeFalse();
 });
 
 it('cannot force-delete a root tenant that still has tenant children', function () {
@@ -78,7 +78,7 @@ it('cannot force-delete a root tenant that still has tenant children', function 
     expect(fn () => $root->forceDelete())->toThrow(QueryException::class);
 
     expect(Organization::query()->whereKey($root->getKey())->exists())->toBeTrue();
-    expect(OrganizationRelationship::whereStakeholder($root)->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->whereStakeholder($root)->exists())->toBeTrue();
 });
 
 it('force-deletes a childless root tenant and its inbound relationships', function () {
@@ -92,7 +92,7 @@ it('force-deletes a childless root tenant and its inbound relationships', functi
     $root->forceDelete();
 
     expect(Organization::query()->whereKey($root->getKey())->exists())->toBeFalse();
-    expect(OrganizationRelationship::whereStakeholder($root)->exists())->toBeFalse();
+    expect(OrganizationRelationship::query()->whereStakeholder($root)->exists())->toBeFalse();
 });
 
 it('keeps inbound relationships when an organization is soft-deleted', function () {
@@ -105,7 +105,7 @@ it('keeps inbound relationships when an organization is soft-deleted', function 
 
     $organization->delete();
 
-    expect(OrganizationRelationship::whereStakeholder($organization)->exists())->toBeTrue();
+    expect(OrganizationRelationship::query()->whereStakeholder($organization)->exists())->toBeTrue();
 });
 
 test('external counterparties can be organizations or people', function (OrganizationRelationshipType $type) {

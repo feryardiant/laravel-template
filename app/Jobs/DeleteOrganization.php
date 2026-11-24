@@ -7,7 +7,6 @@ namespace App\Jobs;
 use App\Actions\FileStorage;
 use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
-use App\Enums\OrganizationRelationshipType;
 use App\Models\ApprovalRequest;
 use App\Models\AuditLog;
 use App\Models\Organization;
@@ -103,8 +102,9 @@ final class DeleteOrganization implements ShouldQueue
 
         $organization->address()->delete();
 
-        ApprovalRequest::onlyPendings()
-            ->where('organization_id', $organization->getKey())
+        ApprovalRequest::query()
+            ->onlyPendings()
+            ->forOrganization($organization)
             ->update([
                 'status' => ApprovalRequestStatus::Canceled,
                 'canceled_at' => now(),
@@ -115,9 +115,8 @@ final class DeleteOrganization implements ShouldQueue
             ->delete();
 
         $externallyReferenced = OrganizationRelationship::query()
-            ->where('stakeholder_type', $organization->getMorphClass())
-            ->where('stakeholder_id', $organization->getKey())
-            ->whereIn('type', OrganizationRelationshipType::externals())
+            ->whereStakeholder($organization)
+            ->externals()
             ->exists();
 
         if (! $externallyReferenced) {
@@ -127,12 +126,12 @@ final class DeleteOrganization implements ShouldQueue
         }
 
         OrganizationRelationship::query()
-            ->where('organization_id', $organization->getKey())
+            ->forOrganization($organization)
             ->delete();
 
         OrganizationRelationship::query()
             ->whereStakeholder($organization)
-            ->whereIn('type', OrganizationRelationshipType::internals())
+            ->internals()
             ->delete();
 
         $organization->update([
