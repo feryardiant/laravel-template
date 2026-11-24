@@ -154,7 +154,8 @@ class Person extends Entity implements HasAddresses
      */
     public function defaultOrganization(): ?Organization
     {
-        return $this->organizations()->wherePivot('is_primary', true)->first();
+        return $this->organizations()->wherePivot('is_primary', true)->first()
+            ?? $this->organizations()->first();
     }
 
     /**

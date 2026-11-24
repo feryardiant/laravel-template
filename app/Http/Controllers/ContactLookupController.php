@@ -8,7 +8,6 @@ use App\Actions\Contacts\SearchContact;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
-use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,10 +22,9 @@ class ContactLookupController extends Controller
     /**
      * Return contact candidates for the Name autocomplete.
      */
-    public function __invoke(Request $request, SearchContact $search): JsonResponse
+    public function __invoke(Request $request, SearchContact $search, CurrentOrganization $currentOrganization): JsonResponse
     {
-        $user = $request->user();
-        $organization = $user instanceof User ? app(CurrentOrganization::class)->get($user) : null;
+        $organization = $currentOrganization->get();
 
         if (! $organization instanceof Organization) {
             return response()->json([]);
