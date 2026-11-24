@@ -118,7 +118,7 @@ test('lists a soft-deleted contact with its name instead of a broken link', func
     $person = dashboardContact($organization, 'Deleted Contact', '2026-11-01', '2026-11-18');
     $person->delete();
 
-    // `FindContact::byUuid()` does not resolve trashed people, so no link.
+    // `ContactRepository::findByUuid()` does not resolve trashed people, so no link.
     Livewire::test(Dashboard::class)
         ->assertSee('Deleted Contact')
         ->assertDontSeeHtml(route('contacts.view', ['stakeholder' => $person]));

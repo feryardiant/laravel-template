@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Approvals\ListApprovals;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
+use App\Repositories\ApprovalRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
@@ -47,6 +47,6 @@ class ApprovalHistory extends Component
 
         $this->authorize('viewApprovals', $organization);
 
-        return app(ListApprovals::class)->forOrganization($organization);
+        return app(ApprovalRepository::class)->getForOrganization($organization);
     }
 }

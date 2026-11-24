@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\AuditLogs\ListAuditActors;
-use App\Actions\AuditLogs\ListAuditLogs;
 use App\Enums\AuditEvent;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\AuditLog;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\AuditRepository;
 use App\Support\DateRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -72,7 +71,7 @@ class Audit extends Component
 
         $this->authorize('viewAudit', $organization);
 
-        return app(ListAuditLogs::class)->handle($organization, [
+        return app(AuditRepository::class)->get($organization, [
             'event' => $this->event,
             'actor' => $this->actor,
             'start' => $this->range['start'] ?? null,
@@ -90,7 +89,7 @@ class Audit extends Component
     {
         $current = Auth::user();
 
-        return app(ListAuditActors::class)->handle(
+        return app(AuditRepository::class)->getActors(
             $this->requireOrganization(),
             $current instanceof User ? $current : null,
         );

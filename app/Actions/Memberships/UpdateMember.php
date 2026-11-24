@@ -14,6 +14,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
+use App\Repositories\MembershipRepository;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
@@ -34,7 +35,7 @@ final class UpdateMember
         private SaveAddress $saveAddress,
         private SaveContactDetails $saveContactDetails,
         private FileStorage $fileStorage,
-        private FindMember $findMember,
+        private MembershipRepository $memberships,
     ) {
         // .
     }
@@ -72,7 +73,8 @@ final class UpdateMember
         array $expected,
         ?UploadedFile $photo = null,
     ): array {
-        $person = $this->findMember->inOrganization($organization, $person->getKey(), ['user']);
+        $person = $this->memberships->findInOrganization($organization, $person->getKey(), ['user'])
+            ?? throw (new ModelNotFoundException)->setModel(Person::class);
         $canEditProfile = $data['can_edit_profile'];
 
         if (! $canEditProfile) {

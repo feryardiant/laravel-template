@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\CreateMember;
-use App\Actions\Memberships\FindMember;
 use App\Actions\Memberships\UpdateMember;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
@@ -16,6 +15,7 @@ use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\MembershipRepository;
 use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -122,7 +122,9 @@ class Form extends Component
     public function editMember(int $personId): void
     {
         $organization = $this->requireOrganization();
-        $person = app(FindMember::class)->inOrganization($organization, $personId, ['user']);
+        $person = app(MembershipRepository::class)->findInOrganization($organization, $personId, ['user']);
+
+        abort_if($person === null, 404);
 
         $this->authorize('manageMember', [$person, $organization]);
         $this->genderEnabled = ContactGender::enabled($organization);
@@ -265,7 +267,10 @@ class Form extends Component
 
         abort_if($this->person === null, 404);
 
-        $this->person = app(FindMember::class)->inOrganization($organization, $this->person->getKey(), ['user']);
+        $this->person = app(MembershipRepository::class)->findInOrganization($organization, $this->person->getKey(), ['user']);
+
+        abort_if($this->person === null, 404);
+
         $this->authorize('manageMember', [$this->person, $organization]);
         $this->email = Str::lower($this->email);
 

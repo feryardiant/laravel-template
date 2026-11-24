@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Approvals\CancelApproval;
-use App\Actions\Approvals\FindApproval;
 use App\Actions\Memberships\LeaveWorkspace;
-use App\Actions\Organizations\FindUserOrganization;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
+use App\Repositories\ApprovalRepository;
+use App\Repositories\OrganizationRepository;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -48,7 +48,7 @@ class Leave extends Component
         $user = Auth::user();
 
         $organization = $user instanceof User
-            ? app(FindUserOrganization::class)->find($user, $organizationId)
+            ? app(OrganizationRepository::class)->findUser($user, $organizationId)
             : null;
 
         $this->organizationId = $organizationId;
@@ -68,7 +68,7 @@ class Leave extends Component
 
         abort_unless($user instanceof User && $user->person !== null, 403);
 
-        $approval = app(FindApproval::class)->forRequester($user, $approvalId, ApprovalRequestType::MembershipLeave);
+        $approval = app(ApprovalRepository::class)->findForRequester($user, $approvalId, ApprovalRequestType::MembershipLeave);
 
         abort_if($approval === null, 404);
 
@@ -89,7 +89,10 @@ class Leave extends Component
 
         abort_if($this->organizationId === null || ! $user instanceof User, 404);
 
-        $organization = app(FindUserOrganization::class)->handle($user, $this->organizationId);
+        $organization = app(OrganizationRepository::class)->findUser($user, $this->organizationId);
+
+        abort_if($organization === null, 404);
+
         $wasCurrent = $this->currentOrganization()?->is($organization) === true;
         $result = $leaveWorkspace->handle($organization, $user);
 

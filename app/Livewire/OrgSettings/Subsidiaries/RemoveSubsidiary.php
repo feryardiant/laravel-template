@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings\Subsidiaries;
 
-use App\Actions\Organizations\RemoveSubsidiary as RemoveSubsidiaryAction;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
+use App\Repositories\OrganizationRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +44,7 @@ class RemoveSubsidiary extends Component
 
         $this->authorize('createSubsidiary', $root);
 
-        $preview = app(RemoveSubsidiaryAction::class)->preview($root, $organizationId);
+        $preview = app(OrganizationRepository::class)->preview($root, $organizationId);
 
         abort_if($preview === null, 404);
 
@@ -72,7 +72,7 @@ class RemoveSubsidiary extends Component
 
         abort_if($this->removingId === null, 404);
 
-        $preview = app(RemoveSubsidiaryAction::class)->preview($root, $this->removingId);
+        $preview = app(OrganizationRepository::class)->preview($root, $this->removingId);
 
         abort_if($preview === null, 404);
 

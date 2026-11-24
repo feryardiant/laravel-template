@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
-use App\Actions\Memberships\FindMember;
-use App\Actions\Memberships\ListMembers;
 use App\Actions\Memberships\RemoveMember;
 use App\Actions\Memberships\ResendMemberVerification;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\MembershipRepository;
 use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -100,7 +99,7 @@ class Index extends Component
 
         return $this->deletingPersonId === null || $organization === null
             ? null
-            : app(FindMember::class)->findInOrganization($organization, $this->deletingPersonId);
+            : app(MembershipRepository::class)->findInOrganization($organization, $this->deletingPersonId);
     }
 
     /**
@@ -113,7 +112,7 @@ class Index extends Component
 
         return $this->roleChangePersonId === null || $organization === null
             ? null
-            : app(FindMember::class)->findInOrganization($organization, $this->roleChangePersonId);
+            : app(MembershipRepository::class)->findInOrganization($organization, $this->roleChangePersonId);
     }
 
     /**
@@ -137,7 +136,7 @@ class Index extends Component
             return new LengthAwarePaginator([], 0, 10);
         }
 
-        return app(ListMembers::class)->handle($organization, $this->search, $this->sortDirection);
+        return app(MembershipRepository::class)->get($organization, $this->search, $this->sortDirection);
     }
 
     /**
@@ -192,7 +191,9 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $person = app(FindMember::class)->inOrganization($organization, $personId, ['user']);
+        $person = app(MembershipRepository::class)->findInOrganization($organization, $personId, ['user']);
+
+        abort_if($person === null, 404);
 
         $this->authorize('manageMember', [$person, $organization]);
 
@@ -279,7 +280,9 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $person = app(FindMember::class)->inOrganization($organization, $personId);
+        $person = app(MembershipRepository::class)->findInOrganization($organization, $personId);
+
+        abort_if($person === null, 404);
 
         $this->authorize('removeMember', [$person, $organization]);
 
@@ -370,7 +373,7 @@ class Index extends Component
         $pageIds = $this->members->pluck('id')->all();
         $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
 
-        $persons = app(FindMember::class)->manyInOrganization($organization, $selected);
+        $persons = app(MembershipRepository::class)->getInOrganization($organization, $selected);
 
         foreach ($persons as $person) {
             $this->authorize('removeMember', [$person, $organization]);

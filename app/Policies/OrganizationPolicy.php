@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Actions\Organizations\ListSubsidiaries;
 use App\Models\Organization;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesContacts;
 use App\Policies\Concerns\ResolvesMemberRole;
+use App\Repositories\OrganizationRepository;
 use App\Support\Feature\ContactDeletion;
 
 /**
@@ -118,8 +118,8 @@ class OrganizationPolicy
             return false;
         }
 
-        return app(ListSubsidiaries::class)
-            ->handle($root)
+        return app(OrganizationRepository::class)
+            ->getSubsidiaries($root)
             ->contains(fn (array $row): bool => $row['organization']->is($organization));
     }
 

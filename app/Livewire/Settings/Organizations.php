@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Livewire\Settings;
 
 use App\Actions\Memberships\SetDefaultOrganization;
-use App\Actions\Organizations\FindOrganization;
-use App\Actions\Organizations\FindUserOrganization;
-use App\Actions\Organizations\ListUserMemberships;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
+use App\Repositories\OrganizationRepository;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -54,7 +52,7 @@ class Organizations extends Component
         $user = Auth::user();
 
         return $user instanceof User
-            ? app(ListUserMemberships::class)->handle($user, $this->currentOrganization())
+            ? app(OrganizationRepository::class)->getUsers($user, $this->currentOrganization())
             : collect();
     }
 
@@ -68,7 +66,7 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $organization = app(FindOrganization::class)->handle($organizationId);
+        $organization = app(OrganizationRepository::class)->find($organizationId);
 
         $this->authorize('update', $organization);
 
@@ -87,7 +85,9 @@ class Organizations extends Component
 
         abort_unless($user instanceof User, 403);
 
-        $organization = app(FindUserOrganization::class)->handle($user, $organizationId);
+        $organization = app(OrganizationRepository::class)->findUser($user, $organizationId);
+
+        abort_if($organization === null, 404);
 
         abort_unless($setDefault->handle($user, $organization), 404);
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Actions\Addresses\RegionLookup;
+use App\Repositories\RegionRepository;
 use Creasi\Nusa\Models\District;
 use Creasi\Nusa\Models\Province;
 use Creasi\Nusa\Models\Regency;
@@ -54,7 +54,7 @@ class Address extends Component
     #[Computed]
     public function provinces(): Collection
     {
-        return app(RegionLookup::class)->provinces();
+        return app(RegionRepository::class)->getProvinces();
     }
 
     /**
@@ -63,7 +63,7 @@ class Address extends Component
     #[Computed]
     public function regencies(): Collection
     {
-        return app(RegionLookup::class)->regencies($this->address['province_code']);
+        return app(RegionRepository::class)->getRegencies($this->address['province_code']);
     }
 
     /**
@@ -72,7 +72,7 @@ class Address extends Component
     #[Computed]
     public function districts(): Collection
     {
-        return app(RegionLookup::class)->districts($this->address['regency_code']);
+        return app(RegionRepository::class)->getDistricts($this->address['regency_code']);
     }
 
     /**
@@ -81,7 +81,7 @@ class Address extends Component
     #[Computed]
     public function villages(): Collection
     {
-        return app(RegionLookup::class)->villages($this->address['district_code']);
+        return app(RegionRepository::class)->getVillages($this->address['district_code']);
     }
 
     /**
@@ -114,7 +114,7 @@ class Address extends Component
      */
     private function fillPostalCode(string $villageCode): void
     {
-        $this->address['postal_code'] = app(RegionLookup::class)->postalCodeForVillage($villageCode) ?? '';
+        $this->address['postal_code'] = app(RegionRepository::class)->getPostalCodeForVillage($villageCode) ?? '';
     }
 
     /**
@@ -122,7 +122,7 @@ class Address extends Component
      */
     private function resolvePostalCode(string $postalCode): void
     {
-        $village = app(RegionLookup::class)->villageByPostalCode($postalCode);
+        $village = app(RegionRepository::class)->getVillageByPostalCode($postalCode);
 
         if ($village === null) {
             return;

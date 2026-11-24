@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\CreateContact;
-use App\Actions\Contacts\FindContact;
 use App\Actions\Contacts\UpdateContact;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
@@ -16,6 +15,7 @@ use App\Livewire\Concerns\ManagesAddress;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
+use App\Repositories\ContactRepository;
 use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -199,7 +199,7 @@ class Form extends Component
     {
         $organization = $this->requireOrganization();
 
-        $contact = app(FindContact::class)->byId($organization, $contactId);
+        $contact = app(ContactRepository::class)->findById($organization, $contactId);
 
         Gate::authorize('updateContact', [$contact->stakeholder, $organization]);
 
@@ -285,7 +285,7 @@ class Form extends Component
         $organization = $this->requireOrganization();
 
         try {
-            $entity = app(FindContact::class)->byReference($organization, $reference);
+            $entity = app(ContactRepository::class)->findByReference($organization, $reference);
         } catch (Throwable) {
             $this->resetReuse();
 
@@ -298,8 +298,8 @@ class Form extends Component
 
         $this->selectedEntity = $reference;
         $this->resetAddress();
-        $this->reusedContactId = app(FindContact::class)
-            ->expiredRelationshipFor($organization, $entity)
+        $this->reusedContactId = app(ContactRepository::class)
+            ->findExpiredRelationshipFor($organization, $entity)
             ?->getKey();
         $this->reusedType = $entity instanceof Organization ? 'organization' : 'individual';
         $this->reusedName = $entity->name;

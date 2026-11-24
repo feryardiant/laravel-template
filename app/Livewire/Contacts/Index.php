@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Actions\Contacts\DeleteContact;
-use App\Actions\Contacts\FindContact;
-use App\Actions\Contacts\ListContacts;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationship;
+use App\Repositories\ContactRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -106,7 +105,7 @@ class Index extends Component
             return new LengthAwarePaginator([], 0, 10);
         }
 
-        return app(ListContacts::class)->handle($organization, $this->search);
+        return app(ContactRepository::class)->get($organization, $this->search);
     }
 
     /**
@@ -126,7 +125,7 @@ class Index extends Component
     {
         $organization = $this->requireOrganization();
 
-        $contact = app(FindContact::class)->byId($organization, $contactId);
+        $contact = app(ContactRepository::class)->findById($organization, $contactId);
 
         Gate::authorize('updateContact', [$contact->stakeholder, $organization]);
 
@@ -162,7 +161,7 @@ class Index extends Component
 
         abort_if($this->deletingContactId === null, 404);
 
-        $contact = app(FindContact::class)->byId($organization, $this->deletingContactId);
+        $contact = app(ContactRepository::class)->findById($organization, $this->deletingContactId);
 
         Gate::authorize('deleteContact', [$contact->stakeholder, $organization]);
 

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Livewire\Contacts;
 
-use App\Actions\Contacts\FindContact;
-use App\Actions\Relationships\ListRelationshipPeriods;
 use App\Enums\ContactDetailType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
+use App\Repositories\ContactRepository;
+use App\Repositories\RelationshipRepository;
 use App\Support\Feature\ContactGender;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
@@ -33,7 +33,7 @@ class View extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->contact = app(FindContact::class)->byUuid($organization, $stakeholder);
+        $this->contact = app(ContactRepository::class)->findByUuid($organization, $stakeholder);
 
         Gate::authorize('viewContact', [$this->contact->stakeholder, $organization]);
     }
@@ -75,6 +75,6 @@ class View extends Component
     #[Computed]
     public function history(): Collection
     {
-        return app(ListRelationshipPeriods::class)->forContact($this->contact);
+        return app(RelationshipRepository::class)->getForContact($this->contact);
     }
 }

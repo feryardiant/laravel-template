@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Actions\Contacts\CountExpiringContacts;
-use App\Actions\Contacts\CountNewContacts;
-use App\Actions\Contacts\ListExpiringContacts;
-use App\Actions\Memberships\CountNewMembers;
-use App\Actions\Memberships\ListRecentMembers;
-use App\Actions\Notifications\CountUnreadNotifications;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ContactRepository;
+use App\Repositories\MembershipRepository;
+use App\Repositories\NotificationRepository;
 use App\Support\DateRange;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -67,7 +64,7 @@ class Dashboard extends Component
     #[Computed]
     public function newMembers(): int
     {
-        return app(CountNewMembers::class)->handle($this->requireOrganization(), $this->range);
+        return app(MembershipRepository::class)->countRecent($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -76,7 +73,7 @@ class Dashboard extends Component
     #[Computed]
     public function newContacts(): int
     {
-        return app(CountNewContacts::class)->handle($this->requireOrganization(), $this->range);
+        return app(ContactRepository::class)->countRecent($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -85,7 +82,7 @@ class Dashboard extends Component
     #[Computed]
     public function expiringCount(): int
     {
-        return app(CountExpiringContacts::class)->handle($this->requireOrganization(), $this->range);
+        return app(ContactRepository::class)->countExpiring($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -100,7 +97,7 @@ class Dashboard extends Component
             return 0;
         }
 
-        return app(CountUnreadNotifications::class)->handle($user, $this->range, $this->timezone());
+        return app(NotificationRepository::class)->countUnread($user, $this->range, $this->timezone());
     }
 
     /**
@@ -109,7 +106,7 @@ class Dashboard extends Component
     #[Computed]
     public function expiringContacts(): Collection
     {
-        return app(ListExpiringContacts::class)->handle($this->requireOrganization(), $this->range);
+        return app(ContactRepository::class)->getExpiring($this->requireOrganization(), $this->range);
     }
 
     /**
@@ -118,7 +115,7 @@ class Dashboard extends Component
     #[Computed]
     public function recentMembers(): Collection
     {
-        return app(ListRecentMembers::class)->handle($this->requireOrganization(), $this->range);
+        return app(MembershipRepository::class)->getRecent($this->requireOrganization(), $this->range);
     }
 
     /**

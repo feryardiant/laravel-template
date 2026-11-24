@@ -11,6 +11,7 @@ use App\Events\Contacts\ContactDeleted;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
+use App\Repositories\ContactRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
@@ -21,7 +22,7 @@ final class DeleteContact
 {
     public function __construct(
         private FileStorage $fileStorage,
-        private FindContact $findContact,
+        private ContactRepository $contacts,
         private RelationshipTimeline $timeline,
     ) {
         // .
@@ -38,7 +39,7 @@ final class DeleteContact
      */
     public function handle(Organization $tenant, int $contactId, bool $cleanupFiles = true, ?User $actor = null): array
     {
-        $contact = $this->findContact->byId($tenant, $contactId);
+        $contact = $this->contacts->findById($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
         if ($stakeholder === null) {

@@ -16,6 +16,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ContactRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ final class UpdateContact
     public function __construct(
         private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
-        private FindContact $findContact,
+        private ContactRepository $contacts,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
         private EnsureExternalRole $ensureExternalRole,
@@ -56,7 +57,7 @@ final class UpdateContact
         bool $validatedSharedFieldsLocked = false,
         ?User $actor = null,
     ): void {
-        $contact = $this->findContact->byId($tenant, $contactId);
+        $contact = $this->contacts->findById($tenant, $contactId);
         $stakeholder = $contact->stakeholder;
 
         if ($stakeholder === null) {

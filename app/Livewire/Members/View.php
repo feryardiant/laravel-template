@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ChangeMemberRole;
-use App\Actions\Memberships\FindMember;
-use App\Actions\Relationships\ListRelationshipPeriods;
 use App\Enums\ContactDetailType;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\MembershipRepository;
+use App\Repositories\RelationshipRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
@@ -42,7 +42,11 @@ class View extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->person = app(FindMember::class)->inOrganization($organization, $person->getKey(), ['user']);
+        $member = app(MembershipRepository::class)->findInOrganization($organization, $person->getKey(), ['user']);
+
+        abort_if($member === null, 404);
+
+        $this->person = $member;
     }
 
     public function render(): ViewContract
@@ -50,7 +54,9 @@ class View extends Component
         $organization = $this->requireOrganization();
 
         // mount() only runs once; a later request must not render a removed member.
-        $member = app(FindMember::class)->inOrganization($organization, $this->person->getKey());
+        $member = app(MembershipRepository::class)->findInOrganization($organization, $this->person->getKey());
+
+        abort_if($member === null, 404);
 
         $role = $member->roleIn($organization);
         $canManage = Gate::allows('manageMember', [$member, $organization])
@@ -87,7 +93,7 @@ class View extends Component
     #[Computed]
     public function history(): Collection
     {
-        return app(ListRelationshipPeriods::class)->forMember($this->requireOrganization(), $this->person);
+        return app(RelationshipRepository::class)->getForMember($this->requireOrganization(), $this->person);
     }
 
     /**

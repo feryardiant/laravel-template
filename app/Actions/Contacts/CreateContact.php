@@ -20,6 +20,7 @@ use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ContactRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -33,7 +34,7 @@ final class CreateContact
     public function __construct(
         private SaveAddress $saveAddress,
         private FileStorage $fileStorage,
-        private FindContact $findContact,
+        private ContactRepository $contacts,
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
         private CreatePerson $createPerson,
@@ -56,7 +57,7 @@ final class CreateContact
 
         if (\is_string($reference) && $reference !== '') {
             return DB::transaction(function () use ($tenant, $reference, $role, $data, $actor): Entity {
-                $stakeholder = $this->findContact->byReference($tenant, $reference);
+                $stakeholder = $this->contacts->findByReference($tenant, $reference);
 
                 // Lock the shared entity so concurrent reuse cannot attach it twice.
                 $stakeholder->newQuery()

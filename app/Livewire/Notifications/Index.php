@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Notifications;
 
-use App\Actions\Notifications\CountUnreadNotifications;
-use App\Actions\Notifications\FindNotification;
-use App\Actions\Notifications\ListNotifications;
 use App\Actions\Notifications\MarkNotificationsAsRead;
 use App\Models\User;
+use App\Repositories\NotificationRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -54,7 +52,7 @@ class Index extends Component
 
         /** @disregard P1013 */
         return view('livewire.notifications.index', [
-            'notifications' => app(ListNotifications::class)->paginate($user, $this->sortAscending),
+            'notifications' => app(NotificationRepository::class)->get($user, $this->sortAscending),
         ])->title(__('Notifications'));
     }
 
@@ -71,7 +69,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        return app(FindNotification::class)->handle($user, $this->selectedNotificationId);
+        return app(NotificationRepository::class)->find($user, $this->selectedNotificationId);
     }
 
     /**
@@ -101,7 +99,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $notification = app(FindNotification::class)->handle($user, $id);
+        $notification = app(NotificationRepository::class)->find($user, $id);
 
         if ($notification === null) {
             return;
@@ -249,7 +247,7 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $this->dispatch('notifications-updated', count: app(CountUnreadNotifications::class)->total($user));
+        $this->dispatch('notifications-updated', count: app(NotificationRepository::class)->countUnread($user));
     }
 
     /**
@@ -260,6 +258,6 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        return app(ListNotifications::class)->idsOnPage($user, $this->sortAscending, $this->getPage());
+        return app(NotificationRepository::class)->getIdsOnPage($user, $this->sortAscending, $this->getPage());
     }
 }

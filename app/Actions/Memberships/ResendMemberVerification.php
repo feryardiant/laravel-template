@@ -7,6 +7,8 @@ namespace App\Actions\Memberships;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Notifications\VerifyEmailForNewUser;
+use App\Repositories\MembershipRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -15,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 final class ResendMemberVerification
 {
     public function __construct(
-        private FindMember $findMember,
+        private MembershipRepository $memberships,
     ) {
         // .
     }
@@ -25,7 +27,8 @@ final class ResendMemberVerification
      */
     public function handle(Organization $organization, int $personId): Person
     {
-        $person = $this->findMember->inOrganization($organization, $personId, ['user']);
+        $person = $this->memberships->findInOrganization($organization, $personId, ['user'])
+            ?? throw (new ModelNotFoundException)->setModel(Person::class);
 
         if ($person->user === null || $person->user->hasVerifiedEmail()) {
             throw ValidationException::withMessages([

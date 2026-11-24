@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings\Organizations;
 
-use App\Actions\Organizations\FindUserOrganization;
 use App\Jobs\DeleteOrganization;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\User;
+use App\Repositories\OrganizationRepository;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -93,7 +93,9 @@ class Remove extends Component
 
         abort_if(! $user instanceof User, 403);
 
-        $organization = app(FindUserOrganization::class)->handle($user, $organizationId);
+        $organization = app(OrganizationRepository::class)->findUser($user, $organizationId);
+
+        abort_if($organization === null, 404);
 
         $this->authorize('deleteOwn', $organization);
 

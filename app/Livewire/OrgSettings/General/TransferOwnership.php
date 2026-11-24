@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings\General;
 
 use App\Actions\Approvals\CancelApproval;
-use App\Actions\Approvals\FindApproval;
 use App\Actions\Approvals\OwnershipTransfer;
-use App\Actions\Memberships\ListCredentialedMembers;
 use App\Enums\ApprovalRequestType;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
 use App\Models\Person;
 use App\Models\User;
+use App\Repositories\ApprovalRepository;
+use App\Repositories\MembershipRepository;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -58,7 +58,7 @@ class TransferOwnership extends Component
             return new Collection;
         }
 
-        return app(ListCredentialedMembers::class)->handle($organization, $owner->getKey(), activeOnly: true);
+        return app(MembershipRepository::class)->getCredentialed($organization, $owner->getKey(), activeOnly: true);
     }
 
     /**
@@ -75,7 +75,7 @@ class TransferOwnership extends Component
 
         $this->authorize('transferOwnership', $organization);
 
-        return app(FindApproval::class)->pendingForOrganization($organization);
+        return app(ApprovalRepository::class)->findPendingForOrganization($organization);
     }
 
     /**

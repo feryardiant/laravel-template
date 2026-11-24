@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Actions\FileStorage;
-use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\ApprovalRequestStatus;
 use App\Models\ApprovalRequest;
 use App\Models\AuditLog;
@@ -13,6 +12,7 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
 use App\Notifications\OrganizationDeletedNotification;
+use App\Repositories\OrganizationRepository;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,8 +57,8 @@ final class DeleteOrganization implements ShouldQueue
             return;
         }
 
-        $branch = app(ListSubsidiaries::class)
-            ->handle($organization)
+        $branch = app(OrganizationRepository::class)
+            ->getSubsidiaries($organization)
             ->pluck('organization')
             ->prepend($organization)
             ->all();

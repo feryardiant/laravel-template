@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\OrgSettings;
 
-use App\Actions\Organizations\ListSubsidiaries;
 use App\Enums\SubsidiaryKind;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
+use App\Repositories\OrganizationRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -77,7 +77,7 @@ class Subsidiaries extends Component
 
         $this->authorize('viewSubsidiaries', $organization);
 
-        return app(ListSubsidiaries::class)->handle($organization);
+        return app(OrganizationRepository::class)->getSubsidiaries($organization);
     }
 
     /**

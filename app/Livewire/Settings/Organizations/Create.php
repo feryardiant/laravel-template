@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\Settings\Organizations;
 
 use App\Actions\Organizations\CreateOrganization;
-use App\Actions\Organizations\ListCreatableParents;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\SubsidiaryKind;
 use App\Models\Organization;
 use App\Models\User;
+use App\Repositories\OrganizationRepository;
 use App\Support\CurrentOrganization;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -89,7 +89,7 @@ class Create extends Component
         $user = Auth::user();
 
         return $user instanceof User
-            ? app(ListCreatableParents::class)->handle($user, $this->internal)
+            ? app(OrganizationRepository::class)->getCreatable($user, $this->internal)
             : collect();
     }
 
