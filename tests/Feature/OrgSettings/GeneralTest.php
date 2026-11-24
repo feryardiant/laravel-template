@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
@@ -173,6 +174,7 @@ it('keeps the organization logo when removal fails', function () {
 
     expect($organization->fresh()->getRawOriginal('logo_url'))->toBe('logos/blocked');
 
+    /** @var Collection<int, AuditLog> $logs */
     $logs = AuditLog::query()
         ->where('event', AuditEvent::OrganizationUpdated)
         ->orderBy('id')

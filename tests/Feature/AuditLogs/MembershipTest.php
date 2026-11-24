@@ -31,6 +31,7 @@ test('adding a member records the opened period', function () {
 
     app(CreateMember::class)->handle($organization, 'Invited Member', Role::Member, actor: $owner);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::MemberAdded)->sole();
 
     expect($log->actor_id)->toBe($owner->getKey())
@@ -47,6 +48,7 @@ test('a role change records the actor and both roles', function () {
 
     app(ChangeMemberRole::class)->promote($organization, $member->person, $owner);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::MemberRoleChanged)->sole();
 
     expect($log->organization_id)->toBe($organization->getKey())
@@ -78,6 +80,7 @@ test('a manager removal records the acting manager', function () {
 
     app(RemoveMember::class)->handle($organization, $member->person, $owner);
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::MemberRemoved)->sole();
 
     expect($log->actor_id)->toBe($owner->getKey())
@@ -124,6 +127,7 @@ test('a self leave records the user as the actor', function () {
 
     expect(app(LeaveOrganization::class)->handle($member, $organization))->toBeTrue();
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::MemberLeft)->sole();
     $period = OrganizationRelationshipPeriod::query()->findOrFail($log->organization_relationship_period_id);
 
@@ -145,6 +149,7 @@ test('an accepted admin leave records the approval and the leave', function () {
     expect(app(MembershipLeave::class)->accept($request, $owner))->toBeTrue();
 
     $accepted = AuditLog::query()->where('event', AuditEvent::ApprovalAccepted)->sole();
+    /** @var AuditLog $left */
     $left = AuditLog::query()->where('event', AuditEvent::MemberLeft)->sole();
     $requested = AuditLog::query()->where('event', AuditEvent::ApprovalRequested)->sole();
     $period = OrganizationRelationshipPeriod::query()->findOrFail($left->organization_relationship_period_id);

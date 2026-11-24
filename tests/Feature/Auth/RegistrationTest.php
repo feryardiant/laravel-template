@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Feature\Registration;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
@@ -230,7 +231,7 @@ test('registration is throttled per ip', function () {
             'password_confirmation' => 'password',
         ])->assertRedirect(route('dashboard', absolute: false));
 
-        auth()->logout();
+        Auth::logout();
     }
 
     post(route('register.store'), [

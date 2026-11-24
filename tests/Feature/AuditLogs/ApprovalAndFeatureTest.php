@@ -41,6 +41,7 @@ test('an ownership transfer request, acceptance, decline, and cancellation are r
 
     expect(app(OwnershipTransfer::class)->accept($request, $recipient))->toBeTrue();
 
+    /** @var AuditLog $requested */
     $requested = AuditLog::query()->where('event', AuditEvent::ApprovalRequested)->sole();
     $accepted = AuditLog::query()->where('event', AuditEvent::ApprovalAccepted)->sole();
 
@@ -177,6 +178,7 @@ test('a membership leave decline and cancellation are recorded', function () {
 
     expect(app(MembershipLeave::class)->decline($request, $owner))->toBeTrue();
 
+    /** @var AuditLog $declined */
     $declined = AuditLog::query()->where('event', AuditEvent::ApprovalDeclined)->sole();
 
     expect($declined->actor_id)->toBe($owner->getKey())
@@ -203,6 +205,7 @@ test('demoting an admin audits the canceled leave request', function () {
 
     app(ChangeMemberRole::class)->demote($organization, $admin->person, $owner);
 
+    /** @var AuditLog $canceled */
     $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
     expect($canceled->actor_id)->toBe($owner->getKey())
@@ -221,6 +224,7 @@ test('removing an admin audits the canceled leave request', function () {
 
     app(RemoveMember::class)->handle($organization, $admin->person, $owner);
 
+    /** @var AuditLog $canceled */
     $canceled = AuditLog::query()->where('event', AuditEvent::ApprovalCanceled)->sole();
 
     expect($canceled->actor_id)->toBe($owner->getKey())
@@ -271,6 +275,7 @@ test('each feature toggle records the feature and its state', function (string $
         ->set($property, $enabled)
         ->assertHasNoErrors();
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::FeatureToggled)->sole();
 
     expect($log->organization_id)->toBe($root->getKey())

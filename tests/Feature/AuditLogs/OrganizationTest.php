@@ -33,6 +33,7 @@ test('creating an organization records the parent and kind', function () {
         kind: SubsidiaryKind::Branch,
     );
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::OrganizationCreated)->sole();
 
     expect($log->organization_id)->toBe($organization->getKey())
@@ -59,6 +60,7 @@ test('updating an organization records the changed field names', function () {
         ->call('update')
         ->assertHasNoErrors();
 
+    /** @var AuditLog $log */
     $log = AuditLog::query()->where('event', AuditEvent::OrganizationUpdated)->sole();
 
     expect($log->actor_id)->toBe($owner->getKey())

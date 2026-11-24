@@ -746,6 +746,7 @@ test('an organization contact person email and phone are editable and clearable'
         ->call('save')
         ->assertHasNoErrors();
 
+    /** @disregard P1006 */
     expect($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Email))->toBe('person@acme.test')
         ->and($contactPerson?->fresh()?->contactDetailValue(ContactDetailType::Phone))->toBe('0812 444')
         ->and(AuditLog::query()->where('event', AuditEvent::ContactUpdated)->sole()->changes?->toArray())
