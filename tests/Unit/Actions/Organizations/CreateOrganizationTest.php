@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Actions\Contacts\CreateContactOrganization;
+use App\Actions\Organizations\CreateOrganization;
 use App\Enums\Gender;
 use App\Models\Organization;
 use App\Models\User;
@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('creates the organization and its primary contact', function () {
-    $organization = app(CreateContactOrganization::class)->handle(
+it('creates the contact organization and its primary contact', function () {
+    $organization = app(CreateOrganization::class)->contact(
         name: 'Acme',
         contactName: 'Jane Doe',
         summary: 'Summary',
@@ -28,10 +28,10 @@ it('creates the organization and its primary contact', function () {
         ->and($organization->primaryContact?->summary)->toBe('Contact summary');
 });
 
-it('assigns the owner to the organization and its contact', function () {
+it('assigns the owner to the contact organization and its contact', function () {
     $owner = Organization::factory()->create();
 
-    $organization = app(CreateContactOrganization::class)->handle(
+    $organization = app(CreateOrganization::class)->contact(
         name: 'Acme',
         contactName: 'Jane Doe',
         owner: $owner,
@@ -44,7 +44,7 @@ it('assigns the owner to the organization and its contact', function () {
 it('reuses the given user for the primary contact', function () {
     $user = User::factory()->create();
 
-    $organization = app(CreateContactOrganization::class)->handle(
+    $organization = app(CreateOrganization::class)->contact(
         name: 'Acme',
         contactName: 'Jane Doe',
         user: $user,

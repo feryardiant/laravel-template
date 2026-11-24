@@ -6,6 +6,7 @@ namespace App\Actions\Contacts;
 
 use App\Actions\Addresses\SaveAddress;
 use App\Actions\FileStorage;
+use App\Actions\Organizations\CreateOrganization;
 use App\Actions\People\CreatePerson;
 use App\Actions\Relationships\RelationshipTimeline;
 use App\Enums\ContactDetailType;
@@ -33,7 +34,7 @@ final class CreateContact
         private RelationshipTimeline $timeline,
         private SaveContactDetails $saveContactDetails,
         private CreatePerson $createPerson,
-        private CreateContactOrganization $createContactOrganization,
+        private CreateOrganization $createOrganization,
         private EnsureExternalRole $ensureExternalRole,
     ) {
         // .
@@ -106,7 +107,7 @@ final class CreateContact
         try {
             return DB::transaction(function () use ($tenant, $data, $role, $photoPath, $actor): Entity {
                 $stakeholder = ($data['type'] ?? 'individual') === 'organization'
-                    ? $this->createContactOrganization->handle(
+                    ? $this->createOrganization->contact(
                         name: $data['name'],
                         user: $data['user'] ?? null,
                         contactName: $data['contact_name'],
