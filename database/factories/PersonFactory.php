@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 /**
  * Factory for person records.
  *
+ * Build a person for a fresh credential with `->for(User::factory()->withoutProfile())`:
+ * a plain user factory already stamps a default profile and the relation would collide.
+ *
  * @extends Factory<Person>
  */
 class PersonFactory extends Factory
