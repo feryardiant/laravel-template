@@ -1,6 +1,6 @@
 @props(['heading' => '', 'subheading' => '', 'width' => 'max-w-lg'])
 
-@php($organization = app(\App\Support\CurrentOrganization::class)->get(auth()->user()))
+@php($organization = app(\App\Support\CurrentOrganization::class)->get())
 
 <x-page.nav :$heading :$subheading :$width>
     <x-slot:nav>

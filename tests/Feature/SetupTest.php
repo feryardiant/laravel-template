@@ -38,7 +38,7 @@ test('setup is required while the seeded user exists and no root tenant does', f
 
     expect($provisioning->isRequired())->toBeFalse();
 
-    User::factory()->create(['email' => config('setup.initial_email')]);
+    User::factory()->withoutProfile()->create(['email' => config('setup.initial_email')]);
 
     expect($provisioning->isRequired())->toBeTrue();
 
@@ -51,20 +51,20 @@ test('setup is skipped in local and testing environments', function () {
     /** @var TestCase $this */
     $this->app->detectEnvironment(fn () => 'testing');
 
-    User::factory()->create(['email' => config('setup.initial_email')]);
+    User::factory()->withoutProfile()->create(['email' => config('setup.initial_email')]);
 
     expect(app(ProvisionTenant::class)->isRequired())->toBeFalse();
 });
 
 test('the app redirects to setup while pending', function () {
-    User::factory()->create(['email' => config('setup.initial_email')]);
+    User::factory()->withoutProfile()->create(['email' => config('setup.initial_email')]);
 
     get('/')->assertRedirect(route('setup'));
     get(route('dashboard'))->assertRedirect(route('setup'));
 });
 
 test('the setup page renders while pending', function () {
-    User::factory()->create(['email' => config('setup.initial_email')]);
+    User::factory()->withoutProfile()->create(['email' => config('setup.initial_email')]);
 
     get(route('setup'))
         ->assertOk()
@@ -72,7 +72,7 @@ test('the setup page renders while pending', function () {
 });
 
 test('setup provisions the root tenant and owner', function () {
-    $seeded = User::factory()->create([
+    $seeded = User::factory()->withoutProfile()->create([
         'email' => config('setup.initial_email'),
     ]);
 
@@ -117,7 +117,7 @@ test('setup provisions the root tenant and owner', function () {
 });
 
 test('setup rejects the seeded email address', function () {
-    User::factory()->create(['email' => config('setup.initial_email')]);
+    User::factory()->withoutProfile()->create(['email' => config('setup.initial_email')]);
 
     Livewire::test(Setup::class)
         ->set('name', 'Root Owner')

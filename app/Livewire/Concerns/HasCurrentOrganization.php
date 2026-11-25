@@ -57,13 +57,7 @@ trait HasCurrentOrganization
      */
     public function switchOrganization(int $organizationId): void
     {
-        $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
-
-        $organization = Organization::query()->findOrFail($organizationId);
-
-        abort_unless(app(CurrentOrganization::class)->switch($user, $organization), 403);
+        abort_unless(app(CurrentOrganization::class)->switch($organizationId), 403);
 
         $referer = request()->header('Referer');
 

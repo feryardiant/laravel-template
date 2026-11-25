@@ -40,7 +40,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Person $profile
  * @property-read ?Person $person
+ * @property-read ?Organization $defaultOrganization
  */
 #[Fillable(['name', 'handle', 'email', 'password', 'locale', 'timezone', 'avatar_url'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -136,6 +138,26 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
+     * Get the user's person profile.
+     *
+     * @return Attribute<Person, never>
+     */
+    protected function profile(): Attribute
+    {
+        return Attribute::make(get: fn (): Person => $this->resolvedPerson() ?? $this->person()->firstOrFail());
+    }
+
+    /**
+     * Get the user's default workspace.
+     *
+     * @return Attribute<?Organization, never>
+     */
+    protected function defaultOrganization(): Attribute
+    {
+        return Attribute::make(get: fn (): ?Organization => $this->resolvedPerson()?->defaultOrganization());
+    }
+
+    /**
      * Get the organizations the user is currently a member of.
      *
      * @return Collection<int, Organization>
@@ -155,14 +177,6 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         return Str::length($initials) > 1
             ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
             : $initials;
-    }
-
-    /**
-     * Get the user's default workspace.
-     */
-    public function defaultOrganization(): ?Organization
-    {
-        return $this->person?->defaultOrganization();
     }
 
     /**

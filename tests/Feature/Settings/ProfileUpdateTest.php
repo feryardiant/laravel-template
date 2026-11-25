@@ -398,7 +398,7 @@ test('a failed profile save removes the staged avatar', function () {
 
     expect($thrown)->toBeTrue()
         ->and(Storage::disk()->allFiles('avatars'))->toBe([])
-        ->and($user->fresh()?->person)->toBeNull();
+        ->and($user->fresh()?->person?->contactDetailValue(ContactDetailType::Phone))->toBeNull();
 });
 
 test('a failed profile update keeps the previous avatar', function () {

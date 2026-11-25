@@ -1,4 +1,4 @@
-@php($organization = app(\App\Support\CurrentOrganization::class)->get(auth()->user()))
+@php($organization = app(\App\Support\CurrentOrganization::class)->get())
 
 @if ($organization !== null)
     <x-layouts::app.sidebar container:class="p-4" :title="$title ?? null">

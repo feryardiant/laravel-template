@@ -61,16 +61,11 @@ class Organizations extends Component
      */
     public function manage(int $organizationId): void
     {
-        /** @var User|null $user */
-        $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
-
         $organization = app(OrganizationRepository::class)->find($organizationId);
 
         $this->authorize('update', $organization);
 
-        abort_unless(app(CurrentOrganization::class)->switch($user, $organization), 403);
+        abort_unless(app(CurrentOrganization::class)->switch($organization), 403);
 
         $this->redirect(route('org-settings.general'), navigate: true);
     }

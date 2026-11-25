@@ -96,7 +96,7 @@ test('a user-linked contact keeps its shared fields', function () {
 
     $person = contactIndividual($organization, ['name' => 'User Linked Shared']);
     $person->update([
-        'user_id' => User::factory()->create()->getKey(),
+        'user_id' => User::factory()->withoutProfile()->create()->getKey(),
         'owner_organization_id' => $owner->getKey(),
     ]);
     $relationshipId = contactRelationshipId($organization, $person);

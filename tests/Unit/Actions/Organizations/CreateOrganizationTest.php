@@ -42,7 +42,7 @@ it('assigns the owner to the contact organization and its contact', function () 
 });
 
 it('reuses the given user for the primary contact', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withoutProfile()->create();
 
     $organization = app(CreateOrganization::class)->contact(
         name: 'Acme',

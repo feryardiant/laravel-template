@@ -18,40 +18,45 @@ final class CurrentOrganization
     /**
      * Resolve the organization the user is currently working in.
      */
-    public function get(?User $user = null): ?Organization
+    public function get(): ?Organization
     {
         $user = Auth::user();
-        $person = $user?->person;
 
-        if ($person === null) {
+        if (! $user instanceof User) {
             return null;
         }
 
-        $organizationId = session(self::SESSION_KEY);
-
-        if ($organizationId !== null) {
-            $organization = $person->organizations()->whereKey($organizationId)->first();
+        if ($organizationId = session(self::SESSION_KEY)) {
+            $organization = $user->profile->organizations()->whereKey($organizationId)->first();
 
             if ($organization !== null) {
                 return $organization;
             }
         }
 
-        return $person->defaultOrganization() ?? $person->organizations()->first();
+        return $user->defaultOrganization;
     }
 
     /**
      * Store the given organization as the user's current one.
      */
-    public function switch(User $user, Organization $organization): bool
+    public function switch(Organization|int $organization): bool
     {
-        $person = $user->person;
+        $user = Auth::user();
 
-        if ($person === null || ! $person->organizations()->whereKey($organization->getKey())->exists()) {
+        if (! $user instanceof User) {
             return false;
         }
 
-        session([self::SESSION_KEY => $organization->getKey()]);
+        $organization = $organization instanceof Organization
+            ? $organization->getKey()
+            : $organization;
+
+        if (! $user->profile->organizations()->whereKey($organization)->exists()) {
+            return false;
+        }
+
+        session([self::SESSION_KEY => $organization]);
 
         return true;
     }

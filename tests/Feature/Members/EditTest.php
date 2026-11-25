@@ -586,7 +586,7 @@ test('a stale create-credential form does not replace a credential added elsewhe
 
     $form = Livewire::test(Form::class, ['person' => $person]);
 
-    $other = User::factory()->create(['email' => 'other@example.test']);
+    $other = User::factory()->withoutProfile()->create(['email' => 'other@example.test']);
     $person->update(['user_id' => $other->getKey()]);
 
     $form->set('createCredential', true)
@@ -612,7 +612,7 @@ test('a credential attached during the save is preserved', function () {
 
     $form = Livewire::test(Form::class, ['person' => $person]);
 
-    $other = User::factory()->create();
+    $other = User::factory()->withoutProfile()->create();
 
     Person::updating(function (Person $updated) use ($other): void {
         $updated->user_id = $other->getKey();
