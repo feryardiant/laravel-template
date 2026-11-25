@@ -27,7 +27,11 @@ final class CurrentOrganization
         }
 
         if ($organizationId = session(self::SESSION_KEY)) {
-            return $user->profile->organizations()->whereKey($organizationId)->first();
+            $organization = $user->profile->organizations()->whereKey($organizationId)->first();
+
+            if ($organization !== null) {
+                return $organization;
+            }
         }
 
         return $user->defaultOrganization;

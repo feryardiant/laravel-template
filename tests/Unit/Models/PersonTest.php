@@ -45,7 +45,7 @@ it('handles gender enum cast', function () {
 });
 
 it('allows only one person per credential', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withoutProfile()->create();
 
     Person::factory()->create(['user_id' => $user->id]);
 

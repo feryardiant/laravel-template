@@ -27,7 +27,7 @@ it('creates a credential from the email', function () {
 });
 
 it('uses the given user instead of creating a credential', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withoutProfile()->create();
 
     $person = app(CreatePerson::class)->handle(
         'Jane Doe',

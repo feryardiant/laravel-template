@@ -138,13 +138,13 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     }
 
     /**
-     * Get the user's default workspace.
+     * Get the user's person profile.
      *
      * @return Attribute<Person, never>
      */
     protected function profile(): Attribute
     {
-        return Attribute::make(get: fn (): ?Person => $this->resolvedPerson());
+        return Attribute::make(get: fn (): Person => $this->resolvedPerson() ?? $this->person()->firstOrFail());
     }
 
     /**
@@ -154,9 +154,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
      */
     protected function defaultOrganization(): Attribute
     {
-        return Attribute::make(get: function (): ?Organization {
-            return $this->resolvedPerson()?->defaultOrganization()?->first();
-        });
+        return Attribute::make(get: fn (): ?Organization => $this->resolvedPerson()?->defaultOrganization());
     }
 
     /**

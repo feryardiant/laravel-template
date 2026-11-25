@@ -157,7 +157,7 @@ test('deleting an individual contact keeps a user-linked person', function () {
     actingAsMember($organization, Role::Admin);
 
     $person = contactIndividual($organization, ['name' => 'User Linked']);
-    $person->update(['user_id' => User::factory()->create()->getKey()]);
+    $person->update(['user_id' => User::factory()->withoutProfile()->create()->getKey()]);
 
     app(DeleteContact::class)->handle($organization, contactRelationshipId($organization, $person));
 

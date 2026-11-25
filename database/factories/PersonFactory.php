@@ -34,7 +34,7 @@ class PersonFactory extends Factory
 
         return [
             'uuid' => fake()->uuid(),
-            'user_id' => User::factory(),
+            'user_id' => User::factory()->withoutProfile(),
             'name' => fake()->firstName($fakerGender).' '.fake()->lastName($fakerGender),
             'gender' => $gender,
             'summary' => fake()->sentence(),

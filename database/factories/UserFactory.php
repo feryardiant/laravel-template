@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -63,6 +64,31 @@ class UserFactory extends Factory
         }
 
         return $this->has($person, 'person');
+    }
+
+    /**
+     * Give every user a person profile unless the test asked for a specific one.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if ($user->person()->exists()) {
+                return;
+            }
+
+            $user->person()->save(
+                PersonFactory::new()->makeOne(['name' => $user->name])
+            );
+        });
+    }
+
+    /**
+     * Create the user without a person profile.
+     */
+    public function withoutProfile(): static
+    {
+        // shortcut: drops every after-creating callback, revisit if this factory gains another.
+        return $this->newInstance(['afterCreating' => new Collection]);
     }
 
     /**
