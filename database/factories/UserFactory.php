@@ -77,7 +77,7 @@ class UserFactory extends Factory
             }
 
             $user->person()->save(
-                PersonFactory::new()->makeOne(['name' => $user->name])
+                PersonFactory::new()->withoutCredential()->makeOne(['name' => $user->name])
             );
         });
     }
