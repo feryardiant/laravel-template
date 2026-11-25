@@ -58,3 +58,17 @@ it('returns null for guests', function () {
     expect(app(CurrentOrganization::class)->get())->toBeNull()
         ->and(app(CurrentOrganization::class)->switch(1))->toBeFalse();
 });
+
+it('memoizes the current organization for the request', function () {
+    $person = Person::factory()->create();
+    $organization = Organization::factory()->create();
+
+    app(CreateMember::class)->attach($organization, $person, isPrimary: true);
+
+    $this->actingAs($person->user);
+
+    $current = app(CurrentOrganization::class)->get();
+
+    expect($current)->toBeInstanceOf(Organization::class)
+        ->and(app(CurrentOrganization::class)->get())->toBe($current);
+});
