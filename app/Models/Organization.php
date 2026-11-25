@@ -12,7 +12,6 @@ use Creasi\Nusa\Models\Concerns\WithAddress;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,6 +34,7 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, Person> $personCounterparties
  * @property-read Collection<int, Organization> $subsidiaries
  * @property-read Collection<int, Person> $members
+ * @property-read OrganizationRelationship $stakeholder
  *
  * @method static OrganizationBuilder query()
  *
@@ -103,7 +103,7 @@ class Organization extends Entity implements HasAddress
     {
         return $this->morphedByMany($stakeholder, 'stakeholder', 'organization_relationships', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'kind', 'code', 'start_date', 'finish_date');
+            ->withPivot('id', 'type', 'kind', 'code', 'start_date', 'finish_date', 'remark');
     }
 
     /**
@@ -151,7 +151,8 @@ class Organization extends Entity implements HasAddress
     {
         return $this->members()
             ->wherePivot('role', '=', Role::Owner)
-            ->whereHas('user');
+            ->whereHas('user')
+            ->membershipActive();
     }
 
     /**
@@ -211,15 +212,6 @@ class Organization extends Entity implements HasAddress
      */
     public function activeOwnerCount(): int
     {
-        $today = now()->toDateString();
-
-        return $this->members()
-            ->wherePivot('role', Role::Owner->value)
-            ->whereHas('user')
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.start_date')
-                ->orWhere('organization_relationships.start_date', '<=', $today))
-            ->where(fn (Builder $query): Builder => $query->whereNull('organization_relationships.finish_date')
-                ->orWhere('organization_relationships.finish_date', '>=', $today))
-            ->count();
+        return $this->owners()->count();
     }
 }

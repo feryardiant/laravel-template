@@ -36,6 +36,7 @@ use Illuminate\Support\Str;
  * @property-read Collection<int, Person> $relatives
  * @property-read Collection<int, Organization> $organizationRelationships
  * @property-read Collection<int, Organization> $primaryContactOrganizations
+ * @property-read OrganizationRelationship $stakeholder
  *
  * @method static PersonBuilder query()
  *
@@ -95,7 +96,7 @@ class Person extends Entity implements HasAddresses
     {
         return $this->morphToMany(Organization::class, 'stakeholder', 'organization_relationships', 'stakeholder_id', 'organization_id')
             ->using(OrganizationRelationship::class)
-            ->withPivot('type', 'role', 'code', 'start_date', 'finish_date')
+            ->withPivot('id', 'type', 'kind', 'role', 'is_primary', 'code', 'start_date', 'finish_date', 'remark')
             ->as('stakeholder');
     }
 
@@ -117,13 +118,7 @@ class Person extends Entity implements HasAddresses
      */
     public function organizations(): MorphToMany
     {
-        $today = now()->toDateString();
-
-        return $this->memberships()
-            ->where(fn ($query) => $query->whereNull('organization_relationships.start_date')
-                ->orWhere('organization_relationships.start_date', '<=', $today))
-            ->where(fn ($query) => $query->whereNull('organization_relationships.finish_date')
-                ->orWhere('organization_relationships.finish_date', '>=', $today));
+        return $this->memberships()->membershipActive();
     }
 
     /**
@@ -172,9 +167,29 @@ class Person extends Entity implements HasAddresses
 
     /**
      * Get the person's membership row in the organization, active or not.
+     *
+     * Prefers a pivot already loaded through the organization or the person,
+     * so authorization on the current workspace does not query again.
      */
     public function membershipIn(Organization $organization): ?OrganizationRelationship
     {
+        foreach ([$this, $organization] as $model) {
+            foreach (['pivot', 'stakeholder'] as $relation) {
+                if (! $model->relationLoaded($relation)) {
+                    continue;
+                }
+
+                $pivot = $model->getRelation($relation);
+
+                if ($pivot instanceof OrganizationRelationship
+                    && $pivot->type === OrganizationRelationshipType::Member
+                    && (int) $pivot->organization_id === (int) $organization->getKey()
+                    && (int) $pivot->stakeholder_id === (int) $this->getKey()) {
+                    return $pivot;
+                }
+            }
+        }
+
         return OrganizationRelationship::query()
             ->forOrganization($organization)
             ->forStakeholder($this, OrganizationRelationshipType::Member)

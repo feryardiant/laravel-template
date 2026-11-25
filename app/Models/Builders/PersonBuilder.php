@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class PersonBuilder extends Builder
 {
+    use Concerns\ForMembership;
+
     /**
      * Limit the query to people with a login credential.
      */
@@ -31,45 +33,6 @@ final class PersonBuilder extends Builder
             ->whereLike('people.name', "%{$term}%")
             ->orWhereHas('user', fn (Builder $query): Builder => $query
                 ->whereLike('users.email', "%{$term}%")));
-    }
-
-    /**
-     * Limit a members query to memberships that started inside the range.
-     *
-     * Only valid on queries built from a members relation.
-     *
-     * @param  array{start: string, end: string}  $range
-     */
-    public function membershipStartedBetween(array $range): static
-    {
-        return $this->whereDate('organization_relationships.start_date', '>=', $range['start'])
-            ->whereDate('organization_relationships.start_date', '<=', $range['end']);
-    }
-
-    /**
-     * Limit a members query to memberships that have not finished.
-     *
-     * Only valid on queries built from a members relation.
-     */
-    public function membershipNotFinished(): static
-    {
-        return $this->where(fn (Builder $query): Builder => $query
-            ->whereNull('organization_relationships.finish_date')
-            ->orWhereDate('organization_relationships.finish_date', '>=', today()));
-    }
-
-    /**
-     * Limit a members query to memberships active today.
-     *
-     * Only valid on queries built from a members relation.
-     */
-    public function membershipActive(): static
-    {
-        return $this
-            ->where(fn (Builder $query): Builder => $query
-                ->whereNull('organization_relationships.start_date')
-                ->orWhereDate('organization_relationships.start_date', '<=', today()))
-            ->membershipNotFinished();
     }
 
     /**

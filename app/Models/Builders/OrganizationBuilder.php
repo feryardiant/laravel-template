@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class OrganizationBuilder extends Builder
 {
+    use Concerns\ForMembership;
+
     /**
      * Limit the query to root tenant organizations.
      */

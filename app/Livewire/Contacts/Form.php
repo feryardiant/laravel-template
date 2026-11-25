@@ -236,7 +236,7 @@ class Form extends Component
     public function isOrganizationType(): bool
     {
         if ($this->contactId !== null) {
-            return $this->contact?->isOrganization() ?? false;
+            return $this->contact->is_organization ?? false;
         }
 
         if ($this->reusing) {
@@ -511,11 +511,9 @@ class Form extends Component
     {
         $stakeholder = $contact->stakeholder;
 
-        abort_if($stakeholder === null, 404);
-
         $this->contact = $contact;
         $this->contactId = $contact->getKey();
-        $this->type = $contact->isOrganization() ? 'organization' : 'individual';
+        $this->type = $contact->is_organization ? 'organization' : 'individual';
         $this->name = $stakeholder->name;
         $this->summary = (string) $stakeholder->summary;
         $this->gender = $stakeholder instanceof Person ? $stakeholder->gender?->value : null;
