@@ -105,6 +105,7 @@ class OrganizationRelationship extends MorphPivot
             'type' => OrganizationRelationshipType::class,
             'kind' => SubsidiaryKind::class,
             'role' => Role::class,
+            'is_primary' => 'boolean',
             'start_date' => 'immutable_date',
             'finish_date' => 'immutable_date',
         ];
