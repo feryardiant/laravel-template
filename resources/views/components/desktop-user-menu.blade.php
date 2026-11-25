@@ -1,9 +1,10 @@
 @props([
     'position' => 'bottom',
     'align' => 'end',
+    'unreadNotifications' => null,
 ])
 
-@php($unreadNotifications = auth()->user()->unreadNotifications()->count())
+@php($unreadNotifications ??= auth()->user()->unreadNotifications()->count())
 
 <div
     {{ $attributes }}
