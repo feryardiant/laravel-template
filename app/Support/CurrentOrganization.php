@@ -36,15 +36,23 @@ final class CurrentOrganization
     /**
      * Store the given organization as the user's current one.
      */
-    public function switch(User $user, Organization $organization): bool
+    public function switch(Organization|int $organization): bool
     {
-        $person = $user->person;
+        $user = Auth::user();
 
-        if ($person === null || ! $person->organizations()->whereKey($organization->getKey())->exists()) {
+        if (! $user instanceof User) {
             return false;
         }
 
-        session([self::SESSION_KEY => $organization->getKey()]);
+        $organization = $organization instanceof Organization
+            ? $organization->getKey()
+            : $organization;
+
+        if (! $user->profile->organizations()->whereKey($organization)->exists()) {
+            return false;
+        }
+
+        session([self::SESSION_KEY => $organization]);
 
         return true;
     }

@@ -150,7 +150,7 @@ class Create extends Component
         );
 
         if (! $this->internal) {
-            app(CurrentOrganization::class)->switch($user, $organization);
+            app(CurrentOrganization::class)->switch($organization);
         }
 
         $this->reset('showModal', 'name', 'parentId', 'logo', 'kind');
