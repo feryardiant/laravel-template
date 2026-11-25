@@ -72,6 +72,14 @@ final class ChangeMemberRole
 
             $currentRole = $relationship?->role;
 
+            if ($relationship !== null) {
+                // Make the gate read the locked row instead of the pivot loaded earlier.
+                $person->setRelation('pivot', $relationship);
+
+                $organization->unsetRelation('pivot');
+                $organization->unsetRelation('stakeholder');
+            }
+
             if ($currentRole === null
                 || $currentRole === $newRole
                 || ! $this->canAct($organization, $person, $actor, $newRole)) {
