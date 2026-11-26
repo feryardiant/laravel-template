@@ -12,6 +12,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use InvalidArgumentException;
 
+use function Pest\Laravel\actingAs;
+
 uses(RefreshDatabase::class);
 
 it('toggles a feature and records the audit event', function () {
@@ -20,7 +22,7 @@ it('toggles a feature and records the audit event', function () {
     $organization = Organization::factory()->create();
     $actor = User::factory()->asMemberOf($organization)->create();
 
-    $this->actingAs($actor);
+    actingAs($actor);
 
     $changed = app(ToggleFeature::class)->handle(
         $organization,
