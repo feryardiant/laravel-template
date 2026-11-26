@@ -22,6 +22,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use RuntimeException;
 
 use function Pest\Laravel\get;
 
@@ -109,6 +110,26 @@ test('deleting a contact removes its stored photo', function () {
 
     /** @disregard */
     Storage::disk()->assertMissing('photos/delete.jpg');
+});
+
+test('a contact deletion still refreshes the list when file cleanup fails', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Cleanup Fail']);
+    $person->update(['photo_url' => 'photos/fail.jpg']);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Storage::shouldReceive('disk')->andReturnSelf();
+    Storage::shouldReceive('delete')->andThrow(new RuntimeException('Disk unavailable.'));
+
+    Livewire::test(DeleteContactModal::class)
+        ->call('confirm', $relationshipId)
+        ->call('delete')
+        ->assertDispatched('contact-deleted');
+
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
 });
 
 test('bulk deletion deduplicates the selected ids', function () {
