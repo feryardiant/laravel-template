@@ -20,6 +20,12 @@ use function Pest\Laravel\get;
 
 uses(RefreshDatabase::class);
 
+dataset('features', array_reduce(Feature::cases(), function ($cases, Feature $feature) {
+    $cases[$feature->name] = [$feature, Str::camel($feature->value)];
+
+    return $cases;
+}, []));
+
 it('toggles registration for the root tenant', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
@@ -180,11 +186,7 @@ it('rejects a stale page after the current organization changes', function (Feat
         ->assertStatus(409);
 
     expect($feature->enabled($tenantB))->toBe($feature->default());
-})->with(array_reduce(Feature::cases(), function ($cases, Feature $feature) {
-    $cases[$feature->name] = [$feature, Str::camel($feature->value)];
-
-    return $cases;
-}, []));
+})->with('features');
 
 it('is not available without an organization', function () {
     actingAs(User::factory()->withProfile()->create());
@@ -200,14 +202,14 @@ it('forbids plain members', function () {
     Livewire::test(Features::class)->assertForbidden();
 });
 
-it('does not audit a feature toggle that changes nothing', function () {
+it('does not audit a feature toggle that changes nothing', function (Feature $feature, string $field) {
     $organization = Organization::factory()->create();
 
     actingAsMember($organization, Role::Owner);
 
     $component = Livewire::test(Features::class);
 
-    $component->set('memberDeletion', true);
+    $component->set($field, $feature->default());
 
     expect(AuditLog::query()->where('event', AuditEvent::FeatureToggled)->count())->toBe(0);
-});
+})->with('features');
