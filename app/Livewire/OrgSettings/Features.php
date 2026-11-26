@@ -10,6 +10,7 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use Flux\Flux;
 use InvalidArgumentException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -20,15 +21,8 @@ class Features extends Component
 {
     use HasCurrentOrganization;
 
-    public bool $registration = false;
-
-    public bool $contactGender = false;
-
-    public bool $memberDeletion = true;
-
-    public bool $contactDeletion = true;
-
-    public bool $profileSelfEdit = false;
+    /** @var array<string, bool> */
+    public array $features = [];
 
     #[Locked]
     public bool $isRootTenant = false;
@@ -49,85 +43,41 @@ class Features extends Component
 
         $this->organizationId = $organization->getKey();
         $this->isRootTenant = $organization->isRootTenant();
-        $this->registration = $this->isRootTenant && Feature::Registration->enabled();
-        $this->contactGender = Feature::ContactGender->enabled($organization);
-        $this->memberDeletion = Feature::MemberDeletion->enabled($organization);
-        $this->contactDeletion = Feature::ContactDeletion->enabled($organization);
-        $this->profileSelfEdit = Feature::ProfileSelfEdit->enabled($organization);
+
+        foreach ($this->fields() as $feature) {
+            $this->features[$feature->value] = $feature->enabled($organization);
+        }
     }
 
     /**
-     * Toggle public registration for the root tenant.
+     * @return list<Feature>
      */
-    public function updatedRegistration(bool $enabled): void
+    #[Computed]
+    public function fields(): array
     {
-        if (! $this->toggle(Feature::Registration, $enabled)) {
+        return array_values(array_filter(
+            Feature::cases(),
+            fn (Feature $feature): bool => ! $feature->isRootOnly() || $this->isRootTenant,
+        ));
+    }
+
+    public function updatedFeatures(bool $enabled, ?string $key): void
+    {
+        $feature = $key === null ? null : Feature::tryFrom($key);
+
+        if ($feature === null) {
+            return;
+        }
+
+        if (! $this->toggle($feature, $enabled)) {
             return;
         }
 
         Flux::toast(
             variant: 'success',
-            text: $enabled ? __('Registration enabled.') : __('Registration disabled.'),
-        );
-    }
-
-    /**
-     * Toggle self-editing for org-owned profiles.
-     */
-    public function updatedProfileSelfEdit(bool $enabled): void
-    {
-        if (! $this->toggle(Feature::ProfileSelfEdit, $enabled)) {
-            return;
-        }
-
-        Flux::toast(
-            variant: 'success',
-            text: $enabled ? __('Profile self-edit enabled.') : __('Profile self-edit disabled.'),
-        );
-    }
-
-    /**
-     * Toggle the contact gender field for the current tenant.
-     */
-    public function updatedContactGender(bool $enabled): void
-    {
-        if (! $this->toggle(Feature::ContactGender, $enabled)) {
-            return;
-        }
-
-        Flux::toast(
-            variant: 'success',
-            text: $enabled ? __('Contact gender enabled.') : __('Contact gender disabled.'),
-        );
-    }
-
-    /**
-     * Toggle member removal for the current tenant.
-     */
-    public function updatedMemberDeletion(bool $enabled): void
-    {
-        if (! $this->toggle(Feature::MemberDeletion, $enabled)) {
-            return;
-        }
-
-        Flux::toast(
-            variant: 'success',
-            text: $enabled ? __('Member removal enabled.') : __('Member removal disabled.'),
-        );
-    }
-
-    /**
-     * Toggle contact deletion for the current tenant.
-     */
-    public function updatedContactDeletion(bool $enabled): void
-    {
-        if (! $this->toggle(Feature::ContactDeletion, $enabled)) {
-            return;
-        }
-
-        Flux::toast(
-            variant: 'success',
-            text: $enabled ? __('Contact deletion enabled.') : __('Contact deletion disabled.'),
+            text: $enabled
+                ? __(':feature enabled.', ['feature' => $feature->label()])
+                : __(':feature disabled.', ['feature' => $feature->label()]),
         );
     }
 

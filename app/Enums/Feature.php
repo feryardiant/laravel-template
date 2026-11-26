@@ -33,6 +33,20 @@ enum Feature: string
     }
 
     /**
+     * Get the human-readable description for the feature.
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Registration => __('Allow visitors to create an account and a tenant organization.'),
+            self::ContactGender => __('Show this field in contacts form.'),
+            self::ProfileSelfEdit => __('Let org-owned people edit their own name, email, and photo.'),
+            self::MemberDeletion => __('Allow managers to remove members from this workspace.'),
+            self::ContactDeletion => __('Allow managers to delete contacts from this workspace.'),
+        };
+    }
+
+    /**
      * Determine whether the flag lives on the root tenant instead of the current workspace.
      */
     public function isRootOnly(): bool
@@ -56,10 +70,10 @@ enum Feature: string
      */
     public function enabled(?Organization $organization = null): bool
     {
-        $scope = $this->isRootOnly()
-            ? Organization::query()->rootTenant()->first()
-            : $organization;
+        $organization ??= $this->isRootOnly()
+            ? once(fn (): ?Organization => Organization::query()->rootTenant()->first())
+            : null;
 
-        return $scope !== null && PennantFeature::for($scope)->active($this->value);
+        return $organization && PennantFeature::for($organization)->active($this->value);
     }
 }
