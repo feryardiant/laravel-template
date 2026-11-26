@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
+use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Events\Memberships\MemberRemoved;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\Feature\MemberDeletion;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -60,7 +61,7 @@ it('refuses to remove when the tenant disables it', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $member = User::factory()->asMemberOf($organization)->create();
 
-    MemberDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::MemberDeletion);
 
     expect(app(RemoveMember::class)->handle($organization, $member->person, $owner))->toBeFalse()
         ->and($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Settings\Profile;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
-use App\Support\Feature\ContactGender;
-use App\Support\Feature\ProfileSelfEdit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +55,7 @@ test('profile summary and gender live on the person', function () {
     app(CreateMember::class)->attach($organization, $user->person, startDate: now());
     $user->person->update(['owner_organization_id' => $organization->getKey(), 'gender' => null]);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     actingAs($user);
     session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);
@@ -86,7 +86,7 @@ test('an org-owned profile is locked until the workspace enables self-edit', fun
     expect($user->fresh()->person?->name)->not->toBe('Tampered Name')
         ->and($user->fresh()->email)->not->toBe('tampered@example.com');
 
-    ProfileSelfEdit::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ProfileSelfEdit);
 
     Livewire::test(Profile::class)
         ->set('name', 'Updated Name')
@@ -107,7 +107,7 @@ test('gender is only editable once and follows the workspace flag', function () 
         'gender' => Gender::Male,
     ]);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     actingAs($user);
     session([CurrentOrganization::SESSION_KEY => $organization->getKey()]);

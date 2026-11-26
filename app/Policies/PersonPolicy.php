@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesContacts;
 use App\Policies\Concerns\ResolvesMemberRole;
-use App\Support\Feature\MemberDeletion;
 
 /**
  * Authorizes manager actions on the members of an organization.
@@ -59,7 +59,7 @@ class PersonPolicy
     public function removeMember(User $user, Person $person, Organization $organization): bool
     {
         return ! $person->is($user->profile)
-            && MemberDeletion::enabled($organization)
+            && Feature::MemberDeletion->enabled($organization)
             && $this->manageMember($user, $person, $organization);
     }
 }

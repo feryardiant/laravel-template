@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\AuditEvent;
+use App\Enums\Feature;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\User;
-use App\Support\Feature\Registration;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +53,7 @@ test('registration is disabled without a root tenant', function () {
 test('registration screen can be rendered when the root tenant enables it', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     get(route('register'))->assertOk();
 });
@@ -60,7 +61,7 @@ test('registration screen can be rendered when the root tenant enables it', func
 test('new users register as members with a tenant organization owned by their person', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     $response = post(route('register.store'), [
         'name' => 'John Doe',
@@ -125,7 +126,7 @@ test('new users register as members with a tenant organization owned by their pe
 test('registration rejects an email that differs only by case', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     User::factory()->create(['email' => 'test@example.com']);
 
@@ -142,7 +143,7 @@ test('registration rejects an email that differs only by case', function () {
 test('a long name is truncated in the generated organization name', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     post(route('register.store'), [
         'name' => str_repeat('a', 255),
@@ -160,7 +161,7 @@ test('a long name is truncated in the generated organization name', function () 
 test('an array-valued email fails validation instead of crashing', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     post(route('register.store'), [
         'name' => 'Array Email',
@@ -178,7 +179,7 @@ test('the verification screen shows the generated handle', function () {
 
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     post(route('register.store'), [
         'name' => 'Verify Handle',
@@ -202,7 +203,7 @@ test('the verification mail includes the generated handle', function () {
 
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     post(route('register.store'), [
         'name' => 'Mail Handle',
@@ -221,7 +222,7 @@ test('the verification mail includes the generated handle', function () {
 test('registration is throttled per ip', function () {
     $root = Organization::factory()->asRootTenant()->create();
 
-    Registration::activate($root);
+    app(ToggleFeature::class)->activate($root, Feature::Registration);
 
     for ($i = 1; $i <= 3; $i++) {
         post(route('register.store'), [

@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -12,7 +14,6 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Support\CurrentOrganization;
-use App\Support\Feature\ContactGender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -56,7 +57,7 @@ test('the contact view page shows an individual gender', function () {
 
     actingAsMember($organization, Role::Member);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $person = contactIndividual($organization, [
         'name' => 'Gendered Individual',

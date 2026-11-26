@@ -8,6 +8,7 @@ use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\UpdateContact;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -16,7 +17,6 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Repositories\ContactRepository;
-use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -147,7 +147,7 @@ class Form extends Component
     {
         Gate::authorize('createContact', $this->requireOrganization());
 
-        $this->genderEnabled = ContactGender::enabled($this->currentOrganization());
+        $this->genderEnabled = Feature::ContactGender->enabled($this->currentOrganization());
 
         $this->reset(
             'contactId',
@@ -203,7 +203,7 @@ class Form extends Component
 
         Gate::authorize('updateContact', [$contact->stakeholder, $organization]);
 
-        $this->genderEnabled = ContactGender::enabled($organization);
+        $this->genderEnabled = Feature::ContactGender->enabled($organization);
 
         $this->fillFrom($contact);
         $this->showModal = true;
@@ -352,7 +352,7 @@ class Form extends Component
     {
         $organization = $this->requireOrganization();
 
-        $this->genderEnabled = ContactGender::enabled($organization);
+        $this->genderEnabled = Feature::ContactGender->enabled($organization);
 
         if ($this->contactId !== null) {
             abort_if($this->contact === null, 404);

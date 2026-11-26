@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\Members;
 
 use App\Actions\Memberships\ResendMemberVerification;
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Repositories\MembershipRepository;
-use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -56,7 +56,7 @@ class Index extends Component
             'organization' => $organization,
             'currentRole' => $this->currentRole(),
             'canManage' => $organization !== null && Gate::allows('manageMembers', $organization),
-            'canDeleteMembers' => MemberDeletion::enabled($organization),
+            'canDeleteMembers' => Feature::MemberDeletion->enabled($organization),
         ])->title(__('Members'));
     }
 

@@ -102,7 +102,7 @@
                         <flux:heading>{{ $role?->label() ?? '—' }}</flux:heading>
                     </div>
 
-                    @if (\App\Support\Feature\ContactGender::enabled($organization))
+                    @if (\App\Enums\Feature::ContactGender->enabled($organization))
                         <div>
                             <flux:text>{{ __('Gender') }}</flux:text>
                             <flux:heading>{{ $person->gender?->label() ?? '—' }}</flux:heading>

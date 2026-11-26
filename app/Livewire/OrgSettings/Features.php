@@ -5,16 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\OrgSettings;
 
 use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
-use App\Models\User;
-use App\Support\Feature\ContactDeletion;
-use App\Support\Feature\ContactGender;
-use App\Support\Feature\MemberDeletion;
-use App\Support\Feature\ProfileSelfEdit;
-use App\Support\Feature\Registration;
 use Flux\Flux;
-use Illuminate\Support\Facades\Auth;
+use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -54,11 +49,11 @@ class Features extends Component
 
         $this->organizationId = $organization->getKey();
         $this->isRootTenant = $organization->isRootTenant();
-        $this->registration = $this->isRootTenant && Registration::enabled();
-        $this->contactGender = ContactGender::enabled($organization);
-        $this->memberDeletion = MemberDeletion::enabled($organization);
-        $this->contactDeletion = ContactDeletion::enabled($organization);
-        $this->profileSelfEdit = ProfileSelfEdit::enabled($organization);
+        $this->registration = $this->isRootTenant && Feature::Registration->enabled();
+        $this->contactGender = Feature::ContactGender->enabled($organization);
+        $this->memberDeletion = Feature::MemberDeletion->enabled($organization);
+        $this->contactDeletion = Feature::ContactDeletion->enabled($organization);
+        $this->profileSelfEdit = Feature::ProfileSelfEdit->enabled($organization);
     }
 
     /**
@@ -66,14 +61,7 @@ class Features extends Component
      */
     public function updatedRegistration(bool $enabled): void
     {
-        $organization = $this->currentOrganization();
-
-        abort_if($organization === null || ! $organization->isRootTenant(), 404);
-        abort_if($organization->getKey() !== $this->organizationId, 409);
-
-        $this->authorize('manageFeatures', $organization);
-
-        if (! $this->toggle($organization, Registration::class, $enabled)) {
+        if (! $this->toggle(Feature::Registration, $enabled)) {
             return;
         }
 
@@ -88,14 +76,7 @@ class Features extends Component
      */
     public function updatedProfileSelfEdit(bool $enabled): void
     {
-        $organization = $this->currentOrganization();
-
-        abort_if($organization === null, 404);
-        abort_if($organization->getKey() !== $this->organizationId, 409);
-
-        $this->authorize('manageFeatures', $organization);
-
-        if (! $this->toggle($organization, ProfileSelfEdit::class, $enabled)) {
+        if (! $this->toggle(Feature::ProfileSelfEdit, $enabled)) {
             return;
         }
 
@@ -110,14 +91,7 @@ class Features extends Component
      */
     public function updatedContactGender(bool $enabled): void
     {
-        $organization = $this->currentOrganization();
-
-        abort_if($organization === null, 404);
-        abort_if($organization->getKey() !== $this->organizationId, 409);
-
-        $this->authorize('manageFeatures', $organization);
-
-        if (! $this->toggle($organization, ContactGender::class, $enabled)) {
+        if (! $this->toggle(Feature::ContactGender, $enabled)) {
             return;
         }
 
@@ -132,14 +106,7 @@ class Features extends Component
      */
     public function updatedMemberDeletion(bool $enabled): void
     {
-        $organization = $this->currentOrganization();
-
-        abort_if($organization === null, 404);
-        abort_if($organization->getKey() !== $this->organizationId, 409);
-
-        $this->authorize('manageFeatures', $organization);
-
-        if (! $this->toggle($organization, MemberDeletion::class, $enabled)) {
+        if (! $this->toggle(Feature::MemberDeletion, $enabled)) {
             return;
         }
 
@@ -154,14 +121,7 @@ class Features extends Component
      */
     public function updatedContactDeletion(bool $enabled): void
     {
-        $organization = $this->currentOrganization();
-
-        abort_if($organization === null, 404);
-        abort_if($organization->getKey() !== $this->organizationId, 409);
-
-        $this->authorize('manageFeatures', $organization);
-
-        if (! $this->toggle($organization, ContactDeletion::class, $enabled)) {
+        if (! $this->toggle(Feature::ContactDeletion, $enabled)) {
             return;
         }
 
@@ -171,19 +131,20 @@ class Features extends Component
         );
     }
 
-    /**
-     * @param  class-string<Registration|ProfileSelfEdit|ContactGender|MemberDeletion|ContactDeletion>  $flag
-     */
-    private function toggle(Organization $organization, string $flag, bool $enabled): bool
+    private function toggle(Feature $feature, bool $enabled): bool
     {
-        /** @var User $actor */
-        $actor = Auth::user();
+        $organization = $this->requireOrganization([
+            404 => static fn (?Organization $organization): bool => $organization === null,
+            409 => fn (?Organization $organization): bool => $organization?->getKey() !== $this->organizationId,
+        ]);
 
-        return app(ToggleFeature::class)->handle(
-            $organization,
-            $flag,
-            $enabled,
-            $actor,
-        );
+        $this->authorize('manageFeatures', $organization);
+
+        try {
+            return app(ToggleFeature::class)->handle($organization, $feature, $enabled);
+        } catch (InvalidArgumentException) {
+            // ToggleFeature only throws this for a root-only flag on a child tenant.
+            abort(404);
+        }
     }
 }

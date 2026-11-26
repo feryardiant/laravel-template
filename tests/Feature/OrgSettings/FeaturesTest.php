@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\AuditEvent;
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Livewire\OrgSettings\Features;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
-use App\Support\Feature\ContactDeletion;
-use App\Support\Feature\ContactGender;
-use App\Support\Feature\MemberDeletion;
-use App\Support\Feature\ProfileSelfEdit;
-use App\Support\Feature\Registration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -34,14 +31,14 @@ it('toggles registration for the root tenant', function () {
         ->set('registration', true)
         ->assertHasNoErrors();
 
-    expect(Registration::enabled())->toBeTrue();
+    expect(Feature::Registration->enabled())->toBeTrue();
 
     Livewire::test(Features::class)
         ->assertSet('registration', true)
         ->set('registration', false)
         ->assertHasNoErrors();
 
-    expect(Registration::enabled())->toBeFalse();
+    expect(Feature::Registration->enabled())->toBeFalse();
 });
 
 it('toggles contact gender for any tenant', function () {
@@ -56,21 +53,21 @@ it('toggles contact gender for any tenant', function () {
         ->set('contactGender', true)
         ->assertHasNoErrors();
 
-    expect(ContactGender::enabled($tenant))->toBeTrue();
+    expect(Feature::ContactGender->enabled($tenant))->toBeTrue();
 
     Livewire::test(Features::class)
         ->assertSet('contactGender', true)
         ->set('contactGender', false)
         ->assertHasNoErrors();
 
-    expect(ContactGender::enabled($tenant))->toBeFalse();
+    expect(Feature::ContactGender->enabled($tenant))->toBeFalse();
 });
 
 it('enables member and contact deletion by default', function () {
     $organization = Organization::factory()->create();
 
-    expect(MemberDeletion::enabled($organization))->toBeTrue()
-        ->and(ContactDeletion::enabled($organization))->toBeTrue();
+    expect(Feature::MemberDeletion->enabled($organization))->toBeTrue()
+        ->and(Feature::ContactDeletion->enabled($organization))->toBeTrue();
 });
 
 it('toggles member and contact deletion per tenant', function () {
@@ -84,19 +81,19 @@ it('toggles member and contact deletion per tenant', function () {
 
     $component->set('memberDeletion', false)->set('contactDeletion', false)->assertHasNoErrors();
 
-    expect(MemberDeletion::enabled($organization))->toBeFalse()
-        ->and(ContactDeletion::enabled($organization))->toBeFalse();
+    expect(Feature::MemberDeletion->enabled($organization))->toBeFalse()
+        ->and(Feature::ContactDeletion->enabled($organization))->toBeFalse();
 
     $component->set('memberDeletion', true)->set('contactDeletion', true);
 
-    expect(MemberDeletion::enabled($organization))->toBeTrue()
-        ->and(ContactDeletion::enabled($organization))->toBeTrue();
+    expect(Feature::MemberDeletion->enabled($organization))->toBeTrue()
+        ->and(Feature::ContactDeletion->enabled($organization))->toBeTrue();
 });
 
 it('toggles profile self-edit per tenant', function () {
     $organization = Organization::factory()->create();
 
-    expect(ProfileSelfEdit::enabled($organization))->toBeFalse();
+    expect(Feature::ProfileSelfEdit->enabled($organization))->toBeFalse();
 
     actingAsMember($organization, Role::Owner);
 
@@ -105,11 +102,11 @@ it('toggles profile self-edit per tenant', function () {
         ->set('profileSelfEdit', true)
         ->assertHasNoErrors();
 
-    expect(ProfileSelfEdit::enabled($organization))->toBeTrue();
+    expect(Feature::ProfileSelfEdit->enabled($organization))->toBeTrue();
 
     $component->set('profileSelfEdit', false);
 
-    expect(ProfileSelfEdit::enabled($organization))->toBeFalse();
+    expect(Feature::ProfileSelfEdit->enabled($organization))->toBeFalse();
 });
 
 it('forbids members from opening the features tab', function () {
@@ -158,10 +155,10 @@ it('forbids non-root managers from toggling registration', function () {
         ->set('registration', true)
         ->assertNotFound();
 
-    expect(Registration::enabled())->toBeFalse();
+    expect(Feature::Registration->enabled())->toBeFalse();
 });
 
-it('rejects a stale page after the current organization changes', function () {
+it('rejects a stale page after the current organization changes', function (Feature $feature, string $field) {
     $root = Organization::factory()->asRootTenant()->create();
     $tenantA = Organization::factory()->asTenantOf($root)->create();
     $tenantB = Organization::factory()->asTenantOf($root)->create();
@@ -174,16 +171,20 @@ it('rejects a stale page after the current organization changes', function () {
 
     session([CurrentOrganization::SESSION_KEY => $tenantA->getKey()]);
 
-    $component = Livewire::test(Features::class);
+    $page = Livewire::test(Features::class);
 
     session([CurrentOrganization::SESSION_KEY => $tenantB->getKey()]);
 
-    $component
-        ->set('contactGender', true)
+    $page
+        ->set($field, ! $feature->default())
         ->assertStatus(409);
 
-    expect(ContactGender::enabled($tenantB))->toBeFalse();
-});
+    expect($feature->enabled($tenantB))->toBe($feature->default());
+})->with(array_reduce(Feature::cases(), function ($cases, Feature $feature) {
+    $cases[$feature->name] = [$feature, Str::camel($feature->value)];
+
+    return $cases;
+}, []));
 
 it('is not available without an organization', function () {
     actingAs(User::factory()->withProfile()->create());

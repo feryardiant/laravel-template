@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\Feature;
 use App\Models\Organization;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesContacts;
 use App\Policies\Concerns\ResolvesMemberRole;
 use App\Repositories\OrganizationRepository;
-use App\Support\Feature\ContactDeletion;
 
 /**
  * Authorizes the settings, membership, and contact actions of an organization.
@@ -136,7 +136,7 @@ class OrganizationPolicy
      */
     public function deleteAnyContact(User $user, Organization $organization): bool
     {
-        return ContactDeletion::enabled($organization)
+        return Feature::ContactDeletion->enabled($organization)
             && $this->isManager($user, $organization);
     }
 }

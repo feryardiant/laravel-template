@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\SaveContactDetails;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -14,7 +16,6 @@ use App\Models\ContactDetail;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
-use App\Support\Feature\ContactGender;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -79,7 +80,7 @@ test('an admin can create an individual contact', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     Livewire::test(Form::class)
         ->call('openCreate')
@@ -111,7 +112,7 @@ test('an admin can create an organization contact with a contact person', functi
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     Livewire::test(Form::class)
         ->call('openCreate')
@@ -167,7 +168,7 @@ test('an individual contact requires a gender on create', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     Livewire::test(Form::class)
         ->call('openCreate')
@@ -181,7 +182,7 @@ test('an organization contact requires contact person details', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     Livewire::test(Form::class)
         ->call('openCreate')

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Enums\Feature;
 use App\Events\Auditable;
 use App\Listeners\RecordAuditLog;
 use App\Support\CurrentOrganization;
-use App\Support\Feature\ContactDeletion;
-use App\Support\Feature\MemberDeletion;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -20,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Laravel\Pennant\Feature;
+use Laravel\Pennant\Feature as PennantFeature;
 use Livewire\Livewire;
 
 /**
@@ -48,10 +47,9 @@ class AppServiceProvider extends ServiceProvider
         // the underlying request object.
         Livewire::listen('hydrate', fn () => app(CurrentOrganization::class)->forget());
 
-        // Deletion flags default to on; a tenant only stores a value when
-        // a manager turns one off.
-        Feature::define(MemberDeletion::FEATURE, fn (): bool => true);
-        Feature::define(ContactDeletion::FEATURE, fn (): bool => true);
+        foreach (Feature::cases() as $feature) {
+            PennantFeature::define($feature, fn (): bool => $feature->default());
+        }
 
         Event::listen(Auditable::class, RecordAuditLog::class);
 

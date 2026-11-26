@@ -8,12 +8,11 @@ use App\Actions\Users\ResendEmailVerification;
 use App\Actions\Users\UpdateUserProfile;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Feature\ContactGender;
-use App\Support\Feature\ProfileSelfEdit;
 use Flux\Flux;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\View\View;
@@ -142,7 +141,7 @@ class Profile extends Component
         $person = $this->person;
 
         return $person->owner_organization_id === null
-            || ProfileSelfEdit::enabled($person->ownerOrganization);
+            || Feature::ProfileSelfEdit->enabled($person->ownerOrganization);
     }
 
     /**
@@ -151,7 +150,7 @@ class Profile extends Component
     #[Computed]
     public function genderEnabled(): bool
     {
-        return ContactGender::enabled($this->currentOrganization());
+        return Feature::ContactGender->enabled($this->currentOrganization());
     }
 
     /**

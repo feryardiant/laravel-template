@@ -3,11 +3,12 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Feature\MemberDeletion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
@@ -75,7 +76,7 @@ test('member removal requires a manager, a target other than self, and the featu
 
     expect(Gate::forUser($member)->allows('removeMember', [$target, $organization]))->toBeFalse();
 
-    MemberDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::MemberDeletion);
 
     expect(Gate::forUser($owner)->allows('removeMember', [$target, $organization]))->toBeFalse();
 });

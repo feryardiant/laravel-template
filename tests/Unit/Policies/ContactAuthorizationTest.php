@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\Person;
-use App\Support\Feature\ContactDeletion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
@@ -97,7 +98,7 @@ test('contact deletion follows the tenant feature flag', function () {
 
     $contact = contactIndividual($organization);
 
-    ContactDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::ContactDeletion);
 
     expect(Gate::allows('deleteContact', [$contact, $organization]))->toBeFalse()
         ->and(Gate::allows('deleteAnyContact', $organization))->toBeFalse();
