@@ -85,6 +85,16 @@ test('two factor authentication disabled when confirmation abandoned between req
     ]);
 });
 
+test('refreshTwoFactor reads the persisted state instead of the event payload', function () {
+    $user = User::factory()->create();
+
+    actingAs($user);
+
+    Livewire::test(Security::class)
+        ->dispatch('two-factor-changed', enabled: true)
+        ->assertSet('twoFactorEnabled', false);
+});
+
 test('the two factor setup modal enables the feature and shows the verification step', function () {
     $user = User::factory()->create();
 

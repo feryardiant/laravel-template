@@ -104,8 +104,11 @@ class Security extends Component
      * Refresh the enabled state after the setup modal changes it.
      */
     #[On('two-factor-changed')]
-    public function refreshTwoFactor(bool $enabled): void
+    public function refreshTwoFactor(): void
     {
-        $this->twoFactorEnabled = $enabled;
+        /** @var User $user */
+        $user = Auth::user();
+
+        $this->twoFactorEnabled = $user->hasEnabledTwoFactorAuthentication();
     }
 }
