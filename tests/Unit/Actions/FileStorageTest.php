@@ -6,6 +6,7 @@ use App\Actions\FileStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 beforeEach(function () {
     Storage::fake();
@@ -37,6 +38,17 @@ it('reports a failed deletion', function () {
     Storage::disk()->makeDirectory('photos/blocked');
 
     expect(app(FileStorage::class)->delete('photos/blocked'))->toBeFalse();
+
+    Log::shouldHaveReceived('warning')->once();
+});
+
+it('reports a throwing deletion instead of failing the caller', function () {
+    Log::spy();
+
+    Storage::shouldReceive('disk')->andReturnSelf();
+    Storage::shouldReceive('delete')->andThrow(new RuntimeException('Disk unavailable.'));
+
+    expect(app(FileStorage::class)->delete('photos/photo.jpg'))->toBeFalse();
 
     Log::shouldHaveReceived('warning')->once();
 });

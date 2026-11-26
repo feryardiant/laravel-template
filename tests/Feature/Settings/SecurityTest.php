@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Settings\Partials\TwoFactorModal;
 use App\Livewire\Settings\Security;
 use App\Models\User;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -82,6 +83,32 @@ test('two factor authentication disabled when confirmation abandoned between req
         'two_factor_secret' => null,
         'two_factor_recovery_codes' => null,
     ]);
+});
+
+test('refreshTwoFactor reads the persisted state instead of the event payload', function () {
+    $user = User::factory()->create();
+
+    actingAs($user);
+
+    Livewire::test(Security::class)
+        ->dispatch('two-factor-changed', enabled: true)
+        ->assertSet('twoFactorEnabled', false);
+});
+
+test('the two factor setup modal enables the feature and shows the verification step', function () {
+    $user = User::factory()->create();
+
+    actingAs($user);
+
+    Livewire::test(TwoFactorModal::class, ['requiresConfirmation' => true])
+        ->call('enable')
+        ->assertSet('showModal', true)
+        ->assertSet('showVerificationStep', false)
+        ->assertNotSet('qrCodeSvg', '')
+        ->call('showVerificationIfNecessary')
+        ->assertSet('showVerificationStep', true);
+
+    expect($user->refresh()->two_factor_secret)->not->toBeNull();
 });
 
 test('password can be updated', function () {

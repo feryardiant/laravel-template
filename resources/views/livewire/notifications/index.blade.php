@@ -74,7 +74,7 @@
                 <flux:table.row
                     :key="$notification->id"
                     class="group cursor-pointer hover:bg-zinc-100/60 dark:hover:bg-zinc-700/30"
-                    wire:click="openNotification('{{ $notification->id }}')"
+                    wire:click="$dispatch('open-notification', { id: '{{ $notification->id }}' })"
                 >
                     <flux:table.cell class="w-11/12 whitespace-normal">
                         <div class="flex items-start gap-3">
@@ -113,7 +113,7 @@
                             <div class="min-w-0">
                                 <button
                                     type="button"
-                                    wire:click.stop="openNotification('{{ $notification->id }}')"
+                                    wire:click.stop="$dispatch('open-notification', { id: '{{ $notification->id }}' })"
                                     @class([
                                         'text-left font-medium focus-visible:underline focus-visible:outline-none',
                                         'text-zinc-900 dark:text-zinc-100' => $isUnread,
@@ -154,43 +154,7 @@
         </flux:table.rows>
     </flux:table>
 
-    <x-modal
-        flyout
-        position="right"
-        variant="floating"
-        wire:model.self="showNotificationModal"
-        :title="$this->selectedNotification?->data['title'] ?? null"
-    >
-        @if ($this->selectedNotification)
-            @php($data = $this->selectedNotification->data)
-
-            <div class="flex flex-col gap-6">
-                <div class="flex flex-col gap-3 text-sm">
-                    @if (! empty($data['greeting']))
-                        <p class="font-medium">{{ $data['greeting'] }}</p>
-                    @endif
-
-                    @if (! empty($data['description']))
-                        <p>{{ $data['description'] }}</p>
-                    @endif
-
-                    @foreach ($data['lines'] ?? [] as $line)
-                        <p>{{ $line }}</p>
-                    @endforeach
-
-                    @if (! empty($data['action']['url']))
-                        <flux:button :href="$data['action']['url']" variant="primary" size="sm">
-                            {{ $data['action']['label'] ?? '' }}
-                        </flux:button>
-                    @endif
-
-                    @if (! empty($data['salutation']))
-                        <p>{{ $data['salutation'] }}</p>
-                    @endif
-                </div>
-            </div>
-        @endif
-    </x-modal>
+    <livewire:notifications.partials.notification-modal :notification-id="$openNotificationId" />
 
     @script
         <script>

@@ -304,7 +304,7 @@ it('deletes selected users in one batch', function () {
         ->click('[role="menu"]:popover-open [role="menuitem"]:last-of-type')
         ->wait(0.4)
         ->assertSee('Hapus 2 anggota terpilih dari organisasi ini?')
-        ->click('button[wire\:click="deleteSelectedConfirmed"]')
+        ->click('button[data-test="confirm-remove-members"]')
         ->wait(0.8)
         ->assertSee('2 anggota berhasil dihapus.')
         ->assertDontSee($first->name)
@@ -403,6 +403,30 @@ it('does not navigate when selecting text in a user row', function () {
     $page->wait(0.4);
 
     $page->assertPathIs('/members');
+});
+
+it('styles the edit flyout with compact padding and a blurred backdrop', function () {
+    $owner = browserMember(Role::Owner);
+    $member = browserMember(Role::Member);
+
+    actingAs($owner);
+
+    visit('/members')->on()->mobile()
+        ->click("[aria-label=\"Tindakan untuk {$member->name}\"]")
+        ->wait(0.3)
+        ->click('Edit anggota')
+        ->wait(0.6)
+        ->assertScript(<<<'JS'
+            (() => {
+                const dialog = document.querySelector("dialog[open]");
+                const style = getComputedStyle(dialog);
+                const backdrop = getComputedStyle(dialog, "::backdrop");
+
+                return style.paddingTop === "24px"
+                    && style.paddingLeft === "24px"
+                    && backdrop.backdropFilter.includes("blur(4px)");
+            })()
+            JS);
 });
 
 it('covers the content behind the sticky edit flyout actions', function () {

@@ -6,7 +6,8 @@ use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
 use App\Enums\Role;
 use App\Events\Memberships\MemberRemoved;
-use App\Livewire\Members\Index;
+use App\Livewire\Members\Partials\RemoveMemberModal;
+use App\Livewire\Members\Partials\RemoveMembersModal;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -32,8 +33,9 @@ test('removing a member keeps the person and credential', function () {
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $person = $member->person;
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $person->getKey())
+        ->call('delete')
         ->assertHasNoErrors();
 
     expect($organization->members()->whereKey($person->getKey())->exists())->toBeFalse();
@@ -48,8 +50,9 @@ test('a plain member cannot remove another member', function () {
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $member->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $member->person->getKey())
+        ->call('delete')
         ->assertForbidden();
 
     expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue();
@@ -62,8 +65,9 @@ test('an admin cannot remove an owner', function () {
 
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $owner->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $owner->person->getKey())
+        ->call('delete')
         ->assertForbidden();
 
     expect($organization->members()->whereKey($owner->person->getKey())->exists())->toBeTrue();
@@ -74,8 +78,9 @@ test('a user cannot remove their own membership', function () {
 
     $actor = actingAsMember($organization, Role::Owner);
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $actor->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $actor->person->getKey())
+        ->call('delete')
         ->assertForbidden();
 });
 
@@ -86,9 +91,9 @@ test('an admin can remove selected members', function () {
 
     $members = User::factory()->count(3)->asMemberOf($organization)->create();
 
-    Livewire::test(Index::class)
-        ->set('selected', $members->map(fn (User $user) => $user->person->getKey())->all())
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', $members->map(fn (User $user) => $user->person->getKey())->all())
+        ->call('delete')
         ->assertHasNoErrors();
 
     expect($organization->members()->whereKey($members->map(fn (User $user) => $user->person->getKey()))->count())->toBe(0);
@@ -103,8 +108,9 @@ test('removing a member notifies them once', function () {
     $actor = actingAsMember($organization, Role::Owner);
     $member = User::factory()->asMemberOf($organization)->create();
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $member->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $member->person->getKey())
+        ->call('delete')
         ->assertHasNoErrors();
 
     Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1);
@@ -157,8 +163,9 @@ test('a manager removal does not notify the owners', function () {
     $owner = User::factory()->asMemberOf($organization, Role::Owner)->create();
     $member = User::factory()->asMemberOf($organization)->create();
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $member->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $member->person->getKey())
+        ->call('delete')
         ->assertHasNoErrors();
 
     Notification::assertNotSentTo($actor, MemberLeftNotification::class);
@@ -175,8 +182,9 @@ test('removing a person without a credential notifies nobody', function () {
     $person = Person::factory()->withoutCredential()->create();
     app(CreateMember::class)->attach($organization, $person);
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $person->getKey())
+        ->call('delete')
         ->assertHasNoErrors();
 
     expect($organization->members()->whereKey($person->getKey())->exists())->toBeFalse();
@@ -194,9 +202,9 @@ test('removing selected members notifies each credentialed member', function () 
     $credentialless = Person::factory()->withoutCredential()->create();
     app(CreateMember::class)->attach($organization, $credentialless);
 
-    Livewire::test(Index::class)
-        ->set('selected', $members->map(fn (User $user) => $user->person->getKey())->push($credentialless->getKey())->all())
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', $members->map(fn (User $user) => $user->person->getKey())->push($credentialless->getKey())->all())
+        ->call('delete')
         ->assertHasNoErrors();
 
     $members->each(fn (User $member) => Notification::assertSentToTimes($member, MembershipRemovedNotification::class, 1));
@@ -215,13 +223,14 @@ test('member removal is blocked when the workspace disables it', function () {
 
     MemberDeletion::deactivate($organization);
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $member->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $member->person->getKey())
+        ->call('delete')
         ->assertForbidden();
 
-    Livewire::test(Index::class)
-        ->set('selected', [$other->person->getKey()])
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', [$other->person->getKey()])
+        ->call('delete')
         ->assertForbidden();
 
     expect($organization->members()->whereKey($member->person->getKey())->exists())->toBeTrue()
@@ -250,9 +259,9 @@ test('a plain member cannot bulk remove even with an empty selection', function 
 
     actingAsMember($organization, Role::Member);
 
-    Livewire::test(Index::class)
-        ->set('selected', [])
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', [])
+        ->call('delete')
         ->assertForbidden();
 });
 
@@ -263,9 +272,9 @@ test('bulk removal is blocked when the workspace disables it even with an empty 
 
     MemberDeletion::deactivate($organization);
 
-    Livewire::test(Index::class)
-        ->set('selected', [])
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', [])
+        ->call('delete')
         ->assertForbidden();
 });
 
@@ -289,8 +298,9 @@ test('a scheduled member can be removed', function () {
     $person = Person::factory()->withoutCredential()->create();
     app(CreateMember::class)->attach($organization, $person, startDate: now()->addDay());
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $person->getKey())
+        ->call('delete')
         ->assertHasNoErrors();
 
     expect($organization->members()->whereKey($person->getKey())->exists())->toBeFalse();
@@ -313,8 +323,9 @@ test('a removal rejected after the precheck shows a danger toast', function () {
         return ++$calls === 1;
     });
 
-    Livewire::test(Index::class)
-        ->call('removeMember', $member->person->getKey())
+    Livewire::test(RemoveMemberModal::class)
+        ->call('confirm', $member->person->getKey())
+        ->call('delete')
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['dataset']['variant'] ?? null) === 'danger'
@@ -333,9 +344,9 @@ test('a failed bulk removal keeps the members and shows a danger toast', functio
 
     Event::listen(MemberRemoved::class, fn (): never => throw new RuntimeException('Removal failed.'));
 
-    Livewire::test(Index::class)
-        ->set('selected', [$member->person->getKey()])
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', [$member->person->getKey()])
+        ->call('delete')
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['dataset']['variant'] ?? null) === 'danger'
@@ -352,9 +363,9 @@ test('bulk removal reports the detached count', function () {
 
     $members = User::factory()->count(2)->asMemberOf($organization)->create();
 
-    Livewire::test(Index::class)
-        ->set('selected', $members->map(fn (User $user): mixed => $user->person->getKey())->all())
-        ->call('deleteSelected')
+    Livewire::test(RemoveMembersModal::class)
+        ->call('confirm', $members->map(fn (User $user): mixed => $user->person->getKey())->all())
+        ->call('delete')
         ->assertDispatched(
             'toast-show',
             fn (string $name, array $params): bool => ($params['slots']['text'] ?? null) === __(':count members removed successfully.', ['count' => 2]),

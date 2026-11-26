@@ -244,7 +244,7 @@
                                             <flux:menu.item
                                                 variant="danger"
                                                 icon="trash"
-                                                wire:click="confirmDelete({{ $contact->id }}, @js($stakeholder->name))"
+                                                wire:click="confirmDelete({{ $contact->id }})"
                                             >
                                                 {{ __('Delete contact') }}
                                             </flux:menu.item>
@@ -259,41 +259,8 @@
         </flux:checkbox.group>
     @endif
 
-    <x-modal
-        wire:model.self="showDeleteModal"
-        :title="__('Delete contact')"
-        :subtitle="__('Delete :name from your contacts?', ['name' => $deletingContactName ?? __('this contact')])"
-    >
-        <div class="flex flex-col gap-6">
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" wire:click="deleteConfirmed">
-                    {{ __('Delete contact') }}
-                </flux:button>
-            </div>
-        </div>
-    </x-modal>
-
-    <x-modal
-        wire:model.self="showBatchDeleteModal"
-        :title="__('Delete contacts')"
-        :subtitle="__('Delete :count selected contacts?', ['count' => count($selected)])"
-    >
-        <div class="flex flex-col gap-6">
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" wire:click="deleteSelectedConfirmed">
-                    {{ __('Delete contacts') }}
-                </flux:button>
-            </div>
-        </div>
-    </x-modal>
+    <livewire:contacts.partials.delete-contact-modal />
+    <livewire:contacts.partials.delete-contacts-modal />
 
     <livewire:contacts.form />
 </x-page>

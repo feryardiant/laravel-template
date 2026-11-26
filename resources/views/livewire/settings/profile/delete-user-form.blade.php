@@ -12,20 +12,16 @@
         name="confirm-user-deletion"
         :show="$errors->isNotEmpty()"
         focusable
+        mode="form"
         width="max-w-lg"
+        wire:submit="deleteUser"
         :title="__('Are you sure you want to delete your account?')"
         :subtitle="__('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.')"
     >
-        <form method="POST" wire:submit="deleteUser" class="flex flex-col gap-6">
-            <flux:input wire:model="password" :label="__('Password')" type="password" viewable />
+        <flux:input wire:model="password" :label="__('Password')" type="password" viewable />
 
-            <div class="flex justify-end space-x-2 rtl:space-x-reverse">
-                <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" type="submit">{{ __('Delete account') }}</flux:button>
-            </div>
-        </form>
+        <x-slot:actions>
+            <flux:button variant="danger" type="submit">{{ __('Delete account') }}</flux:button>
+        </x-slot:actions>
     </x-modal>
 </x-ui.section.item>

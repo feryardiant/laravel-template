@@ -4,49 +4,29 @@ declare(strict_types=1);
 
 namespace App\Livewire\Members;
 
-use App\Actions\Memberships\ChangeMemberRole;
-use App\Actions\Memberships\RemoveMember;
 use App\Actions\Memberships\ResendMemberVerification;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Person;
-use App\Models\User;
 use App\Repositories\MembershipRepository;
 use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Throwable;
 
 /**
  * @phpstan-type Member Person&object{pivot: \App\Models\OrganizationRelationship}
  *
- * @property-read ?Person $deletingPerson
  * @property-read LengthAwarePaginator<int, Member> $members
- * @property-read ?Person $roleChangePerson
- * @property-read bool $roleChangeIsPromotion
  */
 class Index extends Component
 {
     use HasCurrentOrganization, WithPagination;
-
-    public bool $showDeleteModal = false;
-
-    public bool $showBatchDeleteModal = false;
-
-    public bool $showRoleModal = false;
-
-    public ?int $deletingPersonId = null;
-
-    public ?int $roleChangePersonId = null;
-
-    public ?int $roleChangeTo = null;
 
     /**
      * @var array<int, int|string>
@@ -90,38 +70,18 @@ class Index extends Component
     }
 
     /**
-     * The member awaiting delete confirmation.
+     * Refresh the list after a member is removed.
      */
-    #[Computed]
-    public function deletingPerson(): ?Person
+    #[On('member-removed')]
+    public function refreshAfterRemoval(): void
     {
-        $organization = $this->currentOrganization();
+        $this->selected = [];
+        $this->allSelected = false;
+        $this->someSelected = false;
 
-        return $this->deletingPersonId === null || $organization === null
-            ? null
-            : app(MembershipRepository::class)->findInOrganization($organization, $this->deletingPersonId);
-    }
+        $this->resetPage();
 
-    /**
-     * The member awaiting a role change.
-     */
-    #[Computed]
-    public function roleChangePerson(): ?Person
-    {
-        $organization = $this->currentOrganization();
-
-        return $this->roleChangePersonId === null || $organization === null
-            ? null
-            : app(MembershipRepository::class)->findInOrganization($organization, $this->roleChangePersonId);
-    }
-
-    /**
-     * Whether the pending role change promotes the member to Admin.
-     */
-    #[Computed]
-    public function roleChangeIsPromotion(): bool
-    {
-        return $this->roleChangeTo === Role::Admin->value;
+        unset($this->members);
     }
 
     /**
@@ -154,8 +114,7 @@ class Index extends Component
      */
     public function confirmDelete(int $personId): void
     {
-        $this->deletingPersonId = $personId;
-        $this->showDeleteModal = true;
+        $this->dispatch('remove-member', personId: $personId);
     }
 
     /**
@@ -163,17 +122,12 @@ class Index extends Component
      */
     public function confirmDeleteSelected(): void
     {
-        $this->showBatchDeleteModal = true;
-    }
+        $this->requireOrganization();
 
-    /**
-     * Delete the selected members and close the bulk confirmation.
-     */
-    public function deleteSelectedConfirmed(RemoveMember $removeMember): void
-    {
-        $this->deleteSelected($removeMember);
+        $pageIds = $this->members->pluck('id')->all();
+        $ids = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
 
-        $this->reset('showBatchDeleteModal');
+        $this->dispatch('remove-members', ids: $ids);
     }
 
     /**
@@ -210,9 +164,7 @@ class Index extends Component
      */
     public function confirmPromote(int $personId): void
     {
-        $this->roleChangePersonId = $personId;
-        $this->roleChangeTo = Role::Admin->value;
-        $this->showRoleModal = true;
+        $this->dispatch('open-role-modal', personId: $personId, role: Role::Admin->value);
     }
 
     /**
@@ -220,85 +172,7 @@ class Index extends Component
      */
     public function confirmDemote(int $personId): void
     {
-        $this->roleChangePersonId = $personId;
-        $this->roleChangeTo = Role::Member->value;
-        $this->showRoleModal = true;
-    }
-
-    /**
-     * Apply the confirmed role change.
-     */
-    public function changeRoleConfirmed(ChangeMemberRole $changeMemberRole): void
-    {
-        $organization = $this->requireOrganization();
-
-        $person = $this->roleChangePerson;
-
-        /** @var User $actor */
-        $actor = Auth::user();
-
-        if ($person === null) {
-            Flux::toast(variant: 'danger', text: __('Unable to change the member role.'));
-            $this->reset('showRoleModal', 'roleChangePersonId', 'roleChangeTo');
-
-            return;
-        }
-
-        $promoted = $this->roleChangeTo === Role::Admin->value;
-
-        $changed = $promoted
-            ? $changeMemberRole->promote($organization, $person, $actor)
-            : $changeMemberRole->demote($organization, $person, $actor);
-
-        Flux::toast(
-            variant: $changed ? 'success' : 'danger',
-            text: $changed
-                ? ($promoted ? __('Member promoted to Admin.') : __('Member demoted to Member.'))
-                : ($promoted ? __('Unable to promote the member to Admin.') : __('Unable to demote the member to Member.')),
-        );
-
-        $this->reset('showRoleModal', 'roleChangePersonId', 'roleChangeTo');
-    }
-
-    /**
-     * Remove the member awaiting confirmation.
-     */
-    public function deleteConfirmed(RemoveMember $removeMember): void
-    {
-        $person = $this->deletingPerson;
-
-        abort_if($person === null, 404);
-
-        $this->removeMember($person->getKey(), $removeMember);
-
-        $this->reset('showDeleteModal', 'deletingPersonId');
-    }
-
-    /**
-     * Remove the given person from the current organization.
-     */
-    public function removeMember(int $personId, RemoveMember $removeMember): void
-    {
-        $organization = $this->requireOrganization();
-
-        $person = app(MembershipRepository::class)->findInOrganization($organization, $personId);
-
-        abort_if($person === null, 404);
-
-        $this->authorize('removeMember', [$person, $organization]);
-
-        /** @var User $actor */
-        $actor = Auth::user();
-
-        if (! $removeMember->handle($organization, $person, $actor)) {
-            Flux::toast(variant: 'danger', text: __('Failed to remove the member.'));
-
-            return;
-        }
-
-        $this->resetPage();
-
-        Flux::toast(variant: 'success', text: __('Member removed.'));
+        $this->dispatch('open-role-modal', personId: $personId, role: Role::Member->value);
     }
 
     /**
@@ -353,54 +227,6 @@ class Index extends Component
     {
         $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         $this->resetPage();
-    }
-
-    /**
-     * Remove the selected members from the current organization.
-     */
-    public function deleteSelected(RemoveMember $removeMember): void
-    {
-        $organization = $this->requireOrganization();
-
-        $this->authorize('manageMembers', $organization);
-
-        abort_unless(MemberDeletion::enabled($organization), 403);
-
-        /** @var User $actor */
-        $actor = Auth::user();
-
-        $pageIds = $this->members->pluck('id')->all();
-        $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
-
-        $persons = app(MembershipRepository::class)->getInOrganization($organization, $selected);
-
-        foreach ($persons as $person) {
-            $this->authorize('removeMember', [$person, $organization]);
-        }
-
-        $removed = null;
-
-        try {
-            $removed = $removeMember->handleMany($organization, $persons, $actor);
-        } catch (Throwable $exception) {
-            report($exception);
-        }
-
-        if ($removed === null || $removed->isEmpty()) {
-            Flux::toast(variant: 'danger', text: __('Failed to remove the selected members.'));
-
-            return;
-        }
-
-        $this->reset('selected', 'allSelected', 'someSelected');
-        $this->selectionKey++;
-        $this->resetPage();
-        unset($this->members);
-
-        Flux::toast(
-            variant: 'success',
-            text: __(':count members removed successfully.', ['count' => $removed->count()]),
-        );
     }
 
     /**

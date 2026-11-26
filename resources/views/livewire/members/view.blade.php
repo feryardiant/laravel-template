@@ -127,27 +127,7 @@
     </div>
 
     @if ($canManage)
+        <livewire:members.partials.role-modal />
         <livewire:members.form :person="$person" />
     @endif
-
-    <x-modal
-        wire:model.self="showRoleModal"
-        :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
-        :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $person->name]) : __('Demote :name to Member?', ['name' => $person->name])"
-    >
-        <div class="flex flex-col gap-6">
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button
-                    :variant="$this->roleChangeIsPromotion ? 'primary' : 'danger'"
-                    wire:click="changeRoleConfirmed"
-                >
-                    {{ $this->roleChangeIsPromotion ? __('Promote admin') : __('Demote admin') }}
-                </flux:button>
-            </div>
-        </div>
-    </x-modal>
 </x-page>

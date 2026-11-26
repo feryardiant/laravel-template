@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Throwable;
 
 /**
  * Stores, links, and deletes uploaded files on the default disk.
@@ -38,6 +39,7 @@ final class FileStorage
         }
 
         // The browser never sees this internal pre-signed URL.
+        /** @disregard P1013 */
         return Storage::disk()->temporaryUrl($path, now()->addMinutes($expires));
     }
 
@@ -50,7 +52,16 @@ final class FileStorage
             return true;
         }
 
-        $deleted = Storage::disk()->delete($path);
+        try {
+            $deleted = Storage::disk()->delete($path);
+        } catch (Throwable $exception) {
+            Log::warning('Unable to delete stored file.', [
+                'path' => $path,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
 
         if (! $deleted) {
             Log::warning('Unable to delete stored file.', ['path' => $path]);
