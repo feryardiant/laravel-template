@@ -116,13 +116,7 @@ final class CurrentOrganization
             return ['organization' => null, 'organizations' => new Collection];
         }
 
-        $person = $user->person;
-
-        if ($person === null) {
-            return ['organization' => null, 'organizations' => new Collection];
-        }
-
-        $organizations = $person->organizations()->get();
+        $organizations = $user->profile->organizations()->get();
         $organization = null;
 
         if ($organizationId = session(self::SESSION_KEY)) {
