@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Ui\FileUpload;
+use App\Livewire\View\Ui\FileUpload;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;

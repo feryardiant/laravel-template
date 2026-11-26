@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
-use App\Livewire\OrganizationSwitcher;
+use App\Livewire\View\OrganizationSwitcher;
 use App\Models\Organization;
 use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;

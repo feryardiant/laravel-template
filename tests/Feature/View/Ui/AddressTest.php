@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Address;
+use App\Livewire\View\Address;
 use Creasi\Nusa\Models\Province;
 use Creasi\Nusa\Models\Regency;
 use Creasi\Nusa\Models\Village;
