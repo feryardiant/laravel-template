@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Contacts\Index;
+use App\Livewire\Contacts\Partials\DeleteContactModal;
+use App\Livewire\Contacts\Partials\DeleteContactsModal;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
@@ -222,14 +224,14 @@ test('a plain member cannot create, update or delete contacts', function () {
         ->call('createContact')
         ->assertForbidden();
 
-    Livewire::test(Index::class)
-        ->call('confirmDelete', $contactId, $contact->name)
-        ->assertSet('deletingContactId', $contactId)
-        ->call('deleteConfirmed')
+    Livewire::test(DeleteContactModal::class)
+        ->call('confirm', $contactId)
+        ->assertSet('contactId', $contactId)
+        ->call('delete')
         ->assertForbidden();
 
-    Livewire::test(Index::class)
-        ->call('deleteSelectedConfirmed')
+    Livewire::test(DeleteContactsModal::class)
+        ->call('delete')
         ->assertForbidden();
 
     Livewire::test(Index::class)

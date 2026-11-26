@@ -6,6 +6,7 @@ use App\Actions\Memberships\CreateMember;
 use App\Enums\Role;
 use App\Events\Memberships\MemberRoleChanged;
 use App\Livewire\Members\Index;
+use App\Livewire\Members\Partials\RoleModal;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\UserRoleChangedNotification;
@@ -126,9 +127,9 @@ test('a role change promotes within the current organization only', function () 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     app(CreateMember::class)->attach($otherOrganization, $member->person, startDate: now(), role: Role::Member);
 
-    Livewire::test(Index::class)
-        ->call('confirmPromote', $member->person->getKey())
-        ->call('changeRoleConfirmed')
+    Livewire::test(RoleModal::class)
+        ->call('confirm', $member->person->getKey(), Role::Admin->value)
+        ->call('change')
         ->assertHasNoErrors();
 
     expect($member->person->roleIn($organization))->toBe(Role::Admin);
@@ -146,9 +147,9 @@ test('role change notifications are queued', function () {
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(Index::class)
-        ->call('confirmPromote', $member->person->getKey())
-        ->call('changeRoleConfirmed');
+    Livewire::test(RoleModal::class)
+        ->call('confirm', $member->person->getKey(), Role::Admin->value)
+        ->call('change');
 
     Queue::assertPushed(SendQueuedNotifications::class);
 });
@@ -162,9 +163,9 @@ test('a role change dispatches the member role changed event', function () {
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(Index::class)
-        ->call('confirmPromote', $member->person->getKey())
-        ->call('changeRoleConfirmed');
+    Livewire::test(RoleModal::class)
+        ->call('confirm', $member->person->getKey(), Role::Admin->value)
+        ->call('change');
 
     Event::assertDispatched(
         MemberRoleChanged::class,
@@ -182,9 +183,9 @@ test('a plain member cannot change roles', function () {
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
 
-    Livewire::test(Index::class)
-        ->call('confirmPromote', $member->person->getKey())
-        ->call('changeRoleConfirmed')
+    Livewire::test(RoleModal::class)
+        ->call('confirm', $member->person->getKey(), Role::Admin->value)
+        ->call('change')
         ->assertDispatched('toast-show', fn (string $name, array $params) => ($params['dataset']['variant'] ?? null) === 'danger');
 
     expect($member->person->roleIn($organization))->toBe(Role::Member);

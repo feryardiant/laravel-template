@@ -304,7 +304,7 @@ it('deletes selected users in one batch', function () {
         ->click('[role="menu"]:popover-open [role="menuitem"]:last-of-type')
         ->wait(0.4)
         ->assertSee('Hapus 2 anggota terpilih dari organisasi ini?')
-        ->click('button[wire\:click="deleteSelectedConfirmed"]')
+        ->click('button[data-test="confirm-remove-members"]')
         ->wait(0.8)
         ->assertSee('2 anggota berhasil dihapus.')
         ->assertDontSee($first->name)

@@ -267,62 +267,9 @@
         </flux:checkbox.group>
     @endif
 
-    <x-modal
-        wire:model.self="showDeleteModal"
-        :title="__('Remove member')"
-        :subtitle="__('Remove :name from this organization? The person and any login credential are preserved.', ['name' => $this->deletingPerson?->name ?? __('this member')])"
-    >
-        <div class="flex flex-col gap-6">
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" wire:click="deleteConfirmed">
-                    {{ __('Remove member') }}
-                </flux:button>
-            </div>
-        </div>
-    </x-modal>
-
-    <x-modal
-        wire:model.self="showBatchDeleteModal"
-        :title="__('Remove members')"
-        :subtitle="__('Remove :count selected members from this organization?', ['count' => count($selected)])"
-    >
-        <div class="flex flex-col gap-6">
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" wire:click="deleteSelectedConfirmed">
-                    {{ __('Remove members') }}
-                </flux:button>
-            </div>
-        </div>
-    </x-modal>
-
-    <x-modal
-        wire:model.self="showRoleModal"
-        :title="$this->roleChangeIsPromotion ? __('Promote member') : __('Demote member')"
-        :subtitle="$this->roleChangeIsPromotion ? __('Promote :name to Admin?', ['name' => $this->roleChangePerson?->name ?? __('this member')]) : __('Demote :name to Member?', ['name' => $this->roleChangePerson?->name ?? __('this member')])"
-    >
-        <div class="flex flex-col gap-6">
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button
-                    :variant="$this->roleChangeIsPromotion ? 'primary' : 'danger'"
-                    wire:click="changeRoleConfirmed"
-                >
-                    {{ $this->roleChangeIsPromotion ? __('Promote admin') : __('Demote admin') }}
-                </flux:button>
-            </div>
-        </div>
-    </x-modal>
+    <livewire:members.partials.remove-member-modal />
+    <livewire:members.partials.remove-members-modal />
+    <livewire:members.partials.role-modal />
 
     <livewire:members.form />
 </x-page>

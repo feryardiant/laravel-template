@@ -6,6 +6,7 @@ use App\Actions\Memberships\ChangeMemberRole;
 use App\Actions\Memberships\RemoveMember;
 use App\Enums\Role;
 use App\Livewire\Notifications\Index;
+use App\Livewire\Notifications\Partials\NotificationModal;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\MemberLeftNotification;
@@ -145,9 +146,9 @@ test('opening a notification shows its content in a modal', function () {
 
     $notification = $user->notifications()->firstOrFail();
 
-    Livewire::test(Index::class)
-        ->call('openNotification', $notification->id)
-        ->assertSet('showNotificationModal', true)
+    Livewire::test(NotificationModal::class)
+        ->call('open', $notification->id)
+        ->assertSet('showModal', true)
         ->assertDispatched('notifications-updated', count: 0)
         ->assertSee(__('Your role at :app has changed', ['app' => config('app.name')]))
         ->assertSee($actor->name);
@@ -326,8 +327,8 @@ test('a removal notification renders in the inbox', function () {
             'organization' => $organization->name,
         ]));
 
-    Livewire::test(Index::class)
-        ->call('openNotification', $user->notifications()->firstOrFail()->id)
+    Livewire::test(NotificationModal::class)
+        ->call('open', $user->notifications()->firstOrFail()->id)
         ->assertSee(__('You are no longer a member of any organization.'));
 });
 

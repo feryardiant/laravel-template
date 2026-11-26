@@ -7,7 +7,8 @@ use App\Actions\Contacts\DeleteContact;
 use App\Enums\ContactDetailType;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
-use App\Livewire\Contacts\Index;
+use App\Livewire\Contacts\Partials\DeleteContactModal;
+use App\Livewire\Contacts\Partials\DeleteContactsModal;
 use App\Models\ContactDetail;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
@@ -241,6 +242,38 @@ test('deleting an organization contact created from the contact form removes the
     expect(Organization::withTrashed()->find($contact->getKey())?->trashed())->toBeTrue();
 });
 
+test('a contact is deleted from the confirmation modal', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Delete Me']);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Livewire::test(DeleteContactModal::class)
+        ->call('confirm', $relationshipId)
+        ->call('delete')
+        ->assertDispatched('contact-deleted');
+
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
+});
+
+test('selected contacts are deleted from the confirmation modal', function () {
+    $organization = Organization::factory()->create();
+
+    actingAsMember($organization, Role::Admin);
+
+    $person = contactIndividual($organization, ['name' => 'Delete Me Too']);
+    $relationshipId = contactRelationshipId($organization, $person);
+
+    Livewire::test(DeleteContactsModal::class)
+        ->call('confirm', [$relationshipId])
+        ->call('delete')
+        ->assertDispatched('contact-deleted');
+
+    expect(OrganizationRelationship::query()->find($relationshipId))->toBeNull();
+});
+
 test('contact deletion is blocked when the workspace disables it', function () {
     $organization = Organization::factory()->create();
 
@@ -251,14 +284,14 @@ test('contact deletion is blocked when the workspace disables it', function () {
 
     ContactDeletion::deactivate($organization);
 
-    Livewire::test(Index::class)
-        ->call('confirmDelete', $relationshipId, 'Keep Me')
-        ->call('deleteConfirmed')
+    Livewire::test(DeleteContactModal::class)
+        ->call('confirm', $relationshipId)
+        ->call('delete')
         ->assertForbidden();
 
-    Livewire::test(Index::class)
-        ->set('selected', [$relationshipId])
-        ->call('deleteSelectedConfirmed')
+    Livewire::test(DeleteContactsModal::class)
+        ->set('ids', [$relationshipId])
+        ->call('delete')
         ->assertForbidden();
 
     expect(OrganizationRelationship::query()->find($relationshipId))->not->toBeNull();

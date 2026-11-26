@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace App\Livewire\Contacts;
 
-use App\Actions\Contacts\DeleteContact;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationship;
 use App\Repositories\ContactRepository;
-use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Throwable;
 
 /**
  * @property-read LengthAwarePaginator<int, OrganizationRelationship> $contacts
@@ -27,14 +23,6 @@ use Throwable;
 class Index extends Component
 {
     use HasCurrentOrganization, WithPagination;
-
-    public bool $showDeleteModal = false;
-
-    public bool $showBatchDeleteModal = false;
-
-    public ?int $deletingContactId = null;
-
-    public ?string $deletingContactName = null;
 
     /**
      * @var array<int, int|string>
@@ -135,11 +123,9 @@ class Index extends Component
     /**
      * Open the delete confirmation for the given contact.
      */
-    public function confirmDelete(int $contactId, string $name): void
+    public function confirmDelete(int $contactId): void
     {
-        $this->deletingContactId = $contactId;
-        $this->deletingContactName = $name;
-        $this->showDeleteModal = true;
+        $this->dispatch('delete-contact', contactId: $contactId);
     }
 
     /**
@@ -147,85 +133,22 @@ class Index extends Component
      */
     public function confirmDeleteSelected(): void
     {
-        Gate::authorize('deleteAnyContact', $this->requireOrganization());
-
-        $this->showBatchDeleteModal = true;
-    }
-
-    /**
-     * Delete the contact awaiting confirmation.
-     */
-    public function deleteConfirmed(DeleteContact $deleteContact): void
-    {
-        $organization = $this->requireOrganization();
-
-        abort_if($this->deletingContactId === null, 404);
-
-        $contact = app(ContactRepository::class)->findById($organization, $this->deletingContactId);
-
-        Gate::authorize('deleteContact', [$contact->stakeholder, $organization]);
-
-        try {
-            $deleteContact->handle($organization, $contact->getKey(), actor: Auth::user());
-        } catch (Throwable $exception) {
-            report($exception);
-
-            Flux::toast(variant: 'danger', text: __('Failed to delete the contact.'));
-
-            $this->reset('showDeleteModal', 'deletingContactId', 'deletingContactName');
-
-            return;
-        }
-
-        $this->reset('showDeleteModal', 'deletingContactId', 'deletingContactName');
-        $this->resetPage();
-        $this->clearSelection();
-        $this->selectionKey++;
-        unset($this->contacts);
-
-        Flux::toast(variant: 'success', text: __('Contact deleted.'));
-    }
-
-    /**
-     * Delete the selected contacts that are still on the current page.
-     */
-    public function deleteSelectedConfirmed(DeleteContact $deleteContacts): void
-    {
-        $organization = $this->requireOrganization();
-
-        Gate::authorize('deleteAnyContact', $organization);
+        $this->requireOrganization();
 
         $pageIds = $this->contacts->pluck('id')->all();
         $ids = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));
 
-        if ($ids === []) {
-            $this->reset('showBatchDeleteModal');
+        $this->dispatch('delete-contacts', ids: $ids);
+    }
 
-            return;
-        }
-
-        try {
-            $count = $deleteContacts->handleBulk($organization, $ids, Auth::user());
-        } catch (Throwable $exception) {
-            report($exception);
-
-            Flux::toast(variant: 'danger', text: __('Failed to delete the selected contacts.'));
-
-            $this->reset('showBatchDeleteModal');
-
-            return;
-        }
-
-        $this->reset('showBatchDeleteModal');
+    /**
+     * Refresh the list after a contact is deleted.
+     */
+    #[On('contact-deleted')]
+    public function refreshAfterDelete(): void
+    {
         $this->resetPage();
-        $this->clearSelection();
-        $this->selectionKey++;
-        unset($this->contacts);
-
-        Flux::toast(
-            variant: 'success',
-            text: __(':count contacts deleted successfully.', ['count' => $count]),
-        );
+        $this->refreshContacts();
     }
 
     /**
