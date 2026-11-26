@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\Settings;
 
 use App\Actions\Memberships\SetDefaultOrganization;
+use App\Enums\Role;
+use App\Enums\SubsidiaryKind;
 use App\Livewire\Concerns\HasCurrentOrganization;
+use App\Models\ApprovalRequest;
+use App\Models\Organization;
 use App\Models\User;
 use App\Repositories\OrganizationRepository;
 use App\Support\CurrentOrganization;
@@ -18,7 +22,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * @property-read Collection<int, array<string, mixed>> $memberships
+ * @property-read Collection<int, array{organization: Organization, role: ?Role, isCurrent: bool, canManage: bool, isLastOwner: bool, isDefault: bool, parent: ?Organization, kind: ?SubsidiaryKind, pendingApproval: ?ApprovalRequest, pendingRequest: ?ApprovalRequest}> $memberships
  */
 class Organizations extends Component
 {
@@ -43,17 +47,15 @@ class Organizations extends Component
     /**
      * The organizations the user belongs to, with their role and options.
      *
-     * @return Collection<int, array<string, mixed>>
+     * @return Collection<int, array{organization: Organization, role: ?Role, isCurrent: bool, canManage: bool, isLastOwner: bool, isDefault: bool, parent: ?Organization, kind: ?SubsidiaryKind, pendingApproval: ?ApprovalRequest, pendingRequest: ?ApprovalRequest}>
      */
     #[Computed]
     public function memberships(): Collection
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
 
-        return $user instanceof User
-            ? app(OrganizationRepository::class)->getUsers($user, $this->currentOrganization())
-            : collect();
+        return app(OrganizationRepository::class)->getUsers($user, $this->currentOrganization());
     }
 
     /**
@@ -75,10 +77,8 @@ class Organizations extends Component
      */
     public function setDefault(int $organizationId, SetDefaultOrganization $setDefault): void
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         $organization = app(OrganizationRepository::class)->findUser($user, $organizationId);
 

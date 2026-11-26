@@ -86,11 +86,10 @@ class Create extends Component
     #[Computed]
     public function parentOrganizations(): Collection
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        return $user instanceof User
-            ? app(OrganizationRepository::class)->getCreatable($user, $this->internal)
-            : collect();
+        return app(OrganizationRepository::class)->getCreatable($user, $this->internal);
     }
 
     /**
@@ -109,10 +108,8 @@ class Create extends Component
      */
     public function create(CreateOrganization $createOrganization): void
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         $parents = $this->parentOrganizations();
 

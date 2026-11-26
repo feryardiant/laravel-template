@@ -234,9 +234,10 @@ class Index extends Component
 
         $person = $this->roleChangePerson;
 
+        /** @var User $actor */
         $actor = Auth::user();
 
-        if ($person === null || ! $actor instanceof User) {
+        if ($person === null) {
             Flux::toast(variant: 'danger', text: __('Unable to change the member role.'));
             $this->reset('showRoleModal', 'roleChangePersonId', 'roleChangeTo');
 
@@ -286,9 +287,8 @@ class Index extends Component
 
         $this->authorize('removeMember', [$person, $organization]);
 
+        /** @var User $actor */
         $actor = Auth::user();
-
-        abort_unless($actor instanceof User, 403);
 
         if (! $removeMember->handle($organization, $person, $actor)) {
             Flux::toast(variant: 'danger', text: __('Failed to remove the member.'));
@@ -366,9 +366,8 @@ class Index extends Component
 
         abort_unless(MemberDeletion::enabled($organization), 403);
 
+        /** @var User $actor */
         $actor = Auth::user();
-
-        abort_unless($actor instanceof User, 403);
 
         $pageIds = $this->members->pluck('id')->all();
         $selected = array_values(array_intersect(array_map('intval', $this->selected), $pageIds));

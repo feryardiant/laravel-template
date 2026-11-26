@@ -55,10 +55,10 @@ class Remove extends Component
      */
     public function remove(): void
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
 
-        abort_if($this->organizationId === null || ! $user instanceof User, 404);
+        abort_if($this->organizationId === null, 404);
 
         $organization = $this->removableOrganization($this->organizationId);
 
@@ -88,10 +88,8 @@ class Remove extends Component
      */
     private function removableOrganization(int $organizationId): Organization
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_if(! $user instanceof User, 403);
 
         $organization = app(OrganizationRepository::class)->findUser($user, $organizationId);
 

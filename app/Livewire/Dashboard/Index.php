@@ -91,11 +91,8 @@ class Index extends Component
     #[Computed]
     public function unreadNotifications(): int
     {
+        /** @var User $user */
         $user = Auth::user();
-
-        if (! $user instanceof User) {
-            return 0;
-        }
 
         return app(NotificationRepository::class)->countUnread($user, $this->range, $this->timezone());
     }
@@ -131,8 +128,9 @@ class Index extends Component
      */
     private function timezone(): string
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        return $user instanceof User ? $user->timezoneOrDefault() : 'UTC';
+        return $user->timezoneOrDefault();
     }
 }

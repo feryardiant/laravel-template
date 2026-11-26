@@ -61,10 +61,8 @@ class RemoveSubsidiary extends Component
      */
     public function remove(): void
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         $root = $this->requireOrganization();
 

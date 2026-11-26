@@ -137,10 +137,8 @@ class General extends Component
             ...$this->addressRules(),
         ]);
 
-        /** @var User|null $actor */
+        /** @var User $actor */
         $actor = Auth::user();
-
-        abort_unless($actor instanceof User, 403);
 
         $logo = $this->logo instanceof UploadedFile ? $this->logo : null;
         $this->logo = null;

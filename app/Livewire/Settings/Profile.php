@@ -27,7 +27,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * @property-read ?Person $person
+ * @property-read Person $person
  * @property-read bool $canEditOwnProfile
  * @property-read bool $genderEnabled
  * @property-read bool $genderEditable
@@ -86,18 +86,18 @@ class Profile extends Component
 
     public function mount(): void
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
-        $person = $user->person;
+        $person = $user->profile;
 
-        $this->name = $person->name ?? $user->name;
+        $this->name = $person->name;
         $this->handle = $user->handle;
         $this->email = $user->email;
-        $this->summary = (string) $person?->summary;
-        $this->contactEmail = (string) $person?->contactDetailValue(ContactDetailType::Email);
-        $this->contactPhone = (string) $person?->contactDetailValue(ContactDetailType::Phone);
-        $this->gender = $person?->gender?->value;
-        $this->avatarUrl = $person?->getRawOriginal('photo_url');
+        $this->summary = (string) $person->summary;
+        $this->contactEmail = (string) $person->contactDetailValue(ContactDetailType::Email);
+        $this->contactPhone = (string) $person->contactDetailValue(ContactDetailType::Phone);
+        $this->gender = $person->gender?->value;
+        $this->avatarUrl = $person->getRawOriginal('photo_url');
         $this->originalDetails = $this->contactDetailValues();
         $this->originalAvatarUrl = $this->avatarUrl;
         $this->originalEmail = Str::lower($this->email);
@@ -125,12 +125,12 @@ class Profile extends Component
      * The authenticated user's person profile.
      */
     #[Computed]
-    public function person(): ?Person
+    public function person(): Person
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
 
-        return $user->person;
+        return $user->profile;
     }
 
     /**
@@ -141,8 +141,7 @@ class Profile extends Component
     {
         $person = $this->person;
 
-        return $person === null
-            || $person->owner_organization_id === null
+        return $person->owner_organization_id === null
             || ProfileSelfEdit::enabled($person->ownerOrganization);
     }
 
@@ -161,7 +160,7 @@ class Profile extends Component
     #[Computed]
     public function genderEditable(): bool
     {
-        return $this->genderEnabled && $this->person !== null && $this->person->gender === null;
+        return $this->genderEnabled && $this->person->gender === null;
     }
 
     /**
@@ -191,7 +190,7 @@ class Profile extends Component
      */
     public function updateProfileInformation(UpdateUserProfile $updateUserProfile): void
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
         $canEdit = $this->canEditOwnProfile;
 
@@ -276,7 +275,7 @@ class Profile extends Component
      */
     public function resendVerificationNotification(ResendEmailVerification $resendEmailVerification): void
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
 
         if (! $resendEmailVerification->handle($user)) {

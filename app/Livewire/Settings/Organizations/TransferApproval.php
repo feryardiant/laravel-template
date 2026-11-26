@@ -37,9 +37,10 @@ class TransferApproval extends Component
     public function mount(): void
     {
         $uuid = request()->query('approval');
+        /** @var User $user */
         $user = Auth::user();
 
-        if (! \is_string($uuid) || $uuid === '' || ! $user instanceof User) {
+        if (! \is_string($uuid) || $uuid === '') {
             return;
         }
 
@@ -61,9 +62,8 @@ class TransferApproval extends Component
     #[On('respond')]
     public function respond(int $organizationId): void
     {
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User && $user->person !== null, 403);
 
         $approval = app(ApprovalRepository::class)->findOpenForApproverByOrganization($user, $organizationId);
 
@@ -79,9 +79,8 @@ class TransferApproval extends Component
         OwnershipTransfer $transferOwnership,
         MembershipLeave $leaveMembership,
     ): void {
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         $approval = $this->pendingApprovalForUser();
 
@@ -121,9 +120,8 @@ class TransferApproval extends Component
         OwnershipTransfer $transferOwnership,
         MembershipLeave $leaveMembership,
     ): void {
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         $approval = $this->pendingApprovalForUser();
 
@@ -160,9 +158,10 @@ class TransferApproval extends Component
      */
     private function pendingApprovalForUser(): ?ApprovalRequest
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        if ($this->approvalId === null || ! $user instanceof User) {
+        if ($this->approvalId === null) {
             return null;
         }
 

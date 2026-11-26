@@ -68,7 +68,7 @@ final class CurrentOrganization
             ? $organization->getKey()
             : $organization;
 
-        if (! $user->person?->organizations()->whereKey($organization)->exists()) {
+        if (! $user->profile->organizations()->whereKey($organization)->exists()) {
             return false;
         }
 

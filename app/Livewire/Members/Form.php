@@ -304,10 +304,8 @@ class Form extends Component
 
         $validated = $this->validate($rules);
 
-        /** @var User|null $actor */
+        /** @var User $actor */
         $actor = Auth::user();
-
-        abort_unless($actor instanceof User, 403);
 
         $result = $updateMember->handle(
             organization: $organization,
