@@ -6,10 +6,15 @@ namespace App\Providers;
 
 use App\Events\Auditable;
 use App\Listeners\RecordAuditLog;
+use App\Support\CurrentOrganization;
 use App\Support\Feature\ContactDeletion;
 use App\Support\Feature\MemberDeletion;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Auth\Middleware\RequirePassword;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -28,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->registerEloquentUserProvider();
     }
 
     /**
@@ -38,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Re-check password confirmation on Livewire requests to routes that use it.
         Livewire::addPersistentMiddleware(RequirePassword::class);
+
+        // A Livewire update is a new request even though the test harness reuses
+        // the underlying request object.
+        Livewire::listen('hydrate', fn () => app(CurrentOrganization::class)->forget());
 
         // Deletion flags default to on; a tenant only stores a value when
         // a manager turns one off.
@@ -67,5 +76,21 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    private function registerEloquentUserProvider(): void
+    {
+        Auth::provider('eloquent', function (Application $app, array $config): EloquentUserProvider {
+            return new class($app->make(Hasher::class), $config['model']) extends EloquentUserProvider
+            {
+                /**
+                 * {@inheritdoc}
+                 */
+                protected function newModelQuery($model = null)
+                {
+                    return parent::newModelQuery($model)->with('person');
+                }
+            };
+        });
     }
 }

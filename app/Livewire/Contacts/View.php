@@ -41,9 +41,6 @@ class View extends Component
     public function render(): ViewContract
     {
         $stakeholder = $this->contact->stakeholder;
-
-        abort_if($stakeholder === null, 404);
-
         $organization = $this->requireOrganization();
 
         abort_unless((int) $this->contact->organization_id === (int) $organization->getKey(), 404);
@@ -57,7 +54,7 @@ class View extends Component
         /** @disregard P1013 */
         return view('livewire.contacts.view', [
             'stakeholder' => $stakeholder,
-            'isOrganization' => $this->contact->isOrganization(),
+            'isOrganization' => $this->contact->is_organization,
             'contactPerson' => $contactPerson,
             'contactEmail' => $stakeholder->contactDetailValue(ContactDetailType::Email),
             'contactPhone' => $stakeholder->contactDetailValue(ContactDetailType::Phone),

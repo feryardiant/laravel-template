@@ -52,3 +52,20 @@ it('ignores memberships that have finished or not started', function () {
     expect($user->roleIn($finished))->toBeNull();
     expect($user->roleIn($future))->toBeNull();
 });
+
+it('reuses the loaded membership pivot for role checks', function () {
+    $user = User::factory()->create();
+    $organization = Organization::factory()
+        ->withMember($user->person, role: Role::Admin)
+        ->create();
+
+    $person = $user->person->fresh();
+    $organization = $person->organizations()->firstOrFail();
+
+    expect($person->roleIn($organization))->toBe(Role::Admin)
+        ->and($person->membershipIn($organization))->toBe($organization->stakeholder);
+
+    $member = $organization->members()->whereKey($person->getKey())->firstOrFail();
+
+    expect($member->membershipIn($organization))->toBe($member->pivot);
+});

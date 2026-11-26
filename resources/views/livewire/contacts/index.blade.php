@@ -127,7 +127,7 @@
                     @foreach ($contacts as $contact)
                         @php($isSelected = in_array($contact->id, $selectedIds, true))
                         @php($stakeholder = $contact->stakeholder)
-                        @php($isOrganization = $contact->isOrganization())
+                        @php($isOrganization = $contact->is_organization)
                         @php($isTrashed = $stakeholder->trashed())
                         @php($rowClick = $canManage && ! $isTrashed
                             ? "if (! window.getSelection()?.toString() && ! \$event.target.closest('a, button, input, ui-checkbox, ui-dropdown')) \$wire.dispatch('edit-contact', { contactId: {$contact->id} })"

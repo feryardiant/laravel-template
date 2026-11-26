@@ -14,6 +14,8 @@
             ></div>
         @endif
 
+        @php($unreadNotifications = auth()->user()->unreadNotifications()->count())
+
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
                 <livewire:organization-switcher />
@@ -44,7 +46,7 @@
                 </flux:sidebar.item> --}}
             </flux:sidebar.nav>
 
-            <x-desktop-user-menu class="hidden lg:block" position="top" align="start" :name="auth()->user()->name" />
+            <x-desktop-user-menu class="hidden lg:block" position="top" align="start" :name="auth()->user()->name" :unread-notifications="$unreadNotifications" />
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
@@ -52,8 +54,6 @@
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <flux:spacer />
-
-            @php($unreadNotifications = auth()->user()->unreadNotifications()->count())
 
             <div
                 class="contents"

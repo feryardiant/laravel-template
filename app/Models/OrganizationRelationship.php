@@ -35,8 +35,11 @@ use InvalidArgumentException;
  * @property-read RelationshipStatus $status
  * @property-read bool $is_internal
  * @property-read bool $is_external
+ * @property-read bool $is_individual
+ * @property-read bool $is_organization
+ * @property-read bool $is_shared
  * @property-read ?Organization $organization
- * @property-read Organization|Person|null $stakeholder
+ * @property-read Organization|Person $stakeholder
  *
  * @method static OrganizationRelationshipBuilder query()
  */
@@ -102,6 +105,7 @@ class OrganizationRelationship extends MorphPivot
             'type' => OrganizationRelationshipType::class,
             'kind' => SubsidiaryKind::class,
             'role' => Role::class,
+            'is_primary' => 'boolean',
             'start_date' => 'immutable_date',
             'finish_date' => 'immutable_date',
         ];
@@ -130,7 +134,7 @@ class OrganizationRelationship extends MorphPivot
     /**
      * @return Attribute<bool, never>
      */
-    public function isInternal(): Attribute
+    protected function isInternal(): Attribute
     {
         return Attribute::get(fn () => $this->type?->isInternal() ?? false);
     }
@@ -138,9 +142,78 @@ class OrganizationRelationship extends MorphPivot
     /**
      * @return Attribute<bool, never>
      */
-    public function isExternal(): Attribute
+    protected function isExternal(): Attribute
     {
         return Attribute::get(fn () => $this->type?->isExternal() ?? false);
+    }
+
+    /**
+     * Determine whether the stakeholder is an individual.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function isIndividual(): Attribute
+    {
+        return Attribute::get(
+            fn (mixed $_, array $attributes): bool => $attributes['stakeholder_type'] === Person::class
+        );
+    }
+
+    /**
+     * Determine whether the stakeholder is an organization.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function isOrganization(): Attribute
+    {
+        return Attribute::get(
+            fn (mixed $_, array $attributes): bool => $attributes['stakeholder_type'] === Organization::class
+        );
+    }
+
+    /**
+     * Determine whether the linked entity is shared with another tenant.
+     *
+     * Used as the fallback when neither entity records an owner. Cached per
+     * model instance; re-fetch the relationship after changing its links or
+     * ownership within the same instance.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function isShared(): Attribute
+    {
+        return Attribute::get(function (): bool {
+            $stakeholder = $this->stakeholder;
+
+            // Another relationship for the same stakeholder (including imported
+            // duplicates in this tenant) keeps the entity in use. Any other match
+            // would also be returned by this check, so nothing below repeats it.
+            if (static::query()->forStakeholder($stakeholder)->whereKeyNot($this)->exists()) {
+                return true;
+            }
+
+            if ($stakeholder instanceof Person) {
+                return $stakeholder->user_id !== null
+                    || $stakeholder->primaryContactOrganizations()->exists();
+            }
+
+            if ($stakeholder->is_tenant || $stakeholder->root_organization_id !== null) {
+                return true;
+            }
+
+            // The organization owns relationships of its own, including its
+            // members and subsidiaries.
+            if (static::query()->forOrganization($stakeholder)->exists()) {
+                return true;
+            }
+
+            $contactPerson = $stakeholder->primaryContact;
+
+            return $contactPerson !== null
+                && ($contactPerson->user_id !== null
+                    || $contactPerson->primaryContactOrganizations()->whereKeyNot($stakeholder)->exists()
+                    || static::query()->forStakeholder($contactPerson)->exists());
+        })->shouldCache();
     }
 
     /**
@@ -148,25 +221,21 @@ class OrganizationRelationship extends MorphPivot
      *
      * @return Attribute<RelationshipStatus, never>
      */
-    public function status(): Attribute
+    protected function status(): Attribute
     {
         return Attribute::get(fn (): RelationshipStatus => $this->resolveStatus());
     }
 
     /**
-     * Determine whether the stakeholder is an individual.
+     * Resolve the status from the relationship's date window.
      */
-    public function isIndividual(): bool
+    private function resolveStatus(): RelationshipStatus
     {
-        return $this->stakeholder instanceof Person;
-    }
-
-    /**
-     * Determine whether the stakeholder is an organization.
-     */
-    public function isOrganization(): bool
-    {
-        return $this->stakeholder instanceof Organization;
+        return match (true) {
+            $this->finish_date?->lt(today()) => RelationshipStatus::Expired,
+            $this->start_date?->gt(today()) => RelationshipStatus::Scheduled,
+            default => RelationshipStatus::Active,
+        };
     }
 
     /**
@@ -177,11 +246,11 @@ class OrganizationRelationship extends MorphPivot
      */
     public function profileLockedFor(Organization $organization): bool
     {
-        $owner = $this->stakeholder?->owner_organization_id;
+        $owner = $this->stakeholder->owner_organization_id;
 
         return $owner !== null
             ? $owner !== $organization->getKey()
-            : $this->isShared();
+            : $this->is_shared;
     }
 
     /**
@@ -191,7 +260,7 @@ class OrganizationRelationship extends MorphPivot
     {
         $stakeholder = $this->stakeholder;
 
-        if ($stakeholder === null || $stakeholder->trashed()) {
+        if ($stakeholder->trashed()) {
             return false;
         }
 
@@ -201,97 +270,6 @@ class OrganizationRelationship extends MorphPivot
             return false;
         }
 
-        return ! $this->isShared();
-    }
-
-    /**
-     * Determine whether the linked entity is shared with another tenant.
-     *
-     * Used as the fallback when neither entity records an owner.
-     */
-    public function isShared(): bool
-    {
-        $stakeholder = $this->stakeholder;
-
-        if ($stakeholder === null) {
-            return false;
-        }
-
-        // Another relationship for the same stakeholder (including imported
-        // duplicates in this tenant) keeps the entity in use.
-        if (static::query()
-            ->where('stakeholder_type', $stakeholder->getMorphClass())
-            ->where('stakeholder_id', $stakeholder->getKey())
-            ->whereKeyNot($this->getKey())
-            ->exists()) {
-            return true;
-        }
-
-        if ($stakeholder instanceof Person) {
-            if ($stakeholder->user_id !== null) {
-                return true;
-            }
-
-            // Referenced as any organization's primary contact.
-            if ($stakeholder->primaryContactOrganizations()->exists()) {
-                return true;
-            }
-        }
-
-        if ($stakeholder instanceof Organization) {
-            if ($stakeholder->is_tenant || $stakeholder->root_organization_id !== null) {
-                return true;
-            }
-
-            // The organization owns relationships of its own.
-            if (static::query()->where('organization_id', $stakeholder->getKey())->exists()) {
-                return true;
-            }
-
-            if ($stakeholder->members()->exists() || $stakeholder->subsidiaries()->exists()) {
-                return true;
-            }
-
-            $contactPerson = $stakeholder->primaryContact;
-
-            if ($contactPerson !== null) {
-                if ($contactPerson->user_id !== null) {
-                    return true;
-                }
-
-                if ($contactPerson->primaryContactOrganizations()->whereKeyNot($stakeholder->getKey())->exists()) {
-                    return true;
-                }
-
-                if (static::query()
-                    ->where('stakeholder_type', $contactPerson->getMorphClass())
-                    ->where('stakeholder_id', $contactPerson->getKey())
-                    ->exists()) {
-                    return true;
-                }
-            }
-        }
-
-        return static::query()
-            ->where('stakeholder_type', $stakeholder->getMorphClass())
-            ->where('stakeholder_id', $stakeholder->getKey())
-            ->where('organization_id', '!=', $this->organization_id)
-            ->exists();
-    }
-
-    /**
-     * Resolve the status from the relationship's date window.
-     */
-    private function resolveStatus(): RelationshipStatus
-    {
-        if ($this->finish_date?->lt(today()) === true) {
-            return RelationshipStatus::Expired;
-        }
-
-        if ($this->start_date?->gt(today()) === true) {
-            return RelationshipStatus::Scheduled;
-        }
-
-        return RelationshipStatus::Active;
+        return ! $this->is_shared;
     }
 }

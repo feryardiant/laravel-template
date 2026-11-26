@@ -47,6 +47,28 @@ it('does not let an admin change an owner', function () {
     Event::assertNotDispatched(MemberRoleChanged::class);
 });
 
+it('does not trust a stale pivot when authorizing an owner demotion', function () {
+    Event::fake([MemberRoleChanged::class]);
+
+    $organization = Organization::factory()->create();
+    $admin = User::factory()->asMemberOf($organization, Role::Admin)->create();
+    $target = User::factory()->asMemberOf($organization, Role::Admin)->create();
+
+    $person = $organization->members()->whereKey($target->person->getKey())->firstOrFail();
+
+    // A concurrent ownership transfer commits after the member was loaded.
+    OrganizationRelationship::query()
+        ->forOrganization($organization)
+        ->forStakeholder($person)
+        ->update(['role' => Role::Owner]);
+
+    expect(app(ChangeMemberRole::class)->setRole($organization, $person, Role::Member, $admin))
+        ->toBeFalse()
+        ->and($person->fresh()->roleIn($organization))->toBe(Role::Owner);
+
+    Event::assertNotDispatched(MemberRoleChanged::class);
+});
+
 it('links the role audit to the member period when another relationship is open', function () {
     $organization = Organization::factory()->create();
     $actor = User::factory()->asMemberOf($organization, Role::Owner)->create();
