@@ -81,6 +81,11 @@
     background: transparent;
   }
 
+  [data-flux-modal] > dialog::backdrop {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+
   [data-ui-option]:not([data-disabled]) {
     cursor: pointer;
   }

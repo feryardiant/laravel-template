@@ -16,7 +16,7 @@
     $wireSubmit = $attributes->get('wire:submit');
     $actions ??= '';
     $formFooter = $flyout
-        ? '-mx-8 px-8 before:absolute before:inset-x-0 before:top-full before:h-8 before:bg-white before:content-[\'\'] dark:before:bg-zinc-800'
+        ? '-mx-6 px-6 before:absolute before:inset-x-0 before:top-full before:h-6 before:bg-white before:content-[\'\'] dark:before:bg-zinc-800'
         : '-mx-6 px-6';
     $hasHeading = filled($title);
     $headingId = $hasHeading ? $id.'-heading' : null;
@@ -29,7 +29,7 @@
     :$flyout
     :$position
     :$variant
-    {{ $attributes->except('wire:submit')->class(['flex flex-col gap-6 w-full', $width]) }}
+    {{ $attributes->except('wire:submit')->class(['flex flex-col gap-6 w-full p-6!', $width]) }}
     x-init="{{ $labelledBy }}"
 >
     @if ($hasHeading)
