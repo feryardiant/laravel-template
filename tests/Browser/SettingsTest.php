@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Enums\Locale;
 use App\Enums\Role;
 use App\Models\Organization;
-use App\Support\Feature\ProfileSelfEdit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\actingAs;
@@ -48,7 +49,7 @@ describe('usabilities', function () {
 it('lets a user update their own profile', function () {
     $member = browserMember(Role::Member);
 
-    ProfileSelfEdit::activate(Organization::query()->firstOrFail());
+    app(ToggleFeature::class)->activate(Organization::query()->firstOrFail(), Feature::ProfileSelfEdit);
 
     actingAs($member);
 
@@ -96,7 +97,7 @@ it('keeps the latest rapid preference selection', function () {
 it('applies the preferred locale to livewire updates', function () {
     $member = browserMember(Role::Member, ['locale' => Locale::English]);
 
-    ProfileSelfEdit::activate(Organization::query()->firstOrFail());
+    app(ToggleFeature::class)->activate(Organization::query()->firstOrFail(), Feature::ProfileSelfEdit);
 
     actingAs($member);
 

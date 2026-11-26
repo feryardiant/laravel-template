@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\Feature\Registration;
+use App\Enums\Feature;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +19,7 @@ class EnsureRegistrationEnabled
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->routeIs('register', 'register.store') && ! Registration::enabled()) {
+        if ($request->routeIs('register', 'register.store') && ! Feature::Registration->enabled()) {
             abort(404);
         }
 

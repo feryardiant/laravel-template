@@ -50,7 +50,7 @@
             </div>
         </form>
 
-        @if (\App\Support\Feature\Registration::enabled())
+        @if (\App\Enums\Feature::Registration->enabled())
             <div class="text-center text-sm">
                 <flux:link :href="route('register')" wire:navigate>{{ __('Create an account') }}</flux:link>
             </div>

@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Actions\Contacts\Audit\ContactUpdatedPayload;
 use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Contacts\UpdateContact;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\AuditEvent;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
@@ -18,7 +20,6 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Feature\ContactGender;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -33,7 +34,7 @@ test('editing a contact updates its per-tenant and shared fields', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $contact = contactOrganization($organization, ['name' => 'Acme Corp']);
     $contactPerson = $contact->primaryContact;
@@ -149,7 +150,7 @@ test('editing an individual contact updates the gender', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $person = contactIndividual($organization, ['name' => 'Gender Person', 'gender' => null]);
     $relationshipId = contactRelationshipId($organization, $person);
@@ -169,7 +170,7 @@ test('an existing individual can keep a blank gender on update', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $person = contactIndividual($organization, ['name' => 'Blank Gender', 'gender' => null]);
     $relationshipId = contactRelationshipId($organization, $person);
@@ -200,7 +201,7 @@ test('the gender field is shown when the feature is on', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     Livewire::test(Form::class)
         ->call('openCreate')
@@ -492,14 +493,14 @@ test('the gender flag is refreshed before saving', function () {
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $person = contactIndividual($organization, ['name' => 'Refresh Gender', 'gender' => Gender::Female]);
     $relationshipId = contactRelationshipId($organization, $person);
 
     $component = Livewire::test(Form::class)->call('openEdit', $relationshipId);
 
-    ContactGender::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::ContactGender);
 
     $component
         ->set('gender', Gender::Male->value)
@@ -717,7 +718,7 @@ test('a stale contact save keeps a gender saved by another session', function ()
 
     actingAsMember($organization, Role::Admin);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $contact = contactIndividual($organization, ['name' => 'Gender Guard']);
 

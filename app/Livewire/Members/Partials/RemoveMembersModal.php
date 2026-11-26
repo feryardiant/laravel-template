@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Livewire\Members\Partials;
 
 use App\Actions\Memberships\RemoveMember;
+use App\Enums\Feature;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\User;
 use App\Repositories\MembershipRepository;
-use App\Support\Feature\MemberDeletion;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -56,7 +56,7 @@ class RemoveMembersModal extends Component
 
         $this->authorize('manageMembers', $organization);
 
-        abort_unless(MemberDeletion::enabled($organization), 403);
+        abort_unless(Feature::MemberDeletion->enabled($organization), 403);
 
         /** @var User $actor */
         $actor = Auth::user();

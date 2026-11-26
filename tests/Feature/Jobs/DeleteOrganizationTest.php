@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Actions\FileStorage;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ApprovalRequestStatus;
 use App\Enums\ApprovalRequestType;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Jobs\DeleteOrganization;
@@ -17,7 +19,6 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\OrganizationDeletedNotification;
-use App\Support\Feature\ContactGender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -56,7 +57,7 @@ test('it deletes the subsidiary subtree and its data', function () {
 
     $member = User::factory()->asMemberOf($alpha, Role::Member)->create();
 
-    ContactGender::activate($alpha);
+    app(ToggleFeature::class)->activate($alpha, Feature::ContactGender);
 
     (new DeleteOrganization($alpha, $owner->getKey()))->handle(app(FileStorage::class));
 
@@ -121,7 +122,7 @@ test('it tombstones an externally referenced organization', function () {
         'start_date' => now(),
     ]);
 
-    ContactGender::activate($customer);
+    app(ToggleFeature::class)->activate($customer, Feature::ContactGender);
 
     (new DeleteOrganization($customer, $customerOwner->getKey()))->handle(app(FileStorage::class));
 

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Actions\Contacts\SaveContactDetails;
 use App\Actions\Memberships\CreateMember;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Members\Form;
@@ -13,7 +15,6 @@ use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
 use App\Notifications\VerifyEmailForNewUser;
-use App\Support\Feature\ContactGender;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -135,7 +136,7 @@ test('gender can only be set once for an org-owned member', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $member->person->update(['gender' => null]);

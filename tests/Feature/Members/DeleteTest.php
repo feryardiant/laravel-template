@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\RemoveMember;
+use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Enums\Role;
 use App\Events\Memberships\MemberRemoved;
 use App\Livewire\Members\Partials\RemoveMemberModal;
@@ -13,7 +15,6 @@ use App\Models\Person;
 use App\Models\User;
 use App\Notifications\MemberLeftNotification;
 use App\Notifications\MembershipRemovedNotification;
-use App\Support\Feature\MemberDeletion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -221,7 +222,7 @@ test('member removal is blocked when the workspace disables it', function () {
     $member = User::factory()->asMemberOf($organization)->create();
     $other = User::factory()->asMemberOf($organization)->create();
 
-    MemberDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::MemberDeletion);
 
     Livewire::test(RemoveMemberModal::class)
         ->call('confirm', $member->person->getKey())
@@ -245,7 +246,7 @@ test('the member view hides removal controls when the workspace disables it', fu
     actingAsMember($organization, Role::Owner);
     User::factory()->asMemberOf($organization)->create();
 
-    MemberDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::MemberDeletion);
 
     get(route('members.index'))
         ->assertOk()
@@ -270,7 +271,7 @@ test('bulk removal is blocked when the workspace disables it even with an empty 
 
     actingAsMember($organization, Role::Owner);
 
-    MemberDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::MemberDeletion);
 
     Livewire::test(RemoveMembersModal::class)
         ->call('confirm', [])
@@ -283,7 +284,7 @@ test('the removal action refuses when the workspace disables it', function () {
     $owner = actingAsMember($organization, Role::Owner);
     $member = User::factory()->asMemberOf($organization)->create();
 
-    MemberDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::MemberDeletion);
 
     app(RemoveMember::class)->handle($organization, $member->person, $owner);
 

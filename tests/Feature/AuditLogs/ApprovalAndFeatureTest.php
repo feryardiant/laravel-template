@@ -283,9 +283,9 @@ test('each feature toggle records the feature and its state', function (string $
         ->and($log->subject_id)->toBe($root->getKey())
         ->and($log->changes?->toArray())->toBe((new FeatureToggledPayload($feature, $enabled))->toArray());
 })->with([
-    ['contactGender', 'contact-gender', true],
-    ['memberDeletion', 'member-deletion', false],
-    ['contactDeletion', 'contact-deletion', false],
-    ['profileSelfEdit', 'profile-self-edit', true],
-    ['registration', 'registration', true],
+    ['features.contact-gender', 'contact-gender', true],
+    ['features.member-deletion', 'member-deletion', false],
+    ['features.contact-deletion', 'contact-deletion', false],
+    ['features.profile-self-edit', 'profile-self-edit', true],
+    ['features.registration', 'registration', true],
 ]);

@@ -3,13 +3,14 @@
 declare(strict_types=1);
 
 use App\Actions\Memberships\RemoveMember;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Members\View as MemberView;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\Feature\ContactGender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -57,7 +58,7 @@ test('the member view shows gender when the workspace enables it', function () {
 
     actingAsMember($organization, Role::Owner);
 
-    ContactGender::activate($organization);
+    app(ToggleFeature::class)->activate($organization, Feature::ContactGender);
 
     $member = User::factory()->asMemberOf($organization, Role::Member)->create();
     $member->person->update(['gender' => Gender::Female]);

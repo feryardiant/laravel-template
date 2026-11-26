@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Policies\Concerns;
 
+use App\Enums\Feature;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Feature\ContactDeletion;
 
 /**
  * Contact abilities shared by the Organization and Person policies.
@@ -41,7 +41,7 @@ trait AuthorizesContacts
      */
     public function deleteContact(User $user, Organization|Person $entity, Organization $organization): bool
     {
-        return ContactDeletion::enabled($organization)
+        return Feature::ContactDeletion->enabled($organization)
             && $this->isManager($user, $organization)
             && $this->isCounterparty($user, $entity, $organization);
     }

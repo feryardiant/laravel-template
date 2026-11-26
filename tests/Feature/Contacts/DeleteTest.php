@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Actions\Contacts\CreateContact;
 use App\Actions\Contacts\DeleteContact;
+use App\Actions\Tenancies\ToggleFeature;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
 use App\Livewire\Contacts\Partials\DeleteContactModal;
@@ -14,7 +16,6 @@ use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\Person;
 use App\Models\User;
-use App\Support\Feature\ContactDeletion;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
@@ -303,7 +304,7 @@ test('contact deletion is blocked when the workspace disables it', function () {
     $person = contactIndividual($organization, ['name' => 'Keep Me']);
     $relationshipId = contactRelationshipId($organization, $person);
 
-    ContactDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::ContactDeletion);
 
     Livewire::test(DeleteContactModal::class)
         ->call('confirm', $relationshipId)
@@ -326,7 +327,7 @@ test('the contact view hides deletion controls when the workspace disables it', 
     $person = contactIndividual($organization, ['name' => 'Keep Me']);
     contactRelationshipId($organization, $person);
 
-    ContactDeletion::deactivate($organization);
+    app(ToggleFeature::class)->deactivate($organization, Feature::ContactDeletion);
 
     get(route('contacts.index'))
         ->assertOk()

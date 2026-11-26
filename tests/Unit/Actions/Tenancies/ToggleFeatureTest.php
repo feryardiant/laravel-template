@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 use App\Actions\Organizations\Audit\FeatureToggledPayload;
 use App\Actions\Tenancies\ToggleFeature;
+use App\Enums\Feature;
 use App\Events\FeatureToggled;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\Feature\ContactGender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use InvalidArgumentException;
+
+use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
 
@@ -19,24 +22,35 @@ it('toggles a feature and records the audit event', function () {
     $organization = Organization::factory()->create();
     $actor = User::factory()->asMemberOf($organization)->create();
 
+    actingAs($actor);
+
     $changed = app(ToggleFeature::class)->handle(
         $organization,
-        ContactGender::class,
+        Feature::ContactGender,
         true,
-        $actor,
     );
 
     expect($changed)->toBeTrue()
-        ->and(ContactGender::enabled($organization))->toBeTrue();
+        ->and(Feature::ContactGender->enabled($organization))->toBeTrue();
 
     Event::assertDispatched(
         FeatureToggled::class,
         fn (FeatureToggled $event): bool => $event->organizationId === $organization->getKey()
             && $event->actorId === $actor->getKey()
             && $event->payload instanceof FeatureToggledPayload
-            && $event->payload->feature === ContactGender::FEATURE
+            && $event->payload->feature === Feature::ContactGender->value
             && $event->payload->enabled === true,
     );
+});
+
+it('rejects a root-only feature on a child tenant', function () {
+    $root = Organization::factory()->asRootTenant()->create();
+    $tenant = Organization::factory()->asTenantOf($root)->create();
+
+    expect(fn () => app(ToggleFeature::class)->handle($tenant, Feature::Registration, true))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(Feature::Registration->enabled())->toBeFalse();
 });
 
 it('does nothing when the feature already has the requested state', function () {
@@ -46,7 +60,7 @@ it('does nothing when the feature already has the requested state', function () 
 
     $changed = app(ToggleFeature::class)->handle(
         $organization,
-        ContactGender::class,
+        Feature::ContactGender,
         false,
     );
 

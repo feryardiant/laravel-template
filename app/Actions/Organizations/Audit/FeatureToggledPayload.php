@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Organizations\Audit;
 
 use App\Actions\AuditLogs\AuditPayload;
+use App\Enums\Feature;
 
 /**
  * Audit payload describing a toggled organization feature.
@@ -45,13 +46,6 @@ final class FeatureToggledPayload extends AuditPayload
      */
     private static function featureLabel(string $feature): string
     {
-        return match ($feature) {
-            'contact-gender' => __('Gender field in contact'),
-            'profile-self-edit' => __('Profile self-edit'),
-            'member-deletion' => __('Member removal'),
-            'contact-deletion' => __('Contact deletion'),
-            'registration' => __('Public registration'),
-            default => $feature,
-        };
+        return Feature::tryFrom($feature)?->label() ?? $feature;
     }
 }

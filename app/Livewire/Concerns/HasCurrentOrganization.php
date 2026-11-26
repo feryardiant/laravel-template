@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Closure;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 
@@ -41,13 +42,21 @@ trait HasCurrentOrganization
 
     /**
      * The current organization, aborting when none is active.
+     *
+     * @param  array<int, Closure(?Organization $organization):bool>  $aborts
      */
-    protected function requireOrganization(): Organization
+    protected function requireOrganization(array $aborts = []): Organization
     {
         $organization = $this->currentOrganization();
 
-        if ($organization === null) {
-            abort(403);
+        if (blank($aborts)) {
+            $aborts = [
+                403 => fn (?Organization $org) => $org === null,
+            ];
+        }
+
+        foreach ($aborts as $httpCode => $condition) {
+            abort_if($condition($organization), $httpCode);
         }
 
         return $organization;

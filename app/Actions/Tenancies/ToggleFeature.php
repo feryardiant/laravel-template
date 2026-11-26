@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Tenancies;
 
+use App\Enums\Feature;
 use App\Events\FeatureToggled;
 use App\Models\Organization;
 use App\Models\User;
-use App\Support\Feature\ContactDeletion;
-use App\Support\Feature\ContactGender;
-use App\Support\Feature\MemberDeletion;
-use App\Support\Feature\ProfileSelfEdit;
-use App\Support\Feature\Registration;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Laravel\Pennant\Feature;
+use InvalidArgumentException;
+use Laravel\Pennant\Feature as PennantFeature;
 
 /**
  * Toggles an organization feature flag and records the audit event.
@@ -22,33 +20,46 @@ final class ToggleFeature
 {
     /**
      * Toggle an organization feature and record the audit event.
-     *
-     * @param  class-string<Registration|ProfileSelfEdit|ContactGender|MemberDeletion|ContactDeletion>  $flag
      */
-    public function handle(Organization $organization, string $flag, bool $enabled, ?User $actor = null): bool
+    public function handle(Organization $organization, Feature $feature, bool $enabled): bool
     {
-        if ($this->enabled($organization, $flag) === $enabled) {
+        if ($feature->isRootOnly() && ! $organization->isRootTenant()) {
+            throw new InvalidArgumentException("The {$feature->value} feature can only be toggled on the root tenant.");
+        }
+
+        if ($feature->enabled($organization) === $enabled) {
             return false;
         }
 
-        DB::transaction(function () use ($organization, $flag, $enabled, $actor): void {
+        /** @var User $actor */
+        $actor = Auth::user();
+
+        DB::transaction(function () use ($organization, $feature, $enabled, $actor): void {
             if ($enabled) {
-                $flag::activate($organization);
+                $this->activate($organization, $feature);
             } else {
-                $flag::deactivate($organization);
+                $this->deactivate($organization, $feature);
             }
 
-            event(new FeatureToggled($organization, $actor, $flag::FEATURE, $enabled));
+            event(new FeatureToggled($organization, $actor, $feature->value, $enabled));
         });
 
         return true;
     }
 
     /**
-     * @param  class-string<Registration|ProfileSelfEdit|ContactGender|MemberDeletion|ContactDeletion>  $flag
+     * Enable the feature without recording the audit event.
      */
-    private function enabled(Organization $organization, string $flag): bool
+    public function activate(Organization $organization, Feature $feature): void
     {
-        return (bool) Feature::for($organization)->active($flag::FEATURE);
+        PennantFeature::for($organization)->activate($feature);
+    }
+
+    /**
+     * Disable the feature without recording the audit event.
+     */
+    public function deactivate(Organization $organization, Feature $feature): void
+    {
+        PennantFeature::for($organization)->deactivate($feature);
     }
 }

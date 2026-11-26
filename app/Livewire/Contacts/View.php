@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Livewire\Contacts;
 
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Models\OrganizationRelationship;
 use App\Models\OrganizationRelationshipPeriod;
 use App\Repositories\ContactRepository;
 use App\Repositories\RelationshipRepository;
-use App\Support\Feature\ContactGender;
 use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -60,7 +60,7 @@ class View extends Component
             'contactPhone' => $stakeholder->contactDetailValue(ContactDetailType::Phone),
             'contactPersonEmail' => $contactPerson?->contactDetailValue(ContactDetailType::Email),
             'contactPersonPhone' => $contactPerson?->contactDetailValue(ContactDetailType::Phone),
-            'showGender' => ContactGender::enabled($this->currentOrganization()),
+            'showGender' => Feature::ContactGender->enabled($this->currentOrganization()),
         ])->title(__('Contact details'));
     }
 

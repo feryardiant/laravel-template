@@ -8,6 +8,7 @@ use App\Actions\Memberships\CreateMember;
 use App\Actions\Memberships\UpdateMember;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\ContactDetailType;
+use App\Enums\Feature;
 use App\Enums\Gender;
 use App\Enums\Role;
 use App\Livewire\Concerns\HasCurrentOrganization;
@@ -16,7 +17,6 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Repositories\MembershipRepository;
-use App\Support\Feature\ContactGender;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -105,7 +105,7 @@ class Form extends Component
     public function mount(?Person $person = null): void
     {
         if ($person instanceof Person) {
-            $this->genderEnabled = ContactGender::enabled($this->currentOrganization());
+            $this->genderEnabled = Feature::ContactGender->enabled($this->currentOrganization());
             $this->fillFrom($person);
         }
     }
@@ -127,7 +127,7 @@ class Form extends Component
         abort_if($person === null, 404);
 
         $this->authorize('manageMember', [$person, $organization]);
-        $this->genderEnabled = ContactGender::enabled($organization);
+        $this->genderEnabled = Feature::ContactGender->enabled($organization);
         $this->fillFrom($person);
 
         $this->showModal = true;
