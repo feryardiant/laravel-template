@@ -52,7 +52,7 @@ final class ToggleFeature
      */
     public function activate(Organization $organization, Feature $feature): void
     {
-        PennantFeature::for($organization)->activate($feature->value);
+        PennantFeature::for($organization)->activate($feature);
     }
 
     /**
@@ -60,6 +60,6 @@ final class ToggleFeature
      */
     public function deactivate(Organization $organization, Feature $feature): void
     {
-        PennantFeature::for($organization)->deactivate($feature->value);
+        PennantFeature::for($organization)->deactivate($feature);
     }
 }
