@@ -127,18 +127,12 @@
             Selected: <span data-ui-bound="modal-project">{{ $modalProjectId }}</span>
         </p>
 
-        <x-modal wire:model.self="showCreateModal" title="Create new project">
-            <form wire:submit="createProjectFromModal" class="flex flex-col gap-6">
-                <flux:input wire:model="newProjectName" label="Name" placeholder="e.g. 'UX Research'" autofocus />
+        <x-modal mode="form" wire:model.self="showCreateModal" wire:submit="createProjectFromModal" title="Create new project" :cancel="__('Cancel')">
+            <flux:input wire:model="newProjectName" label="Name" placeholder="e.g. 'UX Research'" autofocus />
 
-                <div class="flex items-center justify-between">
-                    <flux:modal.close>
-                        <flux:button variant="subtle">Cancel</flux:button>
-                    </flux:modal.close>
-
-                    <flux:button type="submit" variant="primary">Create</flux:button>
-                </div>
-            </form>
+            <x-slot:actions>
+                <flux:button type="submit" variant="primary">Create</flux:button>
+            </x-slot:actions>
         </x-modal>
     </section>
 

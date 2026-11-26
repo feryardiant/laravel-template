@@ -49,53 +49,48 @@
     @endif
 
     <x-modal
+        mode="confirm"
         wire:model.self="showTransferModal"
         width="md:w-lg"
         :title="__('Transfer ownership')"
         :subtitle="$organization?->name"
     >
-        <div class="flex flex-col gap-6">
-            <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('You will become an Admin.')">
-                <flux:callout.text>
-                    {{ __('The selected member must accept the transfer. Until then, you remain the owner.') }}
-                </flux:callout.text>
-            </flux:callout>
+        <flux:callout variant="warning" icon="exclamation-triangle" :heading="__('You will become an Admin.')">
+            <flux:callout.text>
+                {{ __('The selected member must accept the transfer. Until then, you remain the owner.') }}
+            </flux:callout.text>
+        </flux:callout>
 
-            <x-ui.select
-                wire:model="recipientId"
-                :label="__('New owner')"
-                :placeholder="__('Select a member')"
+        <x-ui.select
+            wire:model="recipientId"
+            :label="__('New owner')"
+            :placeholder="__('Select a member')"
+        >
+            @foreach ($this->members as $member)
+                <x-ui.select.option :value="$member->getKey()">
+                    {{ $member->name }} ({{ $member->user?->email }})
+                </x-ui.select.option>
+            @endforeach
+        </x-ui.select>
+
+        <flux:error name="recipientId" />
+
+        <flux:input
+            wire:model.live.debounce.300ms="confirmation"
+            :label="__('Type :name to confirm', ['name' => $organization?->name])"
+            autocomplete="off"
+        />
+
+        <flux:error name="confirmation" />
+
+        <x-slot:actions>
+            <flux:button
+                variant="danger"
+                wire:click="transfer"
+                :disabled="$recipientId === null || $confirmation !== $organization?->name"
             >
-                @foreach ($this->members as $member)
-                    <x-ui.select.option :value="$member->getKey()">
-                        {{ $member->name }} ({{ $member->user?->email }})
-                    </x-ui.select.option>
-                @endforeach
-            </x-ui.select>
-
-            <flux:error name="recipientId" />
-
-            <flux:input
-                wire:model.live.debounce.300ms="confirmation"
-                :label="__('Type :name to confirm', ['name' => $organization?->name])"
-                autocomplete="off"
-            />
-
-            <flux:error name="confirmation" />
-
-            <div class="flex items-center justify-between">
-                <flux:modal.close>
-                    <flux:button variant="subtle">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button
-                    variant="danger"
-                    wire:click="transfer"
-                    :disabled="$recipientId === null || $confirmation !== $organization?->name"
-                >
-                    {{ __('Transfer ownership') }}
-                </flux:button>
-            </div>
-        </div>
+                {{ __('Transfer ownership') }}
+            </flux:button>
+        </x-slot:actions>
     </x-modal>
 </x-ui.section.item>
