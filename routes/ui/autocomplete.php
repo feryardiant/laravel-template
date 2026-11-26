@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Ui\Autocomplete;
+use App\Livewire\View\Ui\Autocomplete;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

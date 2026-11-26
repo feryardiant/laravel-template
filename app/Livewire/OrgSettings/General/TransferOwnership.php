@@ -52,9 +52,11 @@ class TransferOwnership extends Component
     public function members(): Collection
     {
         $organization = $this->currentOrganization();
-        $owner = Auth::user()?->person;
+        /** @var User $user */
+        $user = Auth::user();
+        $owner = $user->profile;
 
-        if ($organization === null || $owner === null) {
+        if ($organization === null) {
             return new Collection;
         }
 
@@ -93,9 +95,8 @@ class TransferOwnership extends Component
 
         abort_if($approval === null || $approval->type !== ApprovalRequestType::OwnershipTransfer, 404);
 
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         $cancelRequest->handle($approval, $user);
 
@@ -144,9 +145,8 @@ class TransferOwnership extends Component
 
         abort_if($recipient === null, 404);
 
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         try {
             $transferOwnership->request($organization, $user, $recipient);

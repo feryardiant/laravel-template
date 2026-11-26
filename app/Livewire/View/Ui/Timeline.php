@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Ui;
+namespace App\Livewire\View\Ui;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * Development gallery that links every component page.
+ * Development page for the timeline component.
  */
 #[Layout('ui.layout')]
-class Gallery extends Component
+class Timeline extends Component
 {
     public function render(): View
     {
-        return view('ui.index');
+        return view('ui.timeline');
     }
 }

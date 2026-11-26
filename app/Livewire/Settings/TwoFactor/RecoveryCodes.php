@@ -44,7 +44,7 @@ class RecoveryCodes extends Component
      */
     private function loadRecoveryCodes(GetRecoveryCodes $getRecoveryCodes): void
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
 
         try {

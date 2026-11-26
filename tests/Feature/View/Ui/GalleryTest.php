@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Ui\Gallery;
+use App\Livewire\View\Ui\Gallery;
 use Livewire\Livewire;
 
 it('links to every component page', function () {

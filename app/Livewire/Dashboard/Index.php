@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire;
+namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\OrganizationRelationship;
@@ -29,7 +29,7 @@ use Livewire\Component;
  * @property-read Collection<int, OrganizationRelationship> $expiringContacts
  * @property-read Collection<int, Person> $recentMembers
  */
-class Dashboard extends Component
+class Index extends Component
 {
     use HasCurrentOrganization;
 
@@ -51,7 +51,7 @@ class Dashboard extends Component
         $timezone = $this->timezone();
 
         /** @disregard P1013 */
-        return view('livewire.dashboard', [
+        return view('livewire.dashboard.index', [
             'organization' => $this->currentOrganization(),
             'today' => CarbonImmutable::now($timezone)->toDateString(),
             'timezone' => $timezone,
@@ -91,11 +91,8 @@ class Dashboard extends Component
     #[Computed]
     public function unreadNotifications(): int
     {
+        /** @var User $user */
         $user = Auth::user();
-
-        if (! $user instanceof User) {
-            return 0;
-        }
 
         return app(NotificationRepository::class)->countUnread($user, $this->range, $this->timezone());
     }
@@ -131,8 +128,9 @@ class Dashboard extends Component
      */
     private function timezone(): string
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        return $user instanceof User ? $user->timezoneOrDefault() : 'UTC';
+        return $user->timezoneOrDefault();
     }
 }

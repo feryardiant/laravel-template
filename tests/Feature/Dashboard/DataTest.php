@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Actions\Memberships\CreateMember;
 use App\Enums\OrganizationRelationshipType;
 use App\Enums\Role;
-use App\Livewire\Dashboard;
+use App\Livewire\Dashboard\Index;
 use App\Models\Organization;
 use App\Models\Person;
 use Carbon\CarbonImmutable;
@@ -60,7 +60,7 @@ test('counts members and contacts that started inside the range', function () {
     dashboardContact($organization, 'Inside Contact', '2026-11-18');
     dashboardContact($organization, 'Old Contact', '2026-10-30');
 
-    $component = Livewire::test(Dashboard::class)->instance();
+    $component = Livewire::test(Index::class)->instance();
 
     expect($component->newMembers)->toBe(2)
         ->and($component->newContacts)->toBe(1);
@@ -83,7 +83,7 @@ test('lists only unexpired external contacts finishing inside the range', functi
         finishDate: CarbonImmutable::parse('2026-11-18'),
     );
 
-    $component = Livewire::test(Dashboard::class)->instance();
+    $component = Livewire::test(Index::class)->instance();
 
     expect($component->expiringCount)->toBe(1)
         ->and($component->expiringContacts->pluck('stakeholder.name')->all())->toBe(['Ending Soon']);
@@ -99,7 +99,7 @@ test('the range filters the counts and the recent member list', function () {
     $attach->attach($organization, Person::factory()->withoutCredential()->create(['name' => 'This Week']), startDate: CarbonImmutable::parse('2026-11-17'));
     $attach->attach($organization, Person::factory()->withoutCredential()->create(['name' => 'Earlier']), startDate: CarbonImmutable::parse('2026-11-03'));
 
-    $component = Livewire::test(Dashboard::class)
+    $component = Livewire::test(Index::class)
         ->assertSet('range.start', '2026-11-15')
         ->assertSet('range.end', '2026-11-21')
         ->set('range', ['start' => '2026-11-01', 'end' => '2026-11-30'])
@@ -119,7 +119,7 @@ test('lists a soft-deleted contact with its name instead of a broken link', func
     $person->delete();
 
     // `ContactRepository::findByUuid()` does not resolve trashed people, so no link.
-    Livewire::test(Dashboard::class)
+    Livewire::test(Index::class)
         ->assertSee('Deleted Contact')
         ->assertDontSeeHtml(route('contacts.view', ['stakeholder' => $person]));
 });
@@ -141,5 +141,5 @@ test('counts only unread notifications created inside the range', function () {
     $notify('2026-11-16 09:00:00', read: true);
     $notify('2026-10-01 09:00:00');
 
-    expect(Livewire::test(Dashboard::class)->instance()->unreadNotifications)->toBe(1);
+    expect(Livewire::test(Index::class)->instance()->unreadNotifications)->toBe(1);
 });

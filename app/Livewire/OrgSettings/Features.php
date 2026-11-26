@@ -176,13 +176,14 @@ class Features extends Component
      */
     private function toggle(Organization $organization, string $flag, bool $enabled): bool
     {
+        /** @var User $actor */
         $actor = Auth::user();
 
         return app(ToggleFeature::class)->handle(
             $organization,
             $flag,
             $enabled,
-            $actor instanceof User ? $actor : null,
+            $actor,
         );
     }
 }

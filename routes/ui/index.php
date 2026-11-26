@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Ui\Gallery;
+use App\Livewire\View\Ui\Gallery;
 use Illuminate\Support\Facades\Route;
 
 Route::livewire('/', Gallery::class)->name('ui.index');

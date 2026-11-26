@@ -87,11 +87,12 @@ class Audit extends Component
     #[Computed]
     public function actors(): Collection
     {
+        /** @var User $current */
         $current = Auth::user();
 
         return app(AuditRepository::class)->getActors(
             $this->requireOrganization(),
-            $current instanceof User ? $current : null,
+            $current,
         );
     }
 
@@ -142,8 +143,9 @@ class Audit extends Component
      */
     private function timezone(): string
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        return $user instanceof User ? $user->timezoneOrDefault() : 'UTC';
+        return $user->timezoneOrDefault();
     }
 }

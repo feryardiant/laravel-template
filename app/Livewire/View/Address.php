@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire;
+namespace App\Livewire\View;
 
 use App\Repositories\RegionRepository;
 use Creasi\Nusa\Models\District;
@@ -45,7 +45,7 @@ class Address extends Component
 
     public function render(): View
     {
-        return view('livewire.address');
+        return view('livewire.view.address');
     }
 
     /**

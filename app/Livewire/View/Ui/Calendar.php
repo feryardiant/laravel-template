@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Ui;
+namespace App\Livewire\View\Ui;
 
 use Carbon\CarbonImmutable;
 use Flux\DateRange;

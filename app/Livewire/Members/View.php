@@ -138,9 +138,10 @@ class View extends Component
     {
         $organization = $this->requireOrganization();
 
+        /** @var User $actor */
         $actor = Auth::user();
 
-        if (! \in_array($this->roleChangeTo, [Role::Admin->value, Role::Member->value], true) || ! $actor instanceof User) {
+        if (! \in_array($this->roleChangeTo, [Role::Admin->value, Role::Member->value], true)) {
             Flux::toast(variant: 'danger', text: __('Unable to change the member role.'));
             $this->reset('showRoleModal', 'roleChangeTo');
 

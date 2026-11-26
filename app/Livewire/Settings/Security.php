@@ -65,7 +65,7 @@ class Security extends Component
         $this->canManageTwoFactor = Features::canManageTwoFactorAuthentication();
 
         if ($this->canManageTwoFactor) {
-            /** @var User */
+            /** @var User $user */
             $user = Auth::user();
 
             if (Fortify::confirmsTwoFactorAuthentication() && \is_null($user->two_factor_confirmed_at)) {
@@ -131,7 +131,7 @@ class Security extends Component
             throw $e;
         }
 
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
 
         $updatePassword->handle($user, $validated['password']);
@@ -146,7 +146,7 @@ class Security extends Component
      */
     public function enable(EnableTwoFactorAuthentication $enableTwoFactorAuthentication): void
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
         $enableTwoFactorAuthentication($user);
 
@@ -225,7 +225,7 @@ class Security extends Component
         $this->resetErrorBag();
 
         if (! $this->requiresConfirmation) {
-            /** @var User */
+            /** @var User $user */
             $user = Auth::user();
             $this->twoFactorEnabled = $user->hasEnabledTwoFactorAuthentication();
         }
@@ -236,7 +236,7 @@ class Security extends Component
      */
     private function loadSetupData(): void
     {
-        /** @var User */
+        /** @var User $user */
         $user = Auth::user();
 
         try {

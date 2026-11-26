@@ -44,12 +44,10 @@ class Leave extends Component
     #[On('leave-organization')]
     public function confirm(int $organizationId, string $name): void
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
 
-        $organization = $user instanceof User
-            ? app(OrganizationRepository::class)->findUser($user, $organizationId)
-            : null;
+        $organization = app(OrganizationRepository::class)->findUser($user, $organizationId);
 
         $this->organizationId = $organizationId;
         $this->organizationName = $name;
@@ -64,9 +62,8 @@ class Leave extends Component
     #[On('cancel-leave-request')]
     public function cancelRequest(int $approvalId, CancelApproval $cancelRequest): void
     {
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User && $user->person !== null, 403);
 
         $approval = app(ApprovalRepository::class)->findForRequester($user, $approvalId, ApprovalRequestType::MembershipLeave);
 
@@ -84,10 +81,10 @@ class Leave extends Component
      */
     public function leave(LeaveWorkspace $leaveWorkspace): void
     {
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
 
-        abort_if($this->organizationId === null || ! $user instanceof User, 404);
+        abort_if($this->organizationId === null, 404);
 
         $organization = app(OrganizationRepository::class)->findUser($user, $this->organizationId);
 

@@ -64,10 +64,8 @@ class RemoveOrganization extends Component
             return;
         }
 
-        /** @var User|null $user */
+        /** @var User $user */
         $user = Auth::user();
-
-        abort_unless($user instanceof User, 403);
 
         dispatch(new DeleteOrganization($organization, $user->getKey()));
 

@@ -31,9 +31,10 @@ trait HasCurrentOrganization
     protected function currentRole(): ?Role
     {
         $organization = $this->currentOrganization();
+        /** @var User $user */
         $user = Auth::user();
 
-        return $organization !== null && $user instanceof User
+        return $organization !== null
             ? $user->roleIn($organization)
             : null;
     }

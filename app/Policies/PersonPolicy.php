@@ -49,7 +49,7 @@ class PersonPolicy
     {
         return $person->roleIn($organization) !== null
             && ! $role->isOwner()
-            && ! $person->is($user->person)
+            && ! $person->is($user->profile)
             && $this->manageMember($user, $person, $organization);
     }
 
@@ -58,7 +58,7 @@ class PersonPolicy
      */
     public function removeMember(User $user, Person $person, Organization $organization): bool
     {
-        return ! $person->is($user->person)
+        return ! $person->is($user->profile)
             && MemberDeletion::enabled($organization)
             && $this->manageMember($user, $person, $organization);
     }

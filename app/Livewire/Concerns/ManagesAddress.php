@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Address form state, validation, and persistence for the parent components
- * that embed `App\Livewire\Address`.
+ * that embed `App\Livewire\View\Address`.
  */
 trait ManagesAddress
 {

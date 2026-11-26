@@ -4,7 +4,7 @@
             @unless ($this->canEditOwnProfile)
                 <flux:callout variant="secondary" icon="lock-closed">
                     <flux:callout.text>
-                        {{ __('Your name, email, and photo are managed by :organization.', ['organization' => $this->person?->ownerOrganization?->name ?? __('your organization')]) }}
+                        {{ __('Your name, email, and photo are managed by :organization.', ['organization' => $this->person->ownerOrganization?->name ?? __('your organization')]) }}
                     </flux:callout.text>
                 </flux:callout>
             @endunless
