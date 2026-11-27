@@ -55,7 +55,7 @@ describe('Livewire pages', function (): void {
 
     it('measures the contact lookup', function (): void {
         /** @var TestCase $this */
-        $this->measure('bench contact lookup', fn () => $this->getJson(route('contacts.lookup', ['q' => 'Shared'])), runs: 3);
+        $this->measure('bench contact lookup', fn () => $this->getJson(route('contacts.lookup', ['q' => 'Shared']))->assertOk(), runs: 3);
     })->group('query-read');
 });
 
@@ -67,11 +67,12 @@ describe('Query plans', function (): void {
 
     it('explains the contact list and search', function (): void {
         /** @var TestCase $this */
-        $sql = $this->capture(fn () => app(ContactRepository::class)->get($this->bench(), ''));
+        $bench = $this->bench();
+        $sql = $this->capture(fn () => app(ContactRepository::class)->get($bench, ''));
         $this->explain('contacts count', $sql[0] ?? '');
         $this->explain('contacts page', $sql[1] ?? '');
 
-        $sql = $this->capture(fn () => app(ContactRepository::class)->get($this->bench(), 'Org 2-'));
+        $sql = $this->capture(fn () => app(ContactRepository::class)->get($bench, 'Org 2-'));
         $this->explain('contacts search count', $sql[0] ?? '');
     })->group('query-read');
 });
@@ -79,7 +80,7 @@ describe('Query plans', function (): void {
 describe('Bulk actions', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->benchOwner(), $this->bench());
     });
 
@@ -110,7 +111,7 @@ describe('Bulk actions', function (): void {
 describe('Actions', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->benchOwner(), $this->bench());
     });
 

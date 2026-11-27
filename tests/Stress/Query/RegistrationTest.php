@@ -11,7 +11,7 @@ use Tests\Stress\TestCase;
 
 beforeEach(function (): void {
     /** @var TestCase $this */
-    $this->requireQuery();
+    $this->requireWriteQuery();
 });
 
 it('provisions a public tenant', function (): void {

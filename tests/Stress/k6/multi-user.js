@@ -76,10 +76,11 @@ export default function () {
             Cookie: cookieHeader,
         },
         tags: { name: 'target' },
+        redirects: 0,
     })
 
     const targetOk = check(response, {
-        'target responded': (r) => r.status >= 200 && r.status < 400,
+        'target responded': (r) => r.status === 200,
     })
 
     if (!targetOk) {

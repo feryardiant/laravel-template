@@ -109,21 +109,24 @@ class QueryAuditSeeder extends Seeder
 
         $tenants = $this->planTenants($tenantCount);
 
-        $this->seedKnownUsers();
-        $this->seedTenants($tenants);
+        DB::transaction(function () use ($tenants, $tenantCount): void {
+            $this->seedKnownUsers();
+            $this->seedTenants($tenants);
 
-        $this->nextPersonId = $this->nextUserId;
-        $this->nextOrgId = $tenantCount + 1;
+            $this->nextPersonId = $this->nextUserId;
+            $this->nextOrgId = $tenantCount + 1;
 
-        $this->seedSubsidiaries($tenants);
-        $this->seedBenchMemberships($tenants);
-        $this->seedSharedContacts($tenants);
-        $this->seedUniqueContacts($tenants);
-        $this->seedNotifications();
-        $this->seedAuditLogs($tenants);
-        $this->seedApprovals($tenants);
+            $this->seedSubsidiaries($tenants);
+            $this->seedBenchMemberships($tenants);
+            $this->seedSharedContacts($tenants);
+            $this->seedUniqueContacts($tenants);
+            $this->seedNotifications();
+            $this->seedAuditLogs($tenants);
+            $this->seedApprovals($tenants);
 
-        $this->flush();
+            $this->flush();
+        });
+
         $this->resetSequences();
         $this->analyze();
 
@@ -753,15 +756,18 @@ class QueryAuditSeeder extends Seeder
     private function groups(array $order): array
     {
         $groups = [];
+        $count = \count($order);
+        $offset = 0;
 
-        while ($order !== []) {
-            $size = min(mt_rand(2, 5), \count($order));
+        while ($offset < $count) {
+            $size = min(mt_rand(2, 5), $count - $offset);
 
-            if (\count($order) - $size === 1) {
+            if ($count - $offset - $size === 1) {
                 $size++;
             }
 
-            $groups[] = array_splice($order, 0, $size);
+            $groups[] = \array_slice($order, $offset, $size);
+            $offset += $size;
         }
 
         return $groups;
@@ -1043,8 +1049,6 @@ class QueryAuditSeeder extends Seeder
     {
         if ($this->command !== null) {
             $this->command->error($message);
-
-            return;
         }
 
         throw new RuntimeException($message);

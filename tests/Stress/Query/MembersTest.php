@@ -41,7 +41,9 @@ describe('Livewire pages', function (): void {
         /** @var TestCase $this */
         $member = $this->benchMember('Member 2-4');
 
-        $this->measure('bench member edit', fn () => Livewire::test(MemberForm::class, ['person' => $member]), runs: 3);
+        $this->measure('bench member edit', fn () => Livewire::test(MemberForm::class)
+            ->call('editMember', $member->getKey())
+            ->assertSet('showModal', true), runs: 3);
     })->group('query-read');
 });
 
@@ -53,7 +55,8 @@ describe('Query plans', function (): void {
 
     it('explains the member list', function (): void {
         /** @var TestCase $this */
-        $sql = $this->capture(fn () => app(MembershipRepository::class)->get($this->bench(), ''));
+        $bench = $this->bench();
+        $sql = $this->capture(fn () => app(MembershipRepository::class)->get($bench, ''));
 
         $this->explain('members count', $sql[0] ?? '');
         $this->explain('members page', $sql[1] ?? '');
@@ -63,7 +66,7 @@ describe('Query plans', function (): void {
 describe('Bulk actions', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->benchOwner(), $this->bench());
     });
 
@@ -93,25 +96,29 @@ describe('Bulk actions', function (): void {
 describe('Actions', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->benchOwner(), $this->bench());
     });
 
     it('creates a credentialed member', function (): void {
         /** @var TestCase $this */
         $name = 'Baseline Member '.$this->suffix();
+        $email = 'member-'.$this->suffix().'@example.test';
 
         $this->measure('member create (credentialed)', fn () => Livewire::test(MemberForm::class)
             ->call('openCreate')
             ->set('name', $name)
-            ->set('email', 'member-'.$this->suffix().'@example.test')
+            ->set('email', $email)
             ->set('role', Role::Member->value)
             ->set('createCredential', true)
             ->set('contactEmail', 'member-contact-'.$this->suffix().'@example.test')
             ->set('contactPhone', '081234567893')
             ->call('create'));
 
-        expect(Person::query()->where('name', $name)->exists())->toBeTrue();
+        $person = Person::query()->where('name', $name)->firstOrFail();
+
+        expect($person->user?->email)->toBe($email)
+            ->and($person->membershipIn($this->bench()))->not->toBeNull();
     })->group('query-write');
 
     it('creates a member without a credential', function (): void {
@@ -126,7 +133,10 @@ describe('Actions', function (): void {
             ->set('createCredential', false)
             ->call('create'));
 
-        expect(Person::query()->where('name', $name)->exists())->toBeTrue();
+        $person = Person::query()->where('name', $name)->firstOrFail();
+
+        expect($person->user_id)->toBeNull()
+            ->and($person->membershipIn($this->bench()))->not->toBeNull();
     })->group('query-write');
 
     it('updates a member role', function (): void {

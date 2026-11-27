@@ -16,7 +16,7 @@ use Tests\Stress\TestCase;
 describe('Request and cancel', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->rootOwner(), $this->root());
     });
 
@@ -61,7 +61,7 @@ describe('Request and cancel', function (): void {
 describe('Accept and decline', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
     });
 
     it('accepts an ownership transfer', function (): void {

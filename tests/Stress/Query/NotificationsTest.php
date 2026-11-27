@@ -23,7 +23,7 @@ describe('Livewire pages', function (): void {
 describe('Actions', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->benchOwner(), $this->bench());
     });
 

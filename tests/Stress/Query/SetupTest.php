@@ -11,7 +11,7 @@ use Tests\Stress\TestCase;
 describe('Setup', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
     });
 
     it('provisions the root tenant', function (): void {

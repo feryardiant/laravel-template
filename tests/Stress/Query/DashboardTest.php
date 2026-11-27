@@ -36,13 +36,15 @@ describe('Query plans', function (): void {
     });
 
     it('explains the dashboard range counts', function (): void {
-        $range = DateRange::defaultWeek();
+        /** @var TestCase $this */
+        $range = DateRange::defaultWeek($this->benchOwner()->timezoneOrDefault());
+        $bench = $this->bench();
 
         /** @var TestCase $this */
-        $sql = $this->capture(fn () => app(ContactRepository::class)->countExpiring($this->bench(), $range));
+        $sql = $this->capture(fn () => app(ContactRepository::class)->countExpiring($bench, $range));
         $this->explain('dashboard expiring count', $sql[0] ?? '');
 
-        $sql = $this->capture(fn () => app(MembershipRepository::class)->countRecent($this->bench(), $range));
+        $sql = $this->capture(fn () => app(MembershipRepository::class)->countRecent($bench, $range));
         $this->explain('dashboard recent members', $sql[0] ?? '');
     })->group('query-read');
 });

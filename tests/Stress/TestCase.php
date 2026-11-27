@@ -12,6 +12,7 @@ use App\Support\CurrentOrganization;
 use Closure;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Pest\Stressless\Factory;
 use Symfony\Component\HttpFoundation\Cookie;
 use Tests\TestCase as BaseTestCase;
@@ -25,9 +26,9 @@ use function Pest\Stressless\stress;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Raw SQL captured by the DB listener.
+     * Queries captured by the DB listener.
      *
-     * @var list<string>
+     * @var list<QueryExecuted>
      */
     private array $queries = [];
 
@@ -43,7 +44,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         DB::listen(function (QueryExecuted $query): void {
-            $this->queries[] = $query->toRawSql();
+            $this->queries[] = $query;
         });
     }
 
@@ -68,16 +69,18 @@ abstract class TestCase extends BaseTestCase
 
         sort($times);
 
+        $raw = array_map(fn (QueryExecuted $query): string => $query->toRawSql(), $captured);
+
         fwrite(STDERR, \sprintf(
             "### %-42s %8.1f ms %5d q\n",
             $label,
             $times[intdiv(\count($times), 2)],
-            \count($captured),
+            \count($raw),
         ));
 
         $counts = [];
 
-        foreach ($captured as $sql) {
+        foreach ($raw as $sql) {
             $key = $this->normalizeSql($sql);
             $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
@@ -101,7 +104,7 @@ abstract class TestCase extends BaseTestCase
         $this->queries = [];
         $callback();
 
-        return $this->queries;
+        return array_map(fn (QueryExecuted $query): string => $query->toRawSql(), $this->queries);
     }
 
     /**
@@ -144,7 +147,16 @@ abstract class TestCase extends BaseTestCase
         $headers = ['Accept' => $accept];
 
         if ($handle !== null) {
-            $headers['Cookie'] = $this->sessionCookie($handle);
+            $cookie = $this->sessionCookie($handle);
+            $probe = Http::withHeaders(['Cookie' => $cookie, 'Accept' => $accept])
+                ->withOptions(['allow_redirects' => false])
+                ->get($this->baseUrl().$path);
+
+            if (! $probe->successful()) {
+                $this->fail("Authenticated probe for [{$path}] returned [{$probe->status()}].");
+            }
+
+            $headers['Cookie'] = $cookie;
         }
 
         $result = stress($this->baseUrl().$path)
@@ -250,6 +262,20 @@ abstract class TestCase extends BaseTestCase
         }
 
         expect(DB::connection()->getDatabaseName())->toBe($expected);
+    }
+
+    /**
+     * Skip write tests unless the configured database is disposable.
+     */
+    protected function requireWriteQuery(): void
+    {
+        $this->requireQuery();
+
+        $database = DB::connection()->getDatabaseName();
+
+        if (! str_contains($database, 'write') && ! str_contains($database, 'bulk')) {
+            $this->fail("Refusing to run a write benchmark against [{$database}]; use a disposable write or bulk database.");
+        }
     }
 
     /**

@@ -82,14 +82,16 @@ describe('Query plans', function (): void {
 
     it('explains the approval history', function (): void {
         /** @var TestCase $this */
-        $sql = $this->capture(fn () => app(ApprovalRepository::class)->getForOrganization($this->bench()));
+        $bench = $this->bench();
+        $sql = $this->capture(fn () => app(ApprovalRepository::class)->getForOrganization($bench));
 
         $this->explain('approval history', $sql[0] ?? '');
     })->group('query-read');
 
     it('explains the subsidiary tree', function (): void {
         /** @var TestCase $this */
-        $sql = $this->capture(fn () => app(OrganizationRepository::class)->getSubsidiaries($this->root()));
+        $root = $this->root();
+        $sql = $this->capture(fn () => app(OrganizationRepository::class)->getSubsidiaries($root));
 
         $this->explain('subsidiary edges', $sql[0] ?? '');
         $this->explain('subsidiary organizations', $sql[1] ?? '');
@@ -99,7 +101,7 @@ describe('Query plans', function (): void {
 describe('Actions', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
         $this->switchTo($this->benchOwner(), $this->bench());
     });
 
@@ -158,7 +160,7 @@ describe('Actions', function (): void {
 describe('Jobs', function (): void {
     beforeEach(function (): void {
         /** @var TestCase $this */
-        $this->requireQuery();
+        $this->requireWriteQuery();
     });
 
     it('runs the core deletion', function (): void {
