@@ -30,7 +30,7 @@ export default defineConfig(({ mode }): UserConfig => {
             sortTailwindcss: { stylesheet: 'resources/css/app.css' },
         },
         lint: {
-            ignorePatterns: ['vendor/**', 'node_modules/**', 'public/**', 'tests/coverage/**'],
+            ignorePatterns: ['vendor/**', 'node_modules/**', 'public/**', 'tests/coverage/**', 'tests/Stress/k6/**'],
             jsPlugins: [{ name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }],
             options: { typeAware: true, typeCheck: true },
             overrides: [

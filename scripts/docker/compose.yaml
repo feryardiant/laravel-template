@@ -40,7 +40,7 @@ services:
       TZ: Asia/Jakarta
     labels:
       dev.orbstack.http-port: 8080
-    deploy:
+    deploy: &app-deploy
       resources:
         limits:
           cpus: '1'
@@ -67,7 +67,7 @@ services:
     stop_grace_period: 90s
     healthcheck:
       <<: *healthcheck
-    deploy: *deploy
+    deploy: *app-deploy
 
   pgsql:
     image: postgres:${DB_VERSION:-18.6}-${BASE_OS:-alpine}${BASE_VERSION:-3.24}
@@ -82,7 +82,7 @@ services:
     healthcheck:
       test: [CMD, pg_isready, -q, '-d${DB_DATABASE:-laravel}', '-U${DB_USERNAME:-laravel}']
       <<: *healthcheck
-    deploy: *deploy
+    deploy: *app-deploy
 
   mailpit:
     image: axllent/mailpit:v1.27
@@ -92,6 +92,7 @@ services:
       - mailpit-data:/data
     labels:
       dev.orbstack.http-port: 8025
+    deploy: *deploy
 
   rustfs:
     image: rustfs/rustfs:1.0.4
@@ -111,6 +112,7 @@ services:
       start_period: 10s
     labels:
       dev.orbstack.http-port: 9001
+    deploy: *deploy
 
   rustfs-init:
     image: rustfs/rc:latest
