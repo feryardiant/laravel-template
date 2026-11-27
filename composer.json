@@ -90,11 +90,11 @@
             "Composer\\Config::disableProcessTimeout",
             "STRESS=1 SESSION_DRIVER=database SESSION_COOKIE=laravel-template-session vendor/bin/pest tests/Stress --group=stress"
         ],
-        "stress:query": [
-            "QUERY=1 vendor/bin/pest tests/Stress --group=query-read"
+        "stress:query-read": [
+            "vendor/bin/pest tests/Stress --group=query-read"
         ],
-        "stress:write": [
-            "QUERY_WRITE=1 vendor/bin/pest tests/Stress --group=query-write"
+        "stress:query-write": [
+            "vendor/bin/pest tests/Stress --group=query-write"
         ],
         "stress:multi": [
             "bash tests/Stress/k6/run.sh"
