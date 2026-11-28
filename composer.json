@@ -31,7 +31,8 @@
         "pestphp/pest": "^5.3",
         "pestphp/pest-plugin-browser": "^5.2",
         "pestphp/pest-plugin-laravel": "^5.0",
-        "pestphp/pest-plugin-phpstan": "^5.3"
+        "pestphp/pest-plugin-phpstan": "^5.3",
+        "pestphp/pest-plugin-stressless": "^5.0"
     },
     "autoload": {
         "psr-4": {
@@ -84,6 +85,19 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test tests/Browser @additional_args"
+        ],
+        "stress": [
+            "Composer\\Config::disableProcessTimeout",
+            "STRESS=1 SESSION_DRIVER=database SESSION_COOKIE=laravel-template-session vendor/bin/pest tests/Stress --group=stress"
+        ],
+        "stress:query-read": [
+            "vendor/bin/pest tests/Stress --group=query-read"
+        ],
+        "stress:query-write": [
+            "vendor/bin/pest tests/Stress --group=query-write"
+        ],
+        "stress:multi": [
+            "bash tests/Stress/k6/run.sh"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

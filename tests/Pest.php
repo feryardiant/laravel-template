@@ -17,6 +17,7 @@ use Database\Factories\OrganizationFactory;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 use Pest\Browser\ServerManager;
+use Tests\Stress\TestCase as StressTestCase;
 use Tests\Support\ContactDetailWriteFailed;
 use Tests\TestCase;
 
@@ -32,6 +33,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)->in('Feature', 'Browser', 'Unit');
+pest()->extend(StressTestCase::class)->in('Stress');
 
 pest()->browser()->timeout(10_000);
 
