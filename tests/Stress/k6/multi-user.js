@@ -77,6 +77,7 @@ export default function () {
         },
         tags: { name: 'target' },
         redirects: 0,
+        responseCallback: http.expectedStatuses(200),
     })
 
     const targetOk = check(response, {
@@ -84,14 +85,7 @@ export default function () {
     })
 
     if (!targetOk) {
-        console.info(
-            JSON.stringify({
-                vu: __VU,
-                url: response.url,
-                status: response.status,
-                body: response.body ? response.body.slice(0, 200) : '',
-            }),
-        )
+        fail(`Target ${targetPath} returned ${response.status} for ${handleForVu()}.`)
     }
 
     if (pause > 0) {

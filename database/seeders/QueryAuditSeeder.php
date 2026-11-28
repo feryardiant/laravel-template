@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 /**
  * Seeds a multi-tenant dataset for query measurements.
@@ -31,6 +32,10 @@ use RuntimeException;
  * (root and benchmark) so the same flows can be measured as the global data
  * grows. This is a measurement fixture, not demo data: it inserts in bulk and
  * bypasses model events.
+ *
+ * The fixture rows commit in one transaction; `setval` and `ANALYZE` run after
+ * it. If they fail, the data is already committed and the empty-database guard
+ * blocks a rerun, so run both by hand or recreate the disposable database.
  */
 class QueryAuditSeeder extends Seeder
 {
@@ -127,8 +132,15 @@ class QueryAuditSeeder extends Seeder
             $this->flush();
         });
 
-        $this->resetSequences();
-        $this->analyze();
+        try {
+            $this->resetSequences();
+            $this->analyze();
+        } catch (Throwable $exception) {
+            throw new RuntimeException(
+                'Fixture committed, but setval/ANALYZE failed. Run them by hand or recreate the disposable database.',
+                previous: $exception,
+            );
+        }
 
         $elapsed = (hrtime(true) - $started) / 1_000_000_000;
 

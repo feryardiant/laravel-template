@@ -112,18 +112,20 @@ abstract class TestCase extends BaseTestCase
      */
     protected function explain(string $label, string $sql): void
     {
-        if (! str_starts_with(strtolower(ltrim($sql)), 'select')) {
-            fwrite(STDERR, "    EXPLAIN {$label}: skipped (not a select)\n");
+        if (DB::getDriverName() !== 'pgsql') {
+            fwrite(STDERR, "    EXPLAIN {$label}: skipped (driver is not pgsql)\n");
 
             return;
+        }
+
+        if (! str_starts_with(strtolower(ltrim($sql)), 'select')) {
+            $this->fail("EXPLAIN [{$label}] needs a SELECT, got: ".($sql === '' ? '(empty)' : mb_substr($sql, 0, 80)));
         }
 
         try {
             $rows = DB::select('EXPLAIN (ANALYZE, BUFFERS) '.$sql);
         } catch (Throwable $exception) {
-            fwrite(STDERR, "    EXPLAIN {$label}: failed: {$exception->getMessage()}\n");
-
-            return;
+            $this->fail("EXPLAIN [{$label}] failed: {$exception->getMessage()}");
         }
 
         $lines = array_map(fn (object $row): string => (string) $row->{'QUERY PLAN'}, $rows);

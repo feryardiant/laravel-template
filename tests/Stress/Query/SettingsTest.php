@@ -59,12 +59,18 @@ describe('Actions', function (): void {
 
     it('updates the preferences', function (): void {
         /** @var TestCase $this */
-        $this->measure('preferences update', fn () => $this->patch(route('preferences.update'), [
-            'locale' => 'en',
-            'timezone' => 'Asia/Jakarta',
-        ]));
+        $response = null;
 
-        expect($this->benchOwner()->fresh()->timezone)->toBe('Asia/Jakarta');
+        $this->measure('preferences update', function () use (&$response): void {
+            $response = $this->patch(route('preferences.update'), [
+                'locale' => 'en',
+                'timezone' => 'UTC',
+            ]);
+        });
+
+        expect($response?->getStatusCode())->toBe(200)
+            ->and($response?->json('timezone'))->toBe('UTC')
+            ->and($this->benchOwner()->fresh()->timezone)->toBe('UTC');
     })->group('query-write');
 
     it('updates the password', function (): void {
