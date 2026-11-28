@@ -70,7 +70,9 @@ abstract class Entity extends Model
      */
     public function contactDetailValue(ContactDetailType $type): ?string
     {
-        $value = $this->contactDetails()->where('type', $type)->value('value');
+        $this->loadMissing('contactDetails');
+
+        $value = $this->contactDetails->firstWhere('type', $type)?->value;
 
         return \is_string($value) ? $value : null;
     }

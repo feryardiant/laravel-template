@@ -8,16 +8,17 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\ApprovalRequest;
 use App\Repositories\ApprovalRepository;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 /**
- * @property-read Collection<int, ApprovalRequest> $approvals
+ * @property-read LengthAwarePaginator<int, ApprovalRequest> $approvals
  */
 class ApprovalHistory extends Component
 {
-    use HasCurrentOrganization;
+    use HasCurrentOrganization, WithPagination;
 
     /**
      * Mount the component.
@@ -38,10 +39,10 @@ class ApprovalHistory extends Component
     /**
      * The current organization's approval requests, newest first.
      *
-     * @return Collection<int, ApprovalRequest>
+     * @return LengthAwarePaginator<int, ApprovalRequest>
      */
     #[Computed]
-    public function approvals(): Collection
+    public function approvals(): LengthAwarePaginator
     {
         $organization = $this->requireOrganization();
 

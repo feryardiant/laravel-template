@@ -46,7 +46,9 @@ class View extends Component
         $organization = $this->requireOrganization();
 
         // mount() only runs once; a later request must not render a removed member.
-        $member = app(MembershipRepository::class)->findInOrganization($organization, $this->person->getKey());
+        $member = $this->person->relationLoaded('pivot')
+            ? $this->person
+            : app(MembershipRepository::class)->findInOrganization($organization, $this->person->getKey());
 
         abort_if($member === null, 404);
 

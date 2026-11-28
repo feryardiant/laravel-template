@@ -55,13 +55,16 @@ test('it deletes the subsidiary subtree and its data', function () {
     ]);
     $alpha->subsidiaries()->attach($beta, ['type' => OrganizationRelationshipType::Subsidiary]);
 
+    $gamma = Organization::factory()->asTenantOf($this->root)->withAddress()->create(['name' => 'Gamma']);
+    $beta->subsidiaries()->attach($gamma, ['type' => OrganizationRelationshipType::Subsidiary]);
+
     $member = User::factory()->asMemberOf($alpha, Role::Member)->create();
 
     app(ToggleFeature::class)->activate($alpha, Feature::ContactGender);
 
     (new DeleteOrganization($alpha, $owner->getKey()))->handle(app(FileStorage::class));
 
-    expect(Organization::withTrashed()->whereKey([$alpha->getKey(), $beta->getKey()])->exists())->toBeFalse()
+    expect(Organization::withTrashed()->whereKey([$alpha->getKey(), $beta->getKey(), $gamma->getKey()])->exists())->toBeFalse()
         ->and(Organization::query()->whereKey($this->root->getKey())->exists())->toBeTrue()
         ->and(User::query()->whereKey($member->getKey())->exists())->toBeTrue()
         ->and(Person::query()->whereKey($member->person->getKey())->exists())->toBeTrue();
@@ -72,7 +75,8 @@ test('it deletes the subsidiary subtree and its data', function () {
         ->exists())->toBeFalse();
 
     expect(OrganizationRelationship::query()->forStakeholder($alpha)->exists())->toBeFalse()
-        ->and(OrganizationRelationship::query()->forStakeholder($beta)->exists())->toBeFalse();
+        ->and(OrganizationRelationship::query()->forStakeholder($beta)->exists())->toBeFalse()
+        ->and(OrganizationRelationship::query()->forStakeholder($gamma)->exists())->toBeFalse();
 
     expect(DB::table('features')
         ->where('scope', app(FeatureManager::class)->serializeScope($alpha))

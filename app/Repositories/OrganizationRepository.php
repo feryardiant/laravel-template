@@ -78,8 +78,14 @@ final class OrganizationRepository
      */
     public function getSubsidiaries(Organization $root): Collection
     {
+        $topRootId = $root->root_organization_id ?? $root->getKey();
+
         $relationships = OrganizationRelationship::query()
             ->subsidiaries()
+            ->whereIn('organization_id', Organization::query()
+                ->where('root_organization_id', $topRootId)
+                ->orWhereKey($topRootId)
+                ->select('id'))
             ->orderBy('id')
             ->get();
 
