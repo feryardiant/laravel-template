@@ -1,4 +1,5 @@
 import { check, fail, sleep } from 'k6'
+import exec from 'k6/execution'
 import http from 'k6/http'
 
 const baseUrl = (__ENV.BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
@@ -85,7 +86,7 @@ export default function () {
     })
 
     if (!targetOk) {
-        fail(`Target ${targetPath} returned ${response.status} for ${handleForVu()}.`)
+        exec.test.abort(`Target ${targetPath} returned ${response.status} for ${handleForVu()}.`)
     }
 
     if (pause > 0) {

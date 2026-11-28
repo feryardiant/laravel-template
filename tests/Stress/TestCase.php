@@ -113,9 +113,7 @@ abstract class TestCase extends BaseTestCase
     protected function explain(string $label, string $sql): void
     {
         if (DB::getDriverName() !== 'pgsql') {
-            fwrite(STDERR, "    EXPLAIN {$label}: skipped (driver is not pgsql)\n");
-
-            return;
+            $this->markTestSkipped('EXPLAIN plans require PostgreSQL.');
         }
 
         if (! str_starts_with(strtolower(ltrim($sql)), 'select')) {
