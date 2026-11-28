@@ -108,6 +108,13 @@ return new class extends Migration
             'CREATE UNIQUE INDEX org_relationship_owner_unique ON organization_relationships'
             .' (organization_id) WHERE type = \'member\' AND role = \'0\''
         );
+
+        // The contact search is a leading-wildcard ILIKE, so only a trigram index can serve it.
+        if ($connection->getDriverName() === 'pgsql') {
+            $connection->statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+            $connection->statement('CREATE INDEX people_name_trgm_idx ON people USING gin (name gin_trgm_ops)');
+            $connection->statement('CREATE INDEX organizations_name_trgm_idx ON organizations USING gin (name gin_trgm_ops)');
+        }
     }
 
     /**
@@ -133,5 +140,10 @@ return new class extends Migration
         }
 
         $connection->statement('DROP INDEX IF EXISTS organizations_root_tenant_unique');
+
+        if ($connection->getDriverName() === 'pgsql') {
+            $connection->statement('DROP INDEX IF EXISTS people_name_trgm_idx');
+            $connection->statement('DROP INDEX IF EXISTS organizations_name_trgm_idx');
+        }
     }
 };

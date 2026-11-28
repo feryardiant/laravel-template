@@ -32,27 +32,24 @@ class ContactLookupController extends Controller
 
         Gate::authorize('createContact', $organization);
 
-        $results = $search->handle($organization, trim((string) $request->query('q', '')))
+        $candidates = $search->handle($organization, trim((string) $request->query('q', '')));
+
+        $expired = OrganizationRelationship::query()
+            ->forOrganization($organization)
+            ->externals()
+            ->expired()
+            ->whereIn('stakeholder_id', $candidates->pluck('id')->all())
+            ->get(['stakeholder_type', 'stakeholder_id'])
+            ->keyBy(fn (OrganizationRelationship $relationship): string => $relationship->stakeholder_type.'#'.$relationship->stakeholder_id);
+
+        $results = $candidates
             ->map(fn (Organization|Person $entity): array => [
-                'label' => $this->candidateLabel($entity, $this->isExpiredFor($organization, $entity)),
+                'label' => $this->candidateLabel($entity, $expired->has($entity->getMorphClass().'#'.$entity->getKey())),
                 'value' => ($entity instanceof Organization ? 'organization' : 'individual').':'.$entity->uuid,
             ])
             ->values();
 
         return response()->json($results);
-    }
-
-    /**
-     * Determine whether the candidate is one of the tenant's expired contacts.
-     */
-    private function isExpiredFor(Organization $organization, Organization|Person $entity): bool
-    {
-        return OrganizationRelationship::query()
-            ->forOrganization($organization)
-            ->forStakeholder($entity)
-            ->externals()
-            ->expired()
-            ->exists();
     }
 
     /**

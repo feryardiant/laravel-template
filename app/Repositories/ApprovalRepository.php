@@ -10,6 +10,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Reads approval requests for the organization, approver, and requester.
@@ -17,17 +18,17 @@ use Illuminate\Database\Eloquent\Collection;
 final class ApprovalRepository
 {
     /**
-     * List the organization's approvals, newest first.
+     * Paginate the organization's approvals, newest first.
      *
-     * @return Collection<int, ApprovalRequest>
+     * @return LengthAwarePaginator<int, ApprovalRequest>
      */
-    public function getForOrganization(Organization $organization): Collection
+    public function getForOrganization(Organization $organization, int $perPage = 20): LengthAwarePaginator
     {
         return ApprovalRequest::query()
             ->forOrganization($organization)
             ->with(['requester', 'approver'])
             ->latest()
-            ->get();
+            ->paginate($perPage);
     }
 
     /**

@@ -9,20 +9,23 @@ use App\Livewire\Concerns\HasCurrentOrganization;
 use App\Models\Organization;
 use App\Repositories\OrganizationRepository;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 /**
  * @property-read ?Organization $root
- * @property-read Collection<int, array{organization: Organization, parent: Organization, kind: ?SubsidiaryKind, depth: int}> $subsidiaries
+ * @property-read LengthAwarePaginator<int, array{organization: Organization, parent: Organization, kind: ?SubsidiaryKind, depth: int}> $subsidiaries
  * @property-read bool $canManage
  */
 class Subsidiaries extends Component
 {
-    use HasCurrentOrganization;
+    use HasCurrentOrganization, WithPagination;
+
+    private const PER_PAGE = 50;
 
     /**
      * Mount the component.
@@ -64,12 +67,12 @@ class Subsidiaries extends Component
     }
 
     /**
-     * The root tenant's subsidiary tree, depth-first.
+     * The root tenant's subsidiary tree, depth-first, page by page.
      *
-     * @return Collection<int, array{organization: Organization, parent: Organization, kind: ?SubsidiaryKind, depth: int}>
+     * @return LengthAwarePaginator<int, array{organization: Organization, parent: Organization, kind: ?SubsidiaryKind, depth: int}>
      */
     #[Computed]
-    public function subsidiaries(): Collection
+    public function subsidiaries(): LengthAwarePaginator
     {
         $organization = $this->currentOrganization();
 
@@ -77,7 +80,15 @@ class Subsidiaries extends Component
 
         $this->authorize('viewSubsidiaries', $organization);
 
-        return app(OrganizationRepository::class)->getSubsidiaries($organization);
+        $rows = app(OrganizationRepository::class)->getSubsidiaries($organization);
+
+        return new LengthAwarePaginator(
+            $rows->forPage($this->getPage(), self::PER_PAGE)->values(),
+            $rows->count(),
+            self::PER_PAGE,
+            $this->getPage(),
+            ['path' => LengthAwarePaginator::resolveCurrentPath()],
+        );
     }
 
     /**

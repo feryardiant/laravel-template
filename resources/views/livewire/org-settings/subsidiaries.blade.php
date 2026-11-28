@@ -75,6 +75,8 @@
                     </div>
                 @endforeach
             </div>
+
+            <flux:pagination :paginator="$this->subsidiaries" />
         @endif
     </x-org-settings.layout>
 

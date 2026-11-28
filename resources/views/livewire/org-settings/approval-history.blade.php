@@ -48,6 +48,8 @@
                     </div>
                 @endforeach
             </div>
+
+            <flux:pagination :paginator="$this->approvals" />
         @endif
     </x-org-settings.layout>
 </x-page>
